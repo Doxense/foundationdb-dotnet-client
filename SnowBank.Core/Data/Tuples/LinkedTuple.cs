@@ -27,15 +27,17 @@
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
+	using System.ComponentModel;
 	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
-	[DebuggerDisplay("{ToString(),nq}")]
+	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class LinkedTuple<T> : IVarTuple, ITupleFormattable
+	[DebuggerNonUserCode]
+	public sealed class LinkedTuple<T> : IVarTuple, IComparable, ITupleFormattable
 	{
 		//TODO: consider changing this to a struct ?
 
@@ -151,7 +153,7 @@ namespace SnowBank.Data.Tuples
 			yield return this.Tail;
 		}
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return this.GetEnumerator();
 		}
@@ -197,20 +199,26 @@ namespace SnowBank.Data.Tuples
 
 		public override bool Equals(object? obj)
 		{
-			return obj != null && ((System.Collections.IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);
+			return obj != null && ((IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);
 		}
 
 		public bool Equals(IVarTuple? other)
 		{
-			return !ReferenceEquals(other, null) && ((System.Collections.IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
+			return !ReferenceEquals(other, null) && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
 		{
-			return ((System.Collections.IStructuralEquatable) this).GetHashCode(SimilarValueComparer.Default);
+			return ((IStructuralEquatable) this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
+		public int CompareTo(IVarTuple? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+
+		public int CompareTo(object? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => TupleHelpers.Compare(this, other, comparer);
+
+		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			if (ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
@@ -228,7 +236,7 @@ namespace SnowBank.Data.Tuples
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
-		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			int hc = this.Head.Count;
 			return hc switch

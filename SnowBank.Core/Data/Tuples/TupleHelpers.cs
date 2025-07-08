@@ -27,6 +27,7 @@
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
+	using SnowBank.Runtime;
 
 	/// <summary>Helpers for writing custom <see cref="IVarTuple"/> implementations</summary>
 	[PublicAPI]
@@ -34,7 +35,7 @@ namespace SnowBank.Data.Tuples
 	public static class TupleHelpers
 	{
 
-		/// <summary>Default (non-optimized) implementation of ITuple.this[long?, long?]</summary>
+		/// <summary>Default (non-optimized) implementation of <c>ITuple.this[long?, long?]</c></summary>
 		/// <param name="tuple">Tuple to slice</param>
 		/// <param name="fromIncluded">Start offset of the section (included)</param>
 		/// <param name="toExcluded">End offset of the section (included)</param>
@@ -73,7 +74,7 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
-		/// <summary>Default (non-optimized) implementation of ITuple.this[Range]</summary>
+		/// <summary>Default (non-optimized) implementation of <c>ITuple.this[Range]</c></summary>
 		/// <param name="tuple">Tuple to slice</param>
 		/// <param name="range">Range to select</param>
 		/// <returns>New tuple only containing items inside this section</returns>
@@ -110,7 +111,7 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
-		/// <summary>Default (non-optimized) implementation for ITuple.StartsWith()</summary>
+		/// <summary>Default (non-optimized) implementation for <c>ITuple.StartsWith()</c></summary>
 		/// <param name="a">Larger tuple</param>
 		/// <param name="b">Smaller tuple</param>
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
@@ -131,7 +132,7 @@ namespace SnowBank.Data.Tuples
 			return true;
 		}
 
-		/// <summary>Default (non-optimized) implementation for ITuple.EndsWith()</summary>
+		/// <summary>Default (non-optimized) implementation for <c>ITuple.EndsWith()</c></summary>
 		/// <param name="a">Larger tuple</param>
 		/// <param name="b">Smaller tuple</param>
 		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
@@ -232,25 +233,35 @@ namespace SnowBank.Data.Tuples
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
 		}
 
-		public static bool Equals(IVarTuple? left, object? other, IEqualityComparer comparer)
+		public static bool Equals<TTuple>(TTuple? left, object? other, IEqualityComparer comparer)
+			where TTuple : class, IVarTuple
 		{
-			return left == null ? other == null
-				: other is IVarTuple vt ? Equals(left, vt, comparer)
-				: other is ITuple tt ? Equals(left, tt, comparer)
-				: false;
+			return left is null ? other is null : other switch
+			{
+				IVarTuple t => Equals(left, t, comparer),
+				ITuple t => Equals(left, t, comparer),
+				_ => false
+			};
 		}
 
-		public static bool Equals(IVarTuple? x, IVarTuple? y, IEqualityComparer comparer)
+		public static bool Equals<TTuple>(in TTuple left, object? other, IEqualityComparer comparer)
+			where TTuple : struct, IVarTuple
+		{
+			return other switch
+			{
+				IVarTuple t => Equals(in left, t, comparer),
+				ITuple t => Equals(in left, t, comparer),
+				_ => false
+			};
+		}
+
+		public static bool Equals<TTuple>(TTuple? x, IVarTuple? y, IEqualityComparer comparer)
+			where TTuple : class, IVarTuple
 		{
 			if (object.ReferenceEquals(x, y)) return true;
-			if (x == null || y == null) return false;
+			if (x is null || y is null) return false;
 
-			return x.Count == y.Count && DeepEquals(x, y, comparer);
-		}
-
-		public static bool DeepEquals(IVarTuple x, IVarTuple y, IEqualityComparer comparer)
-		{
-			Contract.Debug.Requires(x != null && y != null && comparer != null);
+			if (x.Count != y.Count) return false;
 
 			using var xs = x.GetEnumerator();
 			using var ys = y.GetEnumerator();
@@ -264,17 +275,132 @@ namespace SnowBank.Data.Tuples
 			return !ys.MoveNext();
 		}
 
-		public static bool Equals(IVarTuple? x, ITuple? y, IEqualityComparer comparer)
+		public static bool Equals<TTuple>(in TTuple x, IVarTuple? y, IEqualityComparer comparer)
+			where TTuple : struct, IVarTuple
 		{
-			if (object.ReferenceEquals(x, y)) return true;
-			if (x == null || y == null) return false;
+			if (y is null) return false;
 
-			return x.Count == y.Length && DeepEquals(x, y, comparer);
+			if (x.Count != y.Count) return false;
+
+			using var xs = x.GetEnumerator();
+			using var ys = y.GetEnumerator();
+
+			while (xs.MoveNext())
+			{
+				if (!ys.MoveNext()) return false;
+				if (!comparer.Equals(xs.Current, ys.Current)) return false;
+			}
+
+			return !ys.MoveNext();
 		}
 
-		public static bool DeepEquals(IVarTuple x, ITuple y, IEqualityComparer comparer)
+		public static bool Equals<TTuple>(TTuple? x, ITuple? y, IEqualityComparer comparer)
+			where TTuple : class, IVarTuple
 		{
-			Contract.Debug.Requires(x != null && y != null && comparer != null);
+			if (object.ReferenceEquals(x, y)) return true;
+			if (x is null || y is null) return false;
+
+			int len = y.Length;
+			if (x.Count != len) return false;
+
+			using var xs = x.GetEnumerator();
+
+			int i = 0;
+			while (xs.MoveNext())
+			{
+				if (i >= len) return false;
+				if (!comparer.Equals(xs.Current, y[i++])) return false;
+			}
+
+			return i == len;
+		}
+
+		public static bool Equals<TTuple>(in TTuple x, ITuple? y, IEqualityComparer comparer)
+			where TTuple : struct, IVarTuple
+		{
+			if (y is null) return false;
+
+			int len = y.Length;
+			if (x.Count != len) return false;
+
+			using var xs = x.GetEnumerator();
+
+			int i = 0;
+			while (xs.MoveNext())
+			{
+				if (i >= len) return false;
+				if (!comparer.Equals(xs.Current, y[i++])) return false;
+			}
+
+			return i == len;
+		}
+
+		public static int Compare<TTuple>(TTuple? left, object? other, IComparer comparer)
+			where TTuple : class, IVarTuple
+		{
+			return left is null ? (other is null ? 0 : -1) : other switch
+			{
+				null => +1,
+				IVarTuple t => Compare(left, t, comparer),
+				ITuple t => Compare(left, t, comparer),
+				_ => throw new ArgumentException($"Cannot compare {left.GetType().GetFriendlyName()} with an instance of {other.GetType().GetFriendlyName()}", nameof(other)),
+			};
+		}
+
+		public static int Compare<TTuple>(in TTuple left, object? other, IComparer comparer)
+			where TTuple : struct, IVarTuple
+			=> other switch
+			{
+				null => +1,
+				IVarTuple t => Compare(left, t, comparer),
+				ITuple t => Compare(left, t, comparer),
+				_ => throw new ArgumentException($"Cannot compare {left.GetType().GetFriendlyName()} with an instance of {other.GetType().GetFriendlyName()}", nameof(other)),
+			};
+
+		public static int Compare<TTuple>(TTuple? x, IVarTuple? y, IComparer comparer)
+			where TTuple : class, IVarTuple
+		{
+			if (ReferenceEquals(x, y)) return 0;
+			if (x is null) return -1;
+			if (y is null) return +1;
+
+			using var xs = x.GetEnumerator();
+			using var ys = y.GetEnumerator();
+
+			while (xs.MoveNext())
+			{
+				if (!ys.MoveNext()) return +1;
+				int cmp = comparer.Compare(xs.Current, ys.Current);
+				if (cmp != 0) return cmp;
+			}
+
+			return !ys.MoveNext() ? 0 : -1;
+		}
+
+		public static int Compare<TTuple>(in TTuple x, IVarTuple? y, IComparer comparer)
+			where TTuple : struct, IVarTuple
+		{
+			if (y is null) return +1;
+
+			using var xs = x.GetEnumerator();
+			using var ys = y.GetEnumerator();
+
+			while (xs.MoveNext())
+			{
+				if (!ys.MoveNext()) return +1;
+				int cmp = comparer.Compare(xs.Current, ys.Current);
+				if (cmp != 0) return cmp;
+			}
+
+			return !ys.MoveNext() ? 0 : -1;
+		}
+
+		public static int Compare<TTuple>(TTuple? x, ITuple? y, IComparer comparer)
+			where TTuple : class, IVarTuple
+		{
+			if (ReferenceEquals(x, y)) return 0;
+			if (x is null) return -1;
+			if (y is null) return +1;
 
 			using var xs = x.GetEnumerator();
 
@@ -283,11 +409,32 @@ namespace SnowBank.Data.Tuples
 
 			while (xs.MoveNext())
 			{
-				if (i >= len) return false;
-				if (!comparer.Equals(xs.Current, y[i++])) return false;
+				if (i >= len) return +1;
+				int cmp = comparer.Compare(xs.Current, y[i++]);
+				if (cmp != 0) return cmp;
 			}
 
-			return i == len;
+			return i == len ? 0 : -1;
+		}
+
+		public static int Compare<TTuple>(in TTuple x, ITuple? y, IComparer comparer)
+			where TTuple : struct, IVarTuple
+		{
+			if (y is null) return +1;
+
+			using var xs = x.GetEnumerator();
+
+			int i = 0;
+			int len = y.Length;
+
+			while (xs.MoveNext())
+			{
+				if (i >= len) return +1;
+				int cmp = comparer.Compare(xs.Current, y[i++]);
+				if (cmp != 0) return cmp;
+			}
+
+			return i == len ? 0 : -1;
 		}
 
 		public static int StructuralGetHashCode(IVarTuple? tuple, IEqualityComparer comparer)

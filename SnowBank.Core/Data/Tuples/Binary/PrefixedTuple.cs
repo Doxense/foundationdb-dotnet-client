@@ -27,13 +27,14 @@
 namespace SnowBank.Data.Tuples.Binary
 {
 	using System.Collections;
+	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
 	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that has a fixed arbitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class PrefixedTuple : IVarTuple, ITupleSerializable, ITupleFormattable
+	public sealed class PrefixedTuple : IVarTuple, IComparable, ITupleSerializable, ITupleFormattable
 	{
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
@@ -160,7 +161,13 @@ namespace SnowBank.Data.Tuples.Binary
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
+		public int CompareTo(IVarTuple? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+
+		public int CompareTo(object? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => TupleHelpers.Compare(this, other, comparer);
+
+		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
@@ -189,7 +196,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
-		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			return HashCode.Combine(
 				m_prefix.GetHashCode(),

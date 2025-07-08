@@ -31,12 +31,16 @@ namespace SnowBank.Data.Tuples
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
+	using SnowBank.Runtime;
 	using SnowBank.Runtime.Converters;
 	using SnowBank.Text;
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]
-	public readonly struct STuple : IVarTuple, ITupleSerializable, ITupleFormattable
+	[DebuggerNonUserCode]
+	public readonly struct STuple : IVarTuple
+		, IEquatable<STuple>, IComparable<STuple>, IComparable
+		, ITupleSerializable, ITupleFormattable
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
@@ -130,22 +134,44 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
+		bool IEquatable<STuple>.Equals(STuple value) => true;
+
+		/// <inheritdoc />
 		public bool Equals(IVarTuple? value)
-		{
-			return value != null && value.Count == 0;
-		}
+			=> value is STuple || (value is not null && value.Count == 0);
 
 		/// <inheritdoc />
 		public override bool Equals(object? obj)
-		{
-			return Equals(obj as IVarTuple);
-		}
+			=> obj is STuple || (obj is IVarTuple t && t.Count == 0);
 
 		/// <inheritdoc />
 		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
+			=> other is STuple || (other is IVarTuple t && t.Count == 0);
+
+		int IComparable<STuple>.CompareTo(STuple other) => 0;
+
+		public int CompareTo(IVarTuple? other) => other switch
 		{
-			return other is IVarTuple tuple && tuple.Count == 0;
-		}
+			null => -1,
+			STuple => 0,
+			_ => (other.Count == 0 ? 0 : -1),
+		};
+
+		public int CompareTo(object? other) => other switch
+		{
+			null => -1,
+			STuple => 0,
+			IVarTuple t => (t.Count == 0 ? 0 : -1),
+			_ => throw new ArgumentException($"Cannot compare STuple to instance of {other.GetType().GetFriendlyName()}", nameof(other)),
+		};
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => other switch
+		{
+			null => -1,
+			STuple => 0,
+			IVarTuple t => (t.Count == 0 ? 0 : -1),
+			_ => throw new ArgumentException($"Cannot compare STuple to instance of {other.GetType().GetFriendlyName()}", nameof(other)),
+		};
 
 		/// <inheritdoc />
 		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)

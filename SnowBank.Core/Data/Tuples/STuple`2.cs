@@ -37,7 +37,12 @@ namespace SnowBank.Data.Tuples
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct STuple<T1, T2> : IVarTuple, IEquatable<STuple<T1, T2>>, IEquatable<(T1, T2)>, ITupleSerializable, ITupleFormattable
+	[DebuggerNonUserCode]
+	public readonly struct STuple<T1, T2> : IVarTuple
+		, IEquatable<STuple<T1, T2>>, IComparable<STuple<T1, T2>>
+		, IEquatable<(T1, T2)>, IComparable<(T1, T2)>
+		, IComparable
+		, ITupleSerializable, ITupleFormattable
 	{
 		// This is mostly used by code that create a lot of temporary pair, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -266,53 +271,76 @@ namespace SnowBank.Data.Tuples
 
 		public override bool Equals(object? obj)
 		{
-			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
+			return obj is not null && ((IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);
 		}
 
 		public bool Equals(IVarTuple? other)
 		{
-			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+			return other is not null && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2> other)
-		{
-			return SimilarValueComparer.Default.Equals(this.Item1, other.Item1)
-			    && SimilarValueComparer.Default.Equals(this.Item2, other.Item2);
-		}
+		public bool Equals(STuple<T1, T2> other) => EqualityComparer.Equals(in this, in other);
 
-		public override int GetHashCode()
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals((T1, T2) other) => EqualityComparer.Equals(in this, in other);
+
+		public override int GetHashCode() => EqualityComparer.GetHashCode(in this);
+
+		/// <inheritdoc />
+		public int CompareTo(STuple<T1, T2> other) => Comparer.Compare(in this, in other);
+
+		/// <inheritdoc />
+		public int CompareTo(ValueTuple<T1, T2> other) => Comparer.Compare(in this, in other);
+
+		/// <inheritdoc />
+		public int CompareTo(IVarTuple? other) => other switch
 		{
-			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
-		}
+			null => +1,
+			STuple<T1, T2> t => Comparer.Compare(in this, in t),
+			_ => TupleHelpers.Compare(this, other, SimilarValueComparer.Default),
+		};
+
+		int IComparable.CompareTo(object? other) => other switch
+		{
+			null => +1,
+			STuple<T1, T2> t => Comparer.Compare(in this, in t),
+			ValueTuple<T1, T2> t => Comparer.Compare(in this, in t),
+			_ => TupleHelpers.Compare(in this, other, SimilarValueComparer.Default),
+		};
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => other switch
+		{
+			STuple<T1, T2> t => Comparer.Compare(in this, in t),
+			ValueTuple<T1, T2> t => Comparer.Compare(in this, in t),
+			_ => TupleHelpers.Compare(in this, other, comparer),
+		};
 
 		public static bool operator ==(STuple<T1, T2> left, STuple<T1, T2> right)
-		{
-			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-			    && SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
-		}
+			=> EqualityComparer.Equals(in left, in right);
 
 		public static bool operator !=(STuple<T1, T2> left, STuple<T1, T2> right)
-		{
-			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-			    || !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
-		}
+			=> !EqualityComparer.Equals(in left, in right);
 
-		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
+		public static bool operator ==(STuple<T1, T2> left, (T1, T2) right)
+			=> EqualityComparer.Equals(in left, in right);
+
+		public static bool operator !=(STuple<T1, T2> left, (T1, T2) right)
+			=> !EqualityComparer.Equals(in left, in right);
+
+		public static bool operator ==((T1, T2) left, STuple<T1, T2> right)
+			=> EqualityComparer.Equals(in right, in left);
+
+		public static bool operator !=((T1, T2) left, STuple<T1, T2> right)
+			=> !EqualityComparer.Equals(in right, in left);
+
+		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer) => other switch
 		{
-			if (other == null) return false;
-			if (other is STuple<T1, T2> stuple)
-			{
-				return comparer.Equals(this.Item1, stuple.Item1)
-				    && comparer.Equals(this.Item2, stuple.Item2);
-			}
-			if (other is ValueTuple<T1, T2> vtuple)
-			{
-				return comparer.Equals(this.Item1, vtuple.Item1)
-				    && comparer.Equals(this.Item2, vtuple.Item2);
-			}
-			return TupleHelpers.Equals(this, other, comparer);
-		}
+			null => false,
+			STuple<T1, T2> t => comparer.Equals(this.Item1, t.Item1) && comparer.Equals(this.Item2, t.Item2),
+			ValueTuple<T1, T2> t => comparer.Equals(this.Item1, t.Item1) && comparer.Equals(this.Item2, t.Item2),
+			_ => TupleHelpers.Equals(this, other, comparer)
+		};
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
@@ -336,13 +364,13 @@ namespace SnowBank.Data.Tuples
 		public static implicit operator STuple<T1, T2>(Tuple<T1, T2> t)
 		{
 			Contract.NotNull(t);
-			return new STuple<T1, T2>(t.Item1, t.Item2);
+			return new(t.Item1, t.Item2);
 		}
 
 		[Pure]
 		public static explicit operator Tuple<T1, T2>(STuple<T1, T2> t)
 		{
-			return new Tuple<T1, T2>(t.Item1, t.Item2);
+			return new(t.Item1, t.Item2);
 		}
 
 		public void Fill(ref (T1, T2) t)
@@ -357,7 +385,7 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3> Concat<T3>(ValueTuple<T3> tuple)
 		{
-			return new STuple<T1, T2, T3>(this.Item1, this.Item2, tuple.Item1);
+			return new(this.Item1, this.Item2, tuple.Item1);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -366,7 +394,7 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3, T4> Concat<T3, T4>((T3, T4) tuple)
 		{
-			return new STuple<T1, T2, T3, T4>(this.Item1, this.Item2, tuple.Item1, tuple.Item2);
+			return new(this.Item1, this.Item2, tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -375,7 +403,7 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5> Concat<T3, T4, T5>((T3, T4, T5) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5>(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3);
+			return new(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -384,7 +412,7 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5, T6> Concat<T3, T4, T5, T6>((T3, T4, T5, T6) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+			return new(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -393,7 +421,7 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5, T6, T7> Concat<T3, T4, T5, T6, T7>((T3, T4, T5, T6, T7) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7>(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+			return new(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -402,7 +430,7 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5, T6, T7, T8> Concat<T3, T4, T5, T6, T7, T8>((T3, T4, T5, T6, T7, T8) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
+			return new(this.Item1, this.Item2, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -423,37 +451,6 @@ namespace SnowBank.Data.Tuples
 			return (t.Item1, t.Item2);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool IEquatable<(T1, T2)>.Equals((T1, T2) other)
-		{
-			return SimilarValueComparer.Default.Equals(this.Item1, other.Item1)
-				&& SimilarValueComparer.Default.Equals(this.Item2, other.Item2);
-		}
-
-		public static bool operator ==(STuple<T1, T2> left, (T1, T2) right)
-		{
-			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
-		}
-
-		public static bool operator ==((T1, T2) left, STuple<T1, T2> right)
-		{
-			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
-		}
-
-		public static bool operator !=(STuple<T1, T2> left, (T1, T2) right)
-		{
-			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
-		}
-
-		public static bool operator !=((T1, T2) left, STuple<T1, T2> right)
-		{
-			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
-				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
-		}
-
 		public sealed class Comparer : IComparer<STuple<T1, T2>>
 		{
 
@@ -465,6 +462,20 @@ namespace SnowBank.Data.Tuples
 			private Comparer() { }
 
 			public int Compare(STuple<T1, T2> x, STuple<T1, T2> y)
+			{
+				int cmp = Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = Comparer2.Compare(x.Item2, y.Item2);
+				return cmp;
+			}
+
+			public static int Compare(in STuple<T1, T2> x, in STuple<T1, T2> y)
+			{
+				int cmp = Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = Comparer2.Compare(x.Item2, y.Item2);
+				return cmp;
+			}
+
+			public static int Compare(in STuple<T1, T2> x, in (T1, T2) y)
 			{
 				int cmp = Comparer1.Compare(x.Item1, y.Item1);
 				if (cmp == 0) cmp = Comparer2.Compare(x.Item2, y.Item2);
@@ -485,11 +496,31 @@ namespace SnowBank.Data.Tuples
 
 			public bool Equals(STuple<T1, T2> x, STuple<T1, T2> y)
 			{
-				return Comparer1.Equals(x.Item1, y.Item1)
-				    && Comparer2.Equals(x.Item2, y.Item2);
+				return Comparer1.Equals(x.Item1, y.Item1) 
+					&& Comparer2.Equals(x.Item2, y.Item2);
+			}
+
+			public static bool Equals(in STuple<T1, T2> x, in STuple<T1, T2> y)
+			{
+				return Comparer1.Equals(x.Item1, y.Item1) 
+					&& Comparer2.Equals(x.Item2, y.Item2);
+			}
+
+			public static bool Equals(in STuple<T1, T2> x, in (T1, T2) y)
+			{
+				return Comparer1.Equals(x.Item1, y.Item1) 
+					&& Comparer2.Equals(x.Item2, y.Item2);
 			}
 
 			public int GetHashCode(STuple<T1, T2> obj)
+			{
+				return TupleHelpers.CombineHashCodes(
+					obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1,
+					obj.Item2 is not null ? Comparer2.GetHashCode(obj.Item2) : -1
+				);
+			}
+
+			public static int GetHashCode(in STuple<T1, T2> obj)
 			{
 				return TupleHelpers.CombineHashCodes(
 					obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1,

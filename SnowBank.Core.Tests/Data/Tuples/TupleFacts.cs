@@ -33,7 +33,10 @@
 
 namespace SnowBank.Data.Tuples.Tests
 {
+	using System.Collections;
+	using System.Linq;
 	using System.Net;
+
 	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime;
@@ -129,6 +132,28 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(t1.Concat((123, false, 1234L)), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
 			Assert.That(t1.Concat((123, false, 1234L, -1234)), Is.InstanceOf<STuple<string, int, bool, long, int>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
 			Assert.That(t1.Concat((123, false, 1234L, -1234, Math.PI)), Is.InstanceOf<STuple<string, int, bool, long, int, double>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
+
+			Assert.Multiple(() =>
+			{
+				var t = STuple.Create(1);
+
+				Assert.That(t.Equals(t), Is.True);
+				Assert.That(t.Equals((IVarTuple) t), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Default), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Relaxed), Is.True);
+				Assert.That(t.Equals(t.ToValueTuple()), Is.True);
+
+				Assert.That(t.CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo((IVarTuple) t), Is.Zero);
+				Assert.That(((IComparable) t).CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo(t.ToValueTuple()), Is.Zero);
+
+				Assert.That(t.CompareTo(STuple.Create(2)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(0)), Is.GreaterThan(0));
+
+				Assert.That(t.CompareTo(STuple.Create(1, 2)), Is.LessThan(0));
+				Assert.That(STuple.Create(1, 2).CompareTo(t), Is.GreaterThan(0));
+			});
 		}
 
 		[Test]
@@ -187,6 +212,30 @@ namespace SnowBank.Data.Tuples.Tests
 
 			Assert.That(t2.Append(false), Is.InstanceOf<STuple<string, int, bool>>().And.EqualTo(STuple.Create("hello world", 123, false)));
 			Assert.That(t2.Append(false, 1234L), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+
+			Assert.Multiple(() =>
+			{
+				var t = STuple.Create(1, 2);
+
+				Assert.That(t.Equals(t), Is.True);
+				Assert.That(t.Equals((IVarTuple) t), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Default), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Relaxed), Is.True);
+				Assert.That(t.Equals(t.ToValueTuple()), Is.True);
+
+				Assert.That(t.CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo((IVarTuple) t), Is.Zero);
+				Assert.That(((IComparable) t).CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo(t.ToValueTuple()), Is.Zero);
+
+				Assert.That(t.CompareTo(STuple.Create(2, 2)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 3)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(0, 2)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 1)), Is.GreaterThan(0));
+
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3)), Is.LessThan(0));
+				Assert.That(STuple.Create(1, 2, 3).CompareTo(t), Is.GreaterThan(0));
+			});
 		}
 
 		[Test]
@@ -264,6 +313,34 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(t3.Append(1234L), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
 			Assert.That(t3.Append(1234L, -1234), Is.InstanceOf<STuple<string, int, bool, long, int>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
 			Assert.That(t3.Append(1234L, -1234, Math.PI), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
+
+			Assert.Multiple(() =>
+			{
+				var t = STuple.Create(1, 2, 3);
+
+				Assert.That(t.Equals(t), Is.True);
+				Assert.That(t.Equals((IVarTuple) t), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Default), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Relaxed), Is.True);
+				Assert.That(t.Equals(t.ToValueTuple()), Is.True);
+
+				Assert.That(t.CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo((IVarTuple) t), Is.Zero);
+				Assert.That(((IComparable) t).CompareTo(t), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Default), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Relaxed), Is.Zero);
+				Assert.That(t.CompareTo(t.ToValueTuple()), Is.Zero);
+
+				Assert.That(t.CompareTo(STuple.Create(2, 2, 3)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 3, 3)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 4)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(0, 2, 3)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 1, 3)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 2)), Is.GreaterThan(0));
+
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4)), Is.LessThan(0));
+				Assert.That(STuple.Create(1, 2, 3, 4).CompareTo(t), Is.GreaterThan(0));
+			});
 		}
 
 		[Test]
@@ -348,8 +425,39 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(t4.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world", 123, false, 1234L)));
 			Assert.That((STuple<string, int, bool, long>) Tuple.Create("hello world", 123, false, 1234L), Is.EqualTo(t4));
 
-			Assert.That(t4.Append(-1234), Is.InstanceOf<LinkedTuple<int>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
-			Assert.That(t4.Append(-1234, Math.PI), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
+			Assert.That(((IVarTuple) t4).Append(-1234), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t4.Append(-1234), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t4.Append(-1234, Math.PI), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
+
+			Assert.Multiple(() =>
+			{
+				var t = STuple.Create(1, 2, 3, 4);
+
+				Assert.That(t.Equals(t), Is.True);
+				Assert.That(t.Equals((IVarTuple) t), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Default), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Relaxed), Is.True);
+				Assert.That(t.Equals(t.ToValueTuple()), Is.True);
+
+				Assert.That(t.CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo((IVarTuple) t), Is.Zero);
+				Assert.That(((IComparable) t).CompareTo(t), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Default), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Relaxed), Is.Zero);
+				Assert.That(t.CompareTo(t.ToValueTuple()), Is.Zero);
+
+				Assert.That(t.CompareTo(STuple.Create(2, 2, 3, 4)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 3, 3, 4)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 4, 4)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 5)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(0, 2, 3, 4)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 1, 3, 4)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 2, 4)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 3)), Is.GreaterThan(0));
+
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5)), Is.LessThan(0));
+				Assert.That(STuple.Create(1, 2, 3, 4, 5).CompareTo(t), Is.GreaterThan(0));
+			});
 		}
 
 		[Test]
@@ -430,8 +538,50 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(t5.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world", 123, false, 1234L, -1234)));
 			Assert.That((STuple<string, int, bool, long, int>) Tuple.Create("hello world", 123, false, 1234L, -1234), Is.EqualTo(t5));
 
-			Assert.That(t5.Append("six"), Is.InstanceOf<LinkedTuple<string>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six")));
-			Assert.That(t5.Append("six", "seven"), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
+			Assert.That(((IVarTuple) t5).Append("six"), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six")));
+			Assert.That(t5.Append("six"), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six")));
+			Assert.That(t5.Append("six", "seven"), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
+			Assert.That(t5.Append("six", "seven", "eight"), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven", "eight")));
+
+			Assert.That(t5.Concat(STuple.Create("six")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six")));
+			Assert.That(t5.Concat(STuple.Create("six", "seven")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
+			Assert.That(t5.Concat(STuple.Create("six", "seven", "eight")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven", "eight")));
+
+			Assert.That(t5.Concat(ValueTuple.Create("six")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six")));
+			Assert.That(t5.Concat(ValueTuple.Create("six", "seven")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
+			Assert.That(t5.Concat(ValueTuple.Create("six", "seven", "eight")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven", "eight")));
+
+			Assert.Multiple(() =>
+			{
+				var t = STuple.Create(1, 2, 3, 4, 5);
+
+				Assert.That(t.Equals(t), Is.True);
+				Assert.That(t.Equals((IVarTuple) t), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Default), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Relaxed), Is.True);
+				Assert.That(t.Equals(t.ToValueTuple()), Is.True);
+
+				Assert.That(t.CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo((IVarTuple) t), Is.Zero);
+				Assert.That(((IComparable) t).CompareTo(t), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Default), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Relaxed), Is.Zero);
+				Assert.That(t.CompareTo(t.ToValueTuple()), Is.Zero);
+
+				Assert.That(t.CompareTo(STuple.Create(2, 2, 3, 4, 5)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 3, 3, 4, 5)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 4, 4, 5)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 5, 5)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 6)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(0, 2, 3, 4, 5)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 1, 3, 4, 5)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 2, 4, 5)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 3, 5)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 4)), Is.GreaterThan(0));
+
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6)), Is.LessThan(0));
+				Assert.That(STuple.Create(1, 2, 3, 4, 5, 6).CompareTo(t), Is.GreaterThan(0));
+			});
 		}
 
 		[Test]
@@ -500,6 +650,18 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123).Concat(STuple.Create(true, "foo", 666, false, "bar")).GetHashCode()), "Hashcode should be stable");
 			Assert.That(STuple.Create(123, true, "foo", 666, false, "bar").GetHashCode(), Is.EqualTo(STuple.Create(123L, 1, "foo", 666UL, 0, "bar").GetHashCode()), "Hashcode should be stable");
 
+			Assert.That(((IVarTuple) t6).Append("seven"), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
+			Assert.That(t6.Append("seven"), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
+			Assert.That(t6.Append("seven", "eight"), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven", "eight")));
+			Assert.That(t6.Append("seven", "eight","nine"), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven", "eight", "nine")));
+
+			Assert.That(t6.Concat(STuple.Create("seven")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
+			Assert.That(t6.Concat(STuple.Create("seven", "eight")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven", "eight")));
+			Assert.That(t6.Concat(STuple.Create("seven", "eight", "nine")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven", "eight", "nine")));
+
+			Assert.That(t6.Concat(ValueTuple.Create("seven")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven")));
+			Assert.That(t6.Concat(ValueTuple.Create("seven", "eight")), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, "six", "seven", "eight")));
+
 			{ // Deconstruct
 				t6.Deconstruct(out string item1, out int item2, out bool item3, out long item4, out long item5, out string item6);
 				Assert.That(item1, Is.EqualTo("hello world"));
@@ -518,6 +680,40 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(item5, Is.EqualTo(-1234L));
 				Assert.That(item6, Is.EqualTo("six"));
 			}
+
+			Assert.Multiple(() =>
+			{
+				var t = STuple.Create(1, 2, 3, 4, 5, 6);
+
+				Assert.That(t.Equals(t), Is.True);
+				Assert.That(t.Equals((IVarTuple) t), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Default), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Relaxed), Is.True);
+				Assert.That(t.Equals(t.ToValueTuple()), Is.True);
+
+				Assert.That(t.CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo((IVarTuple) t), Is.Zero);
+				Assert.That(((IComparable) t).CompareTo(t), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Default), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Relaxed), Is.Zero);
+				Assert.That(t.CompareTo(t.ToValueTuple()), Is.Zero);
+
+				Assert.That(t.CompareTo(STuple.Create(2, 2, 3, 4, 5, 6)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 3, 3, 4, 5, 6)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 4, 4, 5, 6)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 5, 5, 6)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 6, 6)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 7)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(0, 2, 3, 4, 5, 6)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 1, 3, 4, 5, 6)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 2, 4, 5, 6)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 3, 5, 6)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 4, 6)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 5)), Is.GreaterThan(0));
+
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 7)), Is.LessThan(0));
+				Assert.That(STuple.Create(1, 2, 3, 4, 5, 6, 7).CompareTo(t), Is.GreaterThan(0));
+			});
 		}
 
 		[Test]
@@ -614,6 +810,42 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(item6, Is.EqualTo("six"));
 				Assert.That(item7, Is.EqualTo(777));
 			}
+
+			Assert.Multiple(() =>
+			{
+				var t = STuple.Create(1, 2, 3, 4, 5, 6, 7);
+
+				Assert.That(t.Equals(t), Is.True);
+				Assert.That(t.Equals((IVarTuple) t), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Default), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Relaxed), Is.True);
+				Assert.That(t.Equals(t.ToValueTuple()), Is.True);
+
+				Assert.That(t.CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo((IVarTuple) t), Is.Zero);
+				Assert.That(((IComparable) t).CompareTo(t), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Default), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Relaxed), Is.Zero);
+				Assert.That(t.CompareTo(t.ToValueTuple()), Is.Zero);
+
+				Assert.That(t.CompareTo(STuple.Create(2, 2, 3, 4, 5, 6, 7)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 3, 3, 4, 5, 6, 7)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 4, 4, 5, 6, 7)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 5, 5, 6, 7)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 6, 6, 7)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 7, 7)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 8)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(0, 2, 3, 4, 5, 6, 7)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 1, 3, 4, 5, 6, 7)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 2, 4, 5, 6, 7)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 3, 5, 6, 7)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 4, 6, 7)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 5, 7)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 6)), Is.GreaterThan(0));
+
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 7, 8)), Is.LessThan(0));
+				Assert.That(STuple.Create(1, 2, 3, 4, 5, 6, 7, 8).CompareTo(t), Is.GreaterThan(0));
+			});
 		}
 
 		[Test]
@@ -736,6 +968,44 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(item7, Is.EqualTo(777));
 				Assert.That(item8, Is.EqualTo("eight"));
 			}
+
+			Assert.Multiple(() =>
+			{
+				var t = STuple.Create(1, 2, 3, 4, 5, 6, 7, 8);
+
+				Assert.That(t.Equals(t), Is.True);
+				Assert.That(t.Equals((IVarTuple) t), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Default), Is.True);
+				Assert.That(((IStructuralEquatable) t).Equals(t, SimilarValueComparer.Relaxed), Is.True);
+				Assert.That(t.Equals(t.ToValueTuple()), Is.True);
+
+				Assert.That(t.CompareTo(t), Is.Zero);
+				Assert.That(t.CompareTo((IVarTuple) t), Is.Zero);
+				Assert.That(((IComparable) t).CompareTo(t), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Default), Is.Zero);
+				Assert.That(((IStructuralComparable) t).CompareTo(t, SimilarValueComparer.Relaxed), Is.Zero);
+				Assert.That(t.CompareTo(t.ToValueTuple()), Is.Zero);
+
+				Assert.That(t.CompareTo(STuple.Create(2, 2, 3, 4, 5, 6, 7, 8)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 3, 3, 4, 5, 6, 7, 8)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 4, 4, 5, 6, 7, 8)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 5, 5, 6, 7, 8)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 6, 6, 7, 8)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 7, 7, 8)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 8, 8)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 7, 9)), Is.LessThan(0));
+				Assert.That(t.CompareTo(STuple.Create(0, 2, 3, 4, 5, 6, 7, 8)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 1, 3, 4, 5, 6, 7, 8)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 2, 4, 5, 6, 7, 8)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 3, 5, 6, 7, 8)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 4, 6, 7, 8)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 5, 7, 8)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 6, 8)), Is.GreaterThan(0));
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 7, 7)), Is.GreaterThan(0));
+
+				Assert.That(t.CompareTo(STuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9)), Is.LessThan(0));
+				Assert.That(STuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9).CompareTo(t), Is.GreaterThan(0));
+			});
 		}
 
 		[Test]
@@ -1436,6 +1706,89 @@ namespace SnowBank.Data.Tuples.Tests
 			z = subspace.Append(value, ID);
 			Log(z);
 			Assert.That(z.Count, Is.EqualTo(4));
+
+		}
+
+		[Test]
+		public void Test_Tuples_CompareTo()
+		{
+			Assert.Multiple(() =>
+			{
+				var x = STuple.Create("A", "B");
+				var y = STuple.Create("C", "D");
+
+				// CompareTo(STuple)
+				Assert.That(x.CompareTo(x), Is.Zero);
+				Assert.That(x.CompareTo(y), Is.LessThan(0));
+				Assert.That(y.CompareTo(x), Is.GreaterThan(0));
+
+				// CompareTo(IVarTuple)
+				Assert.That(x.CompareTo((IVarTuple) x), Is.Zero);
+				Assert.That(x.CompareTo((IVarTuple) y), Is.LessThan(0));
+				Assert.That(y.CompareTo((IVarTuple) x), Is.GreaterThan(0));
+				Assert.That(x.CompareTo(STuple.Create("A", "B", "C")), Is.LessThan(0));
+				Assert.That(x.CompareTo(STuple.Create("A")), Is.GreaterThan(0));
+
+				// CompareTo(ValueTuple)
+				Assert.That(x.CompareTo(("A", "B")), Is.Zero);
+				Assert.That(x.CompareTo(("C", "D")), Is.LessThan(0));
+				Assert.That(y.CompareTo(("A", "B")), Is.GreaterThan(0));
+
+				// CompareTo(object)
+				Assert.That(((IComparable) x).CompareTo(x), Is.Zero);
+				Assert.That(((IComparable) x).CompareTo(y), Is.LessThan(0));
+				Assert.That(((IComparable) y).CompareTo(x), Is.GreaterThan(0));
+				Assert.That(((IComparable) x).CompareTo(STuple.Create("A", "B", "C")), Is.LessThan(0));
+				Assert.That(((IComparable) x).CompareTo(STuple.Create("A")), Is.GreaterThan(0));
+
+				// CompareTo(object, IComparer)
+				Assert.That(((IStructuralComparable) x).CompareTo(x, SimilarValueComparer.Default), Is.Zero);
+				Assert.That(((IStructuralComparable) x).CompareTo(y, SimilarValueComparer.Default), Is.LessThan(0));
+				Assert.That(((IStructuralComparable) y).CompareTo(x, SimilarValueComparer.Default), Is.GreaterThan(0));
+				Assert.That(((IStructuralComparable) x).CompareTo(STuple.Create("A", "B", "C"), SimilarValueComparer.Default), Is.LessThan(0));
+				Assert.That(((IStructuralComparable) x).CompareTo(STuple.Create("A"), SimilarValueComparer.Default), Is.GreaterThan(0));
+			});
+
+			Assert.Multiple(() =>
+			{
+				var t123 = STuple.Create(1, 2, 3);
+				Assert.That(t123.CompareTo(STuple.Create(1.0d, 2.0f, 3.0m)), Is.Zero);
+				Assert.That(t123.CompareTo(STuple.Create(1.1d, 2.0d, 3.0d)), Is.LessThan(0));
+				Assert.That(t123.CompareTo(STuple.Create(0.9d, 2.0d, 3.0d)), Is.GreaterThan(0));
+				Assert.That(t123.CompareTo(STuple.Create(1.0d, 2.1d, 3.0d)), Is.LessThan(0));
+				Assert.That(t123.CompareTo(STuple.Create(1.0d, 1.9d, 3.0d)), Is.GreaterThan(0));
+				Assert.That(t123.CompareTo(STuple.Create(1.0d, 2.0d, 3.1d)), Is.LessThan(0));
+				Assert.That(t123.CompareTo(STuple.Create(1.0d, 2.0d, 2.9d)), Is.GreaterThan(0));
+
+				var tabc = STuple.Create("a", "b", "c");
+				Assert.That(tabc.CompareTo(tabc), Is.Zero);
+				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "d")), Is.LessThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "b")), Is.GreaterThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "cc")), Is.LessThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("a", "bb", "c")), Is.LessThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("aa", "bb", "c")), Is.LessThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("aa")), Is.LessThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("`")), Is.GreaterThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("a", "ba")), Is.LessThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("a", "a")), Is.GreaterThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "ca")), Is.LessThan(0));
+				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "b")), Is.GreaterThan(0));
+
+				// ints after null
+				Assert.That(t123.CompareTo(STuple.Create(null, 2, 3)), Is.GreaterThan(0));
+				// ints after bytes
+				Assert.That(t123.CompareTo(STuple.Create(Slice.FromInt32(1), 2, 3)), Is.GreaterThan(0));
+				// ints after strings
+				Assert.That(t123.CompareTo(STuple.Create("1", 2, 3)), Is.GreaterThan(0));
+				// ints same as floats
+				Assert.That(t123.CompareTo(STuple.Create(1.0, 2, 3)), Is.Zero);
+				// ints before bools
+				Assert.That(t123.CompareTo(STuple.Create(true, 2, 3)), Is.LessThan(0));
+				// ints before Guids
+				Assert.That(t123.CompareTo(STuple.Create(Guid.Empty, 2, 3)), Is.LessThan(0));
+				// ints before VersionStamps
+				Assert.That(t123.CompareTo(STuple.Create(VersionStamp.None, 2, 3)), Is.LessThan(0));
+			});
 		}
 
 		[Test]
@@ -2160,7 +2513,7 @@ namespace SnowBank.Data.Tuples.Tests
 			// direct access
 			for (int i = 0; i < expected.Length; i++)
 			{
-				Assert.That(ComparisonHelper.AreSimilar(t[i], expected[i]), Is.True, $"{message}: t[{i}] != expected[{i}]");
+				Assert.That(ComparisonHelper.AreSimilarStrict(t[i], expected[i]), Is.True, $"{message}: t[{i}] != expected[{i}]");
 			}
 
 			// iterator
@@ -2168,7 +2521,7 @@ namespace SnowBank.Data.Tuples.Tests
 			foreach (var obj in t)
 			{
 				if (p >= expected.Length) Assert.Fail($"Spliced iterator overshoot at t[{p}] = {obj}");
-				Assert.That(ComparisonHelper.AreSimilar(obj, expected[p]), Is.True, $"{message}: Iterator[{p}], {obj} ~= {expected[p]}");
+				Assert.That(ComparisonHelper.AreSimilarStrict(obj, expected[p]), Is.True, $"{message}: Iterator[{p}], {obj} ~= {expected[p]}");
 				++p;
 			}
 			Assert.That(p, Is.EqualTo(expected.Length), $"{message}: t.GetEnumerator() returned only {p} elements out of {expected.Length} expected");
@@ -2178,14 +2531,14 @@ namespace SnowBank.Data.Tuples.Tests
 			t.CopyTo(tmp, 0);
 			for (int i = 0; i < tmp.Length; i++)
 			{
-				Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, $"{message}: CopyTo[{i}], {tmp[i]} ~= {expected[i]}");
+				Assert.That(ComparisonHelper.AreSimilarStrict(tmp[i], expected[i]), Is.True, $"{message}: CopyTo[{i}], {tmp[i]} ~= {expected[i]}");
 			}
 
 			// Memoize
 			//tmp = t.Memoize().ToArray();
 			//for (int i = 0; i < tmp.Length; i++)
 			//{
-			//	Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, "{0}: Memoize.Items[{1}], {2} ~= {3}", message, i, tmp[i], expected[i]);
+			//	Assert.That(ComparisonHelper.AreSimilarStrict(tmp[i], expected[i]), Is.True, "{0}: Memoize.Items[{1}], {2} ~= {3}", message, i, tmp[i], expected[i]);
 			//}
 
 			// Append
@@ -2196,7 +2549,7 @@ namespace SnowBank.Data.Tuples.Tests
 				tmp = u.ToArray();
 				for (int i = 0; i < tmp.Length - 1; i++)
 				{
-					Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, $"{message}: Appended[{i}], {tmp[i]} ~= {expected[i]}");
+					Assert.That(ComparisonHelper.AreSimilarStrict(tmp[i], expected[i]), Is.True, $"{message}: Appended[{i}], {tmp[i]} ~= {expected[i]}");
 				}
 			}
 		}
@@ -2396,9 +2749,9 @@ namespace SnowBank.Data.Tuples.Tests
 		private static void AssertEquality(IVarTuple x, IVarTuple y)
 		{
 			Assert.That(x.Equals(y), Is.True, "x.Equals(y)");
-			Assert.That(x.Equals((object)y), Is.True, "x.Equals((object)y)");
+			Assert.That(x.Equals((object) y), Is.True, "x.Equals((object)y)");
 			Assert.That(y.Equals(x), Is.True, "y.Equals(x)");
-			Assert.That(y.Equals((object)x), Is.True, "y.Equals((object)y");
+			Assert.That(y.Equals((object) x), Is.True, "y.Equals((object)y");
 		}
 
 		private static void AssertInequality(IVarTuple x, IVarTuple y)
@@ -2407,6 +2760,18 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(x.Equals((object)y), Is.False, "!x.Equals((object)y)");
 			Assert.That(y.Equals(x), Is.False, "!y.Equals(x)");
 			Assert.That(y.Equals((object)x), Is.False, "!y.Equals((object)y");
+		}
+
+		private static void AssertEqualityRelaxed(IVarTuple x, IVarTuple y)
+		{
+			Assert.That(x.Equals(y, SimilarValueComparer.Relaxed), Is.True, "x.Equals(y)");
+			Assert.That(y.Equals(x, SimilarValueComparer.Relaxed), Is.True, "y.Equals(x)");
+		}
+
+		private static void AssertInequalityRelaxed(IVarTuple x, IVarTuple y)
+		{
+			Assert.That(x.Equals(y, SimilarValueComparer.Relaxed), Is.False, "!x.Equals(y)");
+			Assert.That(y.Equals(x, SimilarValueComparer.Relaxed), Is.False, "!y.Equals(x)");
 		}
 
 		[Test]
@@ -2443,25 +2808,33 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			var t1 = STuple.Create(1, 2);
 			var t2 = STuple.Create((long) 1, (short) 2);
-			var t3 = STuple.Create("1", "2");
-			var t4 = STuple.Create([ 1, 2L ]);
-			//var t5 = STuple.Unpack(Slice.Unescape("<02>1<00><15><02>"));
+			var t3 = STuple.Create([ 1, 2L ]);
 
 			AssertEquality(t1, t1);
 			AssertEquality(t1, t2);
 			AssertEquality(t1, t3);
-			AssertEquality(t1, t4);
-			//AssertEquality(t1, t5);
 			AssertEquality(t2, t2);
 			AssertEquality(t2, t3);
-			AssertEquality(t2, t4);
-			//AssertEquality(t2, t5);
 			AssertEquality(t3, t3);
-			AssertEquality(t3, t4);
-			//AssertEquality(t3, t5);
+
+			AssertEqualityRelaxed(t1, t1);
+			AssertEqualityRelaxed(t1, t2);
+			AssertEqualityRelaxed(t1, t3);
+			AssertEqualityRelaxed(t2, t2);
+			AssertEqualityRelaxed(t2, t3);
+			AssertEqualityRelaxed(t3, t3);
+
+			var t4 = STuple.Create("1", "2");
+
 			AssertEquality(t4, t4);
-			//AssertEquality(t4, t5);
-			//AssertEquality(t5, t5);
+			AssertInequality(t1, t4);
+			AssertInequality(t2, t4);
+			AssertInequality(t4, t3);
+
+			AssertEqualityRelaxed(t4, t4);
+			AssertEqualityRelaxed(t1, t4);
+			AssertEqualityRelaxed(t2, t4);
+			AssertEqualityRelaxed(t4, t3);
 		}
 
 		[Test]
@@ -2529,19 +2902,19 @@ namespace SnowBank.Data.Tuples.Tests
 		public void Test_Tuple_String_AutoCast()
 		{
 			// 'a' ~= "A"
-			AssertEquality(STuple.Create("A"), STuple.Create('A'));
-			AssertInequality(STuple.Create("A"), STuple.Create('B'));
-			AssertInequality(STuple.Create("A"), STuple.Create('a'));
+			AssertEqualityRelaxed(STuple.Create("A"), STuple.Create('A'));
+			AssertInequalityRelaxed(STuple.Create("A"), STuple.Create('B'));
+			AssertInequalityRelaxed(STuple.Create("A"), STuple.Create('a'));
 
 			// ASCII ~= Unicode
-			AssertEquality(STuple.Create("ABC"), STuple.Create(Slice.FromStringAscii("ABC")));
-			AssertInequality(STuple.Create("ABC"), STuple.Create(Slice.FromStringAscii("DEF")));
-			AssertInequality(STuple.Create("ABC"), STuple.Create(Slice.FromStringAscii("abc")));
+			AssertEqualityRelaxed(STuple.Create("ABC"), STuple.Create(Slice.FromStringAscii("ABC")));
+			AssertInequalityRelaxed(STuple.Create("ABC"), STuple.Create(Slice.FromStringAscii("DEF")));
+			AssertInequalityRelaxed(STuple.Create("ABC"), STuple.Create(Slice.FromStringAscii("abc")));
 
 			// 'a' ~= ASCII 'a'
-			AssertEquality(STuple.Create(Slice.FromStringAscii("A")), STuple.Create('A'));
-			AssertInequality(STuple.Create(Slice.FromStringAscii("A")), STuple.Create('B'));
-			AssertInequality(STuple.Create(Slice.FromStringAscii("A")), STuple.Create('a'));
+			AssertEqualityRelaxed(STuple.Create(Slice.FromStringAscii("A")), STuple.Create('A'));
+			AssertInequalityRelaxed(STuple.Create(Slice.FromStringAscii("A")), STuple.Create('B'));
+			AssertInequalityRelaxed(STuple.Create(Slice.FromStringAscii("A")), STuple.Create('a'));
 		}
 
 		[Test]

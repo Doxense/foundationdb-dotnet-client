@@ -26,15 +26,22 @@
 
 namespace SnowBank.Data.Tuples.Binary
 {
+	using System;
 	using System.Collections;
 	using System.ComponentModel;
-	using SnowBank.Data.Tuples;
-	using SnowBank.Runtime.Converters;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
+	using SnowBank.Data.Tuples;
+	using SnowBank.Runtime;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
-	public sealed class SlicedTuple : IVarTuple, ITupleSerializable, ITupleFormattable, ISliceSerializable
+	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
+	[DebuggerNonUserCode]
+	public sealed class SlicedTuple : IVarTuple
+		, IEquatable<SlicedTuple>, IComparable<SlicedTuple>, IComparable
+		, ITupleSerializable, ITupleFormattable, ISliceSerializable
 	{
 
 		/// <summary>Buffer containing the original slices.</summary>
@@ -434,7 +441,115 @@ namespace SnowBank.Data.Tuples.Binary
 
 		public bool Equals(IVarTuple? other) => other is not null && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 
+		public bool Equals(SlicedTuple? other)
+		{
+			if (ReferenceEquals(this, other)) return true;
+			if (other is null) return false;
+
+			var thisSlices = m_slices.Span;
+			var otherSlices = other.m_slices.Span;
+			if (thisSlices.Length != otherSlices.Length) return false;
+
+			for (int i = 0; i < thisSlices.Length; i++)
+			{
+				// we use the fact that if items are equal, then their byte representation MUST be equal as well!
+				if (!thisSlices[i].Equals(otherSlices[i]))
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		public override int GetHashCode() => ((IStructuralEquatable) this).GetHashCode(SimilarValueComparer.Default);
+
+		[Pure]
+		public int CompareTo(SlicedTuple? other)
+		{
+			if (ReferenceEquals(this, other)) return 0;
+			if (other is null) return +1;
+
+			var thisLen = m_slices.Length;
+			var otherLen = other.m_slices.Length;
+
+			if (thisLen == 0) return otherLen == 0 ? 0 : -1;
+			if (otherLen == 0) return -1;
+
+			var len = Math.Min(thisLen, otherLen);
+			var comparer = SimilarValueComparer.Default;
+			for (int i = 0; i < len; i++)
+			{
+				int cmp = comparer.Compare(this[i], other[i]);
+				if (cmp != 0)
+				{
+					return cmp;
+				}
+			}
+
+			return thisLen.CompareTo(otherLen);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(IVarTuple? other) => CompareTo(other, SimilarValueComparer.Default);
+
+		private int CompareTo(IVarTuple? other, IComparer comparer)
+		{
+			if (other is null) return +1;
+
+			var thisLen = m_slices.Length;
+			var otherLen = other.Count;
+
+			if (thisLen == 0) return otherLen == 0 ? 0 : -1;
+			if (otherLen == 0) return -1;
+
+			var len = Math.Min(thisLen, otherLen);
+			for (int i = 0; i < len; i++)
+			{
+				int cmp = comparer.Compare(this[i], other[i]);
+				if (cmp != 0)
+				{
+					return cmp;
+				}
+			}
+
+			return thisLen.CompareTo(otherLen);
+		}
+
+		private int CompareTo(ITuple? other, IComparer comparer)
+		{
+			if (other is null) return +1;
+
+			var thisLen = m_slices.Length;
+			var otherLen = other.Length;
+
+			if (thisLen == 0) return otherLen == 0 ? 0 : -1;
+			if (otherLen == 0) return -1;
+
+			var len = Math.Min(thisLen, otherLen);
+			for (int i = 0; i < len; i++)
+			{
+				int cmp = comparer.Compare(this[i], other[i]);
+				if (cmp != 0)
+				{
+					return cmp;
+				}
+			}
+
+			return thisLen.CompareTo(otherLen);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(object? other) => CompareTo(other, SimilarValueComparer.Default);
+
+		private int CompareTo(object? other, IComparer comparer) => other switch
+		{
+			null => +1,
+			IVarTuple t => CompareTo(t, comparer),
+			ITuple t => CompareTo(t, comparer),
+			_ => throw new ArgumentException($"Cannot compare a SpanTuple with an instance of {other.GetType().GetFriendlyName()}")
+		};
+
 
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
@@ -443,18 +558,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 			if (other is SlicedTuple sliced)
 			{
-				// compare slices!
-				var left = m_slices.Span;
-				var right = sliced.m_slices.Span;
-				if (left.Length != right.Length) return false;
-				for (int i = 0; i < left.Length; i++)
-				{
-					if (left[i] != right[i])
-					{
-						return false;
-					}
-				}
-				return false;
+				return Equals(sliced);
 			}
 
 			return TupleHelpers.Equals(this, other, comparer);
@@ -501,6 +605,9 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer) => comparer.GetHashCode(m_slices.Span[index]);
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => CompareTo(other, comparer);
+
 	}
 
 }

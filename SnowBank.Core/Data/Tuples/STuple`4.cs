@@ -39,7 +39,12 @@ namespace SnowBank.Data.Tuples
 	/// <typeparam name="T4">Type of the fourth item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct STuple<T1, T2, T3, T4> : IVarTuple, IEquatable<STuple<T1, T2, T3, T4>>, IEquatable<(T1, T2, T3, T4)>, ITupleSerializable, ITupleFormattable
+	[DebuggerNonUserCode]
+	public readonly struct STuple<T1, T2, T3, T4> : IVarTuple
+		, IEquatable<STuple<T1, T2, T3, T4>>, IComparable<STuple<T1, T2, T3, T4>>
+		, IEquatable<(T1, T2, T3, T4)>, IComparable<(T1, T2, T3, T4)>
+		, IComparable
+		, ITupleSerializable, ITupleFormattable
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -181,11 +186,21 @@ namespace SnowBank.Data.Tuples
 		/// <returns>New tuple with one extra item</returns>
 		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>(T5 value)
+		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>(T5 value)
 		{
 			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will lose type information.
 			// but, by returning a LinkedTuple<T5>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
 			return new LinkedTuple<T5>(this, value);
+		}
+
+		/// <summary>Appends a single new item at the end of the current tuple.</summary>
+		/// <param name="value">Value that will be added as an embedded item</param>
+		/// <returns>New tuple with one extra item</returns>
+		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public STuple<T1, T2, T3, T4, T5> Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>(T5 value)
+		{
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, value);
 		}
 
 		/// <summary>Appends two new items at the end of the current tuple.</summary>
@@ -194,11 +209,9 @@ namespace SnowBank.Data.Tuples
 		/// <returns>New tuple with two extra item</returns>
 		/// <remarks>If any of <paramref name="value1"/> or <paramref name="value2"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IVarTuple Append<T5, T6>(T5 value1, T6 value2)
+		public STuple<T1, T2, T3, T4, T5, T6> Append<T5, T6>(T5 value1, T6 value2)
 		{
-			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will lose type information.
-			// but, by returning a LinkedTuple<T5>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
-			return new JoinedTuple(this, new STuple<T5, T6>(value1, value2));
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, value1, value2);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -295,46 +308,68 @@ namespace SnowBank.Data.Tuples
 
 		public override bool Equals(object? obj)
 		{
-			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
+			return obj != null && ((IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);
 		}
 
 		public bool Equals(IVarTuple? other)
 		{
-			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+			return other != null && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2, T3, T4> other)
-		{
-			var comparer = SimilarValueComparer.Default;
-			return comparer.Equals(this.Item1, other.Item1)
-				&& comparer.Equals(this.Item2, other.Item2)
-				&& comparer.Equals(this.Item3, other.Item3)
-				&& comparer.Equals(this.Item4, other.Item4);
-		}
+		public bool Equals(STuple<T1, T2, T3, T4> other) => EqualityComparer.Equals(in this, in other);
 
-		public override int GetHashCode()
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals((T1, T2, T3, T4) other) => EqualityComparer.Equals(in this, in other);
+
+		public override int GetHashCode() => EqualityComparer.GetHashCode(in this);
+
+		/// <inheritdoc />
+		public int CompareTo(STuple<T1, T2, T3, T4> other) => Comparer.Compare(in this, in other);
+
+		/// <inheritdoc />
+		public int CompareTo(ValueTuple<T1, T2, T3, T4> other) => Comparer.Compare(in this, in other);
+
+		/// <inheritdoc />
+		public int CompareTo(IVarTuple? other) => other switch
 		{
-			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
-		}
+			null => +1,
+			STuple<T1, T2, T3, T4> t => Comparer.Compare(in this, in t),
+			_ => TupleHelpers.Compare(this, other, SimilarValueComparer.Default),
+		};
+
+		int IComparable.CompareTo(object? other) => other switch
+		{
+			null => +1,
+			STuple<T1, T2, T3, T4> t => Comparer.Compare(in this, in t),
+			ValueTuple<T1, T2, T3, T4> t => Comparer.Compare(in this, in t),
+			_ => TupleHelpers.Compare(in this, other, SimilarValueComparer.Default),
+		};
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => other switch
+		{
+			STuple<T1, T2, T3, T4> t => Comparer.Compare(in this, in t),
+			ValueTuple<T1, T2, T3, T4> t => Comparer.Compare(in this, in t),
+			_ => TupleHelpers.Compare(in this, other, comparer),
+		};
 
 		public static bool operator ==(STuple<T1, T2, T3, T4> left, STuple<T1, T2, T3, T4> right)
-		{
-			var comparer = SimilarValueComparer.Default;
-			return comparer.Equals(left.Item1, right.Item1)
-				&& comparer.Equals(left.Item2, right.Item2)
-				&& comparer.Equals(left.Item3, right.Item3)
-				&& comparer.Equals(left.Item4, right.Item4);
-		}
+			=> EqualityComparer.Equals(in left, in right);
 
 		public static bool operator !=(STuple<T1, T2, T3, T4> left, STuple<T1, T2, T3, T4> right)
-		{
-			var comparer = SimilarValueComparer.Default;
-			return !comparer.Equals(left.Item1, right.Item1)
-				|| !comparer.Equals(left.Item2, right.Item2)
-				|| !comparer.Equals(left.Item3, right.Item3)
-				|| !comparer.Equals(left.Item4, right.Item4);
-		}
+			=> !EqualityComparer.Equals(in left, in right);
+
+		public static bool operator ==(STuple<T1, T2, T3, T4> left, (T1, T2, T3, T4) right)
+			=> EqualityComparer.Equals(in left, in right);
+
+		public static bool operator !=(STuple<T1, T2, T3, T4> left, (T1, T2, T3, T4) right)
+			=> !EqualityComparer.Equals(in left, in right);
+
+		public static bool operator ==((T1, T2, T3, T4) left, STuple<T1, T2, T3, T4> right)
+			=> EqualityComparer.Equals(in right, in left);
+
+		public static bool operator !=((T1, T2, T3, T4) left, STuple<T1, T2, T3, T4> right)
+			=> !EqualityComparer.Equals(in right, in left);
 
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
@@ -373,13 +408,13 @@ namespace SnowBank.Data.Tuples
 		public static implicit operator STuple<T1, T2, T3, T4>(Tuple<T1, T2, T3, T4> t)
 		{
 			Contract.NotNull(t);
-			return new STuple<T1, T2, T3, T4>(t.Item1, t.Item2, t.Item3, t.Item4);
+			return new(t.Item1, t.Item2, t.Item3, t.Item4);
 		}
 
 		[Pure]
 		public static explicit operator Tuple<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> t)
 		{
-			return new Tuple<T1, T2, T3, T4>(t.Item1, t.Item2, t.Item3, t.Item4);
+			return new(t.Item1, t.Item2, t.Item3, t.Item4);
 		}
 
 		public void Fill(ref (T1, T2, T3, T4) t)
@@ -394,9 +429,27 @@ namespace SnowBank.Data.Tuples
 		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
 		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
 		[Pure]
+		public STuple<T1, T2, T3, T4, T5> Concat<T5>(STuple<T5> tuple)
+		{
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
 		public STuple<T1, T2, T3, T4, T5> Concat<T5>(ValueTuple<T5> tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5>(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1);
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6> Concat<T5, T6>(STuple<T5, T6> tuple)
+		{
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -405,7 +458,16 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5, T6> Concat<T5, T6>((T5, T6) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6>(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2);
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6, T7> Concat<T5, T6, T7>(STuple<T5, T6, T7> tuple)
+		{
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -414,7 +476,16 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5, T6, T7> Concat<T5, T6, T7>((T5, T6, T7) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7>(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2, tuple.Item3);
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2, tuple.Item3);
+		}
+
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple items, followed by <paramref name="tuple"/>'s items</returns>
+		[Pure]
+		public STuple<T1, T2, T3, T4, T5, T6, T7, T8> Concat<T5, T6, T7, T8>(STuple<T5, T6, T7, T8> tuple)
+		{
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -423,8 +494,8 @@ namespace SnowBank.Data.Tuples
 		[Pure]
 		public STuple<T1, T2, T3, T4, T5, T6, T7, T8> Concat<T5, T6, T7, T8>((T5, T6, T7, T8) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
-			}
+			return new(this.Item1, this.Item2, this.Item3, this.Item4, tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public (T1, T2, T3, T4) ToValueTuple()
@@ -435,7 +506,7 @@ namespace SnowBank.Data.Tuples
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator STuple<T1, T2, T3, T4>((T1, T2, T3, T4) t)
 		{
-			return new STuple<T1, T2, T3, T4>(t.Item1, t.Item2, t.Item3, t.Item4);
+			return new(t.Item1, t.Item2, t.Item3, t.Item4);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -444,56 +515,10 @@ namespace SnowBank.Data.Tuples
 			return (t.Item1, t.Item2, t.Item3, t.Item4);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool IEquatable<(T1, T2, T3, T4)>.Equals((T1, T2, T3, T4) other)
-		{
-			var comparer = SimilarValueComparer.Default;
-			return comparer.Equals(this.Item1, this.Item1)
-				&& comparer.Equals(this.Item2, this.Item2)
-				&& comparer.Equals(this.Item3, this.Item3)
-				&& comparer.Equals(this.Item4, this.Item4);
-		}
-
-		public static bool operator ==(STuple<T1, T2, T3, T4> left, (T1, T2, T3, T4) right)
-		{
-			var comparer = SimilarValueComparer.Default;
-			return comparer.Equals(left.Item1, right.Item1)
-				&& comparer.Equals(left.Item2, right.Item2)
-				&& comparer.Equals(left.Item3, right.Item3)
-				&& comparer.Equals(left.Item4, right.Item4);
-		}
-
-		public static bool operator ==((T1, T2, T3, T4) left, STuple<T1, T2, T3, T4> right)
-		{
-			var comparer = SimilarValueComparer.Default;
-			return comparer.Equals(left.Item1, right.Item1)
-				&& comparer.Equals(left.Item2, right.Item2)
-				&& comparer.Equals(left.Item3, right.Item3)
-				&& comparer.Equals(left.Item4, right.Item4);
-		}
-
-		public static bool operator !=(STuple<T1, T2, T3, T4> left, (T1, T2, T3, T4) right)
-		{
-			var comparer = SimilarValueComparer.Default;
-			return !comparer.Equals(left.Item1, right.Item1)
-				|| !comparer.Equals(left.Item2, right.Item2)
-				|| !comparer.Equals(left.Item3, right.Item3)
-				|| !comparer.Equals(left.Item4, right.Item4);
-		}
-
-		public static bool operator !=((T1, T2, T3, T4) left, STuple<T1, T2, T3, T4> right)
-		{
-			var comparer = SimilarValueComparer.Default;
-			return !comparer.Equals(left.Item1, right.Item1)
-				|| !comparer.Equals(left.Item2, right.Item2)
-				|| !comparer.Equals(left.Item3, right.Item3)
-				|| !comparer.Equals(left.Item4, right.Item4);
-		}
-
 		public sealed class Comparer : IComparer<STuple<T1, T2, T3, T4>>
 		{
 
-			public static Comparer Default { get; } = new Comparer();
+			public static Comparer Default { get; } = new();
 
 			private static readonly Comparer<T1> Comparer1 = Comparer<T1>.Default;
 			private static readonly Comparer<T2> Comparer2 = Comparer<T2>.Default;
@@ -511,12 +536,30 @@ namespace SnowBank.Data.Tuples
 				return cmp;
 			}
 
+			public static int Compare(in STuple<T1, T2, T3, T4> x, in STuple<T1, T2, T3, T4> y)
+			{
+				int cmp = Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = Comparer2.Compare(x.Item2, y.Item2);
+				if (cmp == 0) cmp = Comparer3.Compare(x.Item3, y.Item3);
+				if (cmp == 0) cmp = Comparer4.Compare(x.Item4, y.Item4);
+				return cmp;
+			}
+
+			public static int Compare(in STuple<T1, T2, T3, T4> x, in (T1, T2, T3, T4) y)
+			{
+				int cmp = Comparer1.Compare(x.Item1, y.Item1);
+				if (cmp == 0) cmp = Comparer2.Compare(x.Item2, y.Item2);
+				if (cmp == 0) cmp = Comparer3.Compare(x.Item3, y.Item3);
+				if (cmp == 0) cmp = Comparer4.Compare(x.Item4, y.Item4);
+				return cmp;
+			}
+
 		}
 
 		public sealed class EqualityComparer : IEqualityComparer<STuple<T1, T2, T3, T4>>
 		{
 
-			public static EqualityComparer Default { get; } = new EqualityComparer();
+			public static EqualityComparer Default { get; } = new();
 
 			private static readonly EqualityComparer<T1> Comparer1 = EqualityComparer<T1>.Default;
 			private static readonly EqualityComparer<T2> Comparer2 = EqualityComparer<T2>.Default;
@@ -533,6 +576,22 @@ namespace SnowBank.Data.Tuples
 					&& Comparer4.Equals(x.Item4, y.Item4);
 			}
 
+			public static bool Equals(in STuple<T1, T2, T3, T4> x, in STuple<T1, T2, T3, T4> y)
+			{
+				return Comparer1.Equals(x.Item1, y.Item1)
+					&& Comparer2.Equals(x.Item2, y.Item2)
+					&& Comparer3.Equals(x.Item3, y.Item3)
+					&& Comparer4.Equals(x.Item4, y.Item4);
+			}
+
+			public static bool Equals(in STuple<T1, T2, T3, T4> x, in (T1, T2, T3, T4) y)
+			{
+				return Comparer1.Equals(x.Item1, y.Item1)
+					&& Comparer2.Equals(x.Item2, y.Item2)
+					&& Comparer3.Equals(x.Item3, y.Item3)
+					&& Comparer4.Equals(x.Item4, y.Item4);
+			}
+
 			public int GetHashCode(STuple<T1, T2, T3, T4> obj)
 			{
 				return TupleHelpers.CombineHashCodes(
@@ -542,6 +601,17 @@ namespace SnowBank.Data.Tuples
 					obj.Item4 is not null ? Comparer4.GetHashCode(obj.Item4) : -1
 				);
 			}
+
+			public static int GetHashCode(in STuple<T1, T2, T3, T4> obj)
+			{
+				return TupleHelpers.CombineHashCodes(
+					4,
+					obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1,
+					obj.Item3 is not null ? Comparer3.GetHashCode(obj.Item3) : -1,
+					obj.Item4 is not null ? Comparer4.GetHashCode(obj.Item4) : -1
+				);
+			}
+
 		}
 
 	}

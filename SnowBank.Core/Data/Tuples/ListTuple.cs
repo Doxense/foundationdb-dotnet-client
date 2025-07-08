@@ -27,13 +27,16 @@
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
+	using System.ComponentModel;
 	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
+	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class ListTuple<T> : IVarTuple, ITupleFormattable
+	[DebuggerNonUserCode]
+	public sealed class ListTuple<T> : IVarTuple, IComparable, ITupleFormattable
 	{
 		// We could use a ListTuple<T> for tuples where all items are of type T, and ListTuple could derive from ListTuple<object>.
 		// => this could speed up a bit the use case of STuple.FromArray<T> or STuple.FromSequence<T>
@@ -255,6 +258,12 @@ namespace SnowBank.Data.Tuples
 		{
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
+
+		public int CompareTo(IVarTuple? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+
+		public int CompareTo(object? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => TupleHelpers.Compare(this, other, comparer);
 
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{

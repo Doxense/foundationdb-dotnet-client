@@ -27,14 +27,16 @@
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
+	using System.ComponentModel;
 	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
 	/// <summary>Tuple that represents the concatenation of two tuples</summary>
-	[DebuggerDisplay("{ToString(),nq}")]
+	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class JoinedTuple : IVarTuple, ITupleFormattable
+	[DebuggerNonUserCode]
+	public sealed class JoinedTuple : IVarTuple, IComparable, ITupleFormattable
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )
 
@@ -125,7 +127,7 @@ namespace SnowBank.Data.Tuples
 		public int Count { get; }
 
 		/// <inheritdoc />
-		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
+		int ITuple.Length => this.Count;
 
 		public object? this[int index]
 		{
@@ -242,7 +244,7 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return this.GetEnumerator();
 		}
@@ -262,7 +264,13 @@ namespace SnowBank.Data.Tuples
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
-		bool System.Collections.IStructuralEquatable.Equals(object? other, System.Collections.IEqualityComparer comparer)
+		public int CompareTo(IVarTuple? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+
+		public int CompareTo(object? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => TupleHelpers.Compare(this, other, comparer);
+
+		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			if (ReferenceEquals(this, other)) return true;
 			if (other is null) return false;
@@ -288,7 +296,7 @@ namespace SnowBank.Data.Tuples
 			return false;
 		}
 
-		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			int tc = this.Tail.Count;
 			return tc switch
@@ -314,7 +322,6 @@ namespace SnowBank.Data.Tuples
 			if (index < this.Count) return this.Tail.GetItemHashCode(index - this.HeadCount, comparer);
 			throw new IndexOutOfRangeException();
 		}
-
 
 	}
 

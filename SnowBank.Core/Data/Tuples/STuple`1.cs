@@ -36,7 +36,12 @@ namespace SnowBank.Data.Tuples
 	/// <typeparam name="T1">Type of the item</typeparam>
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct STuple<T1> : IVarTuple, IEquatable<STuple<T1>>, IEquatable<ValueTuple<T1>>, ITupleSerializable, ITupleFormattable
+	[DebuggerNonUserCode]
+	public readonly struct STuple<T1> : IVarTuple
+		, IEquatable<STuple<T1>>, IComparable<STuple<T1>>
+		, IEquatable<ValueTuple<T1>>, IComparable<ValueTuple<T1>>
+		, IComparable
+		, ITupleSerializable, ITupleFormattable
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -217,63 +222,106 @@ namespace SnowBank.Data.Tuples
 			return sb.ToString();
 		}
 
-		public override bool Equals(object? obj)
+		public override bool Equals(object? obj) => obj switch
 		{
-			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
-		}
+			STuple<T1> t => EqualityComparer.Equals(in this, in t),
+			ValueTuple<T1> t => EqualityComparer.Equals(in this, in t),
+			IVarTuple t => TupleHelpers.Equals(in this, t, SimilarValueComparer.Default),
+			_ => false,
+		};
 
-		public bool Equals(IVarTuple? other)
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => other switch
 		{
-			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
-		}
+			null => false,
+			STuple<T1> t => EqualityComparer.Equals(in this, in t),
+			_ => TupleHelpers.Equals(this, other, SimilarValueComparer.Default),
+		};
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(STuple<T1> other)
 		{
-			return SimilarValueComparer.Default.Equals(this.Item1, other.Item1);
+			return EqualityComparer.Equals(in this, in other);
 		}
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ValueTuple<T1> other)
+		{
+			return EqualityComparer.Equals(in this, in other);
+		}
+
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
-			return TupleHelpers.ComputeHashCode(this.Item1, SimilarValueComparer.Default);
+			return EqualityComparer.GetHashCode(in this);
 		}
 
-		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
+		/// <inheritdoc />
+		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer) => index switch
 		{
-			switch (index)
-			{
-				case 0: return TupleHelpers.ComputeHashCode(this.Item1, comparer);
-				default: throw new IndexOutOfRangeException();
-			}
-		}
+			0 => TupleHelpers.ComputeHashCode(this.Item1, comparer),
+			_ => throw new IndexOutOfRangeException()
+		};
+
+		/// <inheritdoc />
+		public int CompareTo(STuple<T1> other) => Comparer.Compare(in this, in other);
+
+		/// <inheritdoc />
+		public int CompareTo(ValueTuple<T1> other) => Comparer.Compare(in this, in other);
+
+		/// <inheritdoc />
+		public int CompareTo(IVarTuple? other) => other switch
+		{
+			null => +1,
+			STuple<T1> t => Comparer.Compare(in this, in t),
+			_ => TupleHelpers.Compare(in this, other, SimilarValueComparer.Default),
+		};
+
+		int IComparable.CompareTo(object? other) => other switch
+		{
+			null => +1,
+			STuple<T1> t => Comparer.Compare(in this, in t),
+			ValueTuple<T1> t => Comparer.Compare(in this, in t),
+			_ => TupleHelpers.Compare(in this, other, SimilarValueComparer.Default),
+		};
 
 		public static bool operator ==(STuple<T1> left, STuple<T1> right)
-		{
-			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
-		}
+			=> EqualityComparer.Equals(in left, in right);
 
 		public static bool operator !=(STuple<T1> left, STuple<T1> right)
-		{
-			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
-		}
+			=> !EqualityComparer.Equals(in left, in right);
 
-		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
+		public static bool operator ==(STuple<T1> left, ValueTuple<T1> right)
+			=> EqualityComparer.Equals(in left, in right);
+
+		public static bool operator !=(STuple<T1> left, ValueTuple<T1> right)
+			=> !EqualityComparer.Equals(in left, in right);
+
+		public static bool operator ==(ValueTuple<T1> left, STuple<T1> right)
+			=> EqualityComparer.Equals(in right, in left);
+
+		public static bool operator !=(ValueTuple<T1> left, STuple<T1> right)
+			=> !EqualityComparer.Equals(in right, in left);
+
+		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer) => other switch
 		{
-			if (other == null) return false;
-			if (other is STuple<T1> stuple)
-			{
-				return comparer.Equals(this.Item1, stuple.Item1);
-			}
-			if (other is ValueTuple<T1> vtuple)
-			{
-				return comparer.Equals(this.Item1, vtuple.Item1);
-			}
-			return TupleHelpers.Equals(this, other, comparer);
-		}
+			null => false,
+			STuple<T1> t => comparer.Equals(this.Item1, t.Item1),
+			ValueTuple<T1> t => comparer.Equals(this.Item1, t.Item1),
+			_ => TupleHelpers.Equals(this, other, comparer)
+		};
 
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			return TupleHelpers.ComputeHashCode(this.Item1, comparer);
+		}
+
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer)
+		{
+			return TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
 		}
 
 		[Pure]
@@ -378,33 +426,6 @@ namespace SnowBank.Data.Tuples
 			return new ValueTuple<T1>(t.Item1);
 		}
 
-		[Pure]
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool IEquatable<ValueTuple<T1>>.Equals(ValueTuple<T1> other)
-		{
-			return SimilarValueComparer.Default.Equals(this.Item1, other.Item1);
-		}
-
-		public static bool operator ==(STuple<T1> left, ValueTuple<T1> right)
-		{
-			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
-		}
-
-		public static bool operator ==(ValueTuple<T1> left, STuple<T1> right)
-		{
-			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
-		}
-
-		public static bool operator !=(STuple<T1> left, ValueTuple<T1> right)
-		{
-			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
-		}
-
-		public static bool operator !=(ValueTuple<T1> left, STuple<T1> right)
-		{
-			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
-		}
-
 		public sealed class Comparer : IComparer<STuple<T1>>
 		{
 			public static Comparer Default { get; } = new();
@@ -413,10 +434,18 @@ namespace SnowBank.Data.Tuples
 
 			private Comparer() { }
 
-			public int Compare(STuple<T1> x, STuple<T1> y)
-			{
-				return Comparer1.Compare(x.Item1, y.Item1);
-			}
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public int Compare(STuple<T1> x, STuple<T1> y) => Comparer1.Compare(x.Item1, y.Item1);
+
+			/// <inheritdoc cref="Compare(STuple{T1},STuple{T1})" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static int Compare(in STuple<T1> x, in STuple<T1> y) => Comparer1.Compare(x.Item1, y.Item1);
+
+			/// <inheritdoc cref="Compare(STuple{T1},STuple{T1})" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static int Compare(in STuple<T1> x, in ValueTuple<T1> y) => Comparer1.Compare(x.Item1, y.Item1);
+
 		}
 
 		public sealed class EqualityComparer : IEqualityComparer<STuple<T1>>
@@ -427,15 +456,33 @@ namespace SnowBank.Data.Tuples
 
 			private EqualityComparer() { }
 
-			public bool Equals(STuple<T1> x, STuple<T1> y)
-			{
-				return Comparer1.Equals(x.Item1, y.Item1);
-			}
+			#region Equals...
 
-			public int GetHashCode(STuple<T1> obj)
-			{
-				return obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1;
-			}
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool Equals(STuple<T1> x, STuple<T1> y) => Comparer1.Equals(x.Item1, y.Item1);
+
+			/// <inheritdoc cref="Equals(STuple{T1},STuple{T1})" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool Equals(in STuple<T1> x, in STuple<T1> y) => Comparer1.Equals(x.Item1, y.Item1);
+
+			/// <inheritdoc cref="Equals(STuple{T1},STuple{T1})" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool Equals(in STuple<T1> x, in ValueTuple<T1> y) => Comparer1.Equals(x.Item1, y.Item1);
+
+			#endregion
+
+			#region GetHashCode...
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public int GetHashCode(STuple<T1> obj) => obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1;
+
+			/// <inheritdoc cref="GetHashCode(STuple{T1})" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static int GetHashCode(in STuple<T1> obj) => obj.Item1 is not null ? Comparer1.GetHashCode(obj.Item1) : -1;
+
+			#endregion
 
 		}
 
