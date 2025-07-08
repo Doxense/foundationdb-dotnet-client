@@ -139,7 +139,7 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(TupleWriter writer)
 		{
 			foreach(var slice in m_slices.Span)
 			{

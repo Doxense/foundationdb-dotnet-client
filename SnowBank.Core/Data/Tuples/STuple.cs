@@ -160,7 +160,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(TupleWriter writer)
 		{
 			//NOP
 		}

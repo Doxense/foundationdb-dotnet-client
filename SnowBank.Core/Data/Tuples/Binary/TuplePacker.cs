@@ -45,9 +45,9 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <para>This method supports embedded tuples.</para>
 		/// </remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(ref TupleWriter writer, T? value)
+		public static void SerializeTo(TupleWriter writer, T? value)
 		{
-			Encoder(ref writer, value);
+			Encoder(writer, value);
 		}
 
 		/// <summary>Serializes a boxed value to the tuple format using a <see cref="TupleWriter"/>.</summary>
@@ -57,9 +57,9 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <para>The buffer does not need to be pre-allocated.</para>
 		/// <para>This method is useful for scenarios where the value is boxed and needs to be serialized without knowing its type at compile time. The buffer does not need to be pre-allocated.</para>
 		/// </remarks>
-		public static void SerializeBoxedTo(ref TupleWriter writer, object? value)
+		public static void SerializeBoxedTo(TupleWriter writer, object? value)
 		{
-			Encoder(ref writer, (T) value!);
+			Encoder(writer, (T) value!);
 		}
 
 		/// <summary>Serializes a <typeparamref name="T"/> to the tuple format using a <see cref="SliceWriter"/>.</summary>
@@ -68,13 +68,12 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <remarks>
 		/// <para>The buffer does not need to be pre-allocated.</para>
 		/// <para>This method <b>DOES NOT</b> support embedded tuples, and assumes that we are serializing a top-level Tuple!</para>
-		/// <para>If you need support for embedded tuples, use <see cref="SerializeTo(ref TupleWriter,T)"/> instead!</para>
+		/// <para>If you need support for embedded tuples, use <see cref="SerializeTo(TupleWriter,T)"/> instead!</para>
 		/// </remarks>
 		public static void SerializeTo(ref SliceWriter writer, T? value)
 		{
-			var tw = new TupleWriter(writer);
-			Encoder(ref tw, value);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			Encoder(tw, value);
 			//REVIEW: we loose the depth information here! :(
 		}
 
@@ -84,9 +83,10 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <remarks>This method will allocate memory on each call. Consider using <see cref="SerializeTo(ref SliceWriter,T?)"/>, or any other variant, to reduce allocations.</remarks>
 		public static Slice Serialize(T? value)
 		{
-			var writer = new TupleWriter();
-			Encoder(ref writer, value);
-			return writer.Output.ToSlice();
+			var sw = new SliceWriter();
+			var tw = new TupleWriter(ref sw);
+			Encoder(tw, value);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Deserializes a tuple segment into a value of type <typeparamref name="T"/>.</summary>

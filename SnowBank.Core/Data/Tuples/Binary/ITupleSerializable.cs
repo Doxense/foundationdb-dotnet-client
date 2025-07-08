@@ -34,7 +34,7 @@ namespace SnowBank.Data.Tuples.Binary
 	{
 		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will receive the packed bytes of this instance</param>
-		void PackTo(ref TupleWriter writer);
+		void PackTo(TupleWriter writer);
 
 		//note: there is not UnpackFrom, because it does not play way with constructors and readonly fields!
 		// => use ITupleSerializer<T> for this!
@@ -62,7 +62,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Appends the packed bytes of an item to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will receive the packed bytes of this instance</param>
 		/// <param name="tuple">Tuple that will be packed</param>
-		void PackTo(ref TupleWriter writer, in TTuple tuple);
+		void PackTo(TupleWriter writer, in TTuple tuple);
 
 		/// <summary>Decode the packed bytes from a buffer, and return the corresponding item</summary>
 		/// <param name="reader">Buffer that contains the bytes to decode</param>

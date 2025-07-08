@@ -26,32 +26,33 @@
 
 namespace SnowBank.Data.Tuples.Binary
 {
+	using System.ComponentModel;
 	using SnowBank.Buffers;
 
+	/// <summary>Writes bytes to a contiguous region of arbitrary memory</summary>
 	[DebuggerDisplay("{Output.Position}/{Output.Buffer.Length} @ {Depth}")]
-	public ref struct TupleWriter
+	[DebuggerNonUserCode]
+	public readonly ref struct TupleWriter
 	{
-		//TODO: Could we use "ref SliceWriter" here with C# 7?
 
-		public SliceWriter Output;
-		public int Depth;
+		/// <summary>Buffer where the tuple will be written</summary>
+		public readonly ref SliceWriter Output;
 
-		public TupleWriter(SliceWriter buffer)
+		/// <summary>Current depth (0 for top-level, >= 1 for embedded tuples</summary>
+		public readonly int Depth;
+
+		[Obsolete("You must pass an external SliceWriter by reference!", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public TupleWriter() { throw new NotSupportedException(); }
+
+		/// <summary>Constructs a <see cref="TupleWriter"/> that wraps an externally supplied <see cref="SliceWriter"/></summary>
+		/// <param name="buffer">Buffer where the tuple will be written</param>
+		/// <param name="depth">Initial depth of this writer</param>
+		[SkipLocalsInit]
+		public TupleWriter(ref SliceWriter buffer, int depth = 0)
 		{
-			this.Output = buffer;
-			this.Depth = 0;
-		}
-
-		public TupleWriter(int capacity)
-		{
-			this.Output = new SliceWriter(capacity);
-			this.Depth = 0;
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ToSlice()
-		{
-			return this.Output.ToSlice();
+			this.Output = ref buffer;
+			this.Depth = depth;
 		}
 
 	}

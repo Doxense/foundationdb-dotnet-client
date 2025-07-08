@@ -293,14 +293,14 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(TupleWriter writer)
 		{
-			TuplePackers.SerializeTo<T1>(ref writer, this.Item1);
-			TuplePackers.SerializeTo<T2>(ref writer, this.Item2);
-			TuplePackers.SerializeTo<T3>(ref writer, this.Item3);
-			TuplePackers.SerializeTo<T4>(ref writer, this.Item4);
-			TuplePackers.SerializeTo<T5>(ref writer, this.Item5);
-			TuplePackers.SerializeTo<T6>(ref writer, this.Item6);
+			TuplePackers.SerializeTo<T1>(writer, this.Item1);
+			TuplePackers.SerializeTo<T2>(writer, this.Item2);
+			TuplePackers.SerializeTo<T3>(writer, this.Item3);
+			TuplePackers.SerializeTo<T4>(writer, this.Item4);
+			TuplePackers.SerializeTo<T5>(writer, this.Item5);
+			TuplePackers.SerializeTo<T6>(writer, this.Item6);
 		}
 
 		/// <inheritdoc />

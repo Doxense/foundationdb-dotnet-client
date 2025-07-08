@@ -24,6 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable IL2026 // Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access otherwise can break functionality when trimming application code
+#pragma warning disable IL2091 // Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. The generic parameter of the source method or type does not have matching annotations.
+#pragma warning disable IL3050 // Calling members annotated with 'RequiresDynamicCodeAttribute' may break functionality when AOT compiling.
+
 namespace SnowBank.Data.Tuples.Binary
 {
 	using System.Runtime.InteropServices;
@@ -39,7 +43,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Internal helper that serializes the content of a Tuple into a TupleWriter, meant to be called by implementers of <see cref="IVarTuple"/> types.</summary>
 		/// <remarks>Warning: This method will call into <see cref="ITupleSerializable.PackTo"/> if <paramref name="tuple"/> implements <see cref="ITupleSerializable"/></remarks>
 
-		internal static void WriteTo<TTuple>(ref TupleWriter writer, in TTuple tuple)
+		internal static void WriteTo<TTuple>(TupleWriter writer, in TTuple tuple)
 			where TTuple : IVarTuple?
 		{
 			Contract.Debug.Requires(tuple != null);
@@ -47,7 +51,7 @@ namespace SnowBank.Data.Tuples.Binary
 			// ReSharper disable once SuspiciousTypeConversion.Global
 			if (tuple is ITupleSerializable ts)
 			{ // optimized version
-				ts.PackTo(ref writer);
+				ts.PackTo(writer);
 				return;
 			}
 
@@ -58,14 +62,14 @@ namespace SnowBank.Data.Tuples.Binary
 			{
 				for (int i = 0; i < n; i++)
 				{
-					TuplePackers.SerializeObjectTo(ref writer, tuple[i]);
+					TuplePackers.SerializeObjectTo(writer, tuple[i]);
 				}
 			}
 			else
 			{
 				foreach (object? item in tuple)
 				{
-					TuplePackers.SerializeObjectTo(ref writer, item);
+					TuplePackers.SerializeObjectTo(writer, item);
 				}
 			}
 		}
@@ -81,9 +85,10 @@ namespace SnowBank.Data.Tuples.Binary
 			where TTuple : IVarTuple?
 		{
 			if (tuple is null) return Slice.Nil;
-			var writer = new TupleWriter();
-			WriteTo(ref writer, in tuple);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			var tw = new TupleWriter(ref sw);
+			WriteTo(tw, in tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs an array of N-tuples, all sharing the same buffer</summary>
@@ -111,18 +116,17 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			if (tuple != null)
 			{
-				var tw = new TupleWriter(writer);
-				WriteTo(ref tw, tuple);
-				writer = tw.Output;
+				var tw = new TupleWriter(ref writer);
+				WriteTo(tw, tuple);
 			}
 		}
 
-		public static void Pack<TTuple>(ref TupleWriter writer, TTuple? tuple)
+		public static void PackTo<TTuple>(TupleWriter writer, TTuple? tuple)
 			where TTuple : IVarTuple?
 		{
 			if (tuple != null)
 			{
-				WriteTo(ref writer, tuple);
+				WriteTo(writer, tuple);
 			}
 		}
 
@@ -134,10 +138,11 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			if (tuple == null || tuple.Count == 0) return Slice.FromBytes(prefix);
 
-			var writer = new TupleWriter(checked(32 + prefix.Length));
-			writer.Output.WriteBytes(prefix);
-			WriteTo(ref writer, tuple);
-			return writer.ToSlice();
+			var sw = new SliceWriter(checked(32 + prefix.Length));
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			WriteTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs an array of N-tuples, all sharing the same buffer</summary>
@@ -151,19 +156,20 @@ namespace SnowBank.Data.Tuples.Binary
 			Contract.NotNull(tuples);
 
 			// pre-allocate by supposing that each tuple will take at least 16 bytes
-			var writer = new TupleWriter(checked(tuples.Length * (16 + prefix.Length)));
+			var sw = new SliceWriter(checked(tuples.Length * (16 + prefix.Length)));
+			var tw = new TupleWriter(ref sw);
 			var next = new List<int>(tuples.Length);
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var tuple in tuples)
 			{
-				writer.Output.WriteBytes(prefix);
-				WriteTo(ref writer, tuple);
-				next.Add(writer.Output.Position);
+				sw.WriteBytes(prefix);
+				WriteTo(tw, tuple);
+				next.Add(sw.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Packs an array of N-tuples, all sharing the same buffer</summary>
@@ -175,19 +181,20 @@ namespace SnowBank.Data.Tuples.Binary
 			where TTuple : IVarTuple?
 		{
 			// pre-allocate by supposing that each tuple will take at least 16 bytes
-			var writer = new TupleWriter(checked(tuples.Length * (16 + prefix.Length)));
+			var sw = new SliceWriter(checked(tuples.Length * (16 + prefix.Length)));
+			var tw = new TupleWriter(ref sw);
 			var next = new List<int>(tuples.Length);
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var tuple in tuples)
 			{
-				writer.Output.WriteBytes(prefix);
-				WriteTo(ref writer, tuple);
-				next.Add(writer.Output.Position);
+				sw.WriteBytes(prefix);
+				WriteTo(tw, tuple);
+				next.Add(sw.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Packs a sequence of N-tuples, all sharing the same buffer</summary>
@@ -208,22 +215,23 @@ namespace SnowBank.Data.Tuples.Binary
 
 			if (tuples is List<TTuple> list)
 			{
-				return Pack(prefix, (ReadOnlySpan<TTuple>) CollectionsMarshal.AsSpan(list));
+				return Pack(prefix, CollectionsMarshal.AsSpan(list));
 			}
 
 			var next = new List<int>((tuples as ICollection<TTuple>)?.Count ?? 0);
-			var writer = new TupleWriter(checked(next.Capacity * (16 + prefix.Length)));
+			var sw = new SliceWriter(checked(next.Capacity * (16 + prefix.Length)));
+			var tw = new TupleWriter(ref sw);
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var tuple in tuples)
 			{
-				writer.Output.WriteBytes(prefix);
-				WriteTo(ref writer, tuple);
-				next.Add(writer.Output.Position);
+				sw.WriteBytes(prefix);
+				WriteTo(tw, tuple);
+				next.Add(sw.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(ReadOnlySpan<byte> prefix, TElement[] elements, Func<TElement, TTuple> transform)
@@ -233,7 +241,8 @@ namespace SnowBank.Data.Tuples.Binary
 			Contract.NotNull(transform);
 
 			var next = new List<int>(elements.Length);
-			var writer = new TupleWriter(checked(next.Capacity * (16 + prefix.Length)));
+			var sw = new SliceWriter(checked(next.Capacity * (16 + prefix.Length)));
+			var tw = new TupleWriter(ref sw);
 
 			//TODO: use multiple buffers if item count is huge ?
 
@@ -242,17 +251,17 @@ namespace SnowBank.Data.Tuples.Binary
 				var tuple = transform(element);
 				if (tuple == null)
 				{
-					next.Add(writer.Output.Position);
+					next.Add(sw.Position);
 				}
 				else
 				{
-					writer.Output.WriteBytes(prefix);
-					WriteTo(ref writer, tuple);
-					next.Add(writer.Output.Position);
+					sw.WriteBytes(prefix);
+					WriteTo(tw, tuple);
+					next.Add(sw.Position);
 				}
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(ReadOnlySpan<byte> prefix, ReadOnlySpan<TElement> elements, Func<TElement, TTuple> transform)
@@ -261,7 +270,8 @@ namespace SnowBank.Data.Tuples.Binary
 			Contract.NotNull(transform);
 
 			var next = new List<int>(elements.Length);
-			var writer = new TupleWriter(checked(next.Capacity * (16 + prefix.Length)));
+			var sw = new SliceWriter(checked(next.Capacity * (16 + prefix.Length)));
+			var tw = new TupleWriter(ref sw);
 
 			//TODO: use multiple buffers if item count is huge ?
 
@@ -270,17 +280,17 @@ namespace SnowBank.Data.Tuples.Binary
 				var tuple = transform(element);
 				if (tuple == null)
 				{
-					next.Add(writer.Output.Position);
+					next.Add(sw.Position);
 				}
 				else
 				{
-					writer.Output.WriteBytes(prefix);
-					WriteTo(ref writer, tuple);
-					next.Add(writer.Output.Position);
+					sw.WriteBytes(prefix);
+					WriteTo(tw, tuple);
+					next.Add(sw.Position);
 				}
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		public static Slice[] Pack<TElement, TTuple>(ReadOnlySpan<byte> prefix, IEnumerable<TElement> elements, Func<TElement, TTuple> transform)
@@ -296,7 +306,8 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 
 			var next = new List<int>((elements as ICollection<TElement>)?.Count ?? 0);
-			var writer = new TupleWriter(checked(next.Capacity * (16 + prefix.Length)));
+			var sw = new SliceWriter(checked(next.Capacity * (16 + prefix.Length)));
+			var tw = new TupleWriter(ref sw);
 
 			//TODO: use multiple buffers if item count is huge ?
 
@@ -305,17 +316,17 @@ namespace SnowBank.Data.Tuples.Binary
 				var tuple = transform(element);
 				if (tuple == null)
 				{
-					next.Add(writer.Output.Position);
+					next.Add(sw.Position);
 				}
 				else
 				{
-					writer.Output.WriteBytes(prefix);
-					WriteTo(ref writer, tuple);
-					next.Add(writer.Output.Position);
+					sw.WriteBytes(prefix);
+					WriteTo(tw, tuple);
+					next.Add(sw.Position);
 				}
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		// With prefix...
@@ -324,238 +335,256 @@ namespace SnowBank.Data.Tuples.Binary
 		[Pure]
 		public static Slice EncodeKey<T1>(ReadOnlySpan<byte> prefix, T1? value)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 1-tuple</summary>
 		[Pure]
 		public static Slice Pack<T1>(ReadOnlySpan<byte> prefix, in ValueTuple<T1?> items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 2-tuple</summary>
 		[Pure]
 		public static Slice EncodeKey<T1, T2>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value1);
-			TuplePackers.SerializeTo(ref writer, value2);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value1);
+			TuplePackers.SerializeTo(tw, value2);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 2-tuple</summary>
 		[Pure]
 		public static Slice Pack<T1, T2>(ReadOnlySpan<byte> prefix, in (T1?, T2?) items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			TuplePackers.SerializeTo(ref writer, items.Item2);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 3-tuple</summary>
 		public static Slice EncodeKey<T1, T2, T3>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value1);
-			TuplePackers.SerializeTo(ref writer, value2);
-			TuplePackers.SerializeTo(ref writer, value3);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value1);
+			TuplePackers.SerializeTo(tw, value2);
+			TuplePackers.SerializeTo(tw, value3);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 3-tuple</summary>
 		public static Slice Pack<T1, T2, T3>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?) items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			TuplePackers.SerializeTo(ref writer, items.Item2);
-			TuplePackers.SerializeTo(ref writer, items.Item3);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 4-tuple</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value1);
-			TuplePackers.SerializeTo(ref writer, value2);
-			TuplePackers.SerializeTo(ref writer, value3);
-			TuplePackers.SerializeTo(ref writer, value4);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value1);
+			TuplePackers.SerializeTo(tw, value2);
+			TuplePackers.SerializeTo(tw, value3);
+			TuplePackers.SerializeTo(tw, value4);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 4-tuple</summary>
 		public static Slice Pack<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?) items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			TuplePackers.SerializeTo(ref writer, items.Item2);
-			TuplePackers.SerializeTo(ref writer, items.Item3);
-			TuplePackers.SerializeTo(ref writer, items.Item4);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 5-tuple</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value1);
-			TuplePackers.SerializeTo(ref writer, value2);
-			TuplePackers.SerializeTo(ref writer, value3);
-			TuplePackers.SerializeTo(ref writer, value4);
-			TuplePackers.SerializeTo(ref writer, value5);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value1);
+			TuplePackers.SerializeTo(tw, value2);
+			TuplePackers.SerializeTo(tw, value3);
+			TuplePackers.SerializeTo(tw, value4);
+			TuplePackers.SerializeTo(tw, value5);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 5-tuple</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?) items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			TuplePackers.SerializeTo(ref writer, items.Item2);
-			TuplePackers.SerializeTo(ref writer, items.Item3);
-			TuplePackers.SerializeTo(ref writer, items.Item4);
-			TuplePackers.SerializeTo(ref writer, items.Item5);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 6-tuple</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value1);
-			TuplePackers.SerializeTo(ref writer, value2);
-			TuplePackers.SerializeTo(ref writer, value3);
-			TuplePackers.SerializeTo(ref writer, value4);
-			TuplePackers.SerializeTo(ref writer, value5);
-			TuplePackers.SerializeTo(ref writer, value6);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value1);
+			TuplePackers.SerializeTo(tw, value2);
+			TuplePackers.SerializeTo(tw, value3);
+			TuplePackers.SerializeTo(tw, value4);
+			TuplePackers.SerializeTo(tw, value5);
+			TuplePackers.SerializeTo(tw, value6);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 6-tuple</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?) items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			TuplePackers.SerializeTo(ref writer, items.Item2);
-			TuplePackers.SerializeTo(ref writer, items.Item3);
-			TuplePackers.SerializeTo(ref writer, items.Item4);
-			TuplePackers.SerializeTo(ref writer, items.Item5);
-			TuplePackers.SerializeTo(ref writer, items.Item6);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 7-tuple</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value1);
-			TuplePackers.SerializeTo(ref writer, value2);
-			TuplePackers.SerializeTo(ref writer, value3);
-			TuplePackers.SerializeTo(ref writer, value4);
-			TuplePackers.SerializeTo(ref writer, value5);
-			TuplePackers.SerializeTo(ref writer, value6);
-			TuplePackers.SerializeTo(ref writer, value7);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value1);
+			TuplePackers.SerializeTo(tw, value2);
+			TuplePackers.SerializeTo(tw, value3);
+			TuplePackers.SerializeTo(tw, value4);
+			TuplePackers.SerializeTo(tw, value5);
+			TuplePackers.SerializeTo(tw, value6);
+			TuplePackers.SerializeTo(tw, value7);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 7-tuple</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?) items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			TuplePackers.SerializeTo(ref writer, items.Item2);
-			TuplePackers.SerializeTo(ref writer, items.Item3);
-			TuplePackers.SerializeTo(ref writer, items.Item4);
-			TuplePackers.SerializeTo(ref writer, items.Item5);
-			TuplePackers.SerializeTo(ref writer, items.Item6);
-			TuplePackers.SerializeTo(ref writer, items.Item7);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			TuplePackers.SerializeTo(tw, items.Item7);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7, T8? value8)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value1);
-			TuplePackers.SerializeTo(ref writer, value2);
-			TuplePackers.SerializeTo(ref writer, value3);
-			TuplePackers.SerializeTo(ref writer, value4);
-			TuplePackers.SerializeTo(ref writer, value5);
-			TuplePackers.SerializeTo(ref writer, value6);
-			TuplePackers.SerializeTo(ref writer, value7);
-			TuplePackers.SerializeTo(ref writer, value8);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value1);
+			TuplePackers.SerializeTo(tw, value2);
+			TuplePackers.SerializeTo(tw, value3);
+			TuplePackers.SerializeTo(tw, value4);
+			TuplePackers.SerializeTo(tw, value5);
+			TuplePackers.SerializeTo(tw, value6);
+			TuplePackers.SerializeTo(tw, value7);
+			TuplePackers.SerializeTo(tw, value8);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			TuplePackers.SerializeTo(ref writer, items.Item2);
-			TuplePackers.SerializeTo(ref writer, items.Item3);
-			TuplePackers.SerializeTo(ref writer, items.Item4);
-			TuplePackers.SerializeTo(ref writer, items.Item5);
-			TuplePackers.SerializeTo(ref writer, items.Item6);
-			TuplePackers.SerializeTo(ref writer, items.Item7);
-			TuplePackers.SerializeTo(ref writer, items.Item8);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			TuplePackers.SerializeTo(tw, items.Item7);
+			TuplePackers.SerializeTo(tw, items.Item8);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of an 9-tuple</summary>
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> prefix, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5, T6? value6, T7? value7, T8? value8, T9? value9)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, value1);
-			TuplePackers.SerializeTo(ref writer, value2);
-			TuplePackers.SerializeTo(ref writer, value3);
-			TuplePackers.SerializeTo(ref writer, value4);
-			TuplePackers.SerializeTo(ref writer, value5);
-			TuplePackers.SerializeTo(ref writer, value6);
-			TuplePackers.SerializeTo(ref writer, value7);
-			TuplePackers.SerializeTo(ref writer, value8);
-			TuplePackers.SerializeTo(ref writer, value9);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, value1);
+			TuplePackers.SerializeTo(tw, value2);
+			TuplePackers.SerializeTo(tw, value3);
+			TuplePackers.SerializeTo(tw, value4);
+			TuplePackers.SerializeTo(tw, value5);
+			TuplePackers.SerializeTo(tw, value6);
+			TuplePackers.SerializeTo(tw, value7);
+			TuplePackers.SerializeTo(tw, value8);
+			TuplePackers.SerializeTo(tw, value9);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of an 9-tuple</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) items)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TuplePackers.SerializeTo(ref writer, items.Item1);
-			TuplePackers.SerializeTo(ref writer, items.Item2);
-			TuplePackers.SerializeTo(ref writer, items.Item3);
-			TuplePackers.SerializeTo(ref writer, items.Item4);
-			TuplePackers.SerializeTo(ref writer, items.Item5);
-			TuplePackers.SerializeTo(ref writer, items.Item6);
-			TuplePackers.SerializeTo(ref writer, items.Item7);
-			TuplePackers.SerializeTo(ref writer, items.Item8);
-			TuplePackers.SerializeTo(ref writer, items.Item9);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			TuplePackers.SerializeTo(tw, items.Item7);
+			TuplePackers.SerializeTo(tw, items.Item8);
+			TuplePackers.SerializeTo(tw, items.Item9);
+			return sw.ToSlice();
 		}
 
 		// EncodeKey...
@@ -569,165 +598,165 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs a 1-tuple directly into a slice</summary>
 		public static Slice Pack<T1>(ReadOnlySpan<byte> prefix, in STuple<T1> tuple)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TupleSerializer<T1>.Default.PackTo(ref writer, tuple);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TupleSerializer<T1>.Default.PackTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs a 2-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2>(ReadOnlySpan<byte> prefix, in STuple<T1, T2> tuple)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TupleSerializer<T1, T2>.Default.PackTo(ref writer, tuple);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TupleSerializer<T1, T2>.Default.PackTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs a 3-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3>(ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3> tuple)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TupleSerializer<T1, T2, T3>.Default.PackTo(ref writer, tuple);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TupleSerializer<T1, T2, T3>.Default.PackTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs a 4-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4> tuple)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TupleSerializer<T1, T2, T3, T4>.Default.PackTo(ref writer, tuple);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TupleSerializer<T1, T2, T3, T4>.Default.PackTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs a 5-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TupleSerializer<T1, T2, T3, T4, T5>.Default.PackTo(ref writer, tuple);
-			return writer.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TupleSerializer<T1, T2, T3, T4, T5>.Default.PackTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs a 6-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TupleSerializer<T1, T2, T3, T4, T5, T6>.Default.PackTo(ref writer, tuple);
-			return writer.Output.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TupleSerializer<T1, T2, T3, T4, T5, T6>.Default.PackTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs a 7-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TupleSerializer<T1, T2, T3, T4, T5, T6, T7>.Default.PackTo(ref writer, tuple);
-			return writer.Output.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TupleSerializer<T1, T2, T3, T4, T5, T6, T7>.Default.PackTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs a 8-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
 		{
-			var writer = new TupleWriter();
-			writer.Output.WriteBytes(prefix);
-			TupleSerializer<T1, T2, T3, T4, T5, T6, T7, T8>.Default.PackTo(ref writer, tuple);
-			return writer.Output.ToSlice();
+			var sw = new SliceWriter();
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TupleSerializer<T1, T2, T3, T4, T5, T6, T7, T8>.Default.PackTo(tw, tuple);
+			return sw.ToSlice();
 		}
 
 		/// <summary>Packs a 1-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1>(ref SliceWriter writer, T1 item1)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePackers.SerializeTo(ref tw, item1);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePackers.SerializeTo(tw, item1);
 		}
 
 		/// <summary>Packs a 2-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePackers.SerializeTo(ref tw, item1);
-			TuplePackers.SerializeTo(ref tw, item2);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePackers.SerializeTo(tw, item1);
+			TuplePackers.SerializeTo(tw, item2);
 		}
 
 		/// <summary>Packs a 3-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePackers.SerializeTo(ref tw, item1);
-			TuplePackers.SerializeTo(ref tw, item2);
-			TuplePackers.SerializeTo(ref tw, item3);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePackers.SerializeTo(tw, item1);
+			TuplePackers.SerializeTo(tw, item2);
+			TuplePackers.SerializeTo(tw, item3);
 		}
 
 		/// <summary>Packs a 4-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePackers.SerializeTo(ref tw, item1);
-			TuplePackers.SerializeTo(ref tw, item2);
-			TuplePackers.SerializeTo(ref tw, item3);
-			TuplePackers.SerializeTo(ref tw, item4);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePackers.SerializeTo(tw, item1);
+			TuplePackers.SerializeTo(tw, item2);
+			TuplePackers.SerializeTo(tw, item3);
+			TuplePackers.SerializeTo(tw, item4);
 		}
 
 		/// <summary>Packs a 5-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePackers.SerializeTo(ref tw, item1);
-			TuplePackers.SerializeTo(ref tw, item2);
-			TuplePackers.SerializeTo(ref tw, item3);
-			TuplePackers.SerializeTo(ref tw, item4);
-			TuplePackers.SerializeTo(ref tw, item5);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePackers.SerializeTo(tw, item1);
+			TuplePackers.SerializeTo(tw, item2);
+			TuplePackers.SerializeTo(tw, item3);
+			TuplePackers.SerializeTo(tw, item4);
+			TuplePackers.SerializeTo(tw, item5);
 		}
 
 		/// <summary>Packs a 6-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePackers.SerializeTo(ref tw, item1);
-			TuplePackers.SerializeTo(ref tw, item2);
-			TuplePackers.SerializeTo(ref tw, item3);
-			TuplePackers.SerializeTo(ref tw, item4);
-			TuplePackers.SerializeTo(ref tw, item5);
-			TuplePackers.SerializeTo(ref tw, item6);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePackers.SerializeTo(tw, item1);
+			TuplePackers.SerializeTo(tw, item2);
+			TuplePackers.SerializeTo(tw, item3);
+			TuplePackers.SerializeTo(tw, item4);
+			TuplePackers.SerializeTo(tw, item5);
+			TuplePackers.SerializeTo(tw, item6);
 		}
 
 		/// <summary>Packs a 6-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePackers.SerializeTo(ref tw, item1);
-			TuplePackers.SerializeTo(ref tw, item2);
-			TuplePackers.SerializeTo(ref tw, item3);
-			TuplePackers.SerializeTo(ref tw, item4);
-			TuplePackers.SerializeTo(ref tw, item5);
-			TuplePackers.SerializeTo(ref tw, item6);
-			TuplePackers.SerializeTo(ref tw, item7);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePackers.SerializeTo(tw, item1);
+			TuplePackers.SerializeTo(tw, item2);
+			TuplePackers.SerializeTo(tw, item3);
+			TuplePackers.SerializeTo(tw, item4);
+			TuplePackers.SerializeTo(tw, item5);
+			TuplePackers.SerializeTo(tw, item6);
+			TuplePackers.SerializeTo(tw, item7);
 		}
 
 		/// <summary>Packs a 6-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePackers.SerializeTo(ref tw, item1);
-			TuplePackers.SerializeTo(ref tw, item2);
-			TuplePackers.SerializeTo(ref tw, item3);
-			TuplePackers.SerializeTo(ref tw, item4);
-			TuplePackers.SerializeTo(ref tw, item5);
-			TuplePackers.SerializeTo(ref tw, item6);
-			TuplePackers.SerializeTo(ref tw, item7);
-			TuplePackers.SerializeTo(ref tw, item8);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePackers.SerializeTo(tw, item1);
+			TuplePackers.SerializeTo(tw, item2);
+			TuplePackers.SerializeTo(tw, item3);
+			TuplePackers.SerializeTo(tw, item4);
+			TuplePackers.SerializeTo(tw, item5);
+			TuplePackers.SerializeTo(tw, item6);
+			TuplePackers.SerializeTo(tw, item7);
+			TuplePackers.SerializeTo(tw, item8);
 		}
 
 		/// <summary>Merges a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -744,7 +773,8 @@ namespace SnowBank.Data.Tuples.Binary
 			if (keys is List<T> list) return EncodeKeys<T>(prefix, CollectionsMarshal.AsSpan(list));
 
 			var next = new List<int>(keys.TryGetNonEnumeratedCount(out var count) ? count : 0);
-			var writer = new TupleWriter();
+			var sw = new SliceWriter();
+			var tw = new TupleWriter(ref sw);
 			var packer = TuplePacker<T>.Encoder;
 
 			//TODO: use multiple buffers if item count is huge ?
@@ -752,12 +782,12 @@ namespace SnowBank.Data.Tuples.Binary
 			bool hasPrefix = prefix.Length != 0;
 			foreach (var key in keys)
 			{
-				if (hasPrefix) writer.Output.WriteBytes(prefix);
-				packer(ref writer, key);
-				next.Add(writer.Output.Position);
+				if (hasPrefix) sw.WriteBytes(prefix);
+				packer(tw, key);
+				next.Add(sw.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Merges an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -768,20 +798,21 @@ namespace SnowBank.Data.Tuples.Binary
 		public static Slice[] EncodeKeys<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> prefix, ReadOnlySpan<T> keys)
 		{
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var writer = new TupleWriter(checked(keys.Length * (prefix.Length + 8)));
 			var next = new List<int>(keys.Length);
 			var packer = TuplePacker<T>.Encoder;
+			var sw = new SliceWriter(checked(keys.Length * (prefix.Length + 8)));
+			var tw = new TupleWriter(ref sw);
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var key in keys)
 			{
-				if (prefix.Length > 0) writer.Output.WriteBytes(prefix);
-				packer(ref writer, key);
-				next.Add(writer.Output.Position);
+				if (prefix.Length > 0) sw.WriteBytes(prefix);
+				packer(tw, key);
+				next.Add(sw.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		/// <summary>Merges an array of elements with a same prefix, all sharing the same buffer</summary>
@@ -796,20 +827,21 @@ namespace SnowBank.Data.Tuples.Binary
 			Contract.NotNull(selector);
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var writer = new TupleWriter(checked(elements.Length * (prefix.Length + 8)));
 			var next = new List<int>(elements.Length);
 			var packer = TuplePacker<TKey>.Encoder;
+			var sw = new SliceWriter(checked(elements.Length * (prefix.Length + 8)));
+			var tw = new TupleWriter(ref sw);
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var value in elements)
 			{
-				if (prefix.Length > 0) writer.Output.WriteBytes(prefix);
-				packer(ref writer, selector(value));
-				next.Add(writer.Output.Position);
+				if (prefix.Length > 0) sw.WriteBytes(prefix);
+				packer(tw, selector(value));
+				next.Add(sw.Position);
 			}
 
-			return Slice.SplitIntoSegments(writer.Output.GetBufferUnsafe(), 0, next);
+			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		#endregion

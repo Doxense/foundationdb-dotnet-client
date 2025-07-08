@@ -52,9 +52,9 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Binary prefix to all the keys produced by this tuple</summary>
 		public Slice Prefix => m_prefix;
 
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(TupleWriter writer)
 		{
-			PackTo(ref writer);
+			PackTo(writer);
 		}
 
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
@@ -62,17 +62,18 @@ namespace SnowBank.Data.Tuples.Binary
 			return STuple.Formatter.AppendItemsTo(ref sb, this);
 		}
 
-		internal void PackTo(ref TupleWriter writer)
+		internal void PackTo(TupleWriter writer)
 		{
 			writer.Output.WriteBytes(m_prefix);
-			TupleEncoder.WriteTo(ref writer, m_items);
+			TupleEncoder.WriteTo(writer, m_items);
 		}
 
 		public Slice ToSlice()
 		{
-			var writer = new TupleWriter();
-			PackTo(ref writer);
-			return writer.Output.ToSlice();
+			var sw = new SliceWriter();
+			var writer = new TupleWriter(ref sw);
+			PackTo(writer);
+			return sw.ToSlice();
 		}
 
 		/// <inheritdoc />

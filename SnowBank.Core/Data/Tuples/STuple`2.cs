@@ -227,10 +227,10 @@ namespace SnowBank.Data.Tuples
 			return lambda(this.Item1, this.Item2);
 		}
 
-		void ITupleSerializable.PackTo(ref TupleWriter writer)
+		void ITupleSerializable.PackTo(TupleWriter writer)
 		{
-			TuplePackers.SerializeTo<T1>(ref writer, this.Item1);
-			TuplePackers.SerializeTo<T2>(ref writer, this.Item2);
+			TuplePackers.SerializeTo<T1>(writer, this.Item1);
+			TuplePackers.SerializeTo<T2>(writer, this.Item2);
 		}
 
 		/// <inheritdoc />

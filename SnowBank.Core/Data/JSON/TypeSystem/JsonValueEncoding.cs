@@ -291,6 +291,11 @@ namespace SnowBank.Data.Binary
 
 		#region IKeyEncoder<T>
 
+		public void WriteKeyTo(TupleWriter writer, T? value)
+		{
+			TuPack.PackTo(writer, this.Encoding.ToTuple(value));
+		}
+
 		public void WriteKeyTo(ref SliceWriter writer, T? value)
 		{
 			TuPack.PackTo(ref writer, this.Encoding.ToTuple(value));

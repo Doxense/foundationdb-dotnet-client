@@ -38,9 +38,9 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs the specified tuple into the writer.</summary>
 		/// <param name="writer">The writer to pack the tuple into.</param>
 		/// <param name="tuple">The tuple to pack.</param>
-		public void PackTo(ref TupleWriter writer, in STuple<T1> tuple)
+		public void PackTo(TupleWriter writer, in STuple<T1> tuple)
 		{
-			TuplePackers.SerializeTo(ref writer, tuple.Item1);
+			TuplePackers.SerializeTo(writer, tuple.Item1);
 		}
 
 		/// <summary>Unpacks a tuple from the specified reader.</summary>
@@ -66,10 +66,10 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs the specified tuple into the writer.</summary>
 		/// <param name="writer">The writer to pack the tuple into.</param>
 		/// <param name="tuple">The tuple to pack.</param>
-		public void PackTo(ref TupleWriter writer, in STuple<T1, T2> tuple)
+		public void PackTo(TupleWriter writer, in STuple<T1, T2> tuple)
 		{
-			TuplePackers.SerializeTo(ref writer, tuple.Item1);
-			TuplePackers.SerializeTo(ref writer, tuple.Item2);
+			TuplePackers.SerializeTo(writer, tuple.Item1);
+			TuplePackers.SerializeTo(writer, tuple.Item2);
 		}
 
 		/// <summary>Unpacks a tuple from the specified reader.</summary>
@@ -95,11 +95,11 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs the specified tuple into the writer.</summary>
 		/// <param name="writer">The writer to pack the tuple into.</param>
 		/// <param name="tuple">The tuple to pack.</param>
-		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3> tuple)
+		public void PackTo(TupleWriter writer, in STuple<T1, T2, T3> tuple)
 		{
-			TuplePackers.SerializeTo(ref writer, tuple.Item1);
-			TuplePackers.SerializeTo(ref writer, tuple.Item2);
-			TuplePackers.SerializeTo(ref writer, tuple.Item3);
+			TuplePackers.SerializeTo(writer, tuple.Item1);
+			TuplePackers.SerializeTo(writer, tuple.Item2);
+			TuplePackers.SerializeTo(writer, tuple.Item3);
 		}
 
 		/// <summary>Unpacks a tuple from the specified reader.</summary>
@@ -126,12 +126,12 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs the specified tuple into the writer.</summary>
 		/// <param name="writer">The writer to pack the tuple into.</param>
 		/// <param name="tuple">The tuple to pack.</param>
-		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4> tuple)
+		public void PackTo(TupleWriter writer, in STuple<T1, T2, T3, T4> tuple)
 		{
-			TuplePackers.SerializeTo(ref writer, tuple.Item1);
-			TuplePackers.SerializeTo(ref writer, tuple.Item2);
-			TuplePackers.SerializeTo(ref writer, tuple.Item3);
-			TuplePackers.SerializeTo(ref writer, tuple.Item4);
+			TuplePackers.SerializeTo(writer, tuple.Item1);
+			TuplePackers.SerializeTo(writer, tuple.Item2);
+			TuplePackers.SerializeTo(writer, tuple.Item3);
+			TuplePackers.SerializeTo(writer, tuple.Item4);
 		}
 
 		/// <summary>Unpacks a tuple from the specified reader.</summary>
@@ -160,13 +160,13 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs the specified tuple into the writer.</summary>
 		/// <param name="writer">The writer to pack the tuple into.</param>
 		/// <param name="tuple">The tuple to pack.</param>
-		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5> tuple)
+		public void PackTo(TupleWriter writer, in STuple<T1, T2, T3, T4, T5> tuple)
 		{
-			TuplePackers.SerializeTo(ref writer, tuple.Item1);
-			TuplePackers.SerializeTo(ref writer, tuple.Item2);
-			TuplePackers.SerializeTo(ref writer, tuple.Item3);
-			TuplePackers.SerializeTo(ref writer, tuple.Item4);
-			TuplePackers.SerializeTo(ref writer, tuple.Item5);
+			TuplePackers.SerializeTo(writer, tuple.Item1);
+			TuplePackers.SerializeTo(writer, tuple.Item2);
+			TuplePackers.SerializeTo(writer, tuple.Item3);
+			TuplePackers.SerializeTo(writer, tuple.Item4);
+			TuplePackers.SerializeTo(writer, tuple.Item5);
 		}
 
 		/// <summary>Unpacks a tuple from the specified reader.</summary>
@@ -196,14 +196,14 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs the specified tuple into the writer.</summary>
 		/// <param name="writer">The writer to pack the tuple into.</param>
 		/// <param name="tuple">The tuple to pack.</param>
-		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6> tuple)
+		public void PackTo(TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
-			TuplePackers.SerializeTo(ref writer, tuple.Item1);
-			TuplePackers.SerializeTo(ref writer, tuple.Item2);
-			TuplePackers.SerializeTo(ref writer, tuple.Item3);
-			TuplePackers.SerializeTo(ref writer, tuple.Item4);
-			TuplePackers.SerializeTo(ref writer, tuple.Item5);
-			TuplePackers.SerializeTo(ref writer, tuple.Item6);
+			TuplePackers.SerializeTo(writer, tuple.Item1);
+			TuplePackers.SerializeTo(writer, tuple.Item2);
+			TuplePackers.SerializeTo(writer, tuple.Item3);
+			TuplePackers.SerializeTo(writer, tuple.Item4);
+			TuplePackers.SerializeTo(writer, tuple.Item5);
+			TuplePackers.SerializeTo(writer, tuple.Item6);
 		}
 
 		/// <summary>Unpacks a tuple from the specified reader.</summary>
@@ -234,15 +234,15 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs the specified tuple into the writer.</summary>
 		/// <param name="writer">The writer to pack the tuple into.</param>
 		/// <param name="tuple">The tuple to pack.</param>
-		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
+		public void PackTo(TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
-			TuplePackers.SerializeTo(ref writer, tuple.Item1);
-			TuplePackers.SerializeTo(ref writer, tuple.Item2);
-			TuplePackers.SerializeTo(ref writer, tuple.Item3);
-			TuplePackers.SerializeTo(ref writer, tuple.Item4);
-			TuplePackers.SerializeTo(ref writer, tuple.Item5);
-			TuplePackers.SerializeTo(ref writer, tuple.Item6);
-			TuplePackers.SerializeTo(ref writer, tuple.Item7);
+			TuplePackers.SerializeTo(writer, tuple.Item1);
+			TuplePackers.SerializeTo(writer, tuple.Item2);
+			TuplePackers.SerializeTo(writer, tuple.Item3);
+			TuplePackers.SerializeTo(writer, tuple.Item4);
+			TuplePackers.SerializeTo(writer, tuple.Item5);
+			TuplePackers.SerializeTo(writer, tuple.Item6);
+			TuplePackers.SerializeTo(writer, tuple.Item7);
 		}
 
 		/// <summary>Unpacks a tuple from the specified reader.</summary>
@@ -274,16 +274,16 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Packs the specified tuple into the writer.</summary>
 		/// <param name="writer">The writer to pack the tuple into.</param>
 		/// <param name="tuple">The tuple to pack.</param>
-		public void PackTo(ref TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
+		public void PackTo(TupleWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
 		{
-			TuplePackers.SerializeTo(ref writer, tuple.Item1);
-			TuplePackers.SerializeTo(ref writer, tuple.Item2);
-			TuplePackers.SerializeTo(ref writer, tuple.Item3);
-			TuplePackers.SerializeTo(ref writer, tuple.Item4);
-			TuplePackers.SerializeTo(ref writer, tuple.Item5);
-			TuplePackers.SerializeTo(ref writer, tuple.Item6);
-			TuplePackers.SerializeTo(ref writer, tuple.Item7);
-			TuplePackers.SerializeTo(ref writer, tuple.Item8);
+			TuplePackers.SerializeTo(writer, tuple.Item1);
+			TuplePackers.SerializeTo(writer, tuple.Item2);
+			TuplePackers.SerializeTo(writer, tuple.Item3);
+			TuplePackers.SerializeTo(writer, tuple.Item4);
+			TuplePackers.SerializeTo(writer, tuple.Item5);
+			TuplePackers.SerializeTo(writer, tuple.Item6);
+			TuplePackers.SerializeTo(writer, tuple.Item7);
+			TuplePackers.SerializeTo(writer, tuple.Item8);
 		}
 
 		/// <summary>Unpacks a tuple from the specified reader.</summary>

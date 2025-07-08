@@ -35,6 +35,7 @@ namespace SnowBank.Data.Tuples
 
 	/// <summary>Tuple Binary Encoding</summary>
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class TuPack
 	{
 
@@ -258,6 +259,16 @@ namespace SnowBank.Data.Tuples
 			where TTuple : IVarTuple?
 		{
 			TupleEncoder.PackTo(ref writer, tuple);
+		}
+
+		/// <summary>Efficiently write the packed representation of a tuple</summary>
+		/// <param name="writer">Output buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void PackTo<TTuple>(TupleWriter writer, TTuple? tuple)
+			where TTuple : IVarTuple?
+		{
+			TupleEncoder.PackTo(writer, tuple);
 		}
 
 		// With prefix

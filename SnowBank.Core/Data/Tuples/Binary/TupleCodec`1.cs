@@ -51,9 +51,8 @@ namespace SnowBank.Data.Tuples.Binary
 		public override void EncodeOrderedTo(ref SliceWriter output, T? value)
 		{
 			//HACKHACK: we lose the current depth!
-			var writer = new TupleWriter(output);
-			TuplePackers.SerializeTo(ref writer, value);
-			output = writer.Output;
+			var writer = new TupleWriter(ref output);
+			TuplePackers.SerializeTo(writer, value);
 		}
 
 		public override T? DecodeOrdered(Slice input)

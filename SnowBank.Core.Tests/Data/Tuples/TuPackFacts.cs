@@ -35,6 +35,7 @@ namespace SnowBank.Data.Tuples.Tests
 {
 	using System.Net;
 	using System.Numerics;
+	using SnowBank.Buffers;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime;
 	using SnowBank.Text;
@@ -2194,64 +2195,71 @@ namespace SnowBank.Data.Tuples.Tests
 			{
 				var serializer = TupleSerializer<int>.Default;
 				var t = STuple.Create(123);
-				var tw = new TupleWriter();
-				tw.Output.WriteBytes(prefix);
-				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<15>{"));
+				var sw = new SliceWriter();
+				var tw = new TupleWriter(ref sw);
+				sw.WriteBytes(prefix);
+				serializer.PackTo(tw, in t);
+				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<15>{"));
 			}
 
 			{
 				var serializer = TupleSerializer<string>.Default;
 				var t = STuple.Create("foo");
-				var tw = new TupleWriter();
-				tw.Output.WriteBytes(prefix);
-				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>"));
+				var sw = new SliceWriter();
+				var tw = new TupleWriter(ref sw);
+				sw.WriteBytes(prefix);
+				serializer.PackTo(tw, in t);
+				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>"));
 			}
 
 			{
 				var serializer = TupleSerializer<string, int>.Default;
 				var t = STuple.Create("foo", 123);
-				var tw = new TupleWriter();
-				tw.Output.WriteBytes(prefix);
-				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00><15>{"));
+				var sw = new SliceWriter();
+				var tw = new TupleWriter(ref sw);
+				sw.WriteBytes(prefix);
+				serializer.PackTo(tw, in t);
+				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00><15>{"));
 			}
 
 			{
 				var serializer = TupleSerializer<string, bool, int>.Default;
 				var t = STuple.Create("foo", false, 123);
-				var tw = new TupleWriter();
-				tw.Output.WriteBytes(prefix);
-				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{"));
+				var sw = new SliceWriter();
+				var tw = new TupleWriter(ref sw);
+				sw.WriteBytes(prefix);
+				serializer.PackTo(tw, in t);
+				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{"));
 			}
 
 			{
 				var serializer = TupleSerializer<string, bool, int, long>.Default;
 				var t = STuple.Create("foo", false, 123, -1L);
-				var tw = new TupleWriter();
-				tw.Output.WriteBytes(prefix);
-				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE>"));
+				var sw = new SliceWriter();
+				var tw = new TupleWriter(ref sw);
+				sw.WriteBytes(prefix);
+				serializer.PackTo(tw, in t);
+				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE>"));
 			}
 
 			{
 				var serializer = TupleSerializer<string, bool, int, long, string>.Default;
 				var t = STuple.Create("foo", false, 123, -1L, "narf");
-				var tw = new TupleWriter();
-				tw.Output.WriteBytes(prefix);
-				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>"));
+				var sw = new SliceWriter();
+				var tw = new TupleWriter(ref sw);
+				sw.WriteBytes(prefix);
+				serializer.PackTo(tw, in t);
+				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>"));
 			}
 
 			{
 				var serializer = TupleSerializer<string, bool, int, long, string, double>.Default;
 				var t = STuple.Create("foo", false, 123, -1L, "narf", Math.PI);
-				var tw = new TupleWriter();
-				tw.Output.WriteBytes(prefix);
-				serializer.PackTo(ref tw, in t);
-				Assert.That(tw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>!<C0><09>!<FB>TD-<18>"));
+				var sw = new SliceWriter();
+				var tw = new TupleWriter(ref sw);
+				sw.WriteBytes(prefix);
+				serializer.PackTo(tw, in t);
+				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>!<C0><09>!<FB>TD-<18>"));
 			}
 		}
 

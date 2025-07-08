@@ -30,10 +30,11 @@ namespace SnowBank.Data.Tuples.Binary
 
 	/// <summary>Reads bytes from a contiguous region of arbitrary memory</summary>
 	[DebuggerDisplay("{Cursor}/{Input.Length} @ {Depth}")]
+	[DebuggerNonUserCode]
 	public ref struct TupleReader
 	{
-		// This reader maintains a cursor in the original input buffer, in order to be able to format error messages with the absolute byte offset "Invalid XYZ at offset CURSOR", instead of simply reapeatedly slicing the buffer.
-		// We also always return "Range" instead of a ReadOnlySpan<char> so that we avoid any potentiel compiler warnings 
+		// This reader maintains a cursor in the original input buffer, in order to be able to format error messages with the absolute byte offset "Invalid XYZ at offset CURSOR", instead of simply repeatedly slicing the buffer.
+		// We also always return "Range" instead of a ReadOnlySpan<char> so that we avoid any potential compiler warnings 
 
 		/// <summary>Input buffer containing a packed tuple</summary>
 		public readonly ReadOnlySpan<byte> Input;
@@ -60,13 +61,13 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Peek the next byte in the buffer, without advancing the cursor</summary>
 		/// <returns>Value of the next byte in the buffer.</returns>
-		/// <exception cref="IndexOutOfRangeException">If the cursor is outside the bounds of the buffer (no more bytes, advanced too fart, ...)</exception>
+		/// <exception cref="IndexOutOfRangeException">If the cursor is outside the bounds of the buffer (no more bytes, advanced too far, ...)</exception>
 		public readonly int Peek() => this.Input[this.Cursor];
 
 		/// <summary>Peek at a byte further away in the buffer, without advancing the cursor</summary>
 		/// <param name="offset">Offset (from the cursor) of the byte to return</param>
 		/// <returns>Value of the byte at the specified offset from the cursor.</returns>
-		/// <exception cref="IndexOutOfRangeException">If the cursor plus offset falls outside the bounds of the buffer (no more bytes, advanced too fart, ...)</exception>
+		/// <exception cref="IndexOutOfRangeException">If the cursor plus offset falls outside the bounds of the buffer (no more bytes, advanced too far, ...)</exception>
 		public readonly int PeekAt([Positive] int offset) => this.Input[this.Cursor + offset];
 
 		/// <summary>Advance the cursor by the specified amount of bytes</summary>
@@ -76,7 +77,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Tries to read the specified amount of bytes from the buffer</summary>
 		/// <param name="count">Number of bytes to read</param>
 		/// <param name="token">Receives the corresponding range in the original buffer, if there was enough bytes</param>
-		/// <returns><see langword="true"/> if the read was successfull, in which case <paramref name="token"/> receives the corresponding range and the cursor is advanced by <paramref name="count"/> bytes, or <see langword="false"/> if there was not enough bytes remaining.</returns>
+		/// <returns><see langword="true"/> if the read was successful, in which case <paramref name="token"/> receives the corresponding range and the cursor is advanced by <paramref name="count"/> bytes, or <see langword="false"/> if there was not enough bytes remaining.</returns>
 		public bool TryReadBytes(int count, out Range token)
 		{
 			int start = this.Cursor;
@@ -96,7 +97,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="count">Number of bytes to read</param>
 		/// <param name="token">Receives the corresponding range in the original buffer, if there was enough bytes</param>
 		/// <param name="error">Receives an exception if there was not enough bytes</param>
-		/// <returns><see langword="true"/> if the read was successfull, in which case <paramref name="token"/> receives the corresponding range and the cursor is advanced by <paramref name="count"/> bytes, or <see langword="false"/> if there was not enough bytes remaining and <paramref name="error"/> receives an exception that can be re-thrown by the caller.</returns>
+		/// <returns><see langword="true"/> if the read was successful, in which case <paramref name="token"/> receives the corresponding range and the cursor is advanced by <paramref name="count"/> bytes, or <see langword="false"/> if there was not enough bytes remaining and <paramref name="error"/> receives an exception that can be re-thrown by the caller.</returns>
 		public bool TryReadBytes(int count, out Range token, [NotNullWhen(false)] out Exception? error)
 		{
 			int start = this.Cursor;

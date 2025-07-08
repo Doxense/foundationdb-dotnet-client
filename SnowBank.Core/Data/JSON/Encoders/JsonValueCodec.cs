@@ -30,6 +30,7 @@ namespace SnowBank.Data.Json.Binary
 	using SnowBank.Data.Tuples;
 	using SnowBank.Data.Binary;
 	using SnowBank.Buffers;
+	using SnowBank.Data.Tuples.Binary;
 
 	/// <summary>Codec that encodes <see cref="JsonValue"/> instances into either database keys (ordered) or values (unordered)</summary>
 	[PublicAPI]
@@ -213,6 +214,11 @@ namespace SnowBank.Data.Json.Binary
 			Contract.NotNull(tuple);
 
 			return tuple.Count > offset ? DecodeJsonValue(tuple[offset]) : JsonNull.Missing;
+		}
+
+		public void WriteKeyTo(TupleWriter writer, JsonValue? value)
+		{
+			TuPack.PackTo(writer, ToTuple(value));
 		}
 
 		public void WriteKeyTo(ref SliceWriter writer, JsonValue? value)

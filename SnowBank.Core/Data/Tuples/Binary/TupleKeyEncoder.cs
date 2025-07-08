@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable IL2091
+#pragma warning disable IL2095
+
 namespace SnowBank.Data.Tuples.Binary
 {
 	using SnowBank.Data.Tuples;
@@ -46,17 +49,15 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <inheritdoc />
 		public void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : IVarTuple
 		{
-			var tw = new TupleWriter(writer);
-			TupleEncoder.WriteTo(ref tw, items);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TupleEncoder.WriteTo(tw, items);
 		}
 
 		/// <inheritdoc />
 		public void EncodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>(ref SliceWriter writer, T1? item1)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
 		}
 
 		/// <inheritdoc />
@@ -65,101 +66,93 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
 		>(ref SliceWriter writer, T1? item1, T2? item2)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			TuplePacker<T2>.SerializeTo(ref tw, item2);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
+			TuplePacker<T2>.SerializeTo(tw, item2);
 		}
 
 		/// <inheritdoc />
 		public void EncodeKey<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			TuplePacker<T2>.SerializeTo(ref tw, item2);
-			TuplePacker<T3>.SerializeTo(ref tw, item3);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
+			TuplePacker<T2>.SerializeTo(tw, item2);
+			TuplePacker<T3>.SerializeTo(tw, item3);
 		}
 
 		/// <inheritdoc />
 		public void EncodeKey<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			TuplePacker<T2>.SerializeTo(ref tw, item2);
-			TuplePacker<T3>.SerializeTo(ref tw, item3);
-			TuplePacker<T4>.SerializeTo(ref tw, item4);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
+			TuplePacker<T2>.SerializeTo(tw, item2);
+			TuplePacker<T3>.SerializeTo(tw, item3);
+			TuplePacker<T4>.SerializeTo(tw, item4);
 		}
 
 		/// <inheritdoc />
 		public void EncodeKey<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			TuplePacker<T2>.SerializeTo(ref tw, item2);
-			TuplePacker<T3>.SerializeTo(ref tw, item3);
-			TuplePacker<T4>.SerializeTo(ref tw, item4);
-			TuplePacker<T5>.SerializeTo(ref tw, item5);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
+			TuplePacker<T2>.SerializeTo(tw, item2);
+			TuplePacker<T3>.SerializeTo(tw, item3);
+			TuplePacker<T4>.SerializeTo(tw, item4);
+			TuplePacker<T5>.SerializeTo(tw, item5);
 		}
 
 		/// <inheritdoc />
 		public void EncodeKey<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			TuplePacker<T2>.SerializeTo(ref tw, item2);
-			TuplePacker<T3>.SerializeTo(ref tw, item3);
-			TuplePacker<T4>.SerializeTo(ref tw, item4);
-			TuplePacker<T5>.SerializeTo(ref tw, item5);
-			TuplePacker<T6>.SerializeTo(ref tw, item6);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
+			TuplePacker<T2>.SerializeTo(tw, item2);
+			TuplePacker<T3>.SerializeTo(tw, item3);
+			TuplePacker<T4>.SerializeTo(tw, item4);
+			TuplePacker<T5>.SerializeTo(tw, item5);
+			TuplePacker<T6>.SerializeTo(tw, item6);
 		}
 
 		/// <inheritdoc />
 		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			TuplePacker<T2>.SerializeTo(ref tw, item2);
-			TuplePacker<T3>.SerializeTo(ref tw, item3);
-			TuplePacker<T4>.SerializeTo(ref tw, item4);
-			TuplePacker<T5>.SerializeTo(ref tw, item5);
-			TuplePacker<T6>.SerializeTo(ref tw, item6);
-			TuplePacker<T7>.SerializeTo(ref tw, item7);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
+			TuplePacker<T2>.SerializeTo(tw, item2);
+			TuplePacker<T3>.SerializeTo(tw, item3);
+			TuplePacker<T4>.SerializeTo(tw, item4);
+			TuplePacker<T5>.SerializeTo(tw, item5);
+			TuplePacker<T6>.SerializeTo(tw, item6);
+			TuplePacker<T7>.SerializeTo(tw, item7);
 		}
 
 		/// <inheritdoc />
 		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			TuplePacker<T2>.SerializeTo(ref tw, item2);
-			TuplePacker<T3>.SerializeTo(ref tw, item3);
-			TuplePacker<T4>.SerializeTo(ref tw, item4);
-			TuplePacker<T5>.SerializeTo(ref tw, item5);
-			TuplePacker<T6>.SerializeTo(ref tw, item6);
-			TuplePacker<T7>.SerializeTo(ref tw, item7);
-			TuplePacker<T8>.SerializeTo(ref tw, item8);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
+			TuplePacker<T2>.SerializeTo(tw, item2);
+			TuplePacker<T3>.SerializeTo(tw, item3);
+			TuplePacker<T4>.SerializeTo(tw, item4);
+			TuplePacker<T5>.SerializeTo(tw, item5);
+			TuplePacker<T6>.SerializeTo(tw, item6);
+			TuplePacker<T7>.SerializeTo(tw, item7);
+			TuplePacker<T8>.SerializeTo(tw, item8);
 		}
 
 		/// <inheritdoc />
 		public void EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9)
 		{
-			var tw = new TupleWriter(writer);
-			TuplePacker<T1>.SerializeTo(ref tw, item1);
-			TuplePacker<T2>.SerializeTo(ref tw, item2);
-			TuplePacker<T3>.SerializeTo(ref tw, item3);
-			TuplePacker<T4>.SerializeTo(ref tw, item4);
-			TuplePacker<T5>.SerializeTo(ref tw, item5);
-			TuplePacker<T6>.SerializeTo(ref tw, item6);
-			TuplePacker<T7>.SerializeTo(ref tw, item7);
-			TuplePacker<T8>.SerializeTo(ref tw, item8);
-			TuplePacker<T9>.SerializeTo(ref tw, item9);
-			writer = tw.Output;
+			var tw = new TupleWriter(ref writer);
+			TuplePacker<T1>.SerializeTo(tw, item1);
+			TuplePacker<T2>.SerializeTo(tw, item2);
+			TuplePacker<T3>.SerializeTo(tw, item3);
+			TuplePacker<T4>.SerializeTo(tw, item4);
+			TuplePacker<T5>.SerializeTo(tw, item5);
+			TuplePacker<T6>.SerializeTo(tw, item6);
+			TuplePacker<T7>.SerializeTo(tw, item7);
+			TuplePacker<T8>.SerializeTo(tw, item8);
+			TuplePacker<T9>.SerializeTo(tw, item9);
 		}
 
 		/// <inheritdoc />
