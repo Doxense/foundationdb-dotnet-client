@@ -1013,8 +1013,11 @@ namespace SnowBank.Diagnostics.Contracts
 				: new InvalidOperationException(description);
 		}
 
-		/// <summary>Signale l'échec d'une condition en déclenchant une ContractException</summary>
-		/// <remarks>Si un debugger est attaché, un breakpoint est déclenché. Sinon, une ContractException est générée</remarks>
+		/// <summary>Creates the <seealso cref="ContractException"/> that matches a failed assertion.</summary>
+		/// <remarks>
+		/// <para>If a debugger is attached to the process, a breakpoint will be triggered.</para>
+		/// <para>If the method detects that it is running inside a supported a Unit Test Runner, it will instead create an exception that matches the type expected by the framework (ex: AssertionException for NUnit)</para>
+		/// </remarks>
 		[Pure]
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		[StackTraceHidden]
@@ -1050,6 +1053,7 @@ namespace SnowBank.Diagnostics.Contracts
 
 				return new ContractException(kind, str, msg, conditionText, null);
 			}
+
 			//note: we still need to return something!
 			return new ContractException(kind, "Contract Failed", msg, conditionText, null);
 		}

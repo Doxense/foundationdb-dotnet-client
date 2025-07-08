@@ -63,9 +63,10 @@ namespace SnowBank.Diagnostics.Contracts
 				[CallerArgumentExpression("condition")] string? conditionText = null
 			)
 			{
-#if DEBUG
-				if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Precondition, userMessage, conditionText);
-#endif
+				if (!condition)
+				{
+					throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Precondition, userMessage, conditionText);
+				}
 			}
 
 			/// <summary>[DEBUG ONLY] Test if a condition is true, inside the body of a method.</summary>
@@ -84,9 +85,10 @@ namespace SnowBank.Diagnostics.Contracts
 				[CallerArgumentExpression("condition")] string? conditionText = null
 			)
 			{
-#if DEBUG
-				if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Assert, userMessage, conditionText);
-#endif
+				if (!condition)
+				{
+					throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Assert, userMessage, conditionText);
+				}
 			}
 
 			/// <summary>[DEBUG ONLY] Test if a post-condition is true, at the end of a method.</summary>
@@ -105,9 +107,10 @@ namespace SnowBank.Diagnostics.Contracts
 				[CallerArgumentExpression("condition")] string? conditionText = null
 			)
 			{
-#if DEBUG
-				if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Postcondition, userMessage, conditionText);
-#endif
+				if (!condition)
+				{
+					throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Postcondition, userMessage, conditionText);
+				}
 			}
 
 			/// <summary>[DEBUG ONLY] Test that an invariant is met.</summary>
@@ -126,9 +129,10 @@ namespace SnowBank.Diagnostics.Contracts
 				[CallerArgumentExpression("condition")] string? conditionText = null
 			)
 			{
-#if DEBUG
-				if (!condition) throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Invariant, userMessage, conditionText);
-#endif
+				if (!condition)
+				{
+					throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Invariant, userMessage, conditionText);
+				}
 			}
 
 			/// <summary>[DEBUG ONLY] Unconditionally trigger an assertion fault</summary>
@@ -137,15 +141,11 @@ namespace SnowBank.Diagnostics.Contracts
 			/// <remarks>Throws a <see cref="ContractException"/>, after attempting to breakpoint (if a debugger is attached)</remarks>
 			[Conditional("DEBUG")]
 			[AssertionMethod]
-#if DEBUG
 			[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-#endif
 			[StackTraceHidden]
 			public static void Fail(string? userMessage, Exception? exception = null)
 			{
-#if DEBUG
 				throw RaiseContractFailure(System.Diagnostics.Contracts.ContractFailureKind.Invariant, userMessage, null, exception);
-#endif
 			}
 
 			#endregion
