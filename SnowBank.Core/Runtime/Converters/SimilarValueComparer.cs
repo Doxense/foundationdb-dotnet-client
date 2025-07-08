@@ -37,30 +37,45 @@ namespace SnowBank.Runtime.Converters
 	public sealed class SimilarValueComparer : IEqualityComparer<object?>, IEqualityComparer, IComparer<object?>, IComparer
 	{
 
-		public static readonly IEqualityComparer Default = new SimilarValueComparer();
+		/// <summary>Comparer that uses relaxed rules when comparing objects for similarity.</summary>
+		/// <remarks>
+		/// <para>This comparer adds more type conversions to the <seealso cref="Default"/> base.</para>
+		/// <para>For example, in relaxed mode, both the string <c>"123"</c> and double <c>123d</c> are considered equal to integer <c>123</c>, and <c>false</c>/<c>true</c> are equal to <c>0</c>/<c>1</c>.</para>
+		/// </remarks>
+		/// <seealso cref="Default"/>
+		public static readonly SimilarValueComparer Relaxed = new(relaxed: true);
 
-		private SimilarValueComparer()
-		{ }
+		/// <summary>Comparer that uses stricter rules when comparison objects for similarity.</summary>
+		/// <remarks>
+		/// <para>In strict mode, double <c>123d</c> is considered equal to the integer <c>123</c>, but the string <c>"123"</c> is not.</para>
+		/// <para>All types of integers will be compared together, for example <c>123</c> == <c>123L</c> == <c>123UL</c> == <c>123.0</c> == <c>123m</c></para>
+		/// <para>All UUIDs of similar size will also be compared together, for example <see cref="Guid"/> and <see cref="Uuid128"/>.</para>
+		/// <para>When ordering values of different types that are not similar, they will be ordered according to their types, with the following ranking (from smaller to greater):
+		/// <c>null</c>, <c>bytes</c>, <c>strings</c>, <c>tuples</c>, <c>integers</c>, <c>decimals</c>, <c>booleans</c>, <c>guids</c>, <c>VersionStamps</c></para>
+		/// </remarks>
+		/// <seealso cref="Relaxed"/>
+		public static readonly SimilarValueComparer Default = new(relaxed: false);
 
-		bool IEqualityComparer<object?>.Equals(object? x, object? y)
+		/// <summary>Gets a value that specifies whether the relaxed rules are used (<c>true</c>) or not (<c>false</c>)</summary>
+		public bool UsesRelaxedRules { get; }
+
+		private SimilarValueComparer(bool relaxed)
 		{
-			return ComparisonHelper.AreSimilar(x, y);
+			this.UsesRelaxedRules = relaxed;
 		}
 
-		int IEqualityComparer<object?>.GetHashCode(object? obj)
-		{
-			return obj?.GetHashCode() ?? -1;
-		}
+		/// <inheritdoc cref="IEqualityComparer.Equals(object?,object?)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public new bool Equals(object? x, object? y) => this.UsesRelaxedRules ? ComparisonHelper.AreSimilarRelaxed(x, y) : ComparisonHelper.AreSimilarStrict(x, y);
 
-		bool IEqualityComparer.Equals(object? x, object? y)
-		{
-			return ComparisonHelper.AreSimilar(x, y);
-		}
+		/// <inheritdoc cref="IEqualityComparer.GetHashCode(object)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int GetHashCode(object obj) => StructuralComparisons.StructuralEqualityComparer.GetHashCode(obj);
 
-		int IEqualityComparer.GetHashCode(object obj)
-		{
-			return StructuralComparisons.StructuralEqualityComparer.GetHashCode(obj);
-		}
+		/// <inheritdoc cref="IComparer.Compare" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int Compare(object? x, object? y) => this.UsesRelaxedRules ? ComparisonHelper.CompareSimilarRelaxed(x, y) : ComparisonHelper.CompareSimilarStrict(x, y);
+
 	}
 
 }

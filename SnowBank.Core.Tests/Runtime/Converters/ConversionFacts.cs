@@ -39,7 +39,8 @@ namespace SnowBank.Runtime.Converters.Tests
 			static void Test(object? x, object? y)
 			{
 				bool expected = x == null ? y == null : y != null && x.Equals(y);
-				Assert.That(ComparisonHelper.AreSimilar(x, y), Is.EqualTo(expected), expected ? $"{x} == {y}" : $"{x} != {y}");
+				Assert.That(ComparisonHelper.AreSimilarStrict(x, y), Is.EqualTo(expected), expected ? $"{x} == {y}" : $"{x} != {y}");
+				Assert.That(ComparisonHelper.AreSimilarRelaxed(x, y), Is.EqualTo(expected), expected ? $"{x} == {y}" : $"{x} != {y}");
 			}
 
 			Test(null, null);
@@ -64,50 +65,115 @@ namespace SnowBank.Runtime.Converters.Tests
 		[Test]
 		public void Test_Values_Of_Similar_Types_Are_Similar()
 		{
-			static void Similar(object? x, object? y)
+			static void SimilarRelaxed(object? x, object? y)
 			{
-				if (!ComparisonHelper.AreSimilar(x, y))
+				if (!ComparisonHelper.AreSimilarRelaxed(x, y))
 				{
 					Assert.Fail($"({(x == null ? "object" : x.GetType().Name)}) {x} ~= ({(y == null ? "object" : y.GetType().Name)}) {y}");
 				}
 			}
-
-			static void Different(object? x, object? y)
+			static void SimilarStrict(object? x, object? y)
 			{
-				if (ComparisonHelper.AreSimilar(x, y))
+				if (!ComparisonHelper.AreSimilarStrict(x, y))
+				{
+					Assert.Fail($"({(x == null ? "object" : x.GetType().Name)}) {x} ~== ({(y == null ? "object" : y.GetType().Name)}) {y}");
+				}
+			}
+
+			static void DifferentRelaxed(object? x, object? y)
+			{
+				if (ComparisonHelper.AreSimilarRelaxed(x, y))
 				{
 					Assert.Fail($"({(x == null ? "object" : x.GetType().Name)}) {x} !~= ({(y == null ? "object" : y.GetType().Name)}) {y}");
 				}
 			}
 
-			Different("hello", 123);
-			Different(123, "hello");
+			static void DifferentStrict(object? x, object? y)
+			{
+				if (ComparisonHelper.AreSimilarStrict(x, y))
+				{
+					Assert.Fail($"({(x == null ? "object" : x.GetType().Name)}) {x} !~== ({(y == null ? "object" : y.GetType().Name)}) {y}");
+				}
+			}
 
-			Similar("A", 'A');
-			Similar('A', "A");
-			Different("AA", 'A');
-			Different('A', "AA");
-			Different("A", 'B');
-			Different('A', "B");
+			Assert.Multiple(() =>
+			{
+				SimilarRelaxed(false, 0);
+				SimilarRelaxed(true, 1);
+				SimilarRelaxed(0, false);
+				SimilarRelaxed(1, true);
+				//
+				DifferentStrict(false, 0);
+				DifferentStrict(true, 1);
+				DifferentStrict(0, false);
+				DifferentStrict(1, true);
 
-			Similar("123", 123);
-			Similar("123", 123L);
-			Similar("123.4", 123.4f);
-			Similar("123.4", 123.4d);
+				SimilarRelaxed(123, 123L);
+				SimilarRelaxed(123, 123U);
+				SimilarRelaxed(123, 123UL);
+				SimilarRelaxed(123, 123d);
+				SimilarRelaxed(123, 123f);
+				//
+				SimilarStrict(123, 123L);
+				SimilarStrict(123, 123U);
+				SimilarStrict(123, 123UL);
+				SimilarStrict(123, 123d);
+				SimilarStrict(123, 123f);
 
-			Similar(123, "123");
-			Similar(123L, "123");
-			Similar(123.4f, "123.4");
-			Similar(123.4d, "123.4");
+				DifferentRelaxed("hello", 123);
+				DifferentRelaxed(123, "hello");
+				//
+				DifferentStrict("hello", 123);
+				DifferentStrict(123, "hello");
 
-			var g = Guid.NewGuid();
+				SimilarRelaxed("A", 'A');
+				SimilarRelaxed('A', "A");
+				DifferentRelaxed("AA", 'A');
+				DifferentRelaxed('A', "AA");
+				DifferentRelaxed("A", 'B');
+				DifferentRelaxed('A', "B");
+				//
+				SimilarStrict("A", 'A');
+				SimilarStrict('A', "A");
+				DifferentStrict("AA", 'A');
+				DifferentStrict('A', "AA");
+				DifferentStrict("A", 'B');
+				DifferentStrict('A', "B");
 
-			Similar(g, g.ToString());
-			Similar(g.ToString(), g);
+				SimilarRelaxed("123", 123);
+				SimilarRelaxed("123", 123L);
+				SimilarRelaxed("123.4", 123.4f);
+				SimilarRelaxed("123.4", 123.4d);
+				//
+				DifferentStrict("123", 123);
+				DifferentStrict("123", 123L);
+				DifferentStrict("123.4", 123.4f);
+				DifferentStrict("123.4", 123.4d);
 
-			Different(g.ToString(), Guid.Empty);
-			Different(Guid.Empty, g.ToString());
+				SimilarRelaxed(123, "123");
+				SimilarRelaxed(123L, "123");
+				SimilarRelaxed(123.4f, "123.4");
+				SimilarRelaxed(123.4d, "123.4");
+				//
+				DifferentStrict(123, "123");
+				DifferentStrict(123L, "123");
+				DifferentStrict(123.4f, "123.4");
+				DifferentStrict(123.4d, "123.4");
 
+				var g = Guid.NewGuid();
+
+				SimilarRelaxed(g, g.ToString());
+				SimilarRelaxed(g.ToString(), g);
+				//
+				DifferentStrict(g, g.ToString());
+				DifferentStrict(g.ToString(), g);
+
+				DifferentRelaxed(g.ToString(), Guid.Empty);
+				DifferentRelaxed(Guid.Empty, g.ToString());
+				//
+				DifferentStrict(g.ToString(), Guid.Empty);
+				DifferentStrict(Guid.Empty, g.ToString());
+			});
 		}
 
 	}
