@@ -28,9 +28,13 @@ namespace SnowBank.Runtime.Converters
 {
 	using System.Collections;
 
-	/// <summary>Object comparer that returns true if both values are "similar"</summary>
-	/// <remarks>This comparer SHOULD NOT be used in a Dictionary, because it violates on of the conditions: Two objects could be considered equal, but have different hashcode!</remarks>
-	public sealed class SimilarValueComparer : IEqualityComparer<object?>, IEqualityComparer
+	/// <summary>Helper that compares instances for "similarity"</summary>
+	/// <remarks>
+	/// <para>This comparer SHOULD NOT be used in a Dictionary, because it violates on of the conditions: Some pairs of objects could be considered equal, but have different hashcode!</para>
+	/// </remarks>
+	[PublicAPI]
+	[DebuggerNonUserCode]
+	public sealed class SimilarValueComparer : IEqualityComparer<object?>, IEqualityComparer, IComparer<object?>, IComparer
 	{
 
 		public static readonly IEqualityComparer Default = new SimilarValueComparer();

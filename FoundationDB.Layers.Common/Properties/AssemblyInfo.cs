@@ -24,9 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: ComVisible(false)]
 
 [assembly: Guid("0fce138d-cb61-49fd-bb0a-a0ecb37abe79")]
+
+// we exclude this assembly from test coverage by default when it is being consumed as a NuGet package
+#if RELEASE
+[assembly: System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+#endif

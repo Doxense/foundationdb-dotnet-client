@@ -36,7 +36,9 @@ namespace SnowBank.Diagnostics.Contracts
 		// ReSharper disable MemberHidesStaticFromOuterClass
 
 		/// <summary>Contracts that are only evaluated in Debug builds</summary>
+		[PublicAPI]
 		[DebuggerNonUserCode]
+		[ExcludeFromCodeCoverage]
 		public static class Debug
 		{
 

@@ -294,14 +294,14 @@ namespace System
 		}
 
 		/// <summary>Implicitly converts a <see cref="Slice"/> into an <see cref="ArraySegment{T}">ArraySegment&lt;byte&gt;</see></summary>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator ArraySegment<byte>(Slice value)
 		{
 			return value.HasValue ? new ArraySegment<byte>(value.Array, value.Offset, value.Count) : default;
 		}
 
 		/// <summary>Implicitly converts an <see cref="ArraySegment{T}">ArraySegment&lt;byte&gt;</see> into a <see cref="Slice"/></summary>
-		[Pure, DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static implicit operator Slice(ArraySegment<byte> value)
 		{
 			if (value.Count == 0) return value.Array is null ? default : Empty;
@@ -3183,10 +3183,11 @@ namespace System
 
 	/// <summary>Helper methods for Slice</summary>
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class SliceExtensions
 	{
 
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.NoInlining)]
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		private static Slice EmptyOrNil(byte[]? array)
 		{
 			//note: we consider the "empty" or "nil" case less frequent, so we handle it in a non-inlined method
@@ -3194,7 +3195,7 @@ namespace System
 		}
 
 		/// <summary>Handle the Nil/Empty memoization</summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.NoInlining)]
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		private static Slice EmptyOrNil(byte[]? array, int count)
 		{
 			//note: we consider the "empty" or "nil" case less frequent, so we handle it in a non-inlined method
@@ -3207,7 +3208,7 @@ namespace System
 		}
 
 		/// <summary>Returns a slice that wraps the whole array</summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes)
 		{
 			return bytes is not null && bytes.Length > 0 ? new Slice(bytes) : EmptyOrNil(bytes);
@@ -3217,7 +3218,7 @@ namespace System
 		/// <param name="bytes">Underlying buffer to slice</param>
 		/// <param name="offset">Offset to the first byte of the slice</param>
 		/// <remarks><b>REMINDER:</b> the parameter is the <b>offset</b>, and not the length !</remarks>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset)
 		{
 			//note: this method is DANGEROUS! Caller may think it is passing a count instead of an offset.
@@ -3244,7 +3245,7 @@ namespace System
 		/// Slice that maps the corresponding subsection of the array.
 		/// If <paramref name="count"/> is 0 then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes, [Positive] int offset, [Positive] int count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
@@ -3271,7 +3272,7 @@ namespace System
 		/// Slice that maps the corresponding subsection of the array.
 		/// If <paramref name="count"/> is 0, then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this byte[]? bytes, uint offset, uint count)
 		{
 			//note: this method will frequently be called with offset==0, so we should optimize for this case!
@@ -3290,7 +3291,6 @@ namespace System
 		/// Slice that maps the corresponding subsection of the array.
 		/// If <paramref name="range"/> is empty, then either <see cref="Slice.Empty"/> or <see cref="Slice.Nil"/> will be returned, in order to not keep a reference to the whole buffer.
 		/// </returns>
-		[DebuggerNonUserCode]
 		public static Slice AsSlice(this byte[]? bytes, Range range)
 		{
 			if (bytes is null)
@@ -3317,7 +3317,7 @@ namespace System
 		}
 
 		/// <summary>Returns a slice that is the wraps the same memory region as this <see cref="ArraySegment{T}"/></summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self)
 		{
 			// We trust the ArraySegment<byte> ctor to validate the arguments beforehand.
@@ -3328,11 +3328,11 @@ namespace System
 		}
 
 		/// <summary>Returns a slice that is the wraps the same memory region as this <see cref="ArraySegment{T}"/></summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self, int offset) => AsSlice(self).Substring(offset);
 
 		/// <summary>Returns a slice that is the wraps the same memory region as this <see cref="ArraySegment{T}"/></summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice AsSlice(this ArraySegment<byte> self, int offset, int count) => AsSlice(self).Substring(offset, count);
 
 		/// <summary>Creates a new slice by copying the contents of this span of bytes</summary>
@@ -3415,35 +3415,34 @@ namespace System
 		}
 
 		/// <summary>Return a <see cref="SliceReader"/> that will expose the content of a buffer</summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self)
 		{
 			return new SliceReader(self);
 		}
 
 		/// <summary>Return a <see cref="SliceReader"/> that will expose the start of a buffer</summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, int count)
 		{
 			return new SliceReader(self, 0, count);
 		}
 
 		/// <summary>Return a <see cref="SliceReader"/> that will expose a subsection of a buffer</summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, int offset, int count)
 		{
 			return new SliceReader(self, offset, count);
 		}
 
 		/// <summary>Return a <see cref="SliceReader"/> that will expose a subsection of a buffer</summary>
-		[DebuggerNonUserCode, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceReader ToSliceReader(this byte[] self, Range range)
 		{
 			return AsSlice(self, range).ToSliceReader();
 		}
 
 		/// <summary>Return a stream that can read from the current slice.</summary>
-		[DebuggerNonUserCode]
 		public static MemoryStream ToStream(this Slice slice)
 		{
 			if (slice.IsNull) throw ThrowHelper.InvalidOperationException("Slice cannot be null");
@@ -3452,7 +3451,7 @@ namespace System
 
 		/// <summary>Exposes the content of a <see cref="MemoryStream"/> as a <see cref="Slice"/> if possible, or returns a copy</summary>
 		/// <param name="stream">Stream with some content</param>
-		/// <returns>Slice that uses the stream internel buffer, if it is publicly visible; otherwise, a copy of the stream's content.</returns>
+		/// <returns>Slice that uses the stream internal buffer, if it is publicly visible; otherwise, a copy of the stream's content.</returns>
 		public static Slice ToSlice(this MemoryStream stream)
 		{
 			Contract.Debug.Requires(stream is not null);
@@ -3464,7 +3463,6 @@ namespace System
 		}
 
 		/// <summary>Reads the entire content of a <see cref="Stream"/> into a <see cref="Slice"/> in memory.</summary>
-		[DebuggerNonUserCode]
 		public static Slice ReadAllSlice(this Stream input)
 		{
 			Contract.NotNull(input);
@@ -3483,7 +3481,6 @@ namespace System
 		}
 
 		/// <summary>Reads the entire content of a <see cref="Stream"/> into a <see cref="Slice"/> in memory.</summary>
-		[DebuggerNonUserCode]
 		public static async Task<Slice> ReadAllSliceAsync(this Stream input, CancellationToken ct)
 		{
 			Contract.NotNull(input);
@@ -3596,7 +3593,6 @@ namespace System
 		}
 
 		/// <summary>Reads the entire content of a <see cref="PipeReader"/> into a <see cref="Slice"/>> in memory.</summary>
-		[DebuggerNonUserCode]
 		public static async Task<Slice> ReadAllSliceAsync(this PipeReader input, CancellationToken ct)
 		{
 			using (var ms = new MemoryStream())
@@ -3607,7 +3603,6 @@ namespace System
 		}
 
 		/// <summary>Returns a <see cref="PipeReader"/> that will consume the content of this slice</summary>
-		[DebuggerNonUserCode]
 		public static PipeReader AsPipeReader(this Slice slice)
 		{
 			return new SlicePipeReader(slice);
@@ -3666,7 +3661,6 @@ namespace System
 		}
 
 		/// <summary>Copies the content of a <see cref="Slice"/> into a <see cref="PipeWriter"/>.</summary>
-		[DebuggerNonUserCode]
 		public static async Task CopyToAsync(this Slice slice, PipeWriter output, CancellationToken ct)
 		{
 			if (slice.IsNull) throw new ArgumentException("Source slice cannot be nil.", nameof(slice));
@@ -3685,6 +3679,7 @@ namespace System
 
 	/// <summary>Advanced or unsafe operations on <see cref="Slice"/></summary>
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class SliceMarshal
 	{
 

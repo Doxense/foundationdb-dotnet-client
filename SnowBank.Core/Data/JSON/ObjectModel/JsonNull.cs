@@ -31,9 +31,9 @@ namespace SnowBank.Data.Json
 
 	/// <summary>JSON null</summary>
 	[DebuggerDisplay("JSON Null({m_kind})")]
-	[DebuggerNonUserCode]
 	[PublicAPI]
 	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
+	[DebuggerNonUserCode]
 	public sealed class JsonNull : JsonValue, IEquatable<JsonNull>
 	{
 		internal enum NullKind

@@ -34,10 +34,10 @@ namespace SnowBank.Data.Json
 	/// <summary>Represents a value in a JSON Document</summary>
 	/// <remarks>The value can be null or missing (<see cref="JsonNull"/>), a literal (<see cref="JsonString"/>, <see cref="JsonBoolean"/>, <see cref="JsonNumber"/>), an object (<see cref="JsonObject"/>) or an array (<see cref="JsonArray"/>)</remarks>
 	[Serializable]
-	[DebuggerNonUserCode]
 	[PublicAPI]
 	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
 	[JetBrains.Annotations.CannotApplyEqualityOperator]
+	[DebuggerNonUserCode]
 	public abstract partial class JsonValue : IEquatable<JsonValue>, IComparable<JsonValue>, IJsonSerializable, IFormattable, ISliceSerializable, IConvertible
 #if NET8_0_OR_GREATER
 		, IParsable<JsonValue>

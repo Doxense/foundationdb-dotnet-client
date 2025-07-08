@@ -33,8 +33,8 @@ namespace SnowBank.Data.Json
 	/// <summary>JSON serialization settings</summary>
 	/// <remarks>Instances of this type are immutable and can be cached</remarks>
 	[DebuggerDisplay("<{ToString(),nq}> (Flags = {(int) m_flags,h})")]
-	[DebuggerNonUserCode]
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public sealed class CrystalJsonSettings : IEquatable<CrystalJsonSettings>
 	{
 

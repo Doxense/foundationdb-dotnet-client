@@ -54,6 +54,8 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private const string GeneratedCodeAttributeFullName = "global::System.CodeDom.Compiler.GeneratedCodeAttribute";
 
+			private const string ExcludeFromCodeCoverageAttributeFullName = "global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute";
+
 			private const string MaybeNullWhenAttributeFullName = "global::System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute";
 
 			private const string NotNullIfNotNullAttributeFullName = "global::System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute";
@@ -132,6 +134,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					sb.AppendLine($"[{DynamicallyAccessedMembersAttributeFullName}({DynamicallyAccessedMemberTypesFullName}.All)]");
 					sb.AppendLine($"[{GeneratedCodeAttributeFullName}(\"{nameof(CrystalJsonSourceGenerator)}\", \"0.1\")]");
 					sb.AppendLine($"[{DebuggerNonUserCodeAttributeFullName}]");
+					sb.AppendLine($"[{ExcludeFromCodeCoverageAttributeFullName}]");
 					sb.AppendLine($"public static partial class {symbol.Name}");
 					sb.EnterBlock("container");
 					sb.NewLine();

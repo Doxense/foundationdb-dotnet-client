@@ -32,6 +32,7 @@ namespace SnowBank.Runtime.Converters
 
 	/// <summary>Helper class used to compare object of "compatible" types</summary>
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class ComparisonHelper
 	{
 

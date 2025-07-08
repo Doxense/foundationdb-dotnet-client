@@ -89,14 +89,12 @@ namespace SnowBank.Buffers
 		/// <summary>Ensures that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
 		/// <exception cref="FormatException">If there's not enough bytes remaining in the buffer</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[DebuggerNonUserCode]
 		public void EnsureBytes(int count)
 		{
 			if (count < 0 || checked(this.Position + count) > this.Buffer.Count) throw NotEnoughBytes(count);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		[DebuggerNonUserCode]
 		internal static Exception NotEnoughBytes(int count)
 		{
 			return ThrowHelper.FormatException($"The buffer does not have enough data to satisfy a read of {count} byte(s)");

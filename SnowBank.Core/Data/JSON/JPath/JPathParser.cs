@@ -31,6 +31,7 @@ namespace SnowBank.Data.Json.JPath
 
 	/// <summary>Parser for JPath expressions</summary>
 	[DebuggerDisplay("Cursor={Cursor}, Start={Start}, SubStart={SubStart}")]
+	[DebuggerNonUserCode]
 	internal ref struct JPathParser
 	{
 		public readonly ReadOnlySpan<char> Path;
@@ -112,7 +113,6 @@ namespace SnowBank.Data.Json.JPath
 		}
 
 		/// <summary>Reads the next character from the string</summary>
-		[DebuggerNonUserCode]
 		private char ReadNextChar()
 		{
 			int p = this.Cursor;
@@ -124,7 +124,6 @@ namespace SnowBank.Data.Json.JPath
 
 		/// <summary>Peek at the next character in the string</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[DebuggerNonUserCode]
 		private char PeekNextChar()
 		{
 			int p = this.Cursor;
@@ -134,7 +133,6 @@ namespace SnowBank.Data.Json.JPath
 
 		/// <summary>Peek at the last read character</summary>
 		/// <remarks>Should mostly be used by error handlers to customize message according to the context</remarks>
-		[DebuggerNonUserCode]
 		private char PeekPreviousChar()
 		{
 			int p = this.Cursor - 1;

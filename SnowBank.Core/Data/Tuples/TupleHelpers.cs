@@ -28,6 +28,9 @@ namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
 
+	/// <summary>Helpers for writing custom <see cref="IVarTuple"/> implementations</summary>
+	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class TupleHelpers
 	{
 

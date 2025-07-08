@@ -48,9 +48,9 @@ namespace SnowBank.Data.Json
 	[Serializable]
 	[DebuggerDisplay("JSON Array[{m_size}]{GetMutabilityDebugLiteral(),nq} {GetCompactRepresentation(0),nq}")]
 	[DebuggerTypeProxy(typeof(DebugView))]
-	[DebuggerNonUserCode]
 	[PublicAPI]
 	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
+	[DebuggerNonUserCode]
 #if NET9_0_OR_GREATER
 	[CollectionBuilder(typeof(JsonArray), nameof(JsonArray.Create))]
 #endif

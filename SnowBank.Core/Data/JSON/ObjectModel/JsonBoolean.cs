@@ -31,9 +31,9 @@ namespace SnowBank.Data.Json
 
 	/// <summary>JSON Boolean (<see langword="true"/> or <see langword="false"/>)</summary>
 	[DebuggerDisplay("JSON Boolean({m_value})")]
-	[DebuggerNonUserCode]
 	[PublicAPI]
 	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
+	[DebuggerNonUserCode]
 	public sealed class JsonBoolean : JsonValue, IEquatable<bool>, IEquatable<JsonBoolean>, IComparable<JsonBoolean>
 	{
 

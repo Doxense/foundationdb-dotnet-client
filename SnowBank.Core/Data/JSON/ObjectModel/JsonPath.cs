@@ -36,8 +36,8 @@ namespace SnowBank.Data.Json
 	/// <summary>Represents a path inside a JSON document to a nested child (ex: <c>"id"</c>, <c>"user.id"</c> <c>"tags[2].id"</c></summary>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
-	[DebuggerNonUserCode]
 	[System.Text.Json.Serialization.JsonConverter(typeof(JsonPath.CustomConverter))]
+	[DebuggerNonUserCode]
 	public readonly struct JsonPath : IEnumerable<JsonPathSegment>, IJsonSerializable, IJsonPackable, IJsonDeserializable<JsonPath>, IEquatable<JsonPath>, IEquatable<string>, ISpanFormattable
 #if NET9_0_OR_GREATER
 		, IEquatable<ReadOnlySpan<char>>, IEquatable<ReadOnlyMemory<char>>

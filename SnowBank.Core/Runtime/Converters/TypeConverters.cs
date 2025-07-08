@@ -32,8 +32,9 @@ namespace SnowBank.Runtime.Converters
 	using System.Linq.Expressions;
 	using System.Reflection;
 
-	/// <summary>Helper class to convert object from one type to another</summary>
+	/// <summary>Helper class for converting instances from one type to another</summary>
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class TypeConverters
 	{
 

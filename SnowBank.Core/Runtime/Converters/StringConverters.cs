@@ -31,7 +31,9 @@ namespace SnowBank.Runtime.Converters
 	using System.Runtime.InteropServices;
 	using NodaTime;
 
+	/// <summary>Helper methods for converting common types into string literals</summary>
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class StringConverters
 	{
 

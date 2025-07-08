@@ -66,8 +66,9 @@ namespace SnowBank.Diagnostics.Contracts
 	}
 
 	/// <summary>Helper type to check for pre-requisites, invariants, assertions, ...</summary>
-	[DebuggerNonUserCode]
 	[PublicAPI]
+	[DebuggerNonUserCode]
+	[ExcludeFromCodeCoverage]
 	public static partial class Contract
 	{
 

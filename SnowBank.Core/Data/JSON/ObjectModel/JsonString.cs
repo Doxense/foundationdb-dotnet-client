@@ -41,9 +41,9 @@ namespace SnowBank.Data.Json
 
 	/// <summary>JSON string literal</summary>
 	[DebuggerDisplay("JSON String({" + nameof(m_value) + "})")]
-	[DebuggerNonUserCode]
 	[PublicAPI]
 	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
+	[DebuggerNonUserCode]
 	public sealed class JsonString : JsonValue,
 		IEquatable<JsonString>,
 		IComparable<JsonString>,

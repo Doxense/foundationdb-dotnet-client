@@ -33,6 +33,7 @@ namespace SnowBank.Data.Tuples
 
 	/// <summary>Add extensions methods that deal with tuples on various types</summary>
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public static class TupleExtensions
 	{
 

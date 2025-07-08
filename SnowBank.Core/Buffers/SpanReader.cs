@@ -32,6 +32,7 @@ namespace SnowBank.Buffers
 	/// <summary>Helper type for ready binary data from a <see cref="Span{T}"/> of bytes</summary>
 	[DebuggerDisplay("Pos={Position}/{Buffer.Length}, Remaining={Remaining}")]
 	[PublicAPI]
+	[DebuggerNonUserCode]
 	public ref struct SpanReader
 	{
 
@@ -73,14 +74,12 @@ namespace SnowBank.Buffers
 
 		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[DebuggerNonUserCode]
 		public void EnsureBytes(int count)
 		{
 			if (count < 0 || checked(this.Position + count) > this.Buffer.Length) throw ThrowNotEnoughBytes(count);
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		[DebuggerNonUserCode]
 		private static Exception ThrowNotEnoughBytes(int count)
 		{
 			return ThrowHelper.FormatException($"The buffer does not have enough data to satisfy a read of {count} byte(s)");

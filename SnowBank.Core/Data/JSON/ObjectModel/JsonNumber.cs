@@ -39,9 +39,9 @@ namespace SnowBank.Data.Json
 
 	/// <summary>JSON number</summary>
 	[DebuggerDisplay("JSON Number({" + nameof(m_literal) + ",nq})")]
-	[DebuggerNonUserCode]
 	[PublicAPI]
 	[System.Text.Json.Serialization.JsonConverter(typeof(CrystalJsonCustomJsonConverter))]
+	[DebuggerNonUserCode]
 	public sealed class JsonNumber : JsonValue, IEquatable<JsonNumber>, IComparable<JsonNumber>
 		, IEquatable<JsonString>
 		, IEquatable<JsonBoolean>

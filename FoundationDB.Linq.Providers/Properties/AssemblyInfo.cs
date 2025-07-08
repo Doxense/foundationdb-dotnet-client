@@ -24,7 +24,6 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -33,3 +32,8 @@ using System.Runtime.InteropServices;
 [assembly: Guid("dfd43b61-0d9b-42d6-bbec-a74eafed2631")]
 
 [assembly: InternalsVisibleTo("FoundationDB.Tests, PublicKey=0024000004800000940000000602000000240000525341310004000001000100a9e653303024d91e3e98cdb33228897aebc9aeb0dd5e0890a2362ff08231643525d86e955d52a9be450a9602eedbc1c0eb463d227320a6b6ad1c7129f21353b2b28242d712a0e7b3aaff55c0ab1019c92bea6806b9cf64e93d976143dc57e0a8e73a65c03422ab2624c1220d84f7e88c5a5c3c9edefcf4a76969d458348403ce")]
+
+// we exclude this assembly from test coverage by default when it is being consumed as a NuGet package
+#if RELEASE
+[assembly: System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+#endif

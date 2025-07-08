@@ -31,7 +31,6 @@ namespace System
 	using System.Globalization;
 	using System.Numerics;
 	using System.Security.Cryptography;
-
 	using SnowBank.Text;
 
 	/// <summary>Represents a 48-bit UUID that is stored in high-endian format on the wire</summary>
