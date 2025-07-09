@@ -309,24 +309,159 @@ namespace FoundationDB.Client
 		public static Task<Uuid128?> GetValueUuid128Async(this IFdbReadOnlyTransaction trans, Slice key)
 			=> GetValueUuid128Async(trans, ToSpanKey(key));
 
-		/// <summary>Reads the value of a key from the database, decoded as 128-bit UUID</summary>
+		/// <summary>Reads the value of a key from the database, decoded as a 128-bit <see cref="Uuid128"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
 		public static Task<Uuid128?> GetValueUuid128Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
-			=> trans.GetAsync(key, static (value, found) => found ? value.ToUuid128() : default(Uuid128?));
+			=> trans.GetAsync(key, static (value, found) => found ? Uuid128.Read(value) : default(Uuid128?));
 
 		/// <inheritdoc cref="GetValueUuid128Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid128)"/>
 		public static Task<Uuid128> GetValueUuid128Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid128 missingValue)
 			=> GetValueUuid128Async(trans, ToSpanKey(key), missingValue);
 
-		/// <summary>Reads the value of a key from the database, decoded as 128-bit UUID</summary>
+		/// <summary>Reads the value of a key from the database, decoded as a 128-bit <see cref="Uuid128"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="missingValue">Value returned if the key is missing</param>
 		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
 		public static Task<Uuid128> GetValueUuid128Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, Uuid128 missingValue)
-			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? value.ToUuid128() : missing);
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? Uuid128.Read(value) : missing);
+
+		#endregion
+
+		#region GetValueUuid96Async
+
+		/// <inheritdoc cref="GetValueUuid96Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
+		public static Task<Uuid96?> GetValueUuid96Async(this IFdbReadOnlyTransaction trans, Slice key)
+			=> GetValueUuid96Async(trans, ToSpanKey(key));
+
+		/// <summary>Reads the value of a key from the database, decoded as a 96-bit <see cref="Uuid96"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
+		public static Task<Uuid96?> GetValueUuid96Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
+			=> trans.GetAsync(key, static (value, found) => found ? Uuid96.Read(value) : default(Uuid96?));
+
+		/// <inheritdoc cref="GetValueUuid96Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid96)"/>
+		public static Task<Uuid96> GetValueUuid96Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid96 missingValue)
+			=> GetValueUuid96Async(trans, ToSpanKey(key), missingValue);
+
+		/// <summary>Reads the value of a key from the database, decoded as a 96-bit <see cref="Uuid96"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="missingValue">Value returned if the key is missing</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
+		public static Task<Uuid96> GetValueUuid96Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, Uuid96 missingValue)
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? Uuid96.Read(value)  : missing);
+
+		#endregion
+
+		#region GetValueUuid80Async
+
+		/// <inheritdoc cref="GetValueUuid80Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
+		public static Task<Uuid80?> GetValueUuid80Async(this IFdbReadOnlyTransaction trans, Slice key)
+			=> GetValueUuid80Async(trans, ToSpanKey(key));
+
+		/// <summary>Reads the value of a key from the database, decoded as an 80-bit <see cref="Uuid80"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
+		public static Task<Uuid80?> GetValueUuid80Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
+			=> trans.GetAsync(key, static (value, found) => found ? Uuid80.Read(value) : default(Uuid80?));
+
+		/// <inheritdoc cref="GetValueUuid80Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid80)"/>
+		public static Task<Uuid80> GetValueUuid80Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid80 missingValue)
+			=> GetValueUuid80Async(trans, ToSpanKey(key), missingValue);
+
+		/// <summary>Reads the value of a key from the database, decoded as an 80-bit <see cref="Uuid80"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="missingValue">Value returned if the key is missing</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
+		public static Task<Uuid80> GetValueUuid80Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, Uuid80 missingValue)
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? Uuid80.Read(value)  : missing);
+
+		#endregion
+
+		#region GetValueUuid64Async
+
+		/// <inheritdoc cref="GetValueUuid64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
+		public static Task<Uuid64?> GetValueUuid64Async(this IFdbReadOnlyTransaction trans, Slice key)
+			=> GetValueUuid64Async(trans, ToSpanKey(key));
+
+		/// <summary>Reads the value of a key from the database, decoded as a 64-bit <see cref="Uuid64"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
+		public static Task<Uuid64?> GetValueUuid64Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
+			=> trans.GetAsync(key, static (value, found) => found ? Uuid64.Read(value)  : default(Uuid64?));
+
+		/// <inheritdoc cref="GetValueUuid64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid64)"/>
+		public static Task<Uuid64> GetValueUuid64Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid64 missingValue)
+			=> GetValueUuid64Async(trans, ToSpanKey(key), missingValue);
+
+		/// <summary>Reads the value of a key from the database, decoded as a 64-bit <see cref="Uuid64"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="missingValue">Value returned if the key is missing</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
+		public static Task<Uuid64> GetValueUuid64Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, Uuid64 missingValue)
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? Uuid64.Read(value) : missing);
+
+		#endregion
+
+		#region GetValueUuid48Async
+
+		/// <inheritdoc cref="GetValueUuid48Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
+		public static Task<Uuid48?> GetValueUuid48Async(this IFdbReadOnlyTransaction trans, Slice key)
+			=> GetValueUuid48Async(trans, ToSpanKey(key));
+
+		/// <summary>Reads the value of a key from the database, decoded as a 48-bit <see cref="Uuid48"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
+		public static Task<Uuid48?> GetValueUuid48Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
+			=> trans.GetAsync(key, static (value, found) => found ? Uuid48.Read(value)  : default(Uuid48?));
+
+		/// <inheritdoc cref="GetValueUuid48Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid48)"/>
+		public static Task<Uuid48> GetValueUuid48Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid48 missingValue)
+			=> GetValueUuid48Async(trans, ToSpanKey(key), missingValue);
+
+		/// <summary>Reads the value of a key from the database, decoded as a 48-bit <see cref="Uuid48"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="missingValue">Value returned if the key is missing</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
+		public static Task<Uuid48> GetValueUuid48Async(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, Uuid48 missingValue)
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? Uuid48.Read(value) : missing);
+
+		#endregion
+
+		#region GetValueVersionStampAsync
+
+		/// <inheritdoc cref="GetValueVersionStampAsync(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
+		public static Task<VersionStamp?> GetValueVersionStampAsync(this IFdbReadOnlyTransaction trans, Slice key)
+			=> GetValueVersionStampAsync(trans, ToSpanKey(key));
+
+		/// <summary>Reads the value of a key from the database, decoded as a <see cref="VersionStamp"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <see langword="null"/>.</returns>
+		public static Task<VersionStamp?> GetValueVersionStampAsync(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key)
+			=> trans.GetAsync(key, static (value, found) => found ? VersionStamp.ReadFrom(value) : default(VersionStamp?));
+
+		/// <inheritdoc cref="GetValueVersionStampAsync(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},VersionStamp)"/>
+		public static Task<VersionStamp> GetValueVersionStampAsync(this IFdbReadOnlyTransaction trans, Slice key, VersionStamp missingValue)
+			=> GetValueVersionStampAsync(trans, ToSpanKey(key), missingValue);
+
+		/// <summary>Reads the value of a key from the database, decoded as a <see cref="VersionStamp"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="missingValue">Value returned if the key is missing</param>
+		/// <returns>The decoded value of the key, if it exists in the database; otherwise, <paramref name="missingValue"/>.</returns>
+		public static Task<VersionStamp> GetValueVersionStampAsync(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, VersionStamp missingValue)
+			=> trans.GetAsync(key, missingValue, static (missing, value, found) => found ? VersionStamp.ReadFrom(value) : missing);
 
 		#endregion
 
@@ -568,6 +703,7 @@ namespace FoundationDB.Client
 		#region UUIDs
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueGuid(this IFdbTransaction trans, Slice key, Guid value) => SetValueGuid(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
@@ -579,6 +715,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUuid128(this IFdbTransaction trans, Slice key, Uuid128 value) => SetValueUuid128(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
@@ -590,6 +727,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUuid96(this IFdbTransaction trans, Slice key, Uuid96 value) => SetValueUuid96(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
@@ -601,6 +739,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUuid80(this IFdbTransaction trans, Slice key, Uuid80 value) => SetValueUuid80(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
@@ -612,6 +751,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUuid64(this IFdbTransaction trans, Slice key, Uuid64 value) => SetValueUuid64(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
@@ -623,6 +763,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUuid48(this IFdbTransaction trans, Slice key, Uuid48 value) => SetValueUuid48(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
