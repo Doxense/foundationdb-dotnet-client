@@ -201,6 +201,21 @@ namespace FoundationDB.Client.Native
 			return present ? Slice.FromBytes(result) : Slice.Nil;
 		}
 
+		private static TResult GetValueResultBytes<TResult>(FutureHandle h, FdbValueDecoder<TResult> decoder, out int readBytes)
+		{
+			Contract.Debug.Requires(h != null);
+
+			readBytes = 0;
+			var err = FdbNative.FutureGetValue(h, out bool present, out var result);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[].GetValueResultBytes() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+#endif
+			FdbNative.DieOnError(err);
+
+			readBytes = result.Length;
+			return decoder(result, present);
+		}
+
 		private static TResult GetValueResultBytes<TState, TResult>(FutureHandle h, TState state, FdbValueDecoder<TState, TResult> decoder, out int readBytes)
 		{
 			Contract.Debug.Requires(h != null);
@@ -251,6 +266,25 @@ namespace FoundationDB.Client.Native
 				{
 					var res = GetValueResultBytes(handle, out int read);
 					tr.AccountReadOperation(1, read);
+					return res;
+				},
+				ct
+			);
+		}
+
+		public Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, bool snapshot, FdbValueDecoder<TResult> decoder, CancellationToken ct)
+		{
+			if (ct.IsCancellationRequested) return Task.FromCanceled<TResult>(ct);
+
+			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
+
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(Transaction: this, Decoder: decoder),
+				static (h, s) =>
+				{
+					var res = GetValueResultBytes(h, s.Decoder, out int read);
+					s.Transaction.AccountReadOperation(1, read);
 					return res;
 				},
 				ct
