@@ -95,23 +95,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Task<TResult> GetAsync<TResult>(this IFdbReadOnlyTransaction trans, Slice key, FdbValueDecoder<TResult> decoder)
-			=> GetAsync(trans, ToSpanKey(key), decoder);
-
-		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
-		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static Task<TResult> GetAsync<TResult>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, FdbValueDecoder<TResult> decoder)
-		{
-			Contract.NotNull(decoder);
-
-			return trans.GetAsync(key, decoder, static (fn, value, found) => fn(value, found));
-		}
+			=> trans.GetAsync(ToSpanKey(key), decoder);
 
 		/// <summary>Reads and decodes a value from the database snapshot represented by the current transaction.</summary>
 		/// <typeparam name="TValue">Type of the value.</typeparam>

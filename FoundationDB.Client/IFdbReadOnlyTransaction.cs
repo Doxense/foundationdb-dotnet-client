@@ -77,6 +77,16 @@ namespace FoundationDB.Client
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
 		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
+		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, FdbValueDecoder<TResult> decoder);
+
+		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
 		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, <see cref="Slice.Nil">Slice.Nil</see> if the key does not exist, or an exception</returns>

@@ -620,6 +620,20 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
+		public Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, FdbValueDecoder<TResult> decoder)
+		{
+			EnsureCanRead();
+
+			FdbKey.EnsureKeyIsValid(key);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
+#endif
+
+			return PerformGetOperation(key, snapshot: false, decoder);
+		}
+
+		/// <inheritdoc />
 		public Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, TState state, FdbValueDecoder<TState, TResult> decoder)
 		{
 			EnsureCanRead();
@@ -642,8 +656,22 @@ namespace FoundationDB.Client
 			static Task<Slice> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
-					new FdbTransactionLog.GetCommand(self.m_log.Grab(key)) { Snapshot = snapshot },
+					new FdbTransactionLog.GetCommand(self.m_log.Grab(key), snapshot),
 					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, tr.m_cancellation)
+				);
+		}
+
+		private Task<TResult> PerformGetOperation<TResult>(ReadOnlySpan<byte> key, bool snapshot, FdbValueDecoder<TResult> decoder)
+		{
+			FdbClientInstrumentation.ReportGet(this);
+
+			return m_log == null ? m_handler.GetAsync(key, snapshot: snapshot, decoder, m_cancellation) : ExecuteLogged(this, key, snapshot, decoder);
+
+			static Task<TResult> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, FdbValueDecoder<TResult> decoder)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetCommand<TResult>(self.m_log.Grab(key), decoder, snapshot),
+					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, cmd.Decoder, tr.m_cancellation)
 				);
 		}
 
@@ -656,7 +684,7 @@ namespace FoundationDB.Client
 			static Task<TResult> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, TState state, FdbValueDecoder<TState, TResult> decoder)
 				=> self.m_log!.ExecuteAsync(
 					self,
-					new FdbTransactionLog.GetCommand<TState, TResult>(self.m_log.Grab(key), state, decoder) { Snapshot = snapshot },
+					new FdbTransactionLog.GetCommand<TState, TResult>(self.m_log.Grab(key), state, decoder, snapshot),
 					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, cmd.State, cmd.Decoder, tr.m_cancellation)
 				);
 		}

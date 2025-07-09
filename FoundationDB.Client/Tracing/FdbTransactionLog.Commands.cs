@@ -640,14 +640,15 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.Get;
 
-			public GetCommand(Slice key)
+			public GetCommand(Slice key, bool snapshot)
 			{
 				this.Key = key;
+				this.Snapshot = snapshot;
 			}
 
 			public override int? ArgumentBytes => this.Key.Count;
 
-			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : this.Result.Value.Count;
+			public override int? ResultBytes => this.Result.HasValue ? this.Result.Value.Count : null;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -671,6 +672,47 @@ namespace FoundationDB.Filters.Logging
 
 		}
 
+		public sealed class GetCommand<TResult> : Command<TResult>
+		{
+			/// <summary>Key read from the database</summary>
+			public Slice Key { get; }
+
+			public FdbValueDecoder<TResult> Decoder { get; }
+
+			public override Operation Op => Operation.Get;
+
+			public GetCommand(Slice key, FdbValueDecoder<TResult> decoder, bool snapshot)
+			{
+				this.Key = key;
+				this.Decoder = decoder;
+				this.Snapshot = snapshot;
+			}
+
+			public override int? ArgumentBytes => this.Key.Count;
+
+			public override int? ResultBytes => null; //REVIEW: BUGBUG: how to track the actual number of bytes?
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				return resolver.Resolve(this.Key);
+			}
+
+			public override string GetResult(KeyResolver resolver)
+			{
+				if (this.Result.HasValue)
+				{
+					return STuple.Formatter.Stringify(this.Result.Value);
+				}
+				return base.GetResult(resolver);
+			}
+
+			protected override string Dump(TResult value, KeyResolver resolver)
+			{
+				return STuple.Formatter.Stringify(value);
+			}
+
+		}
+
 		public sealed class GetCommand<TState, TResult> : Command<TResult>
 		{
 			/// <summary>Key read from the database</summary>
@@ -682,11 +724,12 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.Get;
 
-			public GetCommand(Slice key, TState state, FdbValueDecoder<TState, TResult> decoder)
+			public GetCommand(Slice key, TState state, FdbValueDecoder<TState, TResult> decoder, bool snapshot)
 			{
 				this.Key = key;
 				this.State = state;
 				this.Decoder = decoder;
+				this.Snapshot = snapshot;
 			}
 
 			public override int? ArgumentBytes => this.Key.Count;
