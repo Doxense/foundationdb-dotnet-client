@@ -57,6 +57,13 @@ namespace FoundationDB.Client
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
 		Slice Pack<TTuple>(TTuple tuple) where TTuple : IVarTuple;
 
+		/// <summary>Packs a tuple into a key of this subspace</summary>
+		/// <param name="destination">Destination buffer where to pack the tuple</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
+		/// <remarks><c>true</c> if the buffer was large enough, or <c>false</c> if it was too small</remarks>
+		bool TryPack<TTuple>(Span<byte> destination, out int bytesWritten, TTuple tuple) where TTuple : IVarTuple;
+
 		/// <summary>Unpacks a key of this subspace, back into a tuple</summary>
 		/// <param name="packedKey">Key that was produced by a previous call to <see cref="Pack{TTuple}"/></param>
 		/// <returns>Original tuple</returns>
@@ -127,8 +134,7 @@ namespace FoundationDB.Client
 			get => Pack(item);
 		}
 
-		/// <summary>Convert a tuple into a key of this subspace</summary>
-		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
+		/// <inheritdoc />
 		[Pure]
 		public Slice Pack<TTuple>(TTuple tuple)
 			where TTuple : IVarTuple
@@ -138,6 +144,33 @@ namespace FoundationDB.Client
 			var sw = this.OpenWriter();
 			this.KeyEncoder.PackKey(ref sw, tuple);
 			return sw.ToSlice();
+		}
+
+		/// <inheritdoc />
+		[Pure]
+		public bool TryPack<TTuple>(Span<byte> destination, out int bytesWritten, TTuple tuple)
+			where TTuple : IVarTuple
+		{
+			Contract.NotNull(tuple);
+
+			var prefix = this.GetPrefix();
+			if (!prefix.TryCopyTo(destination, out int prefixLen))
+			{
+				goto too_small;
+			}
+
+			if (!this.KeyEncoder.TryPackKey(destination[prefixLen..], out int tupleLen, tuple))
+			{
+				goto too_small;
+			}
+
+			bytesWritten = prefixLen + tupleLen;
+			return true;
+
+		too_small:
+			bytesWritten = 0;
+			return false;
+
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
@@ -197,6 +230,10 @@ namespace FoundationDB.Client
 		Slice IBinaryKeySubspace.this[Slice relativeKey] => Append(relativeKey.Span);
 
 		Slice IBinaryKeySubspace.this[ReadOnlySpan<byte> relativeKey] => Append(relativeKey);
+
+		Slice IBinaryKeySubspace.Encode(ReadOnlySpan<byte> relativeKey) => Append(relativeKey);
+
+		bool IBinaryKeySubspace.TryEncode(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> relativeKey) => TryAppend(destination, out bytesWritten, relativeKey);
 
 		Slice IBinaryKeySubspace.Decode(Slice absoluteKey) => ExtractKey(absoluteKey);
 

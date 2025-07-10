@@ -221,6 +221,11 @@ namespace SnowBank.Data.Json.Binary
 			TuPack.PackTo(writer, ToTuple(value));
 		}
 
+		public bool TryWriteKeyTo(ref TupleSpanWriter writer, JsonValue? value)
+		{
+			return TuPack.TryPackTo(ref writer, ToTuple(value));
+		}
+
 		public void WriteKeyTo(ref SliceWriter writer, JsonValue? value)
 		{
 			TuPack.PackTo(ref writer, ToTuple(value));

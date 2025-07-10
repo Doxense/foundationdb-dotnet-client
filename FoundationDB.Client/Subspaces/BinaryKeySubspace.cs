@@ -41,6 +41,18 @@ namespace FoundationDB.Client
 		/// <returns>Full binary key</returns>
 		Slice this[ReadOnlySpan<byte> relativeKey] { get; }
 
+		/// <summary>Encodes the key that is composed of the subspace prefix and a binary suffix</summary>
+		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>Full binary key</returns>
+		Slice Encode(ReadOnlySpan<byte> relativeKey);
+
+		/// <summary>Encodes the key that is composed of the subspace prefix and a binary suffix</summary>
+		/// <param name="destination">Buffer where the full binary key should be written</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
+		/// <returns><c>true</c> if the buffer was large enough, or <c>false</c> if it was too small.</returns>
+		bool TryEncode(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> relativeKey);
+
 		/// <summary>Return the last part of the key, minus the subspace prefix</summary>
 		Slice Decode(Slice absoluteKey);
 		//note: this is the same as calling ExtractKey(...) but is here for symmetry reasons with other kinds of subspaces
@@ -78,14 +90,15 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
+		public Slice Encode(ReadOnlySpan<byte> relativeKey) => Append(relativeKey);
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> relativeKey) => TryAppend(destination, out bytesWritten, relativeKey);
+
+		/// <inheritdoc />
 		public IBinaryKeySubspace Partition(ReadOnlySpan<byte> relativeKey)
 		{
-			return relativeKey.Length != 0 ? new BinaryKeySubspace(Append(relativeKey), this.Context) : this;
-		}
-
-		public Slice Encode(ReadOnlySpan<byte> relativeKey)
-		{
-			return Append(relativeKey);
+			return relativeKey.Length != 0 ? new(Append(relativeKey), this.Context) : this;
 		}
 
 		/// <inheritdoc />

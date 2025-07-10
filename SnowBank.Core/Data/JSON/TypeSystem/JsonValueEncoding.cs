@@ -355,6 +355,9 @@ namespace SnowBank.Data.Binary
 		void IDynamicKeyEncoder.PackKey<TTuple>(ref SliceWriter writer, TTuple items)
 			=> throw new NotSupportedException();
 
+		bool IDynamicKeyEncoder.TryPackKey<TTuple>(Span<byte> destination, out int bytesWritten, TTuple items)
+			=> throw new NotSupportedException();
+
 		void IDynamicKeyEncoder.EncodeKey<T1>(ref SliceWriter writer, T1? item1)
 			where T1 : default
 			=> throw new NotSupportedException();

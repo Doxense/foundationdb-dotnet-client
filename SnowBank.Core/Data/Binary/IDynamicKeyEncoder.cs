@@ -46,6 +46,14 @@ namespace SnowBank.Data.Binary
 		/// <exception cref="System.FormatException">If some elements in <paramref name="items"/> are not supported by this type system</exception>
 		void PackKey<TTuple>(ref SliceWriter writer, TTuple items) where TTuple : IVarTuple;
 
+		/// <summary>Packs a tuple of arbitrary length into a binary slice</summary>
+		/// <param name="destination">Buffer where to append the binary representation</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="items">Tuple of any size (0 to N)</param>
+		/// <returns><c>true</c> if the buffer was large enough, or <c>false</c> if it was too small</returns>
+		/// <exception cref="System.FormatException">If some elements in <paramref name="items"/> are not supported by this type system</exception>
+		bool TryPackKey<TTuple>(Span<byte> destination, out int bytesWritten, TTuple items) where TTuple : IVarTuple;
+
 		/// <summary>Encodes a key composed of a single element into a binary slice</summary>
 		/// <typeparam name="T">Type of the element</typeparam>
 		/// <param name="writer">Buffer where to append the binary representation</param>

@@ -223,6 +223,30 @@ namespace FoundationDB.Client
 			return key.Concat(relativeKey);
 		}
 
+		/// <summary>Manually append a binary suffix to the subspace prefix</summary>
+		/// <remarks>Appending a binary literal that does not comply with the subspace key encoding may produce a result that cannot be decoded!</remarks>
+		public bool TryAppend(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> relativeKey)
+		{
+			//note: we don't want to leak our key!
+			var prefix = GetKeyPrefix().Span;
+			if (!prefix.TryCopyTo(destination))
+			{
+				goto too_small;
+			}
+
+			if (!relativeKey.TryCopyTo(destination[prefix.Length..]))
+			{
+				goto too_small;
+			}
+
+			bytesWritten = prefix.Length + relativeKey.Length;
+			return true;
+
+		too_small:
+			bytesWritten = 0;
+			return false;
+		}
+
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or <see cref="Slice.Nil"/> if the key does not fit inside the namespace</summary>
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
