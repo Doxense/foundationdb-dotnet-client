@@ -33,7 +33,7 @@ namespace SnowBank.Data.Tuples.Binary
 	public static class TuplePacker<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
 	{
 
-		internal static readonly TuplePackers.Encoder<T> Encoder = TuplePackers.GetSerializer<T>(required: true)!;
+		internal static readonly (TuplePackers.Encoder<T> Direct, TuplePackers.SpanEncoder<T> Span) Encoders = TuplePackers.GetSerializer<T>();
 
 		internal static readonly TuplePackers.Decoder<T?> Decoder = TuplePackers.GetDeserializer<T>(required: true);
 
@@ -47,7 +47,7 @@ namespace SnowBank.Data.Tuples.Binary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SerializeTo(TupleWriter writer, T? value)
 		{
-			Encoder(writer, value);
+			Encoders.Direct(writer, value);
 		}
 
 		/// <summary>Serializes a boxed value to the tuple format using a <see cref="TupleWriter"/>.</summary>
@@ -59,7 +59,19 @@ namespace SnowBank.Data.Tuples.Binary
 		/// </remarks>
 		public static void SerializeBoxedTo(TupleWriter writer, object? value)
 		{
-			Encoder(writer, (T) value!);
+			Encoders.Direct(writer, (T) value!);
+		}
+
+		/// <summary>Serializes a boxed value to the tuple format using a <see cref="TupleWriter"/>.</summary>
+		/// <param name="writer">The <see cref="TupleWriter"/> into which the value will be serialized.</param>
+		/// <param name="value">The boxed value to be serialized. The value must be assignable to type <typeparamref name="T"/>.</param>
+		/// <remarks>
+		/// <para>The buffer does not need to be pre-allocated.</para>
+		/// <para>This method is useful for scenarios where the value is boxed and needs to be serialized without knowing its type at compile time. The buffer does not need to be pre-allocated.</para>
+		/// </remarks>
+		public static bool TrySerializeBoxedTo(ref TupleSpanWriter writer, in object? value)
+		{
+			return Encoders.Span(ref writer, (T) value!);
 		}
 
 		/// <summary>Serializes a <typeparamref name="T"/> to the tuple format using a <see cref="SliceWriter"/>.</summary>
@@ -73,7 +85,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public static void SerializeTo(ref SliceWriter writer, T? value)
 		{
 			var tw = new TupleWriter(ref writer);
-			Encoder(tw, value);
+			Encoders.Direct(tw, value);
 			//REVIEW: we loose the depth information here! :(
 		}
 
@@ -85,7 +97,7 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			var sw = new SliceWriter();
 			var tw = new TupleWriter(ref sw);
-			Encoder(tw, value);
+			Encoders.Direct(tw, value);
 			return sw.ToSlice();
 		}
 

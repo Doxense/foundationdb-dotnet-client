@@ -34,7 +34,7 @@ namespace SnowBank.Data.Tuples.Binary
 	/// <summary>Tuple that has a fixed arbitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public sealed class PrefixedTuple : IVarTuple, IComparable, ITupleSerializable, ITupleFormattable
+	public sealed class PrefixedTuple : IVarTuple, IComparable, ITupleSpanPackable, ITupleFormattable
 	{
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
@@ -53,9 +53,14 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Binary prefix to all the keys produced by this tuple</summary>
 		public Slice Prefix => m_prefix;
 
-		void ITupleSerializable.PackTo(TupleWriter writer)
+		void ITuplePackable.PackTo(TupleWriter writer)
 		{
 			PackTo(writer);
+		}
+
+		bool ITupleSpanPackable.TryPackTo(ref TupleSpanWriter writer)
+		{
+			return TryPackTo(ref writer);
 		}
 
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
@@ -67,6 +72,12 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			writer.Output.WriteBytes(m_prefix);
 			TupleEncoder.WriteTo(writer, m_items);
+		}
+
+		internal bool TryPackTo(ref TupleSpanWriter writer)
+		{
+			return writer.TryWriteLiteral(m_prefix.Span)
+				&& TupleEncoder.TryWriteTo(ref writer, m_items);
 		}
 
 		public Slice ToSlice()

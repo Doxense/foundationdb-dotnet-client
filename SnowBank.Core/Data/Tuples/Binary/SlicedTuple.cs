@@ -41,7 +41,7 @@ namespace SnowBank.Data.Tuples.Binary
 	[DebuggerNonUserCode]
 	public sealed class SlicedTuple : IVarTuple
 		, IEquatable<SlicedTuple>, IComparable<SlicedTuple>, IComparable
-		, ITupleSerializable, ITupleFormattable, ISliceSerializable
+		, ITupleSpanPackable, ITupleFormattable, ISliceSerializable
 	{
 
 		/// <summary>Buffer containing the original slices.</summary>
@@ -146,12 +146,27 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-		void ITupleSerializable.PackTo(TupleWriter writer)
+		void ITuplePackable.PackTo(TupleWriter writer)
 		{
 			foreach(var slice in m_slices.Span)
 			{
 				writer.Output.WriteBytes(slice);
 			}
+		}
+
+		/// <inheritdoc />
+		public bool TryPackTo(ref TupleSpanWriter writer)
+		{
+			if (writer.Depth != 0) throw new InvalidOperationException($"Tuples of type {nameof(SlicedTuple)} can only be packed as top-level.");
+
+			foreach(var slice in m_slices.Span)
+			{
+				if (!writer.TryWriteLiteral(slice.Span))
+				{
+					return false;
+				}
+			}
+			return true;
 		}
 
 		/// <inheritdoc />

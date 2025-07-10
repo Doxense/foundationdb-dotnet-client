@@ -50,7 +50,8 @@ namespace SnowBank.Data.Tuples
 		, IEquatable<STuple<T1, T2, T3, T4, T5, T6, T7, T8>>, IComparable<STuple<T1, T2, T3, T4, T5, T6, T7, T8>>
 		, IEquatable<(T1, T2, T3, T4, T5, T6, T7, T8)>, IComparable<(T1, T2, T3, T4, T5, T6, T7, T8)>
 		, IComparable
-		, ITupleSerializable, ITupleFormattable
+		, ITupleSpanPackable
+		, ITupleFormattable
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -337,7 +338,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		void ITupleSerializable.PackTo(TupleWriter writer)
+		void ITuplePackable.PackTo(TupleWriter writer)
 		{
 			TuplePackers.SerializeTo(writer, this.Item1);
 			TuplePackers.SerializeTo(writer, this.Item2);
@@ -347,6 +348,18 @@ namespace SnowBank.Data.Tuples
 			TuplePackers.SerializeTo(writer, this.Item6);
 			TuplePackers.SerializeTo(writer, this.Item7);
 			TuplePackers.SerializeTo(writer, this.Item8);
+		}
+
+		bool ITupleSpanPackable.TryPackTo(ref TupleSpanWriter writer)
+		{
+			return TuplePackers.TrySerializeTo<T1>(ref writer, this.Item1)
+				&& TuplePackers.TrySerializeTo<T2>(ref writer, this.Item2)
+				&& TuplePackers.TrySerializeTo<T3>(ref writer, this.Item3)
+				&& TuplePackers.TrySerializeTo<T4>(ref writer, this.Item4)
+				&& TuplePackers.TrySerializeTo<T5>(ref writer, this.Item5)
+				&& TuplePackers.TrySerializeTo<T6>(ref writer, this.Item6)
+				&& TuplePackers.TrySerializeTo<T7>(ref writer, this.Item7)
+				&& TuplePackers.TrySerializeTo<T8>(ref writer, this.Item8);
 		}
 
 		/// <inheritdoc />

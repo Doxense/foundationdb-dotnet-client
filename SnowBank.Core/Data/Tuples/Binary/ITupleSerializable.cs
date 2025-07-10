@@ -43,6 +43,18 @@ namespace SnowBank.Data.Tuples.Binary
 	{
 		//TODO: remove this once we know all uses have been replaced
 	}
+
+	/// <summary>Represents an object that can serialize itself using the Tuple Binary Encoding format</summary>
+	public interface ITupleSpanPackable : ITuplePackable
+	{
+		/// <summary>Appends the packed bytes of this instance to the end of a buffer, if it is large enough</summary>
+		/// <param name="writer">Buffer that will receive the packed bytes of this instance</param>
+		/// <remarks><c>true</c> if the operation was successful, or <c>false</c> if it was too small</remarks>
+		/// <remarks>
+		/// <para>If this method returns <c>false</c>, the caller should retry with a larger buffer.</para>
+		/// <para>Implementors of this method should ONLY return <c>false</c> when the buffer is too small, and <b>MUST</b> throw exceptions if the data is invalid, or cannot be formatted even with a larger buffer. Failure to do so may cause an infinite loop!</para>
+		/// </remarks>
+		bool TryPackTo(ref TupleSpanWriter writer);
 	}
 
 	/// <summary>Represents a tuple that can formats its item into a string representation</summary>

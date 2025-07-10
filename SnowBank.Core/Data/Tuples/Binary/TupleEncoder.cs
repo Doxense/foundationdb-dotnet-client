@@ -41,7 +41,7 @@ namespace SnowBank.Data.Tuples.Binary
 	{
 
 		/// <summary>Internal helper that serializes the content of a Tuple into a TupleWriter, meant to be called by implementers of <see cref="IVarTuple"/> types.</summary>
-		/// <remarks>Warning: This method will call into <see cref="ITupleSerializable.PackTo"/> if <paramref name="tuple"/> implements <see cref="ITupleSerializable"/></remarks>
+		/// <remarks>Warning: This method will call into <see cref="ITuplePackable.PackTo"/> if <paramref name="tuple"/> implements <see cref="ITuplePackable"/></remarks>
 
 		internal static void WriteTo<TTuple>(TupleWriter writer, in TTuple tuple)
 			where TTuple : IVarTuple?
@@ -49,7 +49,7 @@ namespace SnowBank.Data.Tuples.Binary
 			Contract.Debug.Requires(tuple != null);
 
 			// ReSharper disable once SuspiciousTypeConversion.Global
-			if (tuple is ITupleSerializable ts)
+			if (tuple is ITuplePackable ts)
 			{ // optimized version
 				ts.PackTo(writer);
 				return;
@@ -74,9 +74,54 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
+		internal static bool TryWriteTo<TTuple>(ref TupleSpanWriter writer, in TTuple tuple)
+			where TTuple : IVarTuple?
+		{
+			// ReSharper disable once SuspiciousTypeConversion.Global
+			if (tuple is ITupleSpanPackable ts)
+			{ // optimized version
+				return ts.TryPackTo(ref writer);
+			}
+
+			if (tuple is not null && tuple.Count != 0)
+			{
+				foreach (object? item in tuple)
+				{
+					if (!TuplePackers.TrySerializeObjectTo(ref writer, item))
+					{
+						return false;
+					}
+				}
+			}
+
+			return true;
+		}
+
 		#region Packing...
 
 		// Without prefix
+
+		/// <summary>Packs a tuple into a slice</summary>
+		[MustUseReturnValue]
+		public static bool TryPack<TTuple>(Span<byte> destination, out int bytesWritten, in TTuple? tuple)
+			where TTuple : IVarTuple?
+		{
+			if (tuple is null)
+			{
+				bytesWritten = 0;
+				return true;
+			}
+
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!TryWriteTo(ref tw, in tuple))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
 
 		/// <summary>Packs a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
@@ -775,7 +820,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var next = new List<int>(keys.TryGetNonEnumeratedCount(out var count) ? count : 0);
 			var sw = new SliceWriter();
 			var tw = new TupleWriter(ref sw);
-			var packer = TuplePacker<T>.Encoder;
+			var packer = TuplePacker<T>.Encoders.Direct;
 
 			//TODO: use multiple buffers if item count is huge ?
 
@@ -799,7 +844,7 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
 			var next = new List<int>(keys.Length);
-			var packer = TuplePacker<T>.Encoder;
+			var packer = TuplePacker<T>.Encoders.Direct;
 			var sw = new SliceWriter(checked(keys.Length * (prefix.Length + 8)));
 			var tw = new TupleWriter(ref sw);
 
@@ -828,7 +873,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
 			var next = new List<int>(elements.Length);
-			var packer = TuplePacker<TKey>.Encoder;
+			var packer = TuplePacker<TKey>.Encoders.Direct;
 			var sw = new SliceWriter(checked(elements.Length * (prefix.Length + 8)));
 			var tw = new TupleWriter(ref sw);
 

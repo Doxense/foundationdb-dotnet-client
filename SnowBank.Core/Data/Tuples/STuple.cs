@@ -40,7 +40,8 @@ namespace SnowBank.Data.Tuples
 	[DebuggerNonUserCode]
 	public readonly struct STuple : IVarTuple
 		, IEquatable<STuple>, IComparable<STuple>, IComparable
-		, ITupleSerializable, ITupleFormattable
+		, ITupleSpanPackable
+		, ITupleFormattable
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
@@ -186,11 +187,19 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		void ITupleSerializable.PackTo(TupleWriter writer)
+		void ITuplePackable.PackTo(TupleWriter writer)
 		{
 			//NOP
 		}
 
+		/// <inheritdoc />
+		bool ITupleSpanPackable.TryPackTo(ref TupleSpanWriter writer)
+		{
+			//NOP
+			return true;
+		}
+
+		/// <inheritdoc />
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			return 0;

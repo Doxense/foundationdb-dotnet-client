@@ -47,6 +47,22 @@ namespace SnowBank.Data.Tuples
 		// Without prefix
 
 		/// <summary>Pack a tuple into a slice</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<TTuple>(Span<byte> destination, out int bytesWritten, in TTuple? tuple)
+			where TTuple : IVarTuple?
+		{
+			return TupleEncoder.TryPack(destination, out bytesWritten, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<TTuple>(ref TupleSpanWriter writer, in TTuple? tuple)
+			where TTuple : IVarTuple?
+		{
+			return TupleEncoder.TryWriteTo(ref writer, in tuple);
+		}
+
+		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack(IVarTuple? tuple)
@@ -54,7 +70,7 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(tuple);
 		}
 
-		/// <summary>Pack a empty tuple into a slice</summary>
+		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<TTuple>(in TTuple? tuple)

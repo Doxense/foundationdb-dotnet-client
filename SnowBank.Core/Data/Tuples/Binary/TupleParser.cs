@@ -29,8 +29,161 @@ namespace SnowBank.Data.Tuples.Binary
 	using System.Buffers;
 	using System.Buffers.Binary;
 	using System.Numerics;
+	using System.Runtime.InteropServices;
 	using System.Text;
 	using SnowBank.Data.Tuples;
+
+	public ref struct TupleSpanWriter
+	{
+
+		public readonly Span<byte> Buffer;
+
+		public int Depth;
+
+		public int BytesWritten;
+
+		[SkipLocalsInit]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TupleSpanWriter(Span<byte> buffer, int depth)
+		{
+			this.Buffer = buffer;
+			this.Depth = depth;
+		}
+
+		[MustUseReturnValue]
+		public bool TryAllocateSpan(int size, out Span<byte> span)
+		{
+			int pos = this.BytesWritten;
+			int newPos = checked(this.BytesWritten + size);
+			if (newPos > this.Buffer.Length)
+			{
+				span = default;
+				return false;
+			}
+
+			span = this.Buffer.Slice(pos, size);
+			this.BytesWritten = newPos;
+			return true;
+		}
+
+		[MustUseReturnValue]
+		public readonly bool TryGetTail(out Span<byte> span)
+		{
+			int pos = this.BytesWritten;
+			if (pos >= this.Buffer.Length)
+			{
+				span = default;
+				return false;
+			}
+
+			span = this.Buffer[pos..];
+			return true;
+		}
+
+		[MustUseReturnValue]
+		public readonly bool TryGetSpan(int size, out Span<byte> span)
+		{
+			int pos = this.BytesWritten;
+
+			if (checked(this.BytesWritten + size) > this.Buffer.Length)
+			{
+				span = default;
+				return false;
+			}
+
+			span = this.Buffer[pos..];
+			return true;
+		}
+
+		[MustUseReturnValue]
+		public bool TryAdvance(int size)
+		{
+			int pos = checked(this.BytesWritten + size);
+			if (pos > this.Buffer.Length)
+			{
+				return false;
+			}
+
+			this.BytesWritten = pos;
+			return true;
+		}
+
+		public void AdvanceUnsafe(int size)
+		{
+			this.BytesWritten += size;
+		}
+
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
+		public bool TryWriteNil()
+		{
+			int pos = this.BytesWritten;
+			if (this.Depth == 0)
+			{
+				if (pos < this.Buffer.Length)
+				{
+					this.Buffer[pos] = TupleTypes.Nil;
+					this.BytesWritten = pos + 1;
+					return true;
+				}
+			}
+			else
+			{
+				if (pos + 1 < this.Buffer.Length)
+				{
+					this.Buffer[pos] = TupleTypes.Nil;
+					this.Buffer[pos + 1] = 0xFF;
+					this.BytesWritten = pos + 2;
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		[MustUseReturnValue]
+		public bool TryWriteLiteral(byte byte1)
+		{
+			int pos = this.BytesWritten;
+			if (pos < this.Buffer.Length)
+			{
+				this.Buffer[pos] = byte1;
+				this.BytesWritten = pos + 1;
+				return true;
+			}
+
+			return false;
+		}
+
+		[MustUseReturnValue]
+		public bool TryWriteLiteral(byte byte1, byte byte2)
+		{
+			int pos = this.BytesWritten;
+			if (pos + 1 < this.Buffer.Length)
+			{
+				this.Buffer[pos] = byte1;
+				this.Buffer[pos + 1] = byte2;
+				this.BytesWritten = pos + 2;
+				return true;
+			}
+
+			return false;
+		}
+
+		[MustUseReturnValue]
+		public bool TryWriteLiteral(scoped ReadOnlySpan<byte> bytes)
+		{
+			int pos = this.BytesWritten;
+			if (!bytes.TryCopyTo(this.Buffer[pos..]))
+			{
+				return false;
+			}
+			this.BytesWritten = pos + bytes.Length;
+			return true;
+		}
+
+		public readonly ReadOnlySpan<byte> GetWrittenSpan() => this.Buffer[..this.BytesWritten];
+
+	}
 
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
 	[DebuggerNonUserCode]
@@ -38,6 +191,10 @@ namespace SnowBank.Data.Tuples.Binary
 	{
 
 		#region Serialization...
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteNil(ref TupleSpanWriter writer)
+			=> writer.TryWriteNil();
 
 		/// <summary>Writes a null value at the end, and advance the cursor</summary>
 		public static void WriteNil(this TupleWriter writer)
@@ -52,13 +209,28 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
+		public static bool TryWriteBool(ref TupleSpanWriter writer, in bool value)
+		{
+			// false => 26
+			// true  => 27
+			return writer.TryWriteLiteral(value ? TupleTypes.True : TupleTypes.False);
+		}
+
 		public static void WriteBool(this TupleWriter writer, bool value)
 		{
-			// null  => 00
 			// false => 26
 			// true  => 27
 			//note: old versions used to encode bool as integer 0 or 1
 			writer.Output.WriteByte(value ? TupleTypes.True : TupleTypes.False);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteBool(ref TupleSpanWriter writer, in bool? value)
+		{
+			// null  => 00
+			// false => 26
+			// true  => 27
+			return writer.TryWriteLiteral(value is null ? TupleTypes.Nil : value.Value ? TupleTypes.True : TupleTypes.False);
 		}
 
 		public static void WriteBool(this TupleWriter writer, bool? value)
@@ -79,6 +251,18 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Writes an UInt8 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Unsigned BYTE, 32 bits</param>
+		public static bool TryWriteByte(ref TupleSpanWriter writer, in byte value)
+		{
+			return value == 0
+				// zero
+				? writer.TryWriteLiteral(TupleTypes.IntZero)
+				// 1..255: frequent for array index
+				: writer.TryWriteLiteral(TupleTypes.IntPos1, value);
+		}
+
+		/// <summary>Writes an UInt8 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">Unsigned BYTE, 32 bits</param>
 		public static void WriteByte(this TupleWriter writer, byte value)
 		{
 			if (value == 0)
@@ -92,9 +276,37 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteByte(ref TupleSpanWriter writer, in byte? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteByte(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteByte(this TupleWriter writer, byte? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteByte(writer, value.Value);
+		}
+
+		/// <summary>Writes an Int32 at the end, and advance the cursor</summary>
+		public static bool TryWriteInt32(ref TupleSpanWriter writer, in int value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // zero
+					return writer.TryWriteLiteral(TupleTypes.IntZero);
+				}
+
+				if (value > 0)
+				{ // 1..255: frequent for array index
+					return writer.TryWriteLiteral(TupleTypes.IntPos1, (byte) value);
+				}
+
+				if (value > -256)
+				{ // -255..-1
+					return writer.TryWriteLiteral(TupleTypes.IntNeg1, (byte) (255 + value));
+				}
+			}
+
+			return TryWriteInt64Slow(ref writer, value);
 		}
 
 		/// <summary>Writes an Int32 at the end, and advance the cursor</summary>
@@ -127,9 +339,39 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteInt32(ref TupleSpanWriter writer, in int? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteInt32(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteInt32(this TupleWriter writer, int? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteInt32(writer, value.Value);
+		}
+
+		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
+		public static bool TryWriteInt64(ref TupleSpanWriter writer, in long value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // zero
+					return writer.TryWriteLiteral(TupleTypes.IntZero);
+				}
+
+				if (value > 0)
+				{ // 1..255: frequent for array index
+					return writer.TryWriteLiteral(TupleTypes.IntPos1, (byte) value);
+				}
+
+				if (value > -256)
+				{ // -255..-1
+					return writer.TryWriteLiteral(TupleTypes.IntNeg1, (byte) (255 + value));
+				}
+			}
+
+			return TryWriteInt64Slow(ref writer, value);
 		}
 
 		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
@@ -161,11 +403,63 @@ namespace SnowBank.Data.Tuples.Binary
 			WriteInt64Slow(writer, value);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteInt64(ref TupleSpanWriter writer, in long? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteInt64(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteInt64(this TupleWriter writer, long? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteInt64(writer, value.Value);
+		}
+
+		private static bool TryWriteInt64Slow(ref TupleSpanWriter writer, long value)
+		{
+			// we are only called for values <= -256 or >= 256
+
+			// determine the number of bytes needed to encode the absolute value
+			int bytes = NumberOfBytes(value);
+
+			if (!writer.TryAllocateSpan(bytes + 1, out var buffer))
+			{
+				return false;
+			}
+
+			int p = 0;
+
+			ulong v;
+			if (value > 0)
+			{ // simple case
+				buffer[p++] = (byte) (TupleTypes.IntZero + bytes);
+				v = (ulong) value;
+			}
+			else
+			{ // we will encode the one's complement of the absolute value
+				// -1 => 0xFE
+				// -256 => 0xFFFE
+				// -65536 => 0xFFFFFE
+				buffer[p++] = (byte) (TupleTypes.IntZero - bytes);
+				v = (ulong) (~(-value));
+			}
+
+			if (bytes > 0)
+			{
+				// head
+				--bytes;
+				int shift = bytes << 3;
+
+				while (bytes-- > 0)
+				{
+					buffer[p++] = (byte) (v >> shift);
+					shift -= 8;
+				}
+				// last
+				buffer[p++] = (byte) v;
+			}
+
+			Contract.Debug.Ensures(p == buffer.Length);
+
+			return true;
 		}
 
 		private static void WriteInt64Slow(TupleWriter writer, long value)
@@ -213,6 +507,28 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Writes an UInt32 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
+		public static bool TryWriteUInt32(ref TupleSpanWriter writer, in uint value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // 0
+					return writer.TryWriteLiteral(TupleTypes.IntZero);
+				}
+				else
+				{ // 1..255
+					return writer.TryWriteLiteral(TupleTypes.IntPos1, (byte)value);
+				}
+			}
+			else
+			{ // >= 256
+				return TryWriteUInt64Slow(ref writer, value);
+			}
+		}
+
+		/// <summary>Writes an UInt32 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
 		public static void WriteUInt32(this TupleWriter writer, uint value)
 		{
 			if (value <= 255)
@@ -233,9 +549,35 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteUInt32(ref TupleSpanWriter writer, in uint? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteUInt32(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUInt32(this TupleWriter writer, uint? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteUInt32(writer, value.Value);
+		}
+
+		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
+		public static bool TryWriteUInt64(ref TupleSpanWriter writer, in ulong value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // 0
+					return writer.TryWriteLiteral(TupleTypes.IntZero);
+				}
+				else
+				{ // 1..255
+					return writer.TryWriteLiteral(TupleTypes.IntPos1, (byte) value);
+				}
+			}
+			else
+			{ // >= 256
+				return TryWriteUInt64Slow(ref writer, value);
+			}
 		}
 
 		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
@@ -261,9 +603,49 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteUInt64(ref TupleSpanWriter writer, in ulong? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteUInt64(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUInt64(this TupleWriter writer, ulong? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteUInt64(writer, value.Value);
+		}
+
+		private static bool TryWriteUInt64Slow(ref TupleSpanWriter writer, ulong value)
+		{
+			// We are only called for values >= 256
+
+			// determine the number of bytes needed to encode the value
+			int bytes = NumberOfBytes(value);
+
+			if (!writer.TryAllocateSpan(bytes + 1, out var buffer))
+			{
+				return false;
+			}
+			int p = 0;
+
+			// simple case (ulong can only be positive)
+			buffer[p++] = (byte) (TupleTypes.IntZero + bytes);
+
+			if (bytes > 0)
+			{
+				// head
+				--bytes;
+				int shift = bytes << 3;
+
+				while (bytes-- > 0)
+				{
+					buffer[p++] = (byte)(value >> shift);
+					shift -= 8;
+				}
+				// last
+				buffer[p++] = (byte)  value;
+			}
+
+			Contract.Debug.Ensures(p == buffer.Length);
+
+			return true;
 		}
 
 		private static void WriteUInt64Slow(this TupleWriter writer, ulong value)
@@ -300,6 +682,39 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Writes a Single at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">IEEE Floating point, 32 bits, High Endian</param>
+		public static bool TryWriteSingle(ref TupleSpanWriter writer, in float value)
+		{
+			// The double is converted to its Big-Endian IEEE binary representation
+			// - If the sign bit is set, flip all the bits
+			// - If the sign bit is not set, just flip the sign bit
+			// This ensures that all negative numbers have their first byte < 0x80, and all positive numbers have their first byte >= 0x80
+
+			// Special case for NaN: All variants are normalized to float.NaN !
+			float f = float.IsNaN(value) ? float.NaN : value;
+			uint bits = BitConverter.SingleToUInt32Bits(f);
+
+			if ((bits & 0x80000000U) != 0)
+			{ // negative
+				bits = ~bits;
+			}
+			else
+			{ // positive
+				bits |= 0x80000000U;
+			}
+
+			if (!writer.TryAllocateSpan(5, out var buffer))
+			{
+				return false;
+			}
+			buffer[0] = TupleTypes.Single;
+			BinaryPrimitives.WriteUInt32BigEndian(buffer[1..], bits);
+
+			return true;
+		}
+
+		/// <summary>Writes a Single at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">IEEE Floating point, 32 bits, High Endian</param>
 		public static void WriteSingle(this TupleWriter writer, float value)
 		{
 			// The double is converted to its Big-Endian IEEE binary representation
@@ -324,17 +739,50 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 			var buffer = writer.Output.Allocate(5);
 			buffer[0] = TupleTypes.Single;
-			buffer[1] = (byte)(bits >> 24);
-			buffer[2] = (byte)(bits >> 16);
-			buffer[3] = (byte)(bits >> 8);
-			buffer[4] = (byte)(bits);
+			BinaryPrimitives.WriteUInt32BigEndian(buffer[1..], bits);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteSingle(ref TupleSpanWriter writer, in float? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteSingle(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteSingle(this TupleWriter writer, float? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteSingle(writer, value.Value);
+		}
+
+		/// <summary>Writes a Double at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">IEEE Floating point, 64 bits, High Endian</param>
+		public static bool TryWriteDouble(ref TupleSpanWriter writer, in double value)
+		{
+			// The double is converted to its Big-Endian IEEE binary representation
+			// - If the sign bit is set, flip all the bits
+			// - If the sign bit is not set, just flip the sign bit
+			// This ensures that all negative numbers have their first byte < 0x80, and all positive numbers have their first byte >= 0x80
+
+			// Special case for NaN: All variants are normalized to float.NaN !
+			var d = double.IsNaN(value) ? double.NaN : value;
+			ulong bits = BitConverter.DoubleToUInt64Bits(d);
+
+			if ((bits & 0x8000000000000000UL) != 0)
+			{ // negative
+				bits = ~bits;
+			}
+			else
+			{ // positive
+				bits |= 0x8000000000000000UL;
+			}
+
+			if (!writer.TryAllocateSpan(9, out var buffer))
+			{
+				return false;
+			}
+			buffer[0] = TupleTypes.Double;
+			BinaryPrimitives.WriteUInt64BigEndian(buffer[1..], bits);
+
+			return true;
 		}
 
 		/// <summary>Writes a Double at the end, and advance the cursor</summary>
@@ -364,15 +812,12 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 			var buffer = writer.Output.AllocateSpan(9);
 			buffer[0] = TupleTypes.Double;
-			buffer[1] = (byte)(bits >> 56);
-			buffer[2] = (byte)(bits >> 48);
-			buffer[3] = (byte)(bits >> 40);
-			buffer[4] = (byte)(bits >> 32);
-			buffer[5] = (byte)(bits >> 24);
-			buffer[6] = (byte)(bits >> 16);
-			buffer[7] = (byte)(bits >> 8);
-			buffer[8] = (byte)(bits);
+			BinaryPrimitives.WriteUInt64BigEndian(buffer[1..], bits);
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteDouble(ref TupleSpanWriter writer, in double? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteDouble(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteDouble(this TupleWriter writer, double? value)
@@ -380,10 +825,19 @@ namespace SnowBank.Data.Tuples.Binary
 			if (!value.HasValue) WriteNil(writer); else WriteDouble(writer, value.Value);
 		}
 
+		public static bool TryWriteDecimal(ref TupleSpanWriter writer, in decimal value)
+		{
+			throw new NotImplementedException();
+		}
+
 		public static void WriteDecimal(this TupleWriter writer, decimal value)
 		{
 			throw new NotImplementedException();
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteDecimal(ref TupleSpanWriter writer, in decimal? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteDecimal(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteDecimal(this TupleWriter writer, decimal? value)
@@ -555,6 +1009,20 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteTimeSpan(ref TupleSpanWriter writer, in TimeSpan value)
+		{
+			// We have the same precision problem with storing DateTimes:
+			// - Storing the number of ticks keeps the exact value, but is Windows-centric
+			// - Storing the number of milliseconds as an integer will round the precision to 1 millisecond, which is not acceptable
+			// - We could store the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
+			// - It is frequent for JSON APIs and other database engines to represent durations as a number of SECONDS, using a floating point number.
+
+			// Right now, we will store the duration as the number of seconds, using a 64-bit float
+
+			return TryWriteDouble(ref writer, value.TotalSeconds);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteTimeSpan(this TupleWriter writer, TimeSpan value)
 		{
 			// We have the same precision problem with storing DateTimes:
@@ -569,9 +1037,31 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteTimeSpan(ref TupleSpanWriter writer, in TimeSpan? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteTimeSpan(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteTimeSpan(this TupleWriter writer, TimeSpan? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteTimeSpan(writer, value.Value);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteDateTime(ref TupleSpanWriter writer, in DateTime value)
+		{
+			// The problem of serializing DateTime: TimeZone? Precision?
+			// - Since we are going to lose the TimeZone infos anyway, we can just store everything in UTC and let the caller deal with it
+			// - DateTime in .NET uses Ticks which produce numbers too large to fit in the 56 bits available in JavaScript
+			// - Most other *nix uses the number of milliseconds since 1970-Jan-01 UTC, but if we store as an integer we will lose some precision (rounded to nearest millisecond)
+			// - We could store the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
+			// - Other database engines store dates as a number of DAYS since Epoch, using a floating point number. This allows for quickly extracting the date by truncating the value, and the time by using the decimal part
+
+			// Right now, we will store the date as the number of DAYS since Epoch, using a 64-bit float.
+			// => storing a number of ticks would be MS-only anyway (56-bit limit in JS)
+			// => JS binding MAY support decoding of 64-bit floats in the future, in which case the value would be preserved exactly.
+
+			const long UNIX_EPOCH_EPOCH = 621355968000000000L;
+			return TryWriteDouble(ref writer, (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double) TimeSpan.TicksPerDay);
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -593,9 +1083,36 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteDateTime(ref TupleSpanWriter writer, in DateTime? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteDateTime(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteDateTime(this TupleWriter writer, DateTime? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteDateTime(writer, value.Value);
+		}
+
+		/// <summary>Writes a DateTimeOffset converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteDateTimeOffset(ref TupleSpanWriter writer, in DateTimeOffset value)
+		{
+			// The problem of serializing DateTimeOffset: TimeZone? Precision?
+			// - Since we are going to lose the TimeZone infos anyway, we can just store everything in UTC and let the caller deal with it
+			// - DateTimeOffset in .NET uses Ticks which produce numbers too large to fit in the 56 bits available in JavaScript
+			// - Most other *nix uses the number of milliseconds since 1970-Jan-01 UTC, but if we store as an integer we will lose some precision (rounded to nearest millisecond)
+			// - We could store the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
+			// - Other database engines store dates as a number of DAYS since Epoch, using a floating point number. This allows for quickly extracting the date by truncating the value, and the time by using the decimal part
+
+			// Right now, we will store the date as the number of DAYS since Epoch, using a 64-bit float.
+			// => storing a number of ticks would be MS-only anyway (56-bit limit in JS)
+			// => JS binding MAY support decoding of 64-bit floats in the future, in which case the value would be preserved exactly.
+
+			//REVIEW: why not use an embedded tuple: (ElapsedDays, TimeZoneOffset) ?
+			// - pros: keeps the timezone offset
+			// - cons: would not be compatible with DateTime
+
+			const long UNIX_EPOCH_EPOCH = 621355968000000000L;
+			return TryWriteDouble(ref writer, (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double) TimeSpan.TicksPerDay);
 		}
 
 		/// <summary>Writes a DateTimeOffset converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
@@ -613,7 +1130,7 @@ namespace SnowBank.Data.Tuples.Binary
 			// => storing a number of ticks would be MS-only anyway (56-bit limit in JS)
 			// => JS binding MAY support decoding of 64-bit floats in the future, in which case the value would be preserved exactly.
 
-			//REVIEW: why not use an embedded tupple: (ElapsedDays, TimeZoneOffset) ?
+			//REVIEW: why not use an embedded tuple: (ElapsedDays, TimeZoneOffset) ?
 			// - pros: keeps the timezone offset
 			// - cons: would not be compatible with DateTime
 
@@ -622,11 +1139,64 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteDateTimeOffset(ref TupleSpanWriter writer, in DateTimeOffset? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteDateTimeOffset(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteDateTimeOffset(this TupleWriter writer, DateTimeOffset? value)
 		{
-			if (!value.HasValue) WriteNil(writer); else WriteDateTimeOffset(writer, value.Value);
+			if (value is null) WriteNil(writer); else WriteDateTimeOffset(writer, value.Value);
 		}
 
+		/// <summary>Writes a string encoded in UTF-8</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteString(ref TupleSpanWriter writer, in string? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteString(ref writer, value.AsSpan());
+
+		/// <summary>Writes a string encoded in UTF-8</summary>
+		public static bool TryWriteString(ref TupleSpanWriter writer, in ReadOnlySpan<char> value)
+		{
+
+			if (value.Length == 0)
+			{ // "02 00"
+				return writer.TryWriteLiteral(TupleTypes.Utf8, 0);
+			}
+
+			if (!writer.TryWriteLiteral(TupleTypes.Utf8))
+			{
+				return false;
+			}
+
+			// only \0 can produce a 0x00 when encoded to UTF-8. Any other codepoint will not produce a 0
+			// which means that we need to worry about escaping only if the string contains a '\0' character
+
+			var remaining = value;
+			do
+			{
+				int p = remaining.IndexOf('\0');
+
+				if (!writer.TryGetTail(out var tail) || !Encoding.UTF8.TryGetBytes(p < 0 ? remaining : remaining[..p], tail, out var written))
+				{
+					return false;
+				}
+				writer.AdvanceUnsafe(written);
+
+				if (p < 0)
+				{
+					break;
+				}
+
+				if (!writer.TryWriteLiteral(0x00, 0xFF))
+				{
+					return false;
+				}
+
+				remaining = remaining[(p + 1)..];
+			}
+			while (remaining.Length > 0);
+
+			return writer.TryWriteLiteral(0);
+		}
 
 		/// <summary>Writes a string encoded in UTF-8</summary>
 		public static unsafe void WriteString(this TupleWriter writer, string? value)
@@ -708,13 +1278,13 @@ namespace SnowBank.Data.Tuples.Binary
 
 			// Several observations:
 			// * Most strings will be keywords or ASCII-only with no zeroes. These can be copied directly to the buffer
-			// * We will only attempt to optimize strings that don't have any 00 to escape to 00 FF. For these, we will fallback to converting to byte[] then escaping.
-			// * Since .NET's strings are UTF-16, the max possible UNICODE value to encode is 0xFFFF, which takes 3 bytes in UTF-8 (EF BF BF)
+			// * We will only attempt to optimize strings that don't have any 00 to escape to 00 FF. For these, we will fall back to converting to byte[] then escaping.
+			// * Since .NET's strings are UTF-16, the max possible UNICODE value to encode is 0xFFFF, which takes 3 bytes in UTF-8 (0xEFBFBF)
 			// * Most western europe languages have only a few non-ASCII chars here and there, and most of them will only use 2 bytes (ex: 'é' => 'C3 A9')
-			// * More complex scripts with dedicated symbol pages (kanjis, arabic, ....) will take 2 or 3 bytes for each character.
+			// * More complex scripts with dedicated symbol pages (Kanji, Arabic, ....) will take 2 or 3 bytes for each character.
 
 			// We will first do a pass to check for the presence of 00 and non-ASCII chars
-			// => if we find at least on 00, we fallback to escaping the result of Encoding.UTF8.GetBytes()
+			// => if we find at least on 00, we fall back to escaping the result of Encoding.UTF8.GetBytes()
 			// => if we find only ASCII (1..127) chars, we have an optimized path that will truncate the chars to bytes
 			// => if not, we will use an UTF8Encoder to convert the string to UTF-8, in chunks, using a small buffer allocated on the stack
 
@@ -785,6 +1355,19 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Writes a char encoded in UTF-8</summary>
+		public static bool TryWriteChar(ref TupleSpanWriter writer, in char value)
+		{
+			if (value == 0)
+			{ // NUL => "00 0F"
+				// note: \0 is the only unicode character that will produce a zero byte when converted in UTF-8
+				return writer.TryWriteLiteral([ TupleTypes.Utf8, 0x00, 0xFF, 0x00 ]);
+			}
+
+			var c = value;
+			return TryWriteString(ref writer, MemoryMarshal.CreateSpan(ref c, 1));
+		}
+
+		/// <summary>Writes a char encoded in UTF-8</summary>
 		public static void WriteChar(this TupleWriter writer, char value)
 		{
 			if (value == 0)
@@ -813,15 +1396,32 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteChar(ref TupleSpanWriter writer, in char? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteChar(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteChar(this TupleWriter writer, char? value)
 		{
 			if (!value.HasValue) WriteNil(writer); else WriteChar(writer, value.Value);
 		}
 
 		/// <summary>Writes a binary string</summary>
+		public static bool TryWriteBytes(ref TupleSpanWriter writer, in byte[]? value)
+		{
+			if (value is null)
+			{
+				return writer.TryWriteNil();
+			}
+			else
+			{
+				return TryWriteBytes(ref writer, value.AsSpan());
+			}
+		}
+
+		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(this TupleWriter writer, byte[]? value)
 		{
-			if (value == null)
+			if (value is null)
 			{
 				WriteNil(writer);
 			}
@@ -838,6 +1438,19 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Writes a binary string</summary>
+		public static bool TryWriteBytes(ref TupleSpanWriter writer, in ArraySegment<byte> value)
+		{
+			if (value.Count == 0 && value.Array == null)
+			{ // default(ArraySegment<byte>) ~= null
+				return writer.TryWriteNil();
+			}
+			else
+			{
+				return TryWriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.AsSpan());
+			}
+		}
+
+		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(this TupleWriter writer, ArraySegment<byte> value)
 		{
 			if (value.Count == 0 && value.Array == null)
@@ -849,6 +1462,11 @@ namespace SnowBank.Data.Tuples.Binary
 				WriteNulEscapedBytes(writer, TupleTypes.Bytes, value.AsSpan());
 			}
 		}
+
+		/// <summary>Writes a binary string</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteBytes(ref TupleSpanWriter writer, in Slice value)
+			=> value.IsNull ? writer.TryWriteNil() : TryWriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value.Span);
 
 		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(this TupleWriter writer, Slice value)
@@ -864,9 +1482,63 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Writes a binary string</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteBytes(ref TupleSpanWriter writer, in ReadOnlySpan<byte> value)
+		{
+			return TryWriteNulEscapedBytes(ref writer, TupleTypes.Bytes, value);
+		}
+
+		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(this TupleWriter writer, ReadOnlySpan<byte> value)
 		{
 			WriteNulEscapedBytes(writer, TupleTypes.Bytes, value);
+		}
+
+		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
+		internal static bool TryWriteNulEscapedBytes(ref TupleSpanWriter writer, byte type, ReadOnlySpan<byte> value)
+		{
+			int len = value.Length;
+
+			if (len == 0)
+			{
+				return writer.TryWriteLiteral(type, 0x00);
+			}
+
+			// we need to know if there are any NUL chars (\0) that need escaping...
+			// (we will also need to add 1 byte to the buffer size per NUL)
+			int numZeros = value.Count((byte) 0);
+			len = checked(len + numZeros);
+
+			if (!writer.TryGetSpan(len + 2, out var buffer))
+			{
+				return false;
+			}
+
+			if (numZeros == 0)
+			{ // no NULs in the string, can copy all at once
+				buffer[0] = type;
+				value.CopyTo(buffer[1..]);
+				buffer[value.Length + 1] = 0x00;
+				writer.AdvanceUnsafe(value.Length + 2);
+				return true;
+			}
+			
+			// we need to escape all NULs
+			buffer[0] = type;
+			int p = 1;
+			foreach(var b in value)
+			{
+				//TODO: optimize this!
+				buffer[p++] = b;
+				if (b == 0) buffer[p++] = 0xFF;
+			}
+			buffer[p++] = 0x00;
+
+			Contract.Debug.Ensures(p == len + 2);
+
+			writer.AdvanceUnsafe(p);
+
+			return true;
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
@@ -906,7 +1578,22 @@ namespace SnowBank.Data.Tuples.Binary
 			writer.Output.Position = p + 1;
 		}
 
-		/// <summary>Writes a RFC 4122 encoded 16-byte Microsoft GUID</summary>
+		/// <summary>Writes an RFC 4122 encoded 16-byte Microsoft GUID</summary>
+		public static bool TryWriteGuid(ref TupleSpanWriter writer, in Guid value)
+		{
+			if (!writer.TryAllocateSpan(17, out var span))
+			{
+				return false;
+			}
+
+			span[0] = TupleTypes.Uuid128;
+			// Guids should be stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid (handled by Uuid128)
+			new Uuid128(value).WriteTo(span[1..]);
+
+			return true;
+		}
+
+		/// <summary>Writes an RFC 4122 encoded 16-byte Microsoft GUID</summary>
 		public static void WriteGuid(this TupleWriter writer, Guid value)
 		{
 			var span = writer.Output.AllocateSpan(17);
@@ -914,6 +1601,10 @@ namespace SnowBank.Data.Tuples.Binary
 			// Guids should be stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid (handled by Uuid128)
 			new Uuid128(value).WriteTo(span.Slice(1));
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteGuid(ref TupleSpanWriter writer, in Guid? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteGuid(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteGuid(this TupleWriter writer, Guid? value)
@@ -928,13 +1619,31 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
+		/// <summary>Writes an RFC 4122 encoded 128-bit UUID</summary>
+		public static bool TryWriteUuid128(ref TupleSpanWriter writer, in Uuid128 value)
+		{
+			if (!writer.TryAllocateSpan(17, out var span))
+			{
+				return false;
+			}
+
+			span[0] = TupleTypes.Uuid128;
+			value.WriteTo(span[1..]);
+
+			return true;
+		}
+
+		/// <summary>Writes an RFC 4122 encoded 128-bit UUID</summary>
 		public static void WriteUuid128(this TupleWriter writer, Uuid128 value)
 		{
 			var span = writer.Output.AllocateSpan(17);
 			span[0] = TupleTypes.Uuid128;
 			value.WriteTo(span.Slice(1));
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteUuid128(ref TupleSpanWriter writer, in Uuid128? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteUuid128(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUuid128(this TupleWriter writer, Uuid128? value)
@@ -950,7 +1659,21 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Writes a 96-bit UUID</summary>
-		public static void WriteUuid96(this TupleWriter writer, Uuid96 value)
+		public static bool TryWriteUuid96(ref TupleSpanWriter writer, in Uuid96 value)
+		{
+			if (!writer.TryAllocateSpan(13, out var span))
+			{
+				return false;
+			}
+
+			span[0] = TupleTypes.Uuid96;
+			value.WriteTo(span[1..]);
+
+			return true;
+		}
+
+		/// <summary>Writes a 96-bit UUID</summary>
+		public static void WriteUuid96(this TupleWriter writer, in Uuid96 value)
 		{
 			var span = writer.Output.AllocateSpan(13);
 			span[0] = TupleTypes.Uuid96;
@@ -958,7 +1681,11 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void WriteUuid96(this TupleWriter writer, Uuid96? value)
+		public static bool TryWriteUuid96(ref TupleSpanWriter writer, Uuid96? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteUuid96(ref writer, value.Value);
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void WriteUuid96(this TupleWriter writer, in Uuid96? value)
 		{
 			if (!value.HasValue)
 			{
@@ -970,13 +1697,31 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-		/// <summary>Writes a 80-bit UUID</summary>
+		/// <summary>Writes an 80-bit UUID</summary>
+		public static bool TryWriteUuid80(ref TupleSpanWriter writer, in Uuid80 value)
+		{
+			if (!writer.TryAllocateSpan(11, out var span))
+			{
+				return false;
+			}
+
+			span[0] = TupleTypes.Uuid80;
+			value.WriteTo(span[1..]);
+
+			return true;
+		}
+
+		/// <summary>Writes an 80-bit UUID</summary>
 		public static void WriteUuid80(this TupleWriter writer, Uuid80 value)
 		{
 			var span = writer.Output.AllocateSpan(11);
 			span[0] = TupleTypes.Uuid80;
 			value.WriteToUnsafe(span.Slice(1));
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteUuid80(ref TupleSpanWriter writer, in Uuid80? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteUuid80(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUuid80(this TupleWriter writer, Uuid80? value)
@@ -992,12 +1737,30 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Writes a 64-bit UUID</summary>
+		public static bool TryWriteUuid64(ref TupleSpanWriter writer, in Uuid64 value)
+		{
+			if (!writer.TryAllocateSpan(9, out var span))
+			{
+				return false;
+			}
+
+			span[0] = TupleTypes.Uuid64;
+			value.WriteTo(span[1..]);
+
+			return true;
+		}
+
+		/// <summary>Writes a 64-bit UUID</summary>
 		public static void WriteUuid64(this TupleWriter writer, Uuid64 value)
 		{
 			var span = writer.Output.AllocateSpan(9);
 			span[0] = TupleTypes.Uuid64;
 			value.WriteToUnsafe(span.Slice(1));
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteUuid64(ref TupleSpanWriter writer, in Uuid64? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteUuid64(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUuid64(this TupleWriter writer, Uuid64? value)
@@ -1013,7 +1776,14 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Writes a 48-bit UUID</summary>
+		public static bool TryWriteUuid48(ref TupleSpanWriter writer, in Uuid48 value) => TryWriteUInt64(ref writer, value.ToUInt64());
+
+		/// <summary>Writes a 48-bit UUID</summary>
 		public static void WriteUuid48(this TupleWriter writer, Uuid48 value) => WriteUInt64(writer, value.ToUInt64());
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteUuid48(ref TupleSpanWriter writer, in Uuid48? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteUuid48(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteUuid48(this TupleWriter writer, Uuid48? value)
@@ -1028,7 +1798,31 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-		public static void WriteVersionStamp(this TupleWriter writer, VersionStamp value)
+		public static bool TryWriteVersionStamp(ref TupleSpanWriter writer, in VersionStamp value)
+		{
+			Span<byte> span;
+			if (value.HasUserVersion)
+			{ // 96-bits VersionStamp
+				if (!writer.TryAllocateSpan(13, out span))
+				{
+					return false;
+				}
+				span[0] = TupleTypes.Uuid96;
+			}
+			else
+			{ // 80-bits VersionStamp
+				if (!writer.TryAllocateSpan(11, out span))
+				{
+					return false;
+				}
+				span[0] = TupleTypes.Uuid80;
+			}
+
+			VersionStamp.WriteUnsafe(span[1..], in value);
+			return true;
+		}
+
+		public static void WriteVersionStamp(this TupleWriter writer, in VersionStamp value)
 		{
 			if (value.HasUserVersion)
 			{ // 96-bits VersionStamp
@@ -1043,6 +1837,10 @@ namespace SnowBank.Data.Tuples.Binary
 				VersionStamp.WriteUnsafe(span.Slice(1), in value);
 			}
 		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteVersionStamp(ref TupleSpanWriter writer, in VersionStamp? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteVersionStamp(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void WriteVersionStamp(this TupleWriter writer, VersionStamp? value)
@@ -1090,6 +1888,33 @@ namespace SnowBank.Data.Tuples.Binary
 		public static void EndTuple(this TupleWriter writer)
 		{
 			writer.Output.WriteByte(0x00);
+		}
+
+		/// <summary>Opens a new embedded tuple</summary>
+		[MustUseReturnValue]
+		public static bool TryBeginTuple(ref TupleSpanWriter writer)
+		{
+			if (!writer.TryWriteLiteral(TupleTypes.EmbeddedTuple))
+			{
+				return false;
+			}
+
+			writer.Depth++;
+			return true;
+		}
+
+		/// <summary>Closes an embedded tuple</summary>
+		public static bool TryEndTuple(ref TupleSpanWriter writer)
+		{
+			Contract.Debug.Requires(writer.Depth > 0);
+
+			if (!writer.TryWriteLiteral(0x00))
+			{
+				return false;
+			}
+
+			--writer.Depth;
+			return true;
 		}
 
 		#endregion

@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#pragma warning disable IL2091 // Target generic argument does not satisfy 'DynamicallyAccessedMembersAttribute' in target method or type. The generic parameter of the source method or type does not have matching annotations.
+
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
@@ -44,7 +46,8 @@ namespace SnowBank.Data.Tuples
 		, IEquatable<STuple<T1, T2, T3, T4>>, IComparable<STuple<T1, T2, T3, T4>>
 		, IEquatable<(T1, T2, T3, T4)>, IComparable<(T1, T2, T3, T4)>
 		, IComparable
-		, ITupleSerializable, ITupleFormattable
+		, ITupleSpanPackable
+		, ITupleFormattable
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -258,12 +261,20 @@ namespace SnowBank.Data.Tuples
 			return lambda(this.Item1, this.Item2, this.Item3, this.Item4);
 		}
 
-		void ITupleSerializable.PackTo(TupleWriter writer)
+		void ITuplePackable.PackTo(TupleWriter writer)
 		{
 			TuplePackers.SerializeTo<T1>(writer, this.Item1);
 			TuplePackers.SerializeTo<T2>(writer, this.Item2);
 			TuplePackers.SerializeTo<T3>(writer, this.Item3);
 			TuplePackers.SerializeTo<T4>(writer, this.Item4);
+		}
+
+		bool ITupleSpanPackable.TryPackTo(ref TupleSpanWriter writer)
+		{
+			return TuplePackers.TrySerializeTo<T1>(ref writer, this.Item1)
+				&& TuplePackers.TrySerializeTo<T2>(ref writer, this.Item2)
+				&& TuplePackers.TrySerializeTo<T3>(ref writer, this.Item3)
+				&& TuplePackers.TrySerializeTo<T4>(ref writer, this.Item4);
 		}
 
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)

@@ -54,6 +54,20 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <inheritdoc />
+		public bool TryPackKey<TTuple>(Span<byte> destination, out int bytesWritten, TTuple items) where TTuple : IVarTuple
+		{
+			var writer = new TupleSpanWriter(destination, 0);
+			if (!TupleEncoder.TryWriteTo(ref writer, in items))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = writer.BytesWritten;
+			return true;
+		}
+
+		/// <inheritdoc />
 		public void EncodeKey<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>(ref SliceWriter writer, T1? item1)
 		{
 			var tw = new TupleWriter(ref writer);
