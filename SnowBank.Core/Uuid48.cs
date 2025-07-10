@@ -1139,7 +1139,7 @@ namespace System
 		}
 
 		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/></summary>
-		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 8 bytes</param>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 6 bytes</param>
 		/// <exception cref="ArgumentException">If <paramref name="destination"/> is smaller than 8 bytes</exception>
 		public void WriteTo(Span<byte> destination)
 		{
@@ -1150,7 +1150,7 @@ namespace System
 		}
 
 		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/>, if it is large enough.</summary>
-		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 8 bytes</param>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 6 bytes</param>
 		/// <returns><c>true</c> if the destination is large enough; otherwise, <c>false</c></returns>
 		public bool TryWriteTo(Span<byte> destination)
 		{
@@ -1160,6 +1160,23 @@ namespace System
 			}
 			WriteToUnsafe(destination);
 			return true;
+		}
+
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/>, if it is large enough.</summary>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 6 bytes</param>
+		/// <param name="bytesWritten">Receives the number of bytes written (either <c>6</c> or <c>0</c>)</param>
+		/// <returns><c>true</c> if the destination is large enough; otherwise, <c>false</c></returns>
+		public bool TryWriteTo(Span<byte> destination, out int bytesWritten)
+		{
+			if (destination.Length >= 6)
+			{
+				WriteToUnsafe(destination);
+				bytesWritten = 6;
+				return true;
+			}
+
+			bytesWritten = 0;
+			return false;
 		}
 
 		#endregion

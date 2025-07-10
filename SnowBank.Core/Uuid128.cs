@@ -927,11 +927,28 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryWriteTo(Span<byte> buffer)
 		{
-			if (buffer.Length < 16)
+			if (buffer.Length < SizeOf)
 			{
 				return false;
 			}
 			Write(in m_packed, buffer);
+			return true;
+		}
+
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="buffer"/>, if it is large enough</summary>
+		/// <param name="buffer">Buffer where the bytes will be written to, with a capacity of at least 16 bytes</param>
+		/// <param name="bytesWritten">Receives the number of bytes written (either <c>16</c> or <c>0</c>)</param>
+		/// <returns><see langword="true"/> if <paramref name="buffer"/> was large enough; otherwise, <see langword="false"/>.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryWriteTo(Span<byte> buffer, out int bytesWritten)
+		{
+			if (buffer.Length < SizeOf)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			Write(in m_packed, buffer);
+			bytesWritten = SizeOf;
 			return true;
 		}
 

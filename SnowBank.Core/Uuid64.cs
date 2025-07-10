@@ -1216,6 +1216,22 @@ namespace System
 			return BinaryPrimitives.TryWriteUInt64BigEndian(destination, this.Value);
 		}
 
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/>, if it is large enough.</summary>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 8 bytes</param>
+		/// <param name="bytesWritten">Receives the number of bytes written (either <c>8</c> or <c>0</c>)</param>
+		/// <returns><c>true</c> if the destination is large enough; otherwise, <c>false</c></returns>
+		public bool TryWriteTo(Span<byte> destination, out int bytesWritten)
+		{
+			if (BinaryPrimitives.TryWriteUInt64BigEndian(destination, this.Value))
+			{
+				bytesWritten = SizeOf;
+				return true;
+			}
+
+			bytesWritten = 0;
+			return false;
+		}
+
 		#endregion
 
 		#region Operators...

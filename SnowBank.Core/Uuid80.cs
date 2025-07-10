@@ -442,8 +442,8 @@ namespace System
 
 		#region Parsing...
 
-		/// <summary>Parse a string representation of an Uuid80</summary>
-		/// <param name="input">String in either formats: <c>""</c>, <c>"badc0ffe-e0ddf00d"</c>, <c>"badc0ffee0ddf00d"</c>, <c>"{badc0ffe-e0ddf00d}"</c>, <c>"{badc0ffee0ddf00d}"</c></param>
+		/// <summary>Parse a string representation of an <see cref="Uuid80"/></summary>
+		/// <param name="input">String in either formats: <c>""</c>, <c>"xxxx-xxxxxxxx-xxxxxxxx"</c>, <c>"xxxxxxxxxxxxxxxxxxxx"</c>, <c>"{xxxx-xxxxxxxx-xxxxxxxx}"</c>, <c>"{xxxxxxxxxxxxxxxxxxxx}"</c></param>
 		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid80.Empty</see>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 Parse(string input)
@@ -456,8 +456,8 @@ namespace System
 			return value;
 		}
 
-		/// <summary>Parse a string representation of an Uuid80</summary>
-		/// <param name="input">String in either formats: <c>""</c>, <c>"badc0ffe-e0ddf00d"</c>, <c>"badc0ffee0ddf00d"</c>, <c>"{badc0ffe-e0ddf00d}"</c>, <c>"{badc0ffee0ddf00d}"</c></param>
+		/// <summary>Parse a string representation of an <see cref="Uuid80"/></summary>
+		/// <param name="input">String in either formats: <c>""</c>, <c>"xxxx-xxxxxxxx-xxxxxxxx"</c>, <c>"xxxxxxxxxxxxxxxxxxxx"</c>, <c>"{xxxx-xxxxxxxx-xxxxxxxx}"</c>, <c>"{xxxxxxxxxxxxxxxxxxxx}"</c></param>
 		/// <param name="provider">This parameter is ignored</param>
 		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid80.Empty</see>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -465,7 +465,7 @@ namespace System
 		public static Uuid80 Parse(string input, IFormatProvider? provider)
 			=> Parse(input);
 
-		/// <summary>Parse a string representation of an Uuid80</summary>
+		/// <summary>Parse a string representation of an <see cref="Uuid80"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80 Parse(ReadOnlySpan<char> input)
 		{
@@ -476,13 +476,13 @@ namespace System
 			return value;
 		}
 
-		/// <summary>Parse a string representation of an Uuid80</summary>
+		/// <summary>Parse a string representation of an <see cref="Uuid80"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Uuid80 Parse(ReadOnlySpan<char> input, IFormatProvider? provider)
 			=> Parse(input);
 
-		/// <summary>Try parsing a string representation of an Uuid80</summary>
+		/// <summary>Try parsing a string representation of an <see cref="Uuid80"/></summary>
 		[Pure]
 		public static bool TryParse(string? input, out Uuid80 result)
 		{
@@ -494,17 +494,17 @@ namespace System
 			return TryParse(input.AsSpan(), out result);
 		}
 
-		/// <summary>Try parsing a string representation of an Uuid80</summary>
+		/// <summary>Try parsing a string representation of an <see cref="Uuid80"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid80 result)
 			=> TryParse(input, out result);
 
-		/// <summary>Try parsing a string representation of an Uuid80</summary>
+		/// <summary>Try parsing a string representation of an <see cref="Uuid80"/></summary>
 		[Pure]
 		public static bool TryParse(ReadOnlySpan<char> input, out Uuid80 result)
 		{
-			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
+			// we support the following formats: "{hex4-hex8-hex8}", "{hex20}", "hex4-hex8-hex8", "hex20" and "base62"
 			// we don't support base10 format, because there is no way to differentiate from hex or base62
 
 			// note: Guid.Parse accepts leading and trailing whitespaces, so we have to replicate the behavior here
@@ -963,10 +963,30 @@ namespace System
 			WriteUnsafe(this.High, this.Low, destination);
 		}
 
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/>, if it is large enough.</summary>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 10 bytes</param>
+		/// <returns><c>true</c> if the destination is large enough; otherwise, <c>false</c></returns>
 		public bool TryWriteTo(Span<byte> destination)
 		{
 			if (destination.Length < SizeOf) return false;
 			WriteUnsafe(this.High, this.Low, destination);
+			return true;
+		}
+
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/>, if it is large enough.</summary>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 10 bytes</param>
+		/// <param name="bytesWritten">Receives the number of bytes written (either <c>10</c> or <c>0</c>)</param>
+		/// <returns><c>true</c> if the destination is large enough; otherwise, <c>false</c></returns>
+		public bool TryWriteTo(Span<byte> destination, out int bytesWritten)
+		{
+			if (destination.Length < SizeOf)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			WriteUnsafe(this.High, this.Low, destination);
+			bytesWritten = SizeOf;
 			return true;
 		}
 

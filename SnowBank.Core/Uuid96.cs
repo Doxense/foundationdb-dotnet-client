@@ -490,7 +490,7 @@ namespace System
 		#region Parsing...
 
 		/// <summary>Parse a string representation of an Uuid96</summary>
-		/// <param name="input">String in either formats: "", "badc0ffe-e0ddf00d", "badc0ffee0ddf00d", "{badc0ffe-e0ddf00d}", "{badc0ffee0ddf00d}"</param>
+		/// <param name="input">String in either formats: <c>""</c>, <c>"xxxxxxxx-xxxxxxxx-xxxxxxxx"</c>, <c>"xxxxxxxxxxxxxxxxxxxxxxxx"</c>, <c>"{xxxxxxxx-xxxxxxxx-xxxxxxxx}"</c>, <c>"{xxxxxxxxxxxxxxxxxxxxxxxx}"</c></param>
 		/// <remarks>Parsing is case-insensitive. The empty string is mapped to <see cref="Empty">Uuid96.Empty</see>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid96 Parse(string input)
@@ -958,10 +958,29 @@ namespace System
 			WriteUnsafe(this.High, this.Low, destination);
 		}
 
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/>, if it is large enough.</summary>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 12 bytes</param>
+		/// <returns><c>true</c> if the destination is large enough; otherwise, <c>false</c></returns>
 		public bool TryWriteTo(Span<byte> destination)
 		{
 			if (destination.Length < SizeOf) return false;
 			WriteUnsafe(this.High, this.Low, destination);
+			return true;
+		}
+
+		/// <summary>Writes the bytes of this instance to the specified <paramref name="destination"/>, if it is large enough.</summary>
+		/// <param name="destination">Buffer where the bytes will be written to, with a capacity of at least 12 bytes</param>
+		/// <param name="bytesWritten">Receives the number of bytes written (either <c>12</c> or <c>0</c>)</param>
+		/// <returns><c>true</c> if the destination is large enough; otherwise, <c>false</c></returns>
+		public bool TryWriteTo(Span<byte> destination, out int bytesWritten)
+		{
+			if (destination.Length < SizeOf)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			WriteUnsafe(this.High, this.Low, destination);
+			bytesWritten = SizeOf;
 			return true;
 		}
 
