@@ -30,14 +30,19 @@ namespace SnowBank.Data.Tuples.Binary
 
 	/// <summary>Represents an object that can serialize itself using the Tuple Binary Encoding format</summary>
 	[PublicAPI]
-	public interface ITupleSerializable //REVIEW: ITuplePackable?
+	public interface ITuplePackable
 	{
 		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will receive the packed bytes of this instance</param>
 		void PackTo(TupleWriter writer);
 
-		//note: there is not UnpackFrom, because it does not play way with constructors and readonly fields!
-		// => use ITupleSerializer<T> for this!
+	}
+
+	[Obsolete("Replace with ITuplePackable and optionally implement ITupleSpanPackable as well")]
+	public interface ITupleSerializable : ITuplePackable
+	{
+		//TODO: remove this once we know all uses have been replaced
+	}
 	}
 
 	/// <summary>Represents a tuple that can formats its item into a string representation</summary>
