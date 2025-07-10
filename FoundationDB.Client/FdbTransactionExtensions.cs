@@ -50,10 +50,10 @@ namespace FoundationDB.Client
 		#region Key/Value Validation...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
-		private static ReadOnlySpan<byte> ToSpanKey(Slice key) => !key.IsNull ? key.Span : throw Fdb.Errors.KeyCannotBeNull();
+		internal static ReadOnlySpan<byte> ToSpanKey(Slice key) => !key.IsNull ? key.Span : throw Fdb.Errors.KeyCannotBeNull();
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
-		private static ReadOnlySpan<byte> ToSpanValue(Slice value) => !value.IsNull ? value.Span : throw Fdb.Errors.ValueCannotBeNull();
+		internal static ReadOnlySpan<byte> ToSpanValue(Slice value) => !value.IsNull ? value.Span : throw Fdb.Errors.ValueCannotBeNull();
 
 		#endregion
 

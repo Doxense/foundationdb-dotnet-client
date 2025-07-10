@@ -34,7 +34,9 @@ namespace FoundationDB.Client.Tests
 	using System.Globalization;
 
 	[TestFixture]
-	public class KeyFacts : FdbTest
+	[Category("Fdb-Client-InProc")]
+	[Parallelizable(ParallelScope.All)]
+	public class KeyFacts : FdbSimpleTest
 	{
 
 		[Test]
@@ -196,7 +198,7 @@ namespace FoundationDB.Client.Tests
 
 			Assert.That(used, Is.All.True);
 		}
-	
+
 		[Test]
 		public void Test_KeyRange_Contains()
 		{
@@ -742,4 +744,5 @@ namespace FoundationDB.Client.Tests
 		}
 
 	}
+
 }

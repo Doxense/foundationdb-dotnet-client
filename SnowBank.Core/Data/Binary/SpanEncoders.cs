@@ -37,7 +37,7 @@ namespace SnowBank.Data.Binary
 
 		#region Encoding Helper Methods...
 
-		internal static void Encode<TEncoder, TValue>(in TValue? value, ArrayPool<byte> pool, int maxSize, out byte[]? buffer, out ReadOnlySpan<byte> span, out Range range)
+		public static void Encode<TEncoder, TValue>(in TValue? value, ArrayPool<byte> pool, int maxSize, out byte[]? buffer, out ReadOnlySpan<byte> span, out Range range)
 #if NET9_0_OR_GREATER
 			where TValue : allows ref struct
 #endif

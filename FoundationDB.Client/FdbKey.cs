@@ -29,7 +29,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Factory class for keys</summary>
 	[PublicAPI]
-	public static class FdbKey
+	public static partial class FdbKey
 	{
 		#region Well Known Keys...
 
