@@ -1377,6 +1377,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			// ( (42, (2014, 11, 6), "Hello", true), )
 			var packed = TuPack.EncodeKey(STuple.Create(42, STuple.Create(2014, 11, 6), "Hello", true));
+			Log($"p = {packed:x}");
 			Log($"t = {TuPack.Unpack(packed)}");
 			Assert.That(packed[0], Is.EqualTo(TupleTypes.EmbeddedTuple), "Missing Embedded Tuple marker");
 			{
@@ -1431,6 +1432,7 @@ namespace SnowBank.Data.Tuples.Tests
 
 			// (null,)
 			packed = Slice.FromByte(0);
+			Log($"p = {packed:x}");
 			Log($"t = {TuPack.Unpack(packed)}");
 			{
 				var t = TuPack.DecodeKey<IVarTuple>(packed);
@@ -1450,6 +1452,7 @@ namespace SnowBank.Data.Tuples.Tests
 
 			//fallback if encoded as slice
 			packed = TuPack.EncodeKey(TuPack.EncodeKey(42, STuple.Create(2014, 11, 6), "Hello", true));
+			Log($"p = {packed:x}");
 			Log($"t = {TuPack.Unpack(packed)}");
 			Assert.That(packed[0], Is.EqualTo(TupleTypes.Bytes), "Missing Slice marker");
 			{
@@ -1686,6 +1689,82 @@ namespace SnowBank.Data.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_TuplePack_TryPackTo()
+		{
+			static void Verify<TTuple>(in TTuple tuple, Slice expected)
+				where TTuple : IVarTuple
+			{
+				Span<byte> buffer = stackalloc byte[512]; // larger than all tuples
+				Assert.That(TuPack.TryPackTo(buffer, out int written, in tuple), Is.True);
+
+				if (!expected.Equals(buffer.Slice(0, written)))
+				{
+					Assert.That(
+						buffer.Slice(0, written).ToSlice(),
+						Is.EqualTo(expected)
+					);
+				}
+			}
+
+			Verify(
+				STuple.Create(),
+				Slice.Empty
+			);
+			Verify(
+				STuple.Create("hello world"),
+				Slice.Unescape("<02>hello world<00>")
+			);
+			Verify(
+				STuple.Create("hello", "world"),
+				Slice.Unescape("<02>hello<00><02>world<00>")
+			);
+			Verify(
+				STuple.Create("hello world", 123),
+				Slice.Unescape("<02>hello world<00><15>{")
+			);
+			Verify(
+				STuple.Create("hello world", 1234, -1234),
+				Slice.Unescape("<02>hello world<00><16><04><D2><12><FB>-")
+			);
+			Verify(
+				STuple.Create("hello world", 123, false),
+				Slice.Unescape("<02>hello world<00><15>{&")
+			);
+			Verify(
+				STuple.Create("hello world", 123, false, new byte[] {123, 1, 66, 0, 42}),
+				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
+			);
+			Verify(
+				STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI),
+				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")
+			);
+			Verify(
+				STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L),
+				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")
+			);
+			Verify(
+				STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界"),
+				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")
+			);
+			Verify(
+				STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }, Math.PI, -1234L, "こんにちは世界", true),
+				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
+			);
+			Verify(
+				STuple.Create([ "hello world", 123, false, new byte[] {123, 1, 66, 0, 42} ]),
+				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
+			);
+			Verify(
+				STuple.FromArray<object>([ "hello world", 123, false, (byte[]) [ 123, 1, 66, 0, 42 ] ], 1, 2),
+				Slice.Unescape("<15>{&")
+			);
+			Verify(
+				STuple.FromEnumerable<object>([ "hello world", 123, false, (byte[]) [ 123, 1, 66, 0, 42 ] ]),
+				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
+			);
+		}
+
+		[Test]
 		public void Test_TuplePack_PackTuples()
 		{
 			{
@@ -1719,7 +1798,7 @@ namespace SnowBank.Data.Tuples.Tests
 
 			//Optimized STuple<...> versions
 
-			{
+			{ // ReadOnlySpan<IVarTuple> (different signatures)
 				var packed = TuPack.PackTuples(
 					STuple.Create("Hello"),
 					STuple.Create(123, true),
@@ -1733,7 +1812,7 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
 			}
 
-			{
+			{ // ReadOnlySpan<STuple<int>> (all the same signature)
 				var packed = TuPack.PackTuples(
 					STuple.Create(123),
 					STuple.Create(456),

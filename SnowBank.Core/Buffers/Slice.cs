@@ -2467,6 +2467,7 @@ namespace System
 		}
 
 		/// <inheritdoc cref="Slice.ToString()" />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public string ToString(string? format)
 		{
 			return ToString(format, null);

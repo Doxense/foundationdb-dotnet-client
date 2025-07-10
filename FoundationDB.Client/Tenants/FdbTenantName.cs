@@ -136,7 +136,7 @@ namespace FoundationDB.Client
 		public static FdbTenantName FromTuple<TTuple>([NotNull] in TTuple? items) where TTuple : IVarTuple
 		{
 			return items?.Count > 0
-				? new(TuPack.Pack(items), items)
+				? new(TuPack.Pack(in items), items)
 				: throw new ArgumentException("Tenant name cannot be empty", nameof(items));
 		}
 

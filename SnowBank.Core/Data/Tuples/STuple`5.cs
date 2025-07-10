@@ -288,6 +288,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		void ITuplePackable.PackTo(TupleWriter writer)
 		{
 			TuplePackers.SerializeTo<T1>(writer, this.Item1);
@@ -297,6 +298,8 @@ namespace SnowBank.Data.Tuples
 			TuplePackers.SerializeTo<T5>(writer, this.Item5);
 		}
 
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		bool ITupleSpanPackable.TryPackTo(ref TupleSpanWriter writer)
 		{
 			return TuplePackers.TrySerializeTo<T1>(ref writer, this.Item1)

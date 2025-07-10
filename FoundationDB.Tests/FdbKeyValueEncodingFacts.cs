@@ -162,14 +162,14 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbValue_Tuple_Encoding()
 		{
-			static void Verify<TTuple>(TTuple tuple)
+			static void Verify<TTuple>(in TTuple tuple)
 				where TTuple : IVarTuple
 			{
-				var expectedPacked = TuPack.Pack(tuple);
+				var expectedPacked = TuPack.Pack(in tuple);
 				var expectedUnpacked = TuPack.Unpack(expectedPacked);
 				Log($"# ({tuple.GetType().GetFriendlyName()}) {tuple}: -> [{expectedPacked.Count:N0}] {expectedPacked:x} -> {expectedUnpacked}");
 
-				var value = FdbValue.Tuples.Pack(tuple);
+				var value = FdbValue.Tuples.Pack(in tuple);
 				var slice = value.ToSlice();
 				Assert.That(slice, Is.EqualTo(expectedPacked));
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);

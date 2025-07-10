@@ -42,59 +42,90 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Internal helper that serializes the content of a Tuple into a TupleWriter, meant to be called by implementers of <see cref="IVarTuple"/> types.</summary>
 		/// <remarks>Warning: This method will call into <see cref="ITuplePackable.PackTo"/> if <paramref name="tuple"/> implements <see cref="ITuplePackable"/></remarks>
-
-		internal static void WriteTo<TTuple>(TupleWriter writer, in TTuple tuple)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal static void WriteTo<TTuple>(TupleWriter writer, in TTuple? tuple)
 			where TTuple : IVarTuple?
 		{
-			Contract.Debug.Requires(tuple != null);
-
-			// ReSharper disable once SuspiciousTypeConversion.Global
-			if (tuple is ITuplePackable ts)
-			{ // optimized version
-				ts.PackTo(writer);
+			if (tuple is null)
+			{
 				return;
 			}
 
-			int n = tuple.Count;
-			// small tuples probably are faster with indexers
-			//REVIEW: when should we use indexers, and when should we use foreach?
-			if (n <= 4)
+			// <JIT_HACK>: if TTuple is a struct, this should be optimized by the JIT, and *hopefully* inlined into the caller!
+#if DEBUG
+			// but this is suboptimal in Debug builds, so we use a simple pattern here (boxing is unavoidable)
+			if (tuple is ITuplePackable packable)
 			{
-				for (int i = 0; i < n; i++)
-				{
-					TuplePackers.SerializeObjectTo(writer, tuple[i]);
-				}
+				packable.PackTo(writer);
+				return;
 			}
-			else
+#else
+			if (typeof(TTuple).IsAssignableTo(typeof(ITuplePackable)))
 			{
-				foreach (object? item in tuple)
+				((ITuplePackable) tuple).PackTo(writer);
+				return;
+			}
+#endif
+			// </JIT_HACK>
+
+			WriteToSlow(writer, in tuple);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void WriteToSlow(TupleWriter writer, in TTuple tuple)
+			{
+				if (tuple!.Count != 0)
 				{
-					TuplePackers.SerializeObjectTo(writer, item);
+					foreach (object? item in tuple)
+					{
+						TuplePackers.SerializeObjectTo(writer, item);
+					}
 				}
 			}
 		}
 
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static bool TryWriteTo<TTuple>(ref TupleSpanWriter writer, in TTuple tuple)
 			where TTuple : IVarTuple?
 		{
-			// ReSharper disable once SuspiciousTypeConversion.Global
+			if (tuple is null)
+			{
+				return true;
+			}
+
+			// <JIT_HACK>
+			// - if TTuple is a struct, this should be optimized by the JIT, and *hopefully* inlined into the caller!
+#if DEBUG
+			// but this is suboptimal in Debug builds, so we use a simple pattern here (boxing is unavoidable)
 			if (tuple is ITupleSpanPackable ts)
 			{ // optimized version
 				return ts.TryPackTo(ref writer);
 			}
-
-			if (tuple is not null && tuple.Count != 0)
+#else
+			if (typeof(TTuple).IsAssignableTo(typeof(ITupleSpanPackable)))
 			{
-				foreach (object? item in tuple)
+				return ((ITupleSpanPackable) tuple).TryPackTo(ref writer);
+			}
+#endif
+			// </JIT_HACK>
+
+			return TryWriteToSlow(ref writer, in tuple);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static bool TryWriteToSlow(ref TupleSpanWriter writer, in TTuple tuple)
+			{
+				if (tuple!.Count != 0)
 				{
-					if (!TuplePackers.TrySerializeObjectTo(ref writer, item))
+					foreach (object? item in tuple)
 					{
-						return false;
+						if (!TuplePackers.TrySerializeObjectTo(ref writer, item))
+						{
+							return false;
+						}
 					}
 				}
-			}
 
-			return true;
+				return true;
+			}
 		}
 
 		#region Packing...
@@ -130,6 +161,7 @@ namespace SnowBank.Data.Tuples.Binary
 			where TTuple : IVarTuple?
 		{
 			if (tuple is null) return Slice.Nil;
+
 			var sw = new SliceWriter();
 			var tw = new TupleWriter(ref sw);
 			WriteTo(tw, in tuple);
@@ -156,25 +188,6 @@ namespace SnowBank.Data.Tuples.Binary
 			return Pack(default, tuples);
 		}
 
-		public static void PackTo<TTuple>(ref SliceWriter writer, TTuple? tuple)
-			where TTuple : IVarTuple?
-		{
-			if (tuple != null)
-			{
-				var tw = new TupleWriter(ref writer);
-				WriteTo(tw, tuple);
-			}
-		}
-
-		public static void PackTo<TTuple>(TupleWriter writer, TTuple? tuple)
-			where TTuple : IVarTuple?
-		{
-			if (tuple != null)
-			{
-				WriteTo(writer, tuple);
-			}
-		}
-
 		// With prefix
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a tuple</summary>
@@ -199,22 +212,7 @@ namespace SnowBank.Data.Tuples.Binary
 			where TTuple : IVarTuple?
 		{
 			Contract.NotNull(tuples);
-
-			// pre-allocate by supposing that each tuple will take at least 16 bytes
-			var sw = new SliceWriter(checked(tuples.Length * (16 + prefix.Length)));
-			var tw = new TupleWriter(ref sw);
-			var next = new List<int>(tuples.Length);
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			foreach (var tuple in tuples)
-			{
-				sw.WriteBytes(prefix);
-				WriteTo(tw, tuple);
-				next.Add(sw.Position);
-			}
-
-			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
+			return Pack(prefix, tuples.AsSpan());
 		}
 
 		/// <summary>Packs an array of N-tuples, all sharing the same buffer</summary>
@@ -232,10 +230,10 @@ namespace SnowBank.Data.Tuples.Binary
 
 			//TODO: use multiple buffers if item count is huge ?
 
-			foreach (var tuple in tuples)
+			for (int i = 0; i < tuples.Length; i++)
 			{
 				sw.WriteBytes(prefix);
-				WriteTo(tw, tuple);
+				WriteTo(tw, in tuples[i]);
 				next.Add(sw.Position);
 			}
 
@@ -252,15 +250,9 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			Contract.NotNull(tuples);
 
-			// use optimized version for arrays
-			if (tuples is TTuple[] array)
+			if (tuples.TryGetSpan(out var span))
 			{
-				return Pack(prefix, array);
-			}
-
-			if (tuples is List<TTuple> list)
-			{
-				return Pack(prefix, CollectionsMarshal.AsSpan(list));
+				return Pack(prefix, span);
 			}
 
 			var next = new List<int>((tuples as ICollection<TTuple>)?.Count ?? 0);

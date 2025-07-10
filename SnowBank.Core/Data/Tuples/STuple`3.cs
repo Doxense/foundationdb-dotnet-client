@@ -244,12 +244,17 @@ namespace SnowBank.Data.Tuples
 			return lambda(this.Item1, this.Item2, this.Item3);
 		}
 
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		void ITuplePackable.PackTo(TupleWriter writer)
 		{
 			TuplePackers.SerializeTo<T1>(writer, this.Item1);
 			TuplePackers.SerializeTo<T2>(writer, this.Item2);
 			TuplePackers.SerializeTo<T3>(writer, this.Item3);
 		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		bool ITupleSpanPackable.TryPackTo(ref TupleSpanWriter writer)
 		{
 			return TuplePackers.TrySerializeTo<T1>(ref writer, this.Item1)

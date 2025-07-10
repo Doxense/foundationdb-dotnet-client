@@ -37,10 +37,10 @@ namespace FoundationDB.Client.Tests
 			Assert.That(tree, Is.Not.Null);
 			Assert.That(tree.GetTemplates().ToArray(), Has.Length.EqualTo(5));
 
-			static void VerifyIsMatch<TTuple>(FqlTemplateTree tree, TTuple tuple, string expectedName, FqlValueTypeHint expectedHint)
+			static void VerifyIsMatch<TTuple>(FqlTemplateTree tree, in TTuple tuple, string expectedName, FqlValueTypeHint expectedHint)
 				where TTuple : IVarTuple
 			{
-				var packed = TuPack.Pack(tuple);
+				var packed = TuPack.Pack(in tuple);
 				var unpacked = SpanTuple.Unpack(packed);
 				Log($"# key: {tuple}");
 				Assert.That(tree.TryMatch(unpacked, out var match), Is.True, $"No match found for key {tuple}");

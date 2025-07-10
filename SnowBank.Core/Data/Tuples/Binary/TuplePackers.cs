@@ -26,15 +26,17 @@
 
 namespace SnowBank.Data.Tuples.Binary
 {
+	using System;
 	using System.Collections.Frozen;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Numerics;
 	using System.Reflection;
+
 	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples;
-	using SnowBank.Runtime.Converters;
 	using SnowBank.Runtime;
+	using SnowBank.Runtime.Converters;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
 	[PublicAPI]
@@ -145,53 +147,33 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 			}
 
-			if (type.IsAssignableTo(typeof(ITuplePackable)) && type.IsAssignableTo(typeof(ITupleSpanPackable)))
-			{
-				directMethod = GetTuplePackersType().GetMethod(nameof(SerializeTupleSerializableTo), BindingFlags.Static | BindingFlags.Public);
-				spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeTupleSerializableTo), BindingFlags.Static | BindingFlags.Public);
-				if (directMethod != null || spanMethod != null)
-				{
-					try
-					{
-						return (
-							directMethod?.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
-							spanMethod?.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
-						);
-					}
-					catch (Exception e)
-					{
-						throw new InvalidOperationException($"Failed to compile fast tuple serializer for type '<{type.GetFriendlyName()}>'.", e);
-					}
-				}
-			}
-
 			// maybe it is a tuple ?
-			if (typeof(IVarTuple).IsAssignableFrom(type))
+			if (type.IsAssignableTo(typeof(IVarTuple)))
 			{
-				if (type == typeof(STuple) || (type.Name.StartsWith(nameof(STuple) + "`", StringComparison.Ordinal) && type.Namespace == typeof(STuple).Namespace))
-				{ // well-known STuple<T...> struct
-					var typeArgs = type.GetGenericArguments();
-					directMethod = FindSTupleSerializerMethod(typeArgs);
-					spanMethod = FindSTupleSpanSerializerMethod(typeArgs);
+				if (type.IsAssignableTo(typeof(ITuplePackable)))
+				{ // most tuples implement ITupleFormattable directly!
+
+					directMethod = GetTuplePackersType().GetMethod(nameof(SerializePackableTupleTo), BindingFlags.Static | BindingFlags.Public);
+					spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializePackableTupleTo), BindingFlags.Static | BindingFlags.Public);
 					if (directMethod != null || spanMethod != null)
 					{
 						try
 						{
 							return (
-								directMethod?.MakeGenericMethod(typeArgs).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
-								spanMethod?.MakeGenericMethod(typeArgs).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
+								directMethod?.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
+								spanMethod?.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
 							);
 						}
 						catch (Exception e)
 						{
-							throw new InvalidOperationException($"Failed to compile fast tuple serializer for Tuple type '{type.Name}'.", e);
+							throw new InvalidOperationException($"Failed to compile fast tuple serializer for type '<{type.GetFriendlyName()}>'.", e);
 						}
 					}
 				}
 
-				// will use the default ITuple implementation
-				directMethod = GetTuplePackersType().GetMethod(nameof(SerializeTupleTo), BindingFlags.Static | BindingFlags.Public);
-				spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeTupleTo), BindingFlags.Static | BindingFlags.Public);
+				// will use the default IVarTuple packing implementation (which may use boxing)
+				directMethod = GetTuplePackersType().GetMethod(nameof(SerializeVarTupleTo), BindingFlags.Static | BindingFlags.Public);
+				spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeVarTupleTo), BindingFlags.Static | BindingFlags.Public);
 				if (directMethod != null || spanMethod != null)
 				{
 					try
@@ -204,6 +186,28 @@ namespace SnowBank.Data.Tuples.Binary
 					catch (Exception e)
 					{
 						throw new InvalidOperationException($"Failed to compile fast tuple serializer for Tuple type '{type.Name}'.", e);
+					}
+				}
+			}
+
+			if (type.IsAssignableTo(typeof(ITuplePackable)))
+			{
+				// this is NOT a tuple, but a custom type that can also "pack itself"
+
+				directMethod = GetTuplePackersType().GetMethod(nameof(SerializeTuplePackableTo), BindingFlags.Static | BindingFlags.Public);
+				spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeTuplePackableTo), BindingFlags.Static | BindingFlags.Public);
+				if (directMethod != null || spanMethod != null)
+				{
+					try
+					{
+						return (
+							directMethod?.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
+							spanMethod?.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
+						);
+					}
+					catch (Exception e)
+					{
+						throw new InvalidOperationException($"Failed to compile fast tuple serializer for type '<{type.GetFriendlyName()}>'.", e);
 					}
 				}
 			}
@@ -234,24 +238,6 @@ namespace SnowBank.Data.Tuples.Binary
 			return (null, null);
 		}
 
-		private static MethodInfo? FindSTupleSerializerMethod(Type[] args)
-		{
-			//note: we want to find the correct SerializeSTuple<...>(TupleWriter, (...,), but this cannot be done with Type.GetMethod(...) directly
-			// => we have to scan for all methods with the correct name, and the same number of Type Arguments than the ValueTuple.
-			return GetTuplePackersType()
-				   .GetMethods(BindingFlags.Static | BindingFlags.Public)
-				   .SingleOrDefault(m => m.Name == nameof(SerializeSTupleTo) && m.GetGenericArguments().Length == args.Length);
-		}
-
-		private static MethodInfo? FindSTupleSpanSerializerMethod(Type[] args)
-		{
-			//note: we want to find the correct TrySerializeSTuple<...>(ref TupleSpanWriter, (...,), but this cannot be done with Type.GetMethod(...) directly
-			// => we have to scan for all methods with the correct name, and the same number of Type Arguments than the ValueTuple.
-			return GetTuplePackersType()
-				   .GetMethods(BindingFlags.Static | BindingFlags.Public)
-				   .SingleOrDefault(m => m.Name == nameof(TrySerializeSTupleTo) && m.GetGenericArguments().Length == args.Length);
-		}
-
 		private static MethodInfo? FindValueTupleSerializerMethod(Type[] args)
 		{
 			//note: we want to find the correct SerializeValueTuple<...>(TupleWriter, (...,), but this cannot be done with Type.GetMethod(...) directly
@@ -279,58 +265,63 @@ namespace SnowBank.Data.Tuples.Binary
 			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
 			// - In Debug builds, we have to disable this, because it would be too slow
 			//IMPORTANT: only ValueTypes and they must have a corresponding Write$TYPE$(TupleWriter, $TYPE) in TupleParser!
-			if (typeof(T) == typeof(bool)) { writer.WriteBool((bool) (object) value!); return; }
-			if (typeof(T) == typeof(int)) { writer.WriteInt32((int) (object) value!); return; }
-			if (typeof(T) == typeof(long)) { writer.WriteInt64((long) (object) value!); return; }
-			if (typeof(T) == typeof(uint)) { writer.WriteUInt32((uint) (object) value!); return; }
-			if (typeof(T) == typeof(ulong)) { writer.WriteUInt64((ulong) (object) value!); return; }
-			if (typeof(T) == typeof(short)) { writer.WriteInt32((short) (object) value!); return; }
-			if (typeof(T) == typeof(ushort)) { writer.WriteUInt32((ushort) (object) value!); return; }
-			if (typeof(T) == typeof(sbyte)) { writer.WriteInt32((sbyte) (object) value!); return; }
-			if (typeof(T) == typeof(byte)) { writer.WriteUInt32((byte) (object) value!); return; }
-			if (typeof(T) == typeof(float)) { writer.WriteSingle((float) (object) value!); return; }
-			if (typeof(T) == typeof(double)) { writer.WriteDouble((double) (object) value!); return; }
-			if (typeof(T) == typeof(decimal)) { writer.WriteDecimal((decimal) (object) value!); return; }
-			if (typeof(T) == typeof(char)) { writer.WriteChar((char) (object) value!); return; }
-			if (typeof(T) == typeof(TimeSpan)) { writer.WriteTimeSpan((TimeSpan) (object) value!); return; }
-			if (typeof(T) == typeof(DateTime)) { writer.WriteDateTime((DateTime) (object) value!); return; }
-			if (typeof(T) == typeof(DateTimeOffset)) { writer.WriteDateTimeOffset((DateTimeOffset) (object) value!); return; }
-			if (typeof(T) == typeof(Guid)) { writer.WriteGuid((Guid) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid128)) { writer.WriteUuid128((Uuid128) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid96)) { writer.WriteUuid96((Uuid96) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid80)) { writer.WriteUuid80((Uuid80) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid64)) { writer.WriteUuid64((Uuid64) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid48)) { writer.WriteUuid48((Uuid48) (object) value!); return; }
-			if (typeof(T) == typeof(VersionStamp)) { writer.WriteVersionStamp((VersionStamp) (object) value!); return; }
-			if (typeof(T) == typeof(Slice)) { writer.WriteBytes((Slice) (object) value!); return; }
-			if (typeof(T) == typeof(ArraySegment<byte>)) { writer.WriteBytes((ArraySegment<byte>) (object) value!); return; }
+			if (default(T) is not null)
+			{
+				if (typeof(T) == typeof(bool)) { writer.WriteBool((bool) (object) value!); return; }
+				if (typeof(T) == typeof(int)) { writer.WriteInt32((int) (object) value!); return; }
+				if (typeof(T) == typeof(long)) { writer.WriteInt64((long) (object) value!); return; }
+				if (typeof(T) == typeof(uint)) { writer.WriteUInt32((uint) (object) value!); return; }
+				if (typeof(T) == typeof(ulong)) { writer.WriteUInt64((ulong) (object) value!); return; }
+				if (typeof(T) == typeof(short)) { writer.WriteInt32((short) (object) value!); return; }
+				if (typeof(T) == typeof(ushort)) { writer.WriteUInt32((ushort) (object) value!); return; }
+				if (typeof(T) == typeof(sbyte)) { writer.WriteInt32((sbyte) (object) value!); return; }
+				if (typeof(T) == typeof(byte)) { writer.WriteUInt32((byte) (object) value!); return; }
+				if (typeof(T) == typeof(float)) { writer.WriteSingle((float) (object) value!); return; }
+				if (typeof(T) == typeof(double)) { writer.WriteDouble((double) (object) value!); return; }
+				if (typeof(T) == typeof(decimal)) { writer.WriteDecimal((decimal) (object) value!); return; }
+				if (typeof(T) == typeof(char)) { writer.WriteChar((char) (object) value!); return; }
+				if (typeof(T) == typeof(TimeSpan)) { writer.WriteTimeSpan((TimeSpan) (object) value!); return; }
+				if (typeof(T) == typeof(DateTime)) { writer.WriteDateTime((DateTime) (object) value!); return; }
+				if (typeof(T) == typeof(DateTimeOffset)) { writer.WriteDateTimeOffset((DateTimeOffset) (object) value!); return; }
+				if (typeof(T) == typeof(Guid)) { writer.WriteGuid((Guid) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid128)) { writer.WriteUuid128((Uuid128) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid96)) { writer.WriteUuid96((Uuid96) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid80)) { writer.WriteUuid80((Uuid80) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid64)) { writer.WriteUuid64((Uuid64) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid48)) { writer.WriteUuid48((Uuid48) (object) value!); return; }
+				if (typeof(T) == typeof(VersionStamp)) { writer.WriteVersionStamp((VersionStamp) (object) value!); return; }
+				if (typeof(T) == typeof(Slice)) { writer.WriteBytes((Slice) (object) value!); return; }
+				if (typeof(T) == typeof(ArraySegment<byte>)) { writer.WriteBytes((ArraySegment<byte>) (object) value!); return; }
+			}
+			else
+			{
+				if (typeof(T) == typeof(bool?)) { writer.WriteBool((bool?) (object) value!); return; }
+				if (typeof(T) == typeof(int?)) { writer.WriteInt32((int?) (object) value!); return; }
+				if (typeof(T) == typeof(long?)) { writer.WriteInt64((long?) (object) value!); return; }
+				if (typeof(T) == typeof(uint?)) { writer.WriteUInt32((uint?) (object) value!); return; }
+				if (typeof(T) == typeof(ulong?)) { writer.WriteUInt64((ulong?) (object) value!); return; }
+				if (typeof(T) == typeof(short?)) { writer.WriteInt32((short?) (object) value!); return; }
+				if (typeof(T) == typeof(ushort?)) { writer.WriteUInt32((ushort?) (object) value!); return; }
+				if (typeof(T) == typeof(sbyte?)) { writer.WriteInt32((sbyte?) (object) value!); return; }
+				if (typeof(T) == typeof(byte?)) { writer.WriteUInt32((byte?) (object) value!); return; }
+				if (typeof(T) == typeof(float?)) { writer.WriteSingle((float?) (object) value!); return; }
+				if (typeof(T) == typeof(double?)) { writer.WriteDouble((double?) (object) value!); return; }
+				if (typeof(T) == typeof(decimal?)) { writer.WriteDecimal((decimal?) (object) value!); return; }
+				if (typeof(T) == typeof(char?)) { writer.WriteChar((char?) (object) value!); return; }
+				if (typeof(T) == typeof(TimeSpan?)) { writer.WriteTimeSpan((TimeSpan?) (object) value!); return; }
+				if (typeof(T) == typeof(DateTime?)) { writer.WriteDateTime((DateTime?) (object) value!); return; }
+				if (typeof(T) == typeof(DateTimeOffset?)) { writer.WriteDateTimeOffset((DateTimeOffset?) (object) value!); return; }
+				if (typeof(T) == typeof(Guid?)) { writer.WriteGuid((Guid?) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid128?)) { writer.WriteUuid128((Uuid128?) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid96?)) { writer.WriteUuid96((Uuid96?) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid80?)) { writer.WriteUuid80((Uuid80?) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid64?)) { writer.WriteUuid64((Uuid64?) (object) value!); return; }
+				if (typeof(T) == typeof(Uuid48?)) { writer.WriteUuid48((Uuid48?) (object) value!); return; }
+				if (typeof(T) == typeof(VersionStamp?)) { writer.WriteVersionStamp((VersionStamp?) (object) value!); return; }
 
-			if (typeof(T) == typeof(bool?)) { writer.WriteBool((bool?) (object) value!); return; }
-			if (typeof(T) == typeof(int?)) { writer.WriteInt32((int?) (object) value!); return; }
-			if (typeof(T) == typeof(long?)) { writer.WriteInt64((long?) (object) value!); return; }
-			if (typeof(T) == typeof(uint?)) { writer.WriteUInt32((uint?) (object) value!); return; }
-			if (typeof(T) == typeof(ulong?)) { writer.WriteUInt64((ulong?) (object) value!); return; }
-			if (typeof(T) == typeof(short?)) { writer.WriteInt32((short?) (object) value!); return; }
-			if (typeof(T) == typeof(ushort?)) { writer.WriteUInt32((ushort?) (object) value!); return; }
-			if (typeof(T) == typeof(sbyte?)) { writer.WriteInt32((sbyte?) (object) value!); return; }
-			if (typeof(T) == typeof(byte?)) { writer.WriteUInt32((byte?) (object) value!); return; }
-			if (typeof(T) == typeof(float?)) { writer.WriteSingle((float?) (object) value!); return; }
-			if (typeof(T) == typeof(double?)) { writer.WriteDouble((double?) (object) value!); return; }
-			if (typeof(T) == typeof(decimal?)) { writer.WriteDecimal((decimal?) (object) value!); return; }
-			if (typeof(T) == typeof(char?)) { writer.WriteChar((char?) (object) value!); return; }
-			if (typeof(T) == typeof(TimeSpan?)) { writer.WriteTimeSpan((TimeSpan?) (object) value!); return; }
-			if (typeof(T) == typeof(DateTime?)) { writer.WriteDateTime((DateTime?) (object) value!); return; }
-			if (typeof(T) == typeof(DateTimeOffset?)) { writer.WriteDateTimeOffset((DateTimeOffset?) (object) value!); return; }
-			if (typeof(T) == typeof(Guid?)) { writer.WriteGuid((Guid?) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid128?)) { writer.WriteUuid128((Uuid128?) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid96?)) { writer.WriteUuid96((Uuid96?) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid80?)) { writer.WriteUuid80((Uuid80?) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid64?)) { writer.WriteUuid64((Uuid64?) (object) value!); return; }
-			if (typeof(T) == typeof(Uuid48?)) { writer.WriteUuid48((Uuid48?) (object) value!); return; }
-			if (typeof(T) == typeof(VersionStamp?)) { writer.WriteVersionStamp((VersionStamp?) (object) value!); return; }
+				if (typeof(T) == typeof(string)) { writer.WriteString((string?) (object?) value); return ; }
+			}
 			//</JIT_HACK>
-
-			if (typeof(T) == typeof(string)) { writer.WriteString((string?) (object?) value); return ; }
 
 			// invoke the encoder directly
 			TuplePacker<T>.Encoders.Direct(writer, value);
@@ -439,13 +430,53 @@ namespace SnowBank.Data.Tuples.Binary
 			return TuplePacker<T>.Encoders.Span(ref writer, value);
 		}
 
+		/// <summary>Serialize a packable tuple</summary>
+		/// <typeparam name="TTuple">Type of the tuple that must implement both <see cref="IVarTuple"/> and <see cref="ITuplePackable"/></typeparam>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="tuple">Tuple to pack</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SerializePackableTupleTo<TTuple>(TupleWriter writer, TTuple? tuple)
+			where TTuple : ITuplePackable
+		{
+			if (tuple is null)
+			{
+				writer.WriteNil();
+			}
+			else
+			{
+				// we are serializing an item of a parent tuple, so we have to start a new embedded tuple!
+				var tw = writer.BeginTuple();
+				tuple.PackTo(tw);
+				tw.EndTuple();
+			}
+		}
+
+		/// <summary>Serialize a packable tuple</summary>
+		/// <typeparam name="TTuple">Type of the tuple that must implement both <see cref="IVarTuple"/> and <see cref="ITuplePackable"/></typeparam>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="tuple">Tuple to pack</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TrySerializePackableTupleTo<TTuple>(ref TupleSpanWriter writer, in TTuple? tuple)
+			where TTuple : ITupleSpanPackable
+		{
+			if (tuple is null)
+			{
+				return writer.TryWriteNil();
+			}
+
+			// we are serializing an item of a parent tuple, so we have to start a new embedded tuple!
+			return TupleParser.TryBeginTuple(ref writer)
+			    && tuple.TryPackTo(ref writer)
+			    && TupleParser.TryEndTuple(ref writer);
+		}
+
 		/// <summary>Serialize a nullable value, by checking for null at runtime</summary>
 		/// <typeparam name="T">Underling type of the nullable type</typeparam>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Nullable value to serialize</param>
 		/// <remarks>Uses the underlying type's serializer if the value is not null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTupleSerializableTo<T>(TupleWriter writer, T? value)
+		public static void SerializeTuplePackableTo<T>(TupleWriter writer, T? value)
 			where T : ITuplePackable
 		{
 			if (value is null)
@@ -455,9 +486,7 @@ namespace SnowBank.Data.Tuples.Binary
 			else
 			{
 				// we are serializing an item of a tuple, so we have to start a new embedded tuple
-				var tw = writer.BeginTuple();
-				value.PackTo(tw);
-				tw.EndTuple();
+				value.PackTo(writer);
 			}
 		}
 
@@ -467,7 +496,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="value">Nullable value to serialize</param>
 		/// <remarks>Uses the underlying type's serializer if the value is not null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool TrySerializeTupleSerializableTo<T>(ref TupleSpanWriter writer, in T? value)
+		public static bool TrySerializeTuplePackableTo<T>(ref TupleSpanWriter writer, in T? value)
 			where T : ITupleSpanPackable
 		{
 			if (value is null)
@@ -477,9 +506,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 			// we are serializing an item of a tuple, so we have to start a new embedded tuple
 
-			return TupleParser.TryBeginTuple(ref writer)
-			    && value.TryPackTo(ref writer)
-			    && TupleParser.TryEndTuple(ref writer);
+			return value.TryPackTo(ref writer);
 		}
 
 		/// <summary>Serialize an untyped object, by checking its type at runtime [VERY SLOW]</summary>
@@ -637,7 +664,7 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(DateTime?)] = static (writer, value) => writer.WriteDateTime((DateTime?) value),
 				[typeof(DateTimeOffset)] = static (writer, value) => writer.WriteDateTimeOffset((DateTimeOffset) value!),
 				[typeof(DateTimeOffset?)] = static (writer, value) => writer.WriteDateTimeOffset((DateTimeOffset?) value),
-				[typeof(IVarTuple)] = static (writer, value) => SerializeTupleTo(writer, (IVarTuple) value!),
+				[typeof(IVarTuple)] = static (writer, value) => SerializeVarTupleTo(writer, (IVarTuple?) value),
 				[typeof(DBNull)] = static (writer, _) => writer.WriteNil(),
 			};
 
@@ -695,7 +722,7 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(DateTime?)] = static (ref writer, in value) => TupleParser.TryWriteDateTime(ref writer, (DateTime?) value),
 				[typeof(DateTimeOffset)] = static (ref writer, in value) => TupleParser.TryWriteDateTimeOffset(ref writer, (DateTimeOffset) value!),
 				[typeof(DateTimeOffset?)] = static (ref writer, in value) => TupleParser.TryWriteDateTimeOffset(ref writer, (DateTimeOffset?) value),
-				[typeof(IVarTuple)] = static (ref writer, in value) => TrySerializeTupleTo(ref writer, (IVarTuple) value!),
+				[typeof(IVarTuple)] = static (ref writer, in value) => TrySerializeVarTupleTo(ref writer, (IVarTuple?) value),
 				[typeof(DBNull)] = static (ref writer, in _) => writer.TryWriteNil(),
 			};
 
@@ -951,297 +978,35 @@ namespace SnowBank.Data.Tuples.Binary
 		public static void SerializeTo(TupleWriter writer, System.Net.IPAddress? value) => writer.WriteBytes(value?.GetAddressBytes());
 
 		/// <summary>Serializes an embedded tuples</summary>
-		public static void SerializeTupleTo<TTuple>(TupleWriter writer, TTuple tuple)
+		public static void SerializeVarTupleTo<TTuple>(TupleWriter writer, TTuple? tuple)
 			where TTuple : IVarTuple
 		{
-			Contract.Debug.Requires(tuple != null);
-
-			var tw = writer.BeginTuple();
-			TupleEncoder.WriteTo(tw, tuple);
-			tw.EndTuple();
+			if (tuple is null)
+			{
+				writer.WriteNil();
+			}
+			else
+			{
+				var tw = writer.BeginTuple();
+				TupleEncoder.WriteTo(tw, tuple);
+				tw.EndTuple();
+			}
 		}
 
 		/// <summary>Serializes an embedded tuples</summary>
-		public static bool TrySerializeTupleTo<TTuple>(ref TupleSpanWriter writer, in TTuple tuple)
+		public static bool TrySerializeVarTupleTo<TTuple>(ref TupleSpanWriter writer, in TTuple? tuple)
 			where TTuple : IVarTuple
 		{
-			Contract.Debug.Requires(tuple != null);
-
-			return TupleParser.TryBeginTuple(ref writer)
-			    && TupleEncoder.TryWriteTo(ref writer, tuple)
-			    && TupleParser.TryEndTuple(ref writer);
-		}
-
-		/// <summary>Serializes a tuple with a single element</summary>
-		public static void SerializeSTupleTo<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(TupleWriter writer, STuple<T1> tuple)
-		{
-			var tw = writer.BeginTuple();
-			SerializeTo(tw, tuple.Item1);
-			tw.EndTuple();
-		}
-
-		/// <summary>Serializes a tuple with a single element</summary>
-		public static bool TrySerializeSTupleTo<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(ref TupleSpanWriter writer, in STuple<T1> tuple)
-		{
-			return TupleParser.TryBeginTuple(ref writer)
-				&& TrySerializeTo(ref writer, tuple.Item1)
-				&& TupleParser.TryEndTuple(ref writer);
-		}
-
-		/// <summary>Serializes a tuple with 2 elements</summary>
-		public static void SerializeSTupleTo<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(TupleWriter writer, STuple<T1, T2> tuple)
-		{
-			var tw = writer.BeginTuple();
-			SerializeTo(tw, tuple.Item1);
-			SerializeTo(tw, tuple.Item2);
-			tw.EndTuple();
-		}
-
-		/// <summary>Serializes a tuple with 2 elements</summary>
-		public static bool TrySerializeSTupleTo<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(ref TupleSpanWriter writer, in STuple<T1, T2> tuple)
-		{
-			return TupleParser.TryBeginTuple(ref writer)
-			    && TrySerializeTo(ref writer, tuple.Item1)
-			    && TrySerializeTo(ref writer, tuple.Item2)
-			    && TupleParser.TryEndTuple(ref writer);
-		}
-
-		/// <summary>Serializes a tuple with 3 elements</summary>
-		public static void SerializeSTupleTo<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(TupleWriter writer, STuple<T1, T2, T3> tuple)
-		{
-			var tw = writer.BeginTuple();
-			SerializeTo(tw, tuple.Item1);
-			SerializeTo(tw, tuple.Item2);
-			SerializeTo(tw, tuple.Item3);
-			tw.EndTuple();
-		}
-
-		/// <summary>Serializes a tuple with 3 elements</summary>
-		public static bool TrySerializeSTupleTo<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(ref TupleSpanWriter writer, in STuple<T1, T2, T3> tuple)
-		{
-			return TupleParser.TryBeginTuple(ref writer)
-			    && TrySerializeTo(ref writer, tuple.Item1)
-			    && TrySerializeTo(ref writer, tuple.Item2)
-			    && TrySerializeTo(ref writer, tuple.Item3)
-			    && TupleParser.TryEndTuple(ref writer);
-		}
-
-		/// <summary>Serializes a tuple with 4 elements</summary>
-		public static void SerializeSTupleTo<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(TupleWriter writer, STuple<T1, T2, T3, T4> tuple)
-		{
-			var tw = writer.BeginTuple();
-			SerializeTo(tw, tuple.Item1);
-			SerializeTo(tw, tuple.Item2);
-			SerializeTo(tw, tuple.Item3);
-			SerializeTo(tw, tuple.Item4);
-			tw.EndTuple();
-		}
-
-		/// <summary>Serializes a tuple with 4 elements</summary>
-		public static bool TrySerializeSTupleTo<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(ref TupleSpanWriter writer, in STuple<T1, T2, T3, T4> tuple)
-		{
-			return TupleParser.TryBeginTuple(ref writer)
-			    && TrySerializeTo(ref writer, tuple.Item1)
-			    && TrySerializeTo(ref writer, tuple.Item2)
-			    && TrySerializeTo(ref writer, tuple.Item3)
-			    && TrySerializeTo(ref writer, tuple.Item4)
-			    && TupleParser.TryEndTuple(ref writer);
-		}
-
-		/// <summary>Serializes a tuple with 5 elements</summary>
-		public static void SerializeSTupleTo<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(TupleWriter writer, STuple<T1, T2, T3, T4, T5> tuple)
-		{
-			var tw = writer.BeginTuple();
-			SerializeTo(tw, tuple.Item1);
-			SerializeTo(tw, tuple.Item2);
-			SerializeTo(tw, tuple.Item3);
-			SerializeTo(tw, tuple.Item4);
-			SerializeTo(tw, tuple.Item5);
-			tw.EndTuple();
-		}
-
-		/// <summary>Serializes a tuple with 5 elements</summary>
-		public static bool TrySerializeSTupleTo<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(ref TupleSpanWriter writer, in STuple<T1, T2, T3, T4, T5> tuple)
-		{
-			return TupleParser.TryBeginTuple(ref writer)
-			    && TrySerializeTo(ref writer, tuple.Item1)
-			    && TrySerializeTo(ref writer, tuple.Item2)
-			    && TrySerializeTo(ref writer, tuple.Item3)
-			    && TrySerializeTo(ref writer, tuple.Item4)
-			    && TrySerializeTo(ref writer, tuple.Item5)
-			    && TupleParser.TryEndTuple(ref writer);
-		}
-
-		/// <summary>Serializes a tuple with 6 elements</summary>
-		public static void SerializeSTupleTo<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(TupleWriter writer, STuple<T1, T2, T3, T4, T5, T6> tuple)
-		{
-			var tw = writer.BeginTuple();
-			SerializeTo(tw, tuple.Item1);
-			SerializeTo(tw, tuple.Item2);
-			SerializeTo(tw, tuple.Item3);
-			SerializeTo(tw, tuple.Item4);
-			SerializeTo(tw, tuple.Item5);
-			SerializeTo(tw, tuple.Item6);
-			tw.EndTuple();
-		}
-
-		/// <summary>Serializes a tuple with 6 elements</summary>
-		public static bool TrySerializeSTupleTo<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(ref TupleSpanWriter writer, in STuple<T1, T2, T3, T4, T5, T6> tuple)
-		{
-			return TupleParser.TryBeginTuple(ref writer)
-			    && TrySerializeTo(ref writer, tuple.Item1)
-			    && TrySerializeTo(ref writer, tuple.Item2)
-			    && TrySerializeTo(ref writer, tuple.Item3)
-			    && TrySerializeTo(ref writer, tuple.Item4)
-			    && TrySerializeTo(ref writer, tuple.Item5)
-			    && TrySerializeTo(ref writer, tuple.Item6)
-			    && TupleParser.TryEndTuple(ref writer);
-		}
-
-		/// <summary>Serializes a tuple with 7 elements</summary>
-		public static void SerializeSTupleTo<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
-			(TupleWriter writer, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
-		{
-			var tw = writer.BeginTuple();
-			SerializeTo(tw, tuple.Item1);
-			SerializeTo(tw, tuple.Item2);
-			SerializeTo(tw, tuple.Item3);
-			SerializeTo(tw, tuple.Item4);
-			SerializeTo(tw, tuple.Item5);
-			SerializeTo(tw, tuple.Item6);
-			SerializeTo(tw, tuple.Item7);
-			tw.EndTuple();
-		}
-
-		/// <summary>Serializes a tuple with 7 elements</summary>
-		public static bool TrySerializeSTupleTo<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
-			(ref TupleSpanWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
-		{
-			return TupleParser.TryBeginTuple(ref writer)
-			    && TrySerializeTo(ref writer, tuple.Item1)
-			    && TrySerializeTo(ref writer, tuple.Item2)
-			    && TrySerializeTo(ref writer, tuple.Item3)
-			    && TrySerializeTo(ref writer, tuple.Item4)
-			    && TrySerializeTo(ref writer, tuple.Item5)
-			    && TrySerializeTo(ref writer, tuple.Item6)
-			    && TrySerializeTo(ref writer, tuple.Item7)
-			    && TupleParser.TryEndTuple(ref writer);
-		}
-
-		/// <summary>Serializes a tuple with 8 elements</summary>
-		public static void SerializeSTupleTo<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
-			(TupleWriter writer, STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
-		{
-			var tw = writer.BeginTuple();
-			SerializeTo(tw, tuple.Item1);
-			SerializeTo(tw, tuple.Item2);
-			SerializeTo(tw, tuple.Item3);
-			SerializeTo(tw, tuple.Item4);
-			SerializeTo(tw, tuple.Item5);
-			SerializeTo(tw, tuple.Item6);
-			SerializeTo(tw, tuple.Item7);
-			SerializeTo(tw, tuple.Item8);
-			tw.EndTuple();
-		}
-
-		/// <summary>Serializes a tuple with 8 elements</summary>
-		public static bool TrySerializeSTupleTo<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
-			(ref TupleSpanWriter writer, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
-		{
-			return TupleParser.TryBeginTuple(ref writer)
-			    && TrySerializeTo(ref writer, tuple.Item1)
-			    && TrySerializeTo(ref writer, tuple.Item2)
-			    && TrySerializeTo(ref writer, tuple.Item3)
-			    && TrySerializeTo(ref writer, tuple.Item4)
-			    && TrySerializeTo(ref writer, tuple.Item5)
-			    && TrySerializeTo(ref writer, tuple.Item6)
-			    && TrySerializeTo(ref writer, tuple.Item7)
-			    && TrySerializeTo(ref writer, tuple.Item8)
-			    && TupleParser.TryEndTuple(ref writer);
+			if (tuple is null)
+			{
+				return writer.TryWriteNil();
+			}
+			else
+			{
+				return TupleParser.TryBeginTuple(ref writer)
+				    && TupleEncoder.TryWriteTo(ref writer, tuple)
+				    && TupleParser.TryEndTuple(ref writer);
+			}
 		}
 
 		/// <summary>Serializes a tuple with a single element</summary>

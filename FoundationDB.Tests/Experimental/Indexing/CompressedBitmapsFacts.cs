@@ -460,7 +460,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			foreach (var kv in index.Values.OrderBy((kv) => orderBy(kv.Key, index.Count(kv.Key)), comparer))
 			{
 				var t = STuple.Create(kv.Key);
-				var tk = TuPack.Pack(t);
+				var tk = TuPack.Pack(in t);
 
 				kv.Value.GetStatistics(out int bits, out int words, out int literals, out int _, out double ratio);
 

@@ -58,43 +58,38 @@ namespace FoundationDB.Client.Tests
 
 		/// <summary>Pack a tuple into a binary key</summary>
 		[DebuggerNonUserCode]
-		protected static Slice Pack(IVarTuple items) => TuPack.Pack(items);
+		protected static Slice Pack(IVarTuple? items) => TuPack.Pack(items);
+
+		[DebuggerNonUserCode]
+		protected static Slice Pack<TTuple>(in TTuple items) where TTuple: IVarTuple => TuPack.Pack<TTuple>(in items);
 
 		/// <summary>Pack a tuple into a binary key</summary>
 		[DebuggerNonUserCode]
-		protected static Slice Pack<T1>(STuple<T1> items) => TuPack.Pack(items);
+		protected static Slice Pack<T1, T2>(in ValueTuple<T1, T2> items) => TuPack.Pack(in items);
 
 		/// <summary>Pack a tuple into a binary key</summary>
 		[DebuggerNonUserCode]
-		protected static Slice Pack<T1, T2>(STuple<T1, T2> items) => TuPack.Pack(items);
+		protected static Slice Pack<T1, T2, T3>(in ValueTuple<T1, T2, T3> items) => TuPack.Pack(in items);
 
 		/// <summary>Pack a tuple into a binary key</summary>
 		[DebuggerNonUserCode]
-		protected static Slice Pack<T1, T2>(ValueTuple<T1, T2> items) => TuPack.Pack(items);
+		protected static Slice Pack<T1, T2, T3, T4>(in ValueTuple<T1, T2, T3, T4> items) => TuPack.Pack(in items);
 
 		/// <summary>Pack a tuple into a binary key</summary>
 		[DebuggerNonUserCode]
-		protected static Slice Pack<T1, T2, T3>(STuple<T1, T2, T3> items) => TuPack.Pack(items);
-		
-		/// <summary>Pack a tuple into a binary key</summary>
-		[DebuggerNonUserCode]
-		protected static Slice Pack<T1, T2, T3>(ValueTuple<T1, T2, T3> items) => TuPack.Pack(items);
+		protected static Slice Pack<T1, T2, T3, T4, T5>(in ValueTuple<T1, T2, T3, T4, T5> items) => TuPack.Pack(in items);
 
 		/// <summary>Pack a tuple into a binary key</summary>
 		[DebuggerNonUserCode]
-		protected static Slice Pack<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> items) => TuPack.Pack(items);
+		protected static Slice Pack<T1, T2, T3, T4, T5, T6>(in ValueTuple<T1, T2, T3, T4, T5, T6> items) => TuPack.Pack(in items);
 
 		/// <summary>Pack a tuple into a binary key</summary>
 		[DebuggerNonUserCode]
-		protected static Slice Pack<T1, T2, T3, T4>(ValueTuple<T1, T2, T3, T4> items) => TuPack.Pack(items);
+		protected static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> items) => TuPack.Pack(in items);
 
 		/// <summary>Pack a tuple into a binary key</summary>
 		[DebuggerNonUserCode]
-		protected static Slice Pack<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> items) => TuPack.Pack(items);
-
-		/// <summary>Pack a tuple into a binary key</summary>
-		[DebuggerNonUserCode]
-		protected static Slice Pack<T1, T2, T3, T4, T5>(ValueTuple<T1, T2, T3, T4, T5> items) => TuPack.Pack(items);
+		protected static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> items) => TuPack.Pack(in items);
 
 		/// <summary>Converts a UTF-8 string into encoded value</summary>
 		[DebuggerNonUserCode]
