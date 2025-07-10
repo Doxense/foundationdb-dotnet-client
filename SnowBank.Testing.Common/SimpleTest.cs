@@ -1734,6 +1734,39 @@ namespace SnowBank.Testing
 			return tmp;
 		}
 
+		protected string GetRandomString(ReadOnlySpan<char> choices, int count)
+		{
+#if NET10_0_OR_GREATER
+			return this.Rnd.GetString(choices, count);
+#else
+			if (choices.IsEmpty)
+			{
+				throw new ArgumentException("Span cannot be empty.", nameof(choices));
+			}
+
+			if (count <= 0)
+			{
+				ArgumentOutOfRangeException.ThrowIfNegative(count);
+				return string.Empty;
+			}
+
+			Span<char> chars = stackalloc char[count];
+			this.Rnd.GetItems(choices, chars);
+			return chars.ToString();
+#endif
+		}
+
+		protected string GetRandomHexString(int count, bool lowercase = false)
+		{
+#if NET10_0_OR_GREATER
+			return this.Rnd.GetHexString(count);
+#else
+			return GetRandomString(GetHexChoices(lowercase), count);
+
+			static ReadOnlySpan<char> GetHexChoices(bool lowercase) => lowercase ? "0123456789abcdef" : "0123456789ABCDEF";
+#endif
+		}
+
 		protected Slice GetRandomSlice(int count) => GetRandomSlice(this.Rnd, count);
 
 		protected static Slice GetRandomSlice(Random rnd, int count) => Slice.Random(rnd, count);
