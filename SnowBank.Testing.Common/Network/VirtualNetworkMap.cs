@@ -189,10 +189,9 @@ namespace SnowBank.Networking
 			return new VirtualHttpClientHandler(this, baseAddress, options);
 		}
 
-		[Obsolete("C'est charge a l'appelant de résolver l'IP")]
 		public override ValueTask<IPAddress?> GetPublicIPAddressForHost(string hostNameOrAddress)
 		{
-			if (hostNameOrAddress == "127.0.0.1" || hostNameOrAddress == "localhost")
+			if (hostNameOrAddress is "127.0.0.1" or "localhost" or "localhost.localdomain")
 			{
 				return new (IPAddress.Loopback);
 			}
