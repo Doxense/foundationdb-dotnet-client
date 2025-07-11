@@ -43,11 +43,11 @@ namespace FoundationDB.Client
 
 		/// <summary>Estimated payload size of the transaction (in bytes)</summary>
 		/// <remarks>This is not guaranteed to be accurate, and should only be used as a hint.</remarks>
-		int Size { get; }
+		long Size { get; }
 
 		/// <summary>Returns the number of keys changed by this transaction, as well as the estimated payload size</summary>
 		/// <remarks>The counters are reset everytime the transaction is recycled (either via <see cref="IFdbReadOnlyTransaction.Reset"/> on <see cref="IFdbReadOnlyTransaction.OnErrorAsync"/>)</remarks>
-		(int Keys, int Size) GetWriteStatistics();
+		(int Keys, long Size) GetWriteStatistics();
 
 		/// <summary>Sets the value of a key in the database.</summary>
 		/// <param name="key">Name of the key to be inserted into the database.</param>

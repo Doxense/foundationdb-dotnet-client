@@ -51,7 +51,7 @@ namespace FoundationDB.Client.Native
 		private int m_keyWriteCount;
 
 		/// <summary>Estimated current size of the transaction mutations</summary>
-		private int m_payloadBytes;
+		private long m_payloadBytes;
 		//TODO: this is redundant with GetApproximateSize which does the exact bookkeeping (but is async!). Should we keep it? or remove it?
 
 		/// <summary>Number of keys read by this transaction</summary>
@@ -60,7 +60,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Estimated current size of the number of bytes read from the cluster</summary>
 		/// <remarks>Includes the size of the both keys and values</remarks>
-		private int m_keyReadSize;
+		private long m_keyReadSize;
 
 #if CAPTURE_STACKTRACES
 		private StackTrace m_stackTrace;
@@ -106,12 +106,12 @@ namespace FoundationDB.Client.Native
 		public FdbNativeTenant? Tenant => m_tenant;
 
 		/// <inheritdoc />
-		public int Size => m_payloadBytes;
+		public long Size => m_payloadBytes;
 		//TODO: this is redundant with GetApproximateSize which does the exact bookkeeping (but is async!). Should we keep it? or get remove it?
 
-		public (int Keys, int Size) GetWriteStatistics() => (Volatile.Read(ref m_keyWriteCount), Volatile.Read(ref m_payloadBytes));
+		public (int Keys, long Size) GetWriteStatistics() => (Volatile.Read(ref m_keyWriteCount), Volatile.Read(ref m_payloadBytes));
 
-		public (int Keys, int Size) GetReadStatistics() => (Volatile.Read(ref m_keyReadCount), Volatile.Read(ref m_keyReadSize));
+		public (int Keys, long Size) GetReadStatistics() => (Volatile.Read(ref m_keyReadCount), Volatile.Read(ref m_keyReadSize));
 
 		#endregion
 
@@ -135,7 +135,7 @@ namespace FoundationDB.Client.Native
 
 		#region Reading...
 
-		private void AccountReadOperation(int count, int payload)
+		private void AccountReadOperation(int count, long payload)
 		{
 			Interlocked.Increment(ref m_keyReadCount);
 			Interlocked.Add(ref m_keyReadSize, payload);

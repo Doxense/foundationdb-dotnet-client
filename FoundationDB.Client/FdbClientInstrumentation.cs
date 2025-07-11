@@ -71,7 +71,7 @@ namespace FoundationDB.Client
 			description: "The duration of fdb operations, in seconds."
 		);
 
-		private static Histogram<int> OperationSize { get; } = Meter.CreateHistogram<int>(
+		private static Histogram<long> OperationSize { get; } = Meter.CreateHistogram<long>(
 			"db.fdb.client.operations.size",
 			unit: "By",
 			description: "The estimated size of an fdb operation, in bytes."
@@ -99,8 +99,8 @@ namespace FoundationDB.Client
 				{
 					TransactionsDuration.Record(
 						elapsedTotal.TotalSeconds,
-						new KeyValuePair<string, object?>("operation.retries", context.Retries),
-						new KeyValuePair<string, object?>("operation.status", context.PreviousError)
+						new("operation.retries", context.Retries),
+						new("operation.status", context.PreviousError)
 					);
 				}
 			}
@@ -122,8 +122,8 @@ namespace FoundationDB.Client
 				{ // retry after failure
 					OperationsStarted.Add(
 						1,
-						new KeyValuePair<string, object?>("operation.readonly", readOnly),
-						new KeyValuePair<string, object?>("operation.previous", context.PreviousError)
+						new("operation.readonly", readOnly),
+						new("operation.previous", context.PreviousError)
 					);
 				}
 			}
@@ -138,27 +138,27 @@ namespace FoundationDB.Client
 				{
 					OperationsDuration.Record(
 						elapsed.TotalSeconds,
-						new KeyValuePair<string, object?>("operation.retries", context.Retries),
-						new KeyValuePair<string, object?>("operation.status", error)
+						new("operation.retries", context.Retries),
+						new("operation.status", error)
 					);
 				}
 			}
 
 			OperationsCompleted.Add(
 				1,
-				new KeyValuePair<string, object?>("operation.retries", context.Retries),
-				new KeyValuePair<string, object?>("operation.status", error)
+				new("operation.retries", context.Retries),
+				new("operation.status", error)
 			);
 
 			if (error != FdbError.Success && trans != null && OperationSize.Enabled)
 			{ // we need to record the size for failed attempts
-				int size = trans.Size;
+				long size = trans.Size;
 				if (size > 0)
 				{
 					OperationSize.Record(
 						size,
-						new KeyValuePair<string, object?>("operation.retries", context.Retries),
-						new KeyValuePair<string, object?>("operation.status", FdbError.Success)
+						new("operation.retries", context.Retries),
+						new("operation.status", FdbError.Success)
 					);
 				}
 			}
@@ -171,20 +171,20 @@ namespace FoundationDB.Client
 			{
 				OperationsCompleted.Add(
 					1,
-					new KeyValuePair<string, object?>("operation.retries", context.Retries),
-					new KeyValuePair<string, object?>("operation.status", FdbError.Success)
+					new("operation.retries", context.Retries),
+					new("operation.status", FdbError.Success)
 				);
 			}
 
 			if (OperationSize.Enabled)
 			{
-				int size = trans.Size;
+				long size = trans.Size;
 				if (size > 0)
 				{
 					OperationSize.Record(
 						size,
-						new KeyValuePair<string, object?>("operation.retries", context.Retries),
-						new KeyValuePair<string, object?>("operation.status", FdbError.Success)
+						new("operation.retries", context.Retries),
+						new("operation.status", FdbError.Success)
 					);
 				}
 			}

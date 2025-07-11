@@ -149,13 +149,13 @@ namespace FoundationDB.Client
 		#endregion
 
 		/// <inheritdoc />
-		public int Size => m_handler.Size;
+		public long Size => m_handler.Size;
 
 		/// <inheritdoc />
-		public (int Keys, int Size) GetWriteStatistics() => m_handler.GetWriteStatistics();
+		public (int Keys, long Size) GetWriteStatistics() => m_handler.GetWriteStatistics();
 
 		/// <inheritdoc />
-		public (int Keys, int Size) GetReadStatistics() => m_handler.GetReadStatistics();
+		public (int Keys, long Size) GetReadStatistics() => m_handler.GetReadStatistics();
 
 		#region Options..
 
@@ -1630,7 +1630,7 @@ namespace FoundationDB.Client
 
 			static Task ExecuteLogged(FdbTransaction self)
 			{
-				int size = self.Size;
+				long size = self.Size;
 				var log = self.m_log!;
 				log.CommitSize = size;
 				log.TotalCommitSize += size;

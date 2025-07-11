@@ -64,7 +64,7 @@ namespace FoundationDB.Client
 		void EnsureCanRead();
 
 		/// <summary>Returns the number of keys read byte this transaction, as well as their total size</summary>
-		(int Keys, int Size) GetReadStatistics();
+		(int Keys, long Size) GetReadStatistics();
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
 		/// <param name="key">Key to be looked up in the database</param>

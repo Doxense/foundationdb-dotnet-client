@@ -54,8 +54,8 @@ namespace FoundationDB.Filters.Logging
 		private int m_step;
 
 		private int m_operations;
-		private int m_readSize;
-		private int m_writeSize;
+		private long m_readSize;
+		private long m_writeSize;
 
 		/// <summary>Create an empty log for a newly created transaction</summary>
 		public FdbTransactionLog(FdbLoggingOptions options)
@@ -297,19 +297,19 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Read size of the last commit attempt</summary>
 		/// <remarks>This value only account for read commands in the last attempt</remarks>
-		public int ReadSize => m_readSize;
+		public long ReadSize => m_readSize;
 
 		/// <summary>Write size of the last commit attempt</summary>
 		/// <remarks>This value only account for write commands in the last attempt</remarks>
-		public int WriteSize => m_writeSize;
+		public long WriteSize => m_writeSize;
 
 		/// <summary>Commit size of the last commit attempt</summary>
 		/// <remarks>This value only account for write commands in the last attempt</remarks>
-		public int CommitSize { get; internal set; }
+		public long CommitSize { get; internal set; }
 
 		/// <summary>Total of the commit size of all attempts performed by this transaction</summary>
 		/// <remarks>This value include the size of all previous retry attempts</remarks>
-		public int TotalCommitSize { get; internal set; }
+		public long TotalCommitSize { get; internal set; }
 
 		/// <summary>If true, the transaction has completed (either Commit() completed successfully or Dispose was called)</summary>
 		public bool Completed { get; private set; }
