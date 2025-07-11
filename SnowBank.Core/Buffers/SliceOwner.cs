@@ -83,10 +83,16 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns a <see cref="SliceOwner"/> that wraps an existing <see cref="Slice"/> that is not allocated from a pool</summary>
+		/// <param name="data">Slice of data, that is either <see cref="Slice.Nil"/>, <see cref="Slice.Empty"/>, or uses an array rented from <paramref name="pool"/></param>
+		/// <returns><see cref="SliceOwner"/> that will do nothing when disposed.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SliceOwner Wrap(Slice data) => new(data);
+
 		/// <summary>Returns a <see cref="SliceOwner"/> that will dispose the content of a slice allocated from a pool</summary>
 		/// <param name="data">Slice of data, that is either <see cref="Slice.Nil"/>, <see cref="Slice.Empty"/>, or uses an array rented from <paramref name="pool"/></param>
 		/// <param name="pool">Pool (optional) that was used to allocate the content of <paramref name="data"/>, or <see langword="null"/> if the content was allocated on the heap or must not be returned to any pool.</param>
-		/// <returns><see cref="SliceOwner"/> that will return the buffer to pool once disposed (if one was provided).</returns>
+		/// <returns><see cref="SliceOwner"/> that will return the buffer to the pool once disposed (if one was provided).</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceOwner Create(Slice data, ArrayPool<byte>? pool = null)
 		{
@@ -117,10 +123,19 @@ namespace System
 			}
 		}
 
+		/// <summary>Returns a <see cref="SliceOwner"/> with a copy of <see cref="Slice"/>, using a buffer allocated from a pool</summary>
+		/// <param name="data">Slice to copy</param>
+		/// <param name="pool">Pool that will be used to allocate the content of <paramref name="data"/>.</param>
+		/// <returns><see cref="SliceOwner"/> that will return the buffer to the pool once disposed.</returns>
+		public static SliceOwner Copy(Slice data, ArrayPool<byte> pool)
+		{
+			return data.IsNull ? Nil : Copy(data.Span, pool);
+		}
+
 		/// <summary>Returns a <see cref="SliceOwner"/> with a copy of a span of bytes, stored in a slice allocated from a pool</summary>
 		/// <param name="data">Span of bytes to copy</param>
 		/// <param name="pool">Pool that will be used to allocate the content of <paramref name="data"/>.</param>
-		/// <returns><see cref="SliceOwner"/> that will return the buffer to pool once disposed.</returns>
+		/// <returns><see cref="SliceOwner"/> that will return the buffer to the pool once disposed.</returns>
 		public static SliceOwner Copy(ReadOnlySpan<byte> data, ArrayPool<byte> pool)
 		{
 			if (data.Length == 0) return Empty;
