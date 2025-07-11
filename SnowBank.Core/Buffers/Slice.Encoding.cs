@@ -981,20 +981,46 @@ namespace System
 			     : new Slice(Utf8NoBomEncoding.GetBytes(value));
 		}
 
-		/// <summary>Create a slice containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
+		/// <summary>Create a <see cref="Slice"/> containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
 		/// <remarks>
-		/// The slice will NOT include the UTF-8 BOM.
-		/// This method will not try to identify ASCII-only strings:
+		/// <para>The slice will NOT include the UTF-8 BOM.</para>
+		/// <para>This method will not try to identify ASCII-only strings:
 		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
 		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(ReadOnlySpan{char})"/>.
-		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// </para>
+		/// <para>DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.</para>
+		/// <para>For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.</para>
 		/// </remarks>
+		[Pure]
 		public static Slice FromStringUtf8(ReadOnlySpan<char> value)
 		{
 			if (value.Length == 0) return Empty;
-			byte[]? __ = null;
-			return FromStringUtf8(value, ref __, out _);
+
+			var capacity = Utf8NoBomEncoding.GetByteCount(value);
+			var buffer = new byte[capacity];
+
+			int written = Utf8NoBomEncoding.GetBytes(value, buffer);
+			Contract.Debug.Assert(written == capacity);
+
+			return new(buffer, 0, written);
+		}
+
+		/// <summary>Creates a <see cref="SliceOwner"/> containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
+		/// <remarks>
+		/// <para>The slice will NOT include the UTF-8 BOM.</para>
+		/// </remarks>
+		[Pure, MustDisposeResource]
+		public static SliceOwner FromStringUtf8(ReadOnlySpan<char> value, ArrayPool<byte> pool)
+		{
+			if (value.Length == 0) return SliceOwner.Empty;
+
+			var capacity = Utf8NoBomEncoding.GetByteCount(value);
+			var buffer = pool.Rent(capacity);
+
+			int written = Utf8NoBomEncoding.GetBytes(value, buffer);
+			Contract.Debug.Assert(written == capacity);
+
+			return SliceOwner.Create(new(buffer, 0, written), pool);
 		}
 
 		/// <summary>Create a slice containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
@@ -1006,6 +1032,7 @@ namespace System
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
 		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
 		/// </remarks>
+		[Pure]
 		public static Slice FromStringUtf8(ReadOnlySpan<char> value, ref byte[]? buffer, out bool asciiOnly)
 		{
 			if (value.Length == 0)
