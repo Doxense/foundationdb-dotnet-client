@@ -103,14 +103,15 @@ namespace FoundationDB.Client.Native
 		/// <typeparam name="TState">Type of the state that will be passed to the result selector</typeparam>
 		/// <param name="handles">Array of FDBFuture* pointers</param>
 		/// <param name="state">State that is passed to the result selector</param>
-		/// <param name="selector">Lambda that will be called once for each future that completes successfully, to extract the result from the future handle.</param>
+		/// <param name="completionHandler">Lambda that will be called once for each future that completes successfully, to extract the decoded value for this future handle.</param>
+		/// <param name="resultSelector">Lambda that will be called after all the results have been decoded, to extract the final result of the operation</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
-		/// <returns>Task that will either return all the results of the continuation lambdas, or an exception</returns>
+		/// <returns>Task that will either return the result of the operation, or an exception</returns>
 		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Task<TResult[]> CreateTaskFromHandleArray<TState, TResult>(FutureHandle[] handles, TState state, Func<FutureHandle, TState, TResult>? selector, CancellationToken ct)
+		public static Task<TResult> CreateTaskFromHandleArray<TState, TResult>(FutureHandle[] handles, TState state, Action<FutureHandle, int, TState> completionHandler, Func<TState, TResult> resultSelector, CancellationToken ct)
 		{
-			return new FdbFutureArray<TState, TResult>(handles, state, selector, ct).Task;
+			return new FdbFutureArray<TState, TResult>(handles, state, completionHandler, resultSelector, ct).Task;
 		}
 
 		/// <summary>Create a generic <see cref="FdbFuture{T}"/> that has a lifetime tied to a cancellation token</summary>

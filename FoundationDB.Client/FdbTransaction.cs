@@ -744,8 +744,62 @@ namespace FoundationDB.Client
 			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
-					new FdbTransactionLog.GetValuesCommand(self.m_log.Grab(keys)) { Snapshot =  snapshot },
+					new FdbTransactionLog.GetValuesCommand(self.m_log.Grab(keys), snapshot),
 					(tr, cmd) => tr.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Snapshot, tr.m_cancellation)
+				);
+		}
+
+		public Task GetValuesAsync<TResult>(ReadOnlySpan<Slice> keys, Memory<TResult> results, FdbValueDecoder<TResult> decoder)
+		{
+			EnsureCanRead();
+
+			FdbKey.EnsureKeysAreValid(keys);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
+#endif
+
+			return PerformGetValuesOperation(keys, results, decoder, snapshot: false);
+		}
+
+		private Task PerformGetValuesOperation<TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, FdbValueDecoder<TValue> decoder, bool snapshot)
+		{
+			FdbClientInstrumentation.ReportGet(this, keys.Length);
+
+			return m_log == null ? m_handler.GetValuesAsync(keys, values, decoder, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, values, decoder, snapshot);
+
+			static Task ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, Memory<TValue> values, FdbValueDecoder<TValue> decoder, bool snapshot)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetValuesCommand<TValue>(self.m_log.Grab(keys), values, decoder, snapshot),
+					(tr, cmd) => tr.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Values, cmd.Decoder, cmd.Snapshot, tr.m_cancellation)
+				);
+		}
+
+		public Task GetValuesAsync<TState, TResult>(ReadOnlySpan<Slice> keys, Memory<TResult> results, TState state, FdbValueDecoder<TState, TResult> decoder)
+		{
+			EnsureCanRead();
+
+			FdbKey.EnsureKeysAreValid(keys);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
+#endif
+
+			return PerformGetValuesOperation(keys, results, state, decoder, snapshot: false);
+		}
+
+		private Task PerformGetValuesOperation<TState, TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, TState state, FdbValueDecoder<TState, TValue> decoder, bool snapshot)
+		{
+			FdbClientInstrumentation.ReportGet(this, keys.Length);
+
+			return m_log == null ? m_handler.GetValuesAsync(keys, values, state, decoder, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, values, state, decoder, snapshot);
+
+			static Task ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, Memory<TValue> values, TState state, FdbValueDecoder<TState, TValue> decoder, bool snapshot)
+				=> self.m_log!.ExecuteAsync(
+					self,
+					new FdbTransactionLog.GetValuesCommand<TState, TValue>(self.m_log.Grab(keys), values, state, decoder, snapshot),
+					(tr, cmd) => tr.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Values, cmd.State, cmd.Decoder, cmd.Snapshot, tr.m_cancellation)
 				);
 		}
 

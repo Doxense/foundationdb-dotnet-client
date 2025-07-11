@@ -310,6 +310,7 @@ namespace FoundationDB.Client.Native
 			);
 		}
 
+		/// <inheritdoc />
 		public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys, bool snapshot, CancellationToken ct)
 		{
 			if (ct.IsCancellationRequested) return Task.FromCanceled<Slice[]>(ct);
@@ -345,14 +346,138 @@ namespace FoundationDB.Client.Native
 
 			return FdbFuture.CreateTaskFromHandleArray(
 				futures,
-				this,
-				static (h, tr) =>
+				(Transaction: this, Buffer: new Slice[futures.Length]),
+				static (h, idx, state) =>
 				{
 					//note: this is called once per key!
-					var res = GetValueResultBytes(h, out int read);
-					tr.AccountReadOperation(1, read);
-					return res;
+					state.Buffer[idx] = GetValueResultBytes(h, out int read);
+					state.Transaction.AccountReadOperation(1, read);
 				},
+				static (state) => state.Buffer,
+				ct
+			);
+		}
+
+		/// <summary>Box that maintains a running sum of the length of keys/values</summary>
+		[DebuggerDisplay("Value={Accumulator}")]
+		private sealed class SizeAccumulator
+		{
+
+			/// <summary>Running total</summary>
+			private long Accumulator;
+
+			/// <summary>Current value of the accumulator</summary>
+			public long Value => this.Accumulator;
+
+			/// <summary>Adds a length to the accumulator</summary>
+			public void Add(int length) => Interlocked.Add(ref this.Accumulator, length);
+
+			/// <summary>Adds the length of a key or value to the accumulator</summary>
+			public void Add(Slice data) => Interlocked.Add(ref this.Accumulator, data.Count);
+
+			/// <summary>Adds the length of a key or value to the accumulator</summary>
+			public void Add(ReadOnlySpan<byte> data) => Interlocked.Add(ref this.Accumulator, data.Length);
+
+		}
+
+		/// <inheritdoc />
+		public Task<long> GetValuesAsync<TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, FdbValueDecoder<TValue> decoder, bool snapshot, CancellationToken ct)
+		{
+			if (ct.IsCancellationRequested) return Task.FromCanceled<long>(ct);
+
+			if (keys.Length == 0)
+			{
+				return Task.FromResult(0L);
+			}
+
+			//HACKHACK: as of now (730), there is no way to read multiple keys or values in a single API call
+			// so we have to start one get request per key, and hide them all inside on "meta" future.
+			// this is still has the same overhead for interop with the native library, but reduces the number of Task objects allocated by the CLR.
+
+			var futures = new FutureHandle[keys.Length];
+			try
+			{
+				//note: if one of the operation triggers an error, the array will be partially filled, but all previous futures will be canceled in the catch block below
+				for (int i = 0; i < keys.Length; i++)
+				{
+					futures[i] = FdbNative.TransactionGet(m_handle, keys[i].Span, snapshot);
+				}
+			}
+			catch
+			{
+				// we need to cancel any future created before the error
+				foreach(var future in futures)
+				{
+					if (future == null!) break;
+					future.Dispose();
+				}
+				throw;
+			}
+
+			return FdbFuture.CreateTaskFromHandleArray(
+				futures,
+				(Transaction: this, Buffer: values, Decoder: decoder, TotalSize: new SizeAccumulator()),
+				static (h, idx, args) =>
+				{
+					//note: this is called once per key!
+					args.Buffer.Span[idx] = GetValueResultBytes(h, args.Decoder, out int read);
+					args.Transaction.AccountReadOperation(1, read);
+					args.TotalSize.Add(read);
+				},
+				static (state) => state.TotalSize.Value,
+				ct
+			);
+		}
+
+		/// <inheritdoc />
+		public Task<long> GetValuesAsync<TState, TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, TState state, FdbValueDecoder<TState, TValue> decoder, bool snapshot, CancellationToken ct)
+		{
+			if (ct.IsCancellationRequested) return Task.FromCanceled<long>(ct);
+
+			if (keys.Length == 0)
+			{
+				return Task.FromResult(0L);
+			}
+
+			//HACKHACK: as of now (730), there is no way to read multiple keys or values in a single API call
+			// so we have to start one get request per key, and hide them all inside on "meta" future.
+			// this is still has the same overhead for interop with the native library, but reduces the number of Task objects allocated by the CLR.
+
+			var futures = new FutureHandle[keys.Length];
+			try
+			{
+				//note: if one of the operation triggers an error, the array will be partially filled, but all previous futures will be canceled in the catch block below
+				for (int i = 0; i < keys.Length; i++)
+				{
+					futures[i] = FdbNative.TransactionGet(m_handle, keys[i].Span, snapshot);
+				}
+			}
+			catch
+			{
+				// we need to cancel any future created before the error
+				foreach(var future in futures)
+				{
+					if (future == null!) break;
+					future.Dispose();
+				}
+				throw;
+			}
+
+			return FdbFuture.CreateTaskFromHandleArray(
+				futures,
+				(Transaction: this, Buffer: values[..futures.Length], State: state, Decoder: decoder, TotalSize: new SizeAccumulator()),
+				static (h, idx, args) =>
+				{
+					//note: this is called once per key!
+					args.Buffer.Span[idx] = GetValueResultBytes(h, args.State, args.Decoder, out int read);
+					args.TotalSize.Add(read);
+				},
+				static (state) =>
+				{
+					var total = state.TotalSize.Value;
+					state.Transaction.AccountReadOperation(state.Buffer.Length, total);
+					return total;
+				}, //TODO: how can we accumulate the total size of the values, without allocating too much?
 				ct
 			);
 		}
@@ -614,14 +739,14 @@ namespace FoundationDB.Client.Native
 			}
 			return FdbFuture.CreateTaskFromHandleArray(
 				futures,
-				this,
-				static (h, tr) =>
+				(Transaction: this, Buffer: new Slice[futures.Length]),
+				static (h, idx, state) =>
 				{
 					//note: this is called once per key!
-					var res = GetKeyResult(h, out var bytesRead);
-					tr.AccountReadOperation(1, bytesRead);
-					return res;
+					state.Buffer[idx] = GetKeyResult(h, out var bytesRead);
+					state.Transaction.AccountReadOperation(1, bytesRead);
 				},
+				static (state) => state.Buffer,
 				ct
 			);
 		}

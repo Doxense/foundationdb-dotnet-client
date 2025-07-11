@@ -569,6 +569,74 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Get_Multiple_Values_Decoded()
+		{
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsDynamic();
+			await CleanLocation(db, location);
+
+			int[] ids = [ 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 ];
+
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					tr.Set(subspace.Encode(i), Pack(("Hello", i, "World")));
+				}
+
+				await tr.CommitAsync();
+			}
+
+			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+			// overload with TState
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = new int[ids.Length];
+
+				await tr.GetValuesAsync(
+					subspace.EncodeMany(ids),
+					results.AsMemory(),
+					state: 7,
+					decoder: (state, value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * state : -1
+				);
+				
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i], Is.EqualTo(ids[i] * 7));
+				}
+			}
+
+			// overload without TState
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = new int[ids.Length];
+
+				await tr.GetValuesAsync(
+					subspace.EncodeMany(ids),
+					results.AsMemory(),
+					decoder: (value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * 2 : -1
+				);
+				
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i], Is.EqualTo(ids[i] * 2));
+				}
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Get_Multiple_Keys()
 		{
 			const int N = 20;

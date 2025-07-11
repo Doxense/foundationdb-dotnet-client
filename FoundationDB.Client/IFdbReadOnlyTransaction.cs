@@ -86,6 +86,8 @@ namespace FoundationDB.Client
 		Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, FdbValueDecoder<TResult> decoder);
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
+		/// <typeparam name="TState">Type of the state the is passed to the decoder</typeparam>
+		/// <typeparam name="TResult">Type of the result decoded from the value found in the database</typeparam>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
 		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
@@ -100,6 +102,24 @@ namespace FoundationDB.Client
 		/// <param name="keys">Keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
 		Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys);
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
+		/// <typeparam name="TResult">Type of the result decoded from the value found in the database</typeparam>
+		/// <param name="keys">Keys to be looked up in the database</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="keys"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="keys"/>.</param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database.</param>
+		/// <returns>Task that will complete once all the keys have been read and values decoded.</returns>
+		Task GetValuesAsync<TResult>(ReadOnlySpan<Slice> keys, Memory<TResult> results, FdbValueDecoder<TResult> decoder);
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
+		/// <typeparam name="TState">Type of the state the is passed to the decoder</typeparam>
+		/// <typeparam name="TResult">Type of the result decoded from the value found in the database</typeparam>
+		/// <param name="keys">Keys to be looked up in the database</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="keys"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="keys"/>.</param>
+		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database.</param>
+		/// <returns>Task that will complete once all the keys have been read and values decoded.</returns>
+		Task GetValuesAsync<TState, TResult>(ReadOnlySpan<Slice> keys, Memory<TResult> results, TState state, FdbValueDecoder<TState, TResult> decoder);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>

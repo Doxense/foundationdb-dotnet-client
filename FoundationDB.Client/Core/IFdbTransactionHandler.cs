@@ -77,6 +77,7 @@ namespace FoundationDB.Client.Core
 		Task<Slice> GetAsync(ReadOnlySpan<byte> key, bool snapshot, CancellationToken ct);
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction, and return the converted value.</summary>
+		/// <typeparam name="TResult">Type of the decoded result</typeparam>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="decoder">Handler that will convert the result of the read, into a <typeparamref name="TResult"/> instance.</param>
@@ -85,10 +86,12 @@ namespace FoundationDB.Client.Core
 		Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, bool snapshot, FdbValueDecoder<TResult> decoder, CancellationToken ct);
 
 		/// <summary>Reads a value from the database snapshot represented by the current transaction, and return the converted value.</summary>
+		/// <typeparam name="TState">Type of the state that is passed to the decoder</typeparam>
+		/// <typeparam name="TResult">Type of the decoded result</typeparam>
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="state">Opaque state provided by the caller, and passed to the <paramref name="decoder"/></param>
-		/// <param name="decoder">Handler that will convert the result of the read, into a <typeparamref name="TResult"/> instance.</param>
+		/// <param name="decoder">Handler that will convert the result of the read operation, into a <typeparamref name="TResult"/> instance.</param>
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <returns>Task that will return the converted value of the key, or an exception</returns>
 		Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, bool snapshot, TState state, FdbValueDecoder<TState, TResult> decoder, CancellationToken ct);
@@ -99,6 +102,28 @@ namespace FoundationDB.Client.Core
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or <see cref="Slice.Nil"/> if that key does not exist.</returns>
 		Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys, bool snapshot, CancellationToken ct);
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
+		/// <typeparam name="TResult">Type of the decoded results</typeparam>
+		/// <param name="keys">Keys to be looked up in the database</param>
+		/// <param name="values">Buffer, provided by the caller, that will receive the decoded values</param>
+		/// <param name="decoder">Handler that will convert the result of the read operation, into a <typeparamref name="TResult"/> instance.</param>
+		/// <param name="snapshot">Set to true for snapshot reads</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
+		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or <see cref="Slice.Nil"/> if that key does not exist.</returns>
+		Task<long> GetValuesAsync<TResult>(ReadOnlySpan<Slice> keys, Memory<TResult> values, FdbValueDecoder<TResult> decoder, bool snapshot, CancellationToken ct);
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
+		/// <typeparam name="TState">Type of the state that is passed to the decoder</typeparam>
+		/// <typeparam name="TResult">Type of the decoded results</typeparam>
+		/// <param name="keys">Keys to be looked up in the database</param>
+		/// <param name="values">Buffer, provided by the caller, that will receive the decoded values</param>
+		/// <param name="state">Opaque state provided by the caller, and passed to the <paramref name="decoder"/></param>
+		/// <param name="decoder">Handler that will convert the result of the read operation, into a <typeparamref name="TResult"/> instance.</param>
+		/// <param name="snapshot">Set to true for snapshot reads</param>
+		/// <param name="ct">Token used to cancel the operation from the outside</param>
+		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or <see cref="Slice.Nil"/> if that key does not exist.</returns>
+		Task<long> GetValuesAsync<TState, TResult>(ReadOnlySpan<Slice> keys, Memory<TResult> values, TState state, FdbValueDecoder<TState, TResult> decoder, bool snapshot, CancellationToken ct);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>

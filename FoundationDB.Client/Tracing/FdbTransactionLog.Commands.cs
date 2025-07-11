@@ -788,10 +788,11 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.GetValues;
 
-			public GetValuesCommand(Slice[] keys)
+			public GetValuesCommand(Slice[] keys, bool snapshot)
 			{
 				Contract.Debug.Requires(keys != null);
 				this.Keys = keys;
+				this.Snapshot = snapshot;
 			}
 
 			public override int? ArgumentBytes
@@ -832,6 +833,127 @@ namespace FoundationDB.Filters.Logging
 					1 => $"[1] {{ {res[0]:P} }}",
 					2 => $"[2] {{ {res[0]:P}, {res[1]:P} }}",
 					_ => $"[{res.Length:N0}] {{ {res[0]:P}, ..., {res[^1]:P} }}"
+				};
+			}
+
+		}
+
+		public sealed class GetValuesCommand<TValue> : Command<long>
+		{
+
+			/// <summary>List of keys read from the database</summary>
+			public Slice[] Keys { get; }
+
+			/// <summary>Buffer where the decoded values will be stored</summary>
+			public Memory<TValue> Values { get; }
+
+			/// <summary>Decoder used to extract the values from the result of each read</summary>
+			public FdbValueDecoder<TValue> Decoder { get; }
+
+			public override Operation Op => Operation.GetValues;
+
+			public GetValuesCommand(Slice[] keys, Memory<TValue> values, FdbValueDecoder<TValue> decoder, bool snapshot)
+			{
+				Contract.Debug.Requires(keys != null && values.Length >= keys.Length && decoder != null);
+				this.Keys = keys;
+				this.Values = values;
+				this.Decoder = decoder;
+				this.Snapshot = snapshot;
+			}
+
+			public override int? ArgumentBytes
+			{
+				get
+				{
+					int sum = 0;
+					for (int i = 0; i < this.Keys.Length; i++) sum += this.Keys[i].Count;
+					return sum;
+				}
+			}
+
+			public override int? ResultBytes
+			{
+				get => null; //TODO: how to account for the number of bytes received?
+			}
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				string s = string.Concat("[", this.Keys.Length.ToString(), "] {");
+				if (this.Keys.Length > 0) s += resolver.Resolve(this.Keys[0]);
+				if (this.Keys.Length > 1) s += " ... " + resolver.Resolve(this.Keys[^1]);
+				return s + " }";
+			}
+
+			protected override string Dump(long res, KeyResolver resolver)
+			{
+				return this.Values.Length switch
+				{
+					0 => "<empty>",
+					1 => string.Create(CultureInfo.InvariantCulture, $"[1] {{ {this.Values.Span[0]} }}"),
+					2 => string.Create(CultureInfo.InvariantCulture, $"[2] {{ {this.Values.Span[0]}, {this.Values.Span[1]} }}"),
+					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, ..., {this.Values.Span[^1]} }}")
+				};
+			}
+
+		}
+
+		public sealed class GetValuesCommand<TState, TValue> : Command<long>
+		{
+
+			/// <summary>List of keys read from the database</summary>
+			public Slice[] Keys { get; }
+
+			/// <summary>Buffer where the decoded values will be stored</summary>
+			public Memory<TValue> Values { get; }
+
+			public TState State { get; }
+
+			/// <summary>Decoder used to extract the values from the result of each read</summary>
+			public FdbValueDecoder<TState, TValue> Decoder { get; }
+
+			public override Operation Op => Operation.GetValues;
+
+			public GetValuesCommand(Slice[] keys, Memory<TValue> values, TState state, FdbValueDecoder<TState, TValue> decoder, bool snapshot)
+			{
+				Contract.Debug.Requires(keys != null && values.Length >= keys.Length && decoder != null);
+				this.Keys = keys;
+				this.Values = values;
+				this.State = state;
+				this.Decoder = decoder;
+				this.Snapshot = snapshot;
+			}
+
+			public override int? ArgumentBytes
+			{
+				get
+				{
+					int sum = 0;
+					for (int i = 0; i < this.Keys.Length; i++) sum += this.Keys[i].Count;
+					return sum;
+				}
+			}
+
+			public override int? ResultBytes
+			{
+				get => null; //TODO: how to account for the number of bytes received?
+			}
+
+			public override string GetArguments(KeyResolver resolver)
+			{
+				string s = string.Concat("[", this.Keys.Length.ToString(), "] {");
+				if (this.Keys.Length > 0) s += resolver.Resolve(this.Keys[0]);
+				if (this.Keys.Length > 1) s += " ... " + resolver.Resolve(this.Keys[^1]);
+				return s + " }";
+			}
+
+			protected override string Dump(long res, KeyResolver resolver)
+			{
+				return this.Values.Length switch
+				{
+					0 => "<empty>",
+					1 => string.Create(CultureInfo.InvariantCulture, $"[1] {{ {this.Values.Span[0]} }}"),
+					2 => string.Create(CultureInfo.InvariantCulture, $"[2] {{ {this.Values.Span[0]}, {this.Values.Span[1]} }}"),
+					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, ..., {this.Values.Span[^1]} }}")
 				};
 			}
 

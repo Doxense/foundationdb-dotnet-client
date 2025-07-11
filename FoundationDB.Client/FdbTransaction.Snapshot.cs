@@ -164,6 +164,34 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
+			public Task GetValuesAsync<TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, FdbValueDecoder<TValue> decoder)
+			{
+				EnsureCanRead();
+
+				FdbKey.EnsureKeysAreValid(keys);
+
+#if DEBUG
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
+#endif
+
+				return m_parent.PerformGetValuesOperation(keys, values, decoder, snapshot: true);
+			}
+
+			/// <inheritdoc />
+			public Task GetValuesAsync<TState, TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, TState state, FdbValueDecoder<TState, TValue> decoder)
+			{
+				EnsureCanRead();
+
+				FdbKey.EnsureKeysAreValid(keys);
+
+#if DEBUG
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
+#endif
+
+				return m_parent.PerformGetValuesOperation(keys, values, state, decoder, snapshot: true);
+			}
+
+			/// <inheritdoc />
 			public Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				EnsureCanRead();

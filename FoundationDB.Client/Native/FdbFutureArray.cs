@@ -30,8 +30,8 @@ namespace FoundationDB.Client.Native
 {
 	/// <summary>FDBFuture[] wrapper</summary>
 	/// <typeparam name="TState">Type of the state passed to the callback</typeparam>
-	/// <typeparam name="TResult">Type of result</typeparam>
-	public sealed class FdbFutureArray<TState, TResult> : FdbFuture<TResult[]>
+	/// <typeparam name="TResult">Type of the final result returned once all sub-tasks have completed</typeparam>
+	public sealed class FdbFutureArray<TState, TResult> : FdbFuture<TResult>
 	{
 		// Wraps several FDBFuture* handles and return all the results at once
 
@@ -43,8 +43,11 @@ namespace FoundationDB.Client.Native
 		/// <summary>Counter of callbacks that still need to fire.</summary>
 		private int m_pending;
 
-		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
-		private Func<FutureHandle, TState, TResult>? m_resultSelector;
+		/// <summary>Lambda used to extract the value from each FDBFuture</summary>
+		private Action<FutureHandle, int, TState>? m_completionHandler;
+
+		/// <summary>Lambda used to extract the result returned to the caller</summary>
+		private Func<TState, TResult>? m_resultSelector;
 
 		private TState? m_state;
 
@@ -52,7 +55,7 @@ namespace FoundationDB.Client.Native
 
 		#region Constructors...
 
-		internal FdbFutureArray(FutureHandle?[] handles, TState state, Func<FutureHandle, TState, TResult>? selector, CancellationToken ct)
+		internal FdbFutureArray(FutureHandle?[] handles, TState state, Action<FutureHandle, int, TState> completionHandler, Func<TState, TResult> resultSelector, CancellationToken ct)
 		{
 			Contract.Debug.Requires(handles != null);
 
@@ -72,7 +75,8 @@ namespace FoundationDB.Client.Native
 				}
 
 				m_state = state;
-				Volatile.Write(ref m_resultSelector, selector);
+				Volatile.Write(ref m_completionHandler, completionHandler);
+				Volatile.Write(ref m_resultSelector, resultSelector);
 
 				// add this instance to the list of pending futures
 				var prm = RegisterCallback(this);
@@ -104,6 +108,7 @@ namespace FoundationDB.Client.Native
 				{ // all callbacks have already fired (or all handles were already completed)
 					UnregisterCallback(this);
 					HandleCompletion();
+					m_completionHandler = null;
 					m_resultSelector = null;
 					abortAllHandles = true;
 					SetFlag(FdbFuture.Flags.COMPLETED);
@@ -124,6 +129,7 @@ namespace FoundationDB.Client.Native
 
 				abortAllHandles = true;
 
+				Volatile.Write(ref m_completionHandler, null);
 				Volatile.Write(ref m_resultSelector, null);
 				m_state = default;
 
@@ -243,14 +249,14 @@ namespace FoundationDB.Client.Native
 				UnregisterCancellationRegistration();
 
 				FdbError errGlobal = FdbError.Success;
-				var selector = Volatile.Read(ref m_resultSelector);
+				var completionHandler = Volatile.Read(ref m_completionHandler);
+				var resultSelector = Volatile.Read(ref m_resultSelector);
 				var state = m_state;
+				m_completionHandler = null;
 				m_resultSelector = null;
 				m_state = default;
 				var handles = m_handles;
 				Contract.Debug.Assert(handles != null);
-
-				var results = selector != null ? new TResult[handles.Length] : null;
 
 				for (int i = 0; i < handles.Length; i++)
 				{
@@ -280,10 +286,10 @@ namespace FoundationDB.Client.Native
 						else
 						{ // it succeeded...
 							// try to get the result...
-							if (selector != null)
+							if (completionHandler != null)
 							{
 								//note: result selector will execute from network thread, but this should be our own code that only calls into some fdb_future_get_XXXX(), which should be safe...
-								results![i] = selector(handle, state!);
+								completionHandler(handle, i, state!);
 							}
 						}
 					}
@@ -301,7 +307,17 @@ namespace FoundationDB.Client.Native
 				}
 				else
 				{ // success
-					TrySetResult(results!);
+					try
+					{
+						// compute the final result
+						var result = resultSelector is not null ? resultSelector(state!) : default;
+
+						TrySetResult(result!);
+					}
+					catch (Exception ex)
+					{
+						TrySetException(ex);
+					}
 				}
 
 			}
