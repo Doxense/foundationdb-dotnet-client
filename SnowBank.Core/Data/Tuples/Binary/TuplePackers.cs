@@ -32,7 +32,6 @@ namespace SnowBank.Data.Tuples.Binary
 	using System.Linq.Expressions;
 	using System.Numerics;
 	using System.Reflection;
-
 	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples;
 	using SnowBank.Runtime;

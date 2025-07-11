@@ -32,18 +32,34 @@ namespace SnowBank.Data.Binary
 	using System.Text;
 	using SnowBank.Data.Tuples;
 
+	/// <summary>Encoders that can encode primitive types into binary form</summary>
 	public static class SpanEncoders
 	{
 
 		#region Encoding Helper Methods...
 
-		public static void Encode<TEncoder, TValue>(in TValue? value, ArrayPool<byte> pool, int maxSize, out byte[]? buffer, out ReadOnlySpan<byte> span, out Range range)
+		/// <summary>Encodes a value, using a pool if necessary</summary>
+		/// <typeparam name="TEncoder">Encoder used for this operation</typeparam>
+		/// <typeparam name="TValue">Type of the encoded value</typeparam>
+		/// <param name="value">Value to encode</param>
+		/// <param name="pool">Pool used to allocate buffers</param>
+		/// <param name="maxSize">If specified, maximum allowed size for the buffer. If 0, allows the buffer to grow up to the maximum size supported by the CLR.</param>
+		/// <param name="result">Receives the span that points to the encoded result</param>
+		/// <param name="buffer">Receives the buffer allocated from the pool to hold the result, or <c>null</c> if the result is already hosted somewhere else in memory.</param>
+		/// <param name="range">Receives the range in <paramref name="buffer"/> that contains <paramref name="result"/> (only if buffer is not <c>null</c>)</param>
+		/// <exception cref="ArgumentException">If the buffer size would exceed the maximum allowed size (or maximum limit supported by the CLR)</exception>
+		/// <remarks>
+		/// <para>The method will call <see cref="ISpanEncoder{TValue}.TryGetSpan"/> to extract any already encoded result.</para>
+		/// <para>If no span could be extracted, then it will call <see cref="ISpanEncoder{TValue}.TryGetSizeHint"/>, and rent a buffer from the pool with a safe initial size.</para>
+		/// <para>The method will call <see cref="ISpanEncoder{TValue}.TryEncode"/> repeatedly, with a larger and larger buffer, until it returns <c>true</c>, throws, or the buffer reaches the maximum allowed size.</para>
+		/// </remarks>
+		public static void Encode<TEncoder, TValue>(in TValue? value, ArrayPool<byte> pool, int maxSize, out ReadOnlySpan<byte> result, out byte[]? buffer, out Range range)
 #if NET9_0_OR_GREATER
 			where TValue : allows ref struct
 #endif
 			where TEncoder : ISpanEncoder<TValue>
 		{
-			if (TEncoder.TryGetSpan(value, out span))
+			if (TEncoder.TryGetSpan(value, out result))
 			{
 				buffer = null;
 				range = default;
@@ -66,13 +82,13 @@ namespace SnowBank.Data.Binary
 							pool.Return(tmp);
 							tmp = null;
 							buffer = null;
-							span = default;
+							result = default;
 							range = default;
 							return;
 						}
 
 						buffer = tmp;
-						span = tmp.AsSpan(0, bytesWritten);
+						result = tmp.AsSpan(0, bytesWritten);
 						range = new(0, bytesWritten);
 						tmp = null;
 						break;
@@ -94,13 +110,18 @@ namespace SnowBank.Data.Binary
 				if (tmp is not null)
 				{
 					buffer = null;
-					span = default;
+					result = default;
 					range = default;
 					pool.Return(tmp);
 				}
 			}
 		}
 
+		/// <summary>Returns a <see cref="Slice"/> that contains the encoded binary form of the value, using the specified encoder</summary>
+		/// <typeparam name="TEncoder">Encoder used by the operation</typeparam>
+		/// <typeparam name="TValue">Type of the encoded value</typeparam>
+		/// <param name="value">Value to encode</param>
+		/// <returns><see cref="Slice"/> that contains the encoded value.</returns>
 		public static Slice ToSlice<TEncoder, TValue>(in TValue? value)
 #if NET9_0_OR_GREATER
 			where TValue : allows ref struct
@@ -108,7 +129,7 @@ namespace SnowBank.Data.Binary
 			where TEncoder : ISpanEncoder<TValue>
 		{
 			var pool = ArrayPool<byte>.Shared;
-			Encode<TEncoder, TValue>(in value, pool, 0, out var buffer, out var span, out _);
+			Encode<TEncoder, TValue>(in value, pool, 0, out var span, out var buffer, out _);
 			var slice = span.ToSlice();
 			if (buffer is not null)
 			{
@@ -118,6 +139,16 @@ namespace SnowBank.Data.Binary
 			return slice;
 		}
 
+
+		/// <summary>Returns a <see cref="SliceOwner"/> that contains the encoded binary form of the value, using the specified encoder and a buffer rented from a pool.</summary>
+		/// <typeparam name="TEncoder">Encoder used by the operation</typeparam>
+		/// <typeparam name="TValue">Type of the encoded value</typeparam>
+		/// <param name="value">Value to encode</param>
+		/// <param name="pool">Pool used to rent buffers (use the shared pool if <c>null</c>)</param>
+		/// <returns><see cref="SliceOwner"/> that contains the encoded value stored in buffer rented from the pool.</returns>
+		/// <remarks>
+		/// <para>The caller <b>MUST</b> dispose the result once done, otherwise the rented buffer will not be returned to the pool.</para>
+		/// </remarks>
 		public static SliceOwner ToSlice<TEncoder, TValue>(in TValue? value, ArrayPool<byte>? pool)
 #if NET9_0_OR_GREATER
 			where TValue : allows ref struct
@@ -126,18 +157,18 @@ namespace SnowBank.Data.Binary
 		{
 			pool ??= ArrayPool<byte>.Shared;
 
-			Encode<TEncoder, TValue>(in value, pool, 0, out var buffer, out var span, out var range);
+			Encode<TEncoder, TValue>(in value, pool, 0, out var span, out var buffer, out var range);
 
-			if (buffer is null)
-			{
-				return SliceOwner.Copy(span, pool);
-			}
-			else
-			{
-				return SliceOwner.Create(buffer.AsSlice(range));
-			}
+			return buffer is null
+				? SliceOwner.Copy(span, pool)
+				: SliceOwner.Create(buffer.AsSlice(range));
 		}
 
+		/// <summary>Writes a byte at the start of the destination buffer, if it is large enough.</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Receives <c>1</c> if the operation was successful; otherwise, <c>0</c></param>
+		/// <param name="byte1">Byte to write</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c>.</returns>
 		internal static bool TryWriteByte(Span<byte> destination, out int bytesWritten, byte byte1)
 		{
 			if (destination.Length < 1)
@@ -151,6 +182,12 @@ namespace SnowBank.Data.Binary
 			return true;
 		}
 
+		/// <summary>Writes two bytes at the start of the destination buffer, if it is large enough.</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Receives <c>2</c> if the operation was successful; otherwise, <c>0</c></param>
+		/// <param name="byte1">First byte to write</param>
+		/// <param name="byte2">Second byte to write</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c>.</returns>
 		internal static bool TryWriteBytes(Span<byte> destination, out int bytesWritten, byte byte1, byte byte2)
 		{
 			if (destination.Length < 2)
@@ -165,6 +202,13 @@ namespace SnowBank.Data.Binary
 			return true;
 		}
 
+		/// <summary>Writes three bytes at the start of the destination buffer, if it is large enough.</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Receives <c>3</c> if the operation was successful; otherwise, <c>0</c></param>
+		/// <param name="byte1">First byte to write</param>
+		/// <param name="byte2">Second byte to write</param>
+		/// <param name="byte3">Third byte to write</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c>.</returns>
 		internal static bool TryWriteBytes(Span<byte> destination, out int bytesWritten, byte byte1, byte byte2, byte byte3)
 		{
 			if (destination.Length < 3)
@@ -180,6 +224,14 @@ namespace SnowBank.Data.Binary
 			return true;
 		}
 
+		/// <summary>Writes four bytes at the start of the destination buffer, if it is large enough.</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Receives <c>4</c> if the operation was successful; otherwise, <c>0</c></param>
+		/// <param name="byte1">First byte to write</param>
+		/// <param name="byte2">Second byte to write</param>
+		/// <param name="byte3">Third byte to write</param>
+		/// <param name="byte4">Third byte to write</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c>.</returns>
 		internal static bool TryWriteBytes(Span<byte> destination, out int bytesWritten, byte byte1, byte byte2, byte byte3, byte byte4)
 		{
 			if (destination.Length < 4)
@@ -196,6 +248,11 @@ namespace SnowBank.Data.Binary
 			return true;
 		}
 
+		/// <summary>Writes a span of bytes at the start of the destination buffer, if it is large enough.</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Receives the length of <paramref name="bytes"/> if the operation was successful; otherwise, <c>0</c></param>
+		/// <param name="bytes">Span of bytes to write</param>
+		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c>.</returns>
 		internal static bool TryWriteBytes(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> bytes)
 		{
 			if (!bytes.TryCopyTo(destination))
@@ -210,7 +267,7 @@ namespace SnowBank.Data.Binary
 		#endregion
 
 		/// <summary>Encodes raw binary values (<see cref="Slice"/>, spans or arrays of bytes, ...)</summary>
-		public readonly struct RawEncoder : ISpanEncoder<Slice>, ISpanEncoder<byte[]>, ISpanEncoder<MemoryStream>
+		public readonly struct RawEncoder : ISpanEncoder<Slice>, ISpanEncoder<byte[]>, ISpanEncoder<ReadOnlyMemory<byte>>, ISpanEncoder<MemoryStream>
 #if NET9_0_OR_GREATER
 			, ISpanEncoder<ReadOnlySpan<byte>>
 #endif
@@ -260,6 +317,30 @@ namespace SnowBank.Data.Binary
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in ReadOnlySpan<byte> value)
 			{
 				return value.TryCopyTo(destination, out bytesWritten);
+			}
+
+			#endregion
+
+			#region ReadOnlyMemory<byte>...
+
+			/// <inheritdoc />
+			public static bool TryGetSpan(scoped in ReadOnlyMemory<byte> value, out ReadOnlySpan<byte> span)
+			{
+				span = value.Span;
+				return true;
+			}
+
+			/// <inheritdoc />
+			public static bool TryGetSizeHint(in ReadOnlyMemory<byte> value, out int sizeHint)
+			{
+				sizeHint = value.Length;
+				return true;
+			}
+
+			/// <inheritdoc />
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in ReadOnlyMemory<byte> value)
+			{
+				return value.Span.TryCopyTo(destination, out bytesWritten);
 			}
 
 			#endregion
@@ -377,9 +458,14 @@ namespace SnowBank.Data.Binary
 
 		}
 
+		/// <summary>Encodes tuples using the Tuple Layer Encoding</summary>
+		/// <typeparam name="TTuple">Type of the tuple to encode (must implement <see cref="IVarTuple"/>)</typeparam>
+		/// <seealso cref="TuPack"/>
 		public readonly struct TupleEncoder<TTuple> : ISpanEncoder<TTuple>
 			where TTuple : IVarTuple
 		{
+
+			#region IVarTuple...
 
 			/// <inheritdoc />
 			public static bool TryGetSpan(scoped in TTuple? value, out ReadOnlySpan<byte> span)
@@ -407,10 +493,13 @@ namespace SnowBank.Data.Binary
 				return TuPack.TryPackTo(destination, out bytesWritten, in value);
 			}
 
+			#endregion
+
+			//TODO: maybe support ValueTuple<...>?
 		}
 
 		/// <summary>Encodes strings as UTF-8 bytes</summary>
-		public readonly struct Utf8Encoder : ISpanEncoder<string>, ISpanEncoder<StringBuilder>
+		public readonly struct Utf8Encoder : ISpanEncoder<string>, ISpanEncoder<StringBuilder>, ISpanEncoder<ReadOnlyMemory<char>>
 #if NET9_0_OR_GREATER
 			, ISpanEncoder<ReadOnlySpan<char>>
 #endif
@@ -460,6 +549,30 @@ namespace SnowBank.Data.Binary
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in ReadOnlySpan<char> value)
 			{
 				return Encoding.UTF8.TryGetBytes(value, destination, out bytesWritten);
+			}
+
+			#endregion
+
+			#region ReadOnlyMemory<char>...
+
+			/// <inheritdoc />
+			public static bool TryGetSpan(scoped in ReadOnlyMemory<char> value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return value.Length == 0;
+			}
+
+			/// <inheritdoc />
+			public static bool TryGetSizeHint(in ReadOnlyMemory<char> value, out int sizeHint)
+			{
+				sizeHint = Encoding.UTF8.GetByteCount(value.Span);
+				return true;
+			}
+
+			/// <inheritdoc />
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in ReadOnlyMemory<char> value)
+			{
+				return Encoding.UTF8.TryGetBytes(value.Span, destination, out bytesWritten);
 			}
 
 			#endregion
@@ -1610,6 +1723,7 @@ namespace SnowBank.Data.Binary
 
 		}
 
+		/// <summary>Encodes primitive integers using the VarInt compact representation</summary>
 		public readonly struct VarIntEncoder : ISpanEncoder<ushort>, ISpanEncoder<uint>, ISpanEncoder<ulong>
 		{
 

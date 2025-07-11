@@ -121,6 +121,17 @@ namespace SnowBank.Data.Binary.Tests
 			Verify<SpanEncoders.RawEncoder, Slice>(large, large);
 		}
 
+		[Test]
+		public void Test_SpanEncoders_RawEncoder_ReadOnlyMemory()
+		{
+			var helloWorld = Slice.FromBytes("Hello, World!"u8);
+			var large = Slice.Random(this.Rnd, 1025);
+
+			Verify<SpanEncoders.RawEncoder, ReadOnlyMemory<byte>>(default, Slice.Empty);
+			Verify<SpanEncoders.RawEncoder, ReadOnlyMemory<byte>>(helloWorld.Memory, helloWorld);
+			Verify<SpanEncoders.RawEncoder, ReadOnlyMemory<byte>>(large.Memory, large);
+		}
+
 #if NET9_0_OR_GREATER
 
 		[Test]
@@ -182,6 +193,19 @@ namespace SnowBank.Data.Binary.Tests
 			Verify<SpanEncoders.Utf8Encoder, string>(large, Slice.FromBytes(Encoding.UTF8.GetBytes(large)));
 		}
 
+		[Test]
+		public void Test_SpanEncoders_Utf8Encoder_ReadOnlyMemory()
+		{
+			var helloWorld = "Hello, World!";
+			var unicode = "こんにちは世界";
+			var large = GetRandomHexString(1025);
+
+			Verify<SpanEncoders.Utf8Encoder, ReadOnlyMemory<char>>("".AsMemory(), Slice.Empty);
+			Verify<SpanEncoders.Utf8Encoder, ReadOnlyMemory<char>>(helloWorld.AsMemory(), Slice.FromBytes(Encoding.UTF8.GetBytes(helloWorld)));
+			Verify<SpanEncoders.Utf8Encoder, ReadOnlyMemory<char>>(unicode.AsMemory(), Slice.FromBytes(Encoding.UTF8.GetBytes(unicode)));
+			Verify<SpanEncoders.Utf8Encoder, ReadOnlyMemory<char>>(large.AsMemory(), Slice.FromBytes(Encoding.UTF8.GetBytes(large)));
+		}
+
 #if NET9_0_OR_GREATER
 
 		[Test]
@@ -191,10 +215,10 @@ namespace SnowBank.Data.Binary.Tests
 			var unicode = "こんにちは世界";
 			var large = GetRandomHexString(1025);
 
-			Verify<SpanEncoders.Utf8Encoder, ReadOnlySpan<char>>("", Slice.Empty);
-			Verify<SpanEncoders.Utf8Encoder, ReadOnlySpan<char>>(helloWorld, Slice.FromBytes(Encoding.UTF8.GetBytes(helloWorld)));
-			Verify<SpanEncoders.Utf8Encoder, ReadOnlySpan<char>>(unicode, Slice.FromBytes(Encoding.UTF8.GetBytes(unicode)));
-			Verify<SpanEncoders.Utf8Encoder, ReadOnlySpan<char>>(large, Slice.FromBytes(Encoding.UTF8.GetBytes(large)));
+			Verify<SpanEncoders.Utf8Encoder, ReadOnlySpan<char>>(default, Slice.Empty);
+			Verify<SpanEncoders.Utf8Encoder, ReadOnlySpan<char>>(helloWorld.AsSpan(), Slice.FromBytes(Encoding.UTF8.GetBytes(helloWorld)));
+			Verify<SpanEncoders.Utf8Encoder, ReadOnlySpan<char>>(unicode.AsSpan(), Slice.FromBytes(Encoding.UTF8.GetBytes(unicode)));
+			Verify<SpanEncoders.Utf8Encoder, ReadOnlySpan<char>>(large.AsSpan(), Slice.FromBytes(Encoding.UTF8.GetBytes(large)));
 		}
 
 #endif
