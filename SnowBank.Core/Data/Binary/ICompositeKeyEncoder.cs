@@ -35,6 +35,9 @@ namespace SnowBank.Data.Binary
 		/// <summary>Write some or all parts of a composite key</summary>
 		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?) key);
 
+		/// <summary>Write some or all parts of a composite key</summary>
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?) key);
+
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
 
@@ -49,6 +52,9 @@ namespace SnowBank.Data.Binary
 		/// <summary>Write some or all parts of a composite key</summary>
 		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?) key);
 
+		/// <summary>Write some or all parts of a composite key</summary>
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?) key);
+
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
 
@@ -62,6 +68,9 @@ namespace SnowBank.Data.Binary
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
 		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?) key);
+
+		/// <summary>Write some or all parts of a composite key</summary>
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
@@ -78,6 +87,9 @@ namespace SnowBank.Data.Binary
 		/// <summary>Write some or all parts of a composite key</summary>
 		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?, T5?) key);
 
+		/// <summary>Write some or all parts of a composite key</summary>
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?, T5?) key);
+
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
 
@@ -91,6 +103,9 @@ namespace SnowBank.Data.Binary
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
 		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?, T5?, T6?) key);
+
+		/// <summary>Write some or all parts of a composite key</summary>
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?, T5?, T6?) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
 		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6?) items);
@@ -111,6 +126,9 @@ namespace SnowBank.Data.Binary
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?) items);
 
 		/// <inheritdoc />
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?) items);
+
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
 
 		/// <inheritdoc />
@@ -121,6 +139,13 @@ namespace SnowBank.Data.Binary
 		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?) items)
 		{
 			WriteKeyPartsTo(ref writer, 2, in items);
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?) items)
+		{
+			return TryWriteKeyPartsTo(destination, out bytesWritten, 2, in items);
 		}
 
 		/// <inheritdoc />
@@ -149,6 +174,9 @@ namespace SnowBank.Data.Binary
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?) items);
 
 		/// <inheritdoc />
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?) items);
+
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
 
 		/// <inheritdoc />
@@ -158,6 +186,13 @@ namespace SnowBank.Data.Binary
 		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?, T3?) items)
 		{
 			WriteKeyPartsTo(ref writer, 3, in items);
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?, T3?) items)
+		{
+			return TryWriteKeyPartsTo(destination, out bytesWritten, 3, in items);
 		}
 
 		/// <inheritdoc />
@@ -186,6 +221,9 @@ namespace SnowBank.Data.Binary
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?) items);
 
 		/// <inheritdoc />
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?) items);
+
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
 
 		/// <inheritdoc />
@@ -195,6 +233,13 @@ namespace SnowBank.Data.Binary
 		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?, T3?, T4?) items)
 		{
 			WriteKeyPartsTo(ref writer, 4, in items);
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?, T3?, T4?) items)
+		{
+			return TryWriteKeyPartsTo(destination, out bytesWritten, 4, in items);
 		}
 
 		/// <inheritdoc />
@@ -223,6 +268,9 @@ namespace SnowBank.Data.Binary
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?, T5?) items);
 
 		/// <inheritdoc />
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?, T5?) items);
+
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
 
 		/// <inheritdoc />
@@ -232,6 +280,13 @@ namespace SnowBank.Data.Binary
 		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?, T3?, T4?, T5?) items)
 		{
 			WriteKeyPartsTo(ref writer, 5, in items);
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?, T3?, T4?, T5?) items)
+		{
+			return TryWriteKeyPartsTo(destination, out bytesWritten, 5, in items);
 		}
 
 		/// <inheritdoc />
@@ -260,6 +315,9 @@ namespace SnowBank.Data.Binary
 		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?, T5?, T6?) items);
 
 		/// <inheritdoc />
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?, T5?, T6?) items);
+
+		/// <inheritdoc />
 		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6?) items);
 
 		/// <inheritdoc />
@@ -269,6 +327,13 @@ namespace SnowBank.Data.Binary
 		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?, T3?, T4?, T5?, T6?) items)
 		{
 			WriteKeyPartsTo(ref writer, 6, in items);
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?, T3?, T4?, T5?, T6?) items)
+		{
+			return TryWriteKeyPartsTo(destination, out bytesWritten, 6, in items);
 		}
 
 		/// <inheritdoc />

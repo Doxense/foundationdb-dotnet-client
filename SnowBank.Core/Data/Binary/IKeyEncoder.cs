@@ -48,6 +48,9 @@ namespace SnowBank.Data.Binary
 		/// <summary>Encodes a single value to an output buffer</summary>
 		void WriteKeyTo(ref SliceWriter writer, TKey? value);
 
+		/// <summary>Encodes a single value to an output buffer</summary>
+		bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, TKey? value);
+
 		/// <summary>Decodes a single value from an input buffer</summary>
 		void ReadKeyFrom(ref SliceReader reader, out TKey? value);
 
@@ -115,6 +118,12 @@ namespace SnowBank.Data.Binary
 		public void WriteKeyTo(ref SliceWriter writer, TKey? value)
 		{
 			writer.WriteBytes(this.Pack(value));
+		}
+
+		/// <inheritdoc />
+		bool IKeyEncoder<TKey>.TryWriteKeyTo(Span<byte> destination, out int bytesWritten, TKey? value)
+		{
+			return this.Pack(value).TryCopyTo(destination, out bytesWritten);
 		}
 
 		/// <inheritdoc />

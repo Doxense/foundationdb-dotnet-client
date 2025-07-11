@@ -51,7 +51,7 @@ namespace SnowBank.Data.Tuples
 		public static bool TryPackTo<TTuple>(Span<byte> destination, out int bytesWritten, in TTuple? tuple)
 			where TTuple : IVarTuple?
 		{
-			return TupleEncoder.TryPack(destination, out bytesWritten, in tuple);
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -87,12 +87,34 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1>(Span<byte> destination, out int bytesWritten, in ValueTuple<T1> tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
+		}
+
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2>(in (T1, T2) tuple)
 		{
 			return TupleEncoder.Pack(default, in tuple);
+		}
+
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1, T2>(Span<byte> destination, out int bytesWritten, in (T1, T2) tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -103,12 +125,34 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1, T2, T3>(Span<byte> destination, out int bytesWritten, in (T1, T2, T3) tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
+		}
+
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4>(in (T1, T2, T3, T4) tuple)
 		{
 			return TupleEncoder.Pack(default, in tuple);
+		}
+
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1, T2, T3, T4>(Span<byte> destination, out int bytesWritten, in (T1, T2, T3, T4) tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -119,12 +163,34 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1, T2, T3, T4, T5>(Span<byte> destination, out int bytesWritten, in (T1, T2, T3, T4, T5) tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
+		}
+
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(in (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return TupleEncoder.Pack(default, in tuple);
+		}
+
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6>(Span<byte> destination, out int bytesWritten, in (T1, T2, T3, T4, T5, T6) tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
@@ -135,12 +201,34 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.Pack(default, in tuple);
 		}
 
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7>(Span<byte> destination, out int bytesWritten, in (T1, T2, T3, T4, T5, T6, T7) tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
+		}
+
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(in (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
 		{
 			return TupleEncoder.Pack(default, in tuple);
+		}
+
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7, T8>(Span<byte> destination, out int bytesWritten, in (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
 		}
 
 		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
@@ -507,11 +595,25 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.EncodeKey(prefix: default, item1);
 		}
 
+		/// <summary>Pack a 1-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1>(Span<byte> destination, out int bytesWritten, T1 item1)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1);
+		}
+
 		/// <summary>Pack a 2-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2>(T1 item1, T2 item2)
 		{
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2);
+		}
+
+		/// <summary>Pack a 2-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2);
 		}
 
 		/// <summary>Pack a 3-tuple directly into a slice</summary>
@@ -521,11 +623,25 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3);
 		}
 
+		/// <summary>Pack a 3-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2, T3>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2, T3 item3)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2, item3);
+		}
+
 		/// <summary>Pack a 4-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4);
+		}
+
+		/// <summary>Pack a 4-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2, T3, T4>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2, T3 item3, T4 item4)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2, item3, item4);
 		}
 
 		/// <summary>Pack a 5-tuple directly into a slice</summary>
@@ -535,11 +651,25 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5);
 		}
 
+		/// <summary>Pack a 5-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2, T3, T4, T5>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2, item3, item4, item5);
+		}
+
 		/// <summary>Pack a 6-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6);
+		}
+
+		/// <summary>Pack a 6-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Pack a 7-tuple directly into a slice</summary>
@@ -549,11 +679,25 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6, item7);
 		}
 
+		/// <summary>Pack a 7-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6, T7>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2, item3, item4, item5, item6, item7);
+		}
+
 		/// <summary>Pack an 8-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6, item7, item8);
+		}
+
+		/// <summary>Pack a 8-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -231,6 +231,11 @@ namespace SnowBank.Data.Json.Binary
 			TuPack.PackTo(ref writer, ToTuple(value));
 		}
 
+		bool IKeyEncoder<JsonValue>.TryWriteKeyTo(Span<byte> destination, out int bytesWritten, JsonValue? value)
+		{
+			return TuPack.TryPackTo(destination, out bytesWritten, ToTuple(value));
+		}
+
 		public void ReadKeyFrom(ref SliceReader reader, out JsonValue value)
 		{
 			IVarTuple? tuple = TuPack.Unpack(reader.ReadToEnd());

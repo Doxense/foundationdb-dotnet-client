@@ -61,6 +61,13 @@ namespace FoundationDB.Client
 		/// <remarks>The key can be decoded back into its original components using <see cref="Decode(Slice)"/></remarks>
 		Slice Encode(T1? item1, T2? item2);
 
+		/// <summary>Encode a pair of values into a key in this subspace</summary>
+		/// <param name="item1">First part of the key</param>
+		/// <param name="item2">Second part of the key</param>
+		/// <returns>Encoded key in this subspace</returns>
+		/// <remarks>The key can be decoded back into its original components using <see cref="Decode(Slice)"/></remarks>
+		bool TryEncode(Span<byte> destination, out int bytesWritten, T1? item1, T2? item2);
+
 		/// <summary>Encode only the first part of pair into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
 		/// <returns>Partial key that can be used to create custom <see cref="KeyRange">key ranges</see></returns>
@@ -117,6 +124,20 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc/>
+		public bool TryEncode(Span<byte> destination, out int bytesWritten, T1? item1, T2? item2)
+		{
+			if (!this.GetPrefix().TryCopyTo(destination, out var prefixLen)
+			 || !this.KeyEncoder.TryWriteKeyPartsTo(destination[prefixLen..], out int keyLen, 2, (item1, item2)))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = prefixLen + keyLen;
+			return true;
+		}
+
+		/// <inheritdoc/>
 		[Pure]
 		public Slice EncodePartial(T1? item1)
 		{
@@ -168,6 +189,7 @@ namespace FoundationDB.Client
 			sw.WriteBytes(key);
 			return sw;
 		}
+
 	}
 
 	public static partial class TypedKeysExtensions

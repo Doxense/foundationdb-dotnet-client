@@ -301,6 +301,11 @@ namespace SnowBank.Data.Binary
 			TuPack.PackTo(ref writer, this.Encoding.ToTuple(value));
 		}
 
+		bool IKeyEncoder<T>.TryWriteKeyTo(Span<byte> destination, out int bytesWritten, T? value)
+		{
+			return TuPack.TryPackTo(destination, out bytesWritten, this.Encoding.ToTuple(value));
+		}
+
 		public void ReadKeyFrom(ref SliceReader reader, out T? value)
 		{
 			var tuple = TuPack.Unpack(reader.ReadToEnd());
