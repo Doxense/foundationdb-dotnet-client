@@ -2201,6 +2201,84 @@ namespace FoundationDB.Client
 			return trans.GetValuesAsync<TValue>(span, results, decoder);
 		}
 
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="keys">Sequence of keys to be looked up in the database</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="keys"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="keys"/>.</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TKey> keys, Memory<TValue> results, FdbValueDecoder<TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			var encodedKeys = new Slice[keys.Length]; //TODO: pooled?
+			for (int i = 0; i < keys.Length; i++)
+			{
+				encodedKeys[i] = keys[i].ToSlice(); //TODO: pooled
+			}
+			return trans.GetValuesAsync<TValue>(encodedKeys.AsSpan(), results, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="keys">Sequence of keys to be looked up in the database</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="keys"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="keys"/>.</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys, Memory<TValue> results, FdbValueDecoder<TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			if (!keys.TryGetSpan(out var span))
+			{
+				span = keys.ToArray();
+			}
+			return trans.GetValuesAsync<TKey, TValue>(span, results, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="keys">Sequence of keys to be looked up in the database</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="keys"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="keys"/>.</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TKey, TState, TValue>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TKey> keys, Memory<TValue> results, TState state, FdbValueDecoder<TState, TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			var encodedKeys = new Slice[keys.Length]; //TODO: pooled?
+			for (int i = 0; i < keys.Length; i++)
+			{
+				encodedKeys[i] = keys[i].ToSlice(); //TODO: pooled
+			}
+			return trans.GetValuesAsync(encodedKeys.AsSpan(), results, state, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="keys">Sequence of keys to be looked up in the database</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="keys"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="keys"/>.</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TKey, TState, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys, Memory<TValue> results, TState state, FdbValueDecoder<TState, TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			if (!keys.TryGetSpan(out var span))
+			{
+				span = keys.ToArray();
+			}
+			return trans.GetValuesAsync<TKey, TState, TValue>(span, results, state, decoder);
+		}
+
 		/// <summary>
 		/// Reads several values from the database snapshot represented by the current transaction.
 		/// </summary>

@@ -379,6 +379,63 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Write_And_Read_Encoded_Keys()
+		{
+			// test that we can read and write encoded keys and values
+
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsTyped<string>();
+			await CleanLocation(db, location);
+
+			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+			long ticks = DateTime.UtcNow.Ticks;
+			long writeVersion;
+			long readVersion;
+
+			// write a bunch of keys
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				tr.Set(subspace.GetKey("hello"), FdbValue.Text.FromUtf8("World!"));
+				tr.Set(subspace.GetKey("timestamp"), FdbValue.Compact.LittleEndian.FromInt64(ticks));
+
+				Span<byte> blobData = [ 42, 123, 7 ];
+				tr.Set(subspace.GetKey("blob"), blobData);
+
+				await tr.CommitAsync();
+
+				writeVersion = tr.GetCommittedVersion();
+				Assert.That(writeVersion, Is.GreaterThan(0), "Committed version of non-empty transaction should be > 0");
+			}
+
+			// read them back
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				readVersion = await tr.GetReadVersionAsync();
+				Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
+
+				{
+					var bytes = await tr.GetAsync(subspace.Encode("hello"));
+					Assert.That(bytes.ToStringUtf8(), Is.EqualTo("World!"));
+				}
+				{
+					var bytes = await tr.GetAsync(subspace.Encode("timestamp"));
+					Assert.That(bytes.ToInt64(), Is.EqualTo(ticks));
+				}
+				{
+					var bytes = await tr.GetAsync(subspace.Encode("blob"));
+					Assert.That(bytes.ToArray(), Is.EqualTo(new byte[] { 42, 123, 7 }));
+				}
+			}
+
+			Assert.That(readVersion, Is.GreaterThanOrEqualTo(writeVersion), "Read version should not be before previous committed version");
+		}
+
+		[Test]
 		public async Task Test_Can_Resolve_Key_Selector()
 		{
 			using var db = await OpenTestPartitionAsync();
@@ -634,6 +691,48 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 
+			// overload with encoded keys and TState
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = new int[ids.Length];
+
+				await tr.GetValuesAsync(
+					subspace.PackKeys(ids, (id) => STuple.Create(id)),
+					results.AsMemory(),
+					9,
+					decoder: (state, value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * state : -1
+				);
+				
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i], Is.EqualTo(ids[i] * 9));
+				}
+			}
+
+			// overload with encoded keys and without TState
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = new int[ids.Length];
+
+				await tr.GetValuesAsync(
+					subspace.PackKeys(ids, (id) => STuple.Create(id)),
+					results.AsMemory(),
+					decoder: (value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * 3 : -1
+				);
+				
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i], Is.EqualTo(ids[i] * 3));
+				}
+			}
 		}
 
 		[Test]
