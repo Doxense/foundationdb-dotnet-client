@@ -652,7 +652,7 @@ namespace System
 			}
 		}
 
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider = null)
 		{
 			//PERF: TODO: implement this without memory allocations!
 			string literal;
