@@ -132,6 +132,7 @@ namespace SnowBank.Data.Tuples.Binary
 			if (typeof(T) == typeof(Uuid96)) return (T?) (object) TuplePackers.DeserializeUuid96(span);
 			if (typeof(T) == typeof(Uuid80)) return (T?) (object) TuplePackers.DeserializeUuid80(span);
 			if (typeof(T) == typeof(Uuid64)) return (T?) (object) TuplePackers.DeserializeUuid64(span);
+			if (typeof(T) == typeof(Uuid48)) return (T?) (object) TuplePackers.DeserializeUuid48(span);
 			if (typeof(T) == typeof(TimeSpan)) return (T?) (object) TuplePackers.DeserializeTimeSpan(span);
 			if (typeof(T) == typeof(Slice)) return (T?) (object) TuplePackers.DeserializeSlice(span);
 			// nullable
@@ -145,8 +146,9 @@ namespace SnowBank.Data.Tuples.Binary
 			if (typeof(T) == typeof(Uuid128?)) return (T?) (object?) TuplePackers.DeserializeUuid128Nullable(span);
 			if (typeof(T) == typeof(Uuid96?)) return (T?) (object?) TuplePackers.DeserializeUuid96Nullable(span);
 			if (typeof(T) == typeof(Uuid80?)) return (T?) (object?) TuplePackers.DeserializeUuid80Nullable(span);
-			if (typeof(T) == typeof(TimeSpan?)) return (T?) (object?) TuplePackers.DeserializeTimeSpanNullable(span);
 			if (typeof(T) == typeof(Uuid64?)) return (T?) (object?) TuplePackers.DeserializeUuid64Nullable(span);
+			if (typeof(T) == typeof(Uuid48?)) return (T?) (object?) TuplePackers.DeserializeUuid48Nullable(span);
+			if (typeof(T) == typeof(TimeSpan?)) return (T?) (object?) TuplePackers.DeserializeTimeSpanNullable(span);
 #endif
 			//</JIT_HACK>
 

@@ -142,6 +142,12 @@ namespace System
 			this.Value = ((ulong) a << 48) | ((ulong) b & ((1UL << 48) - 1));
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 FromInt64(long value) => new(value);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Uuid64 FromUInt64(ulong value) => new(value);
+
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static Exception FailInvalidBufferSize([InvokerParameterName] string arg) => ThrowHelper.ArgumentException(arg, "Value must be 8 bytes long");
 

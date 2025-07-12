@@ -51,6 +51,89 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Delegate that writes a value of type <typeparamref name="T"/> into a <see cref="TupleWriter"/></summary>
 		public delegate bool SpanEncoder<T>(ref TupleSpanWriter writer, in T? value);
 
+		private static readonly FrozenDictionary<Type, (Delegate Direct, Delegate? Span)> WellKnownSerializers = InitializeDefaultSerializers();
+
+		private static FrozenDictionary<Type, (Delegate Direct, Delegate? Span)> InitializeDefaultSerializers()
+		{
+			var map = new Dictionary<Type, (Delegate Direct, Delegate? Span)>
+			{
+				// ref types
+				[typeof(byte[])]           = (new Encoder<byte[]?>(TupleParser.WriteBytes), new SpanEncoder<byte[]?>(TupleParser.TryWriteBytes)),
+				[typeof(string)]           = (new Encoder<string?>(TupleParser.WriteString), new SpanEncoder<string?>(TupleParser.TryWriteString)),
+				[typeof(System.Net.IPAddress)] = (new Encoder<System.Net.IPAddress?>(TupleParser.WriteIpAddress), new SpanEncoder<System.Net.IPAddress?>(TupleParser.TryWriteIpAddress)),
+				[typeof(IVarTuple)]        = (new Encoder<IVarTuple?>(SerializeVarTupleTo), new SpanEncoder<IVarTuple?>(TrySerializeVarTupleTo)),
+				[typeof(TuPackUserType)]   = (new Encoder<TuPackUserType?>(TupleParser.WriteUserType), new SpanEncoder<TuPackUserType?>(TupleParser.TryWriteUserType)),
+
+				// structs
+				[typeof(Slice)]            = (new Encoder<Slice>(TupleParser.WriteBytes), new SpanEncoder<Slice>(TupleParser.TryWriteBytes)),
+				[typeof(bool)]             = (new Encoder<bool>(TupleParser.WriteBool), new SpanEncoder<bool>(TupleParser.TryWriteBool)),
+				[typeof(char)]             = (new Encoder<char>(TupleParser.WriteChar), new SpanEncoder<char>(TupleParser.TryWriteChar)),
+				[typeof(byte)]             = (new Encoder<byte>(TupleParser.WriteByte), new SpanEncoder<byte>(TupleParser.TryWriteByte)),
+				[typeof(sbyte)]            = (new Encoder<sbyte>(TupleParser.WriteSByte), new SpanEncoder<sbyte>(TupleParser.TryWriteSByte)),
+				[typeof(short)]            = (new Encoder<short>(TupleParser.WriteInt16), new SpanEncoder<short>(TupleParser.TryWriteInt16)),
+				[typeof(ushort)]           = (new Encoder<ushort>(TupleParser.WriteUInt16), new SpanEncoder<ushort>(TupleParser.TryWriteUInt16)),
+				[typeof(int)]              = (new Encoder<int>(TupleParser.WriteInt32), new SpanEncoder<int>(TupleParser.TryWriteInt32)),
+				[typeof(uint)]             = (new Encoder<uint>(TupleParser.WriteUInt32), new SpanEncoder<uint>(TupleParser.TryWriteUInt32)),
+				[typeof(long)]             = (new Encoder<long>(TupleParser.WriteInt64), new SpanEncoder<long>(TupleParser.TryWriteInt64)),
+				[typeof(ulong)]            = (new Encoder<ulong>(TupleParser.WriteUInt64), new SpanEncoder<ulong>(TupleParser.TryWriteUInt64)),
+				[typeof(float)]            = (new Encoder<float>(TupleParser.WriteSingle), new SpanEncoder<float>(TupleParser.TryWriteSingle)),
+				[typeof(double)]           = (new Encoder<double>(TupleParser.WriteDouble), new SpanEncoder<double>(TupleParser.TryWriteDouble)),
+				//[typeof(decimal)]        = (new Encoder<decimal>(TupleParser.WriteDecimal), new SpanEncoder<decimal>(TupleParser.TryWriteDecimal)), //TODO: not implemented 
+				[typeof(VersionStamp)]     = (new Encoder<VersionStamp>(TupleParser.WriteVersionStamp), new SpanEncoder<VersionStamp>(TupleParser.TryWriteVersionStamp)),
+				[typeof(Guid)]             = (new Encoder<Guid>(TupleParser.WriteGuid), new SpanEncoder<Guid>(TupleParser.TryWriteGuid)),
+				[typeof(Uuid128)]          = (new Encoder<Uuid128>(TupleParser.WriteUuid128), new SpanEncoder<Uuid128>(TupleParser.TryWriteUuid128)),
+				[typeof(Uuid96)]           = (new Encoder<Uuid96>(TupleParser.WriteUuid96), new SpanEncoder<Uuid96>(TupleParser.TryWriteUuid96)),
+				[typeof(Uuid80)]           = (new Encoder<Uuid80>(TupleParser.WriteUuid80), new SpanEncoder<Uuid80>(TupleParser.TryWriteUuid80)),
+				[typeof(Uuid64)]           = (new Encoder<Uuid64>(TupleParser.WriteUuid64), new SpanEncoder<Uuid64>(TupleParser.TryWriteUuid64)),
+				[typeof(Uuid48)]           = (new Encoder<Uuid48>(TupleParser.WriteUuid48), new SpanEncoder<Uuid48>(TupleParser.TryWriteUuid48)),
+				[typeof(TimeSpan)]         = (new Encoder<TimeSpan>(TupleParser.WriteTimeSpan), new SpanEncoder<TimeSpan>(TupleParser.TryWriteTimeSpan)),
+				[typeof(DateTime)]         = (new Encoder<DateTime>(TupleParser.WriteDateTime), new SpanEncoder<DateTime>(TupleParser.TryWriteDateTime)),
+				[typeof(DateTimeOffset)]   = (new Encoder<DateTimeOffset>(TupleParser.WriteDateTimeOffset), new SpanEncoder<DateTimeOffset>(TupleParser.TryWriteDateTimeOffset)),
+				[typeof(NodaTime.Instant)] = (new Encoder<NodaTime.Instant>(TupleParser.WriteInstant), new SpanEncoder<NodaTime.Instant>(TupleParser.TryWriteInstant)),
+				[typeof(BigInteger)]       = (new Encoder<BigInteger>(TupleParser.WriteBigInteger), new SpanEncoder<BigInteger>(TupleParser.TryWriteBigInteger)),
+#if NET8_0_OR_GREATER
+				[typeof(Int128)]           = (new Encoder<Int128>(TupleParser.WriteInt128), null), //TODO!
+				[typeof(UInt128)]          = (new Encoder<UInt128>(TupleParser.WriteUInt128), null), //TODO!
+#endif
+
+				// Nullable<T>
+
+				[typeof(Slice?)]            = (new Encoder<Slice?>(TupleParser.WriteBytes), new SpanEncoder<Slice?>(TupleParser.TryWriteBytes)),
+				[typeof(bool?)]             = (new Encoder<bool?>(TupleParser.WriteBool), new SpanEncoder<bool?>(TupleParser.TryWriteBool)),
+				[typeof(char?)]             = (new Encoder<char?>(TupleParser.WriteChar), new SpanEncoder<char?>(TupleParser.TryWriteChar)),
+				[typeof(byte?)]             = (new Encoder<byte?>(TupleParser.WriteByte), new SpanEncoder<byte?>(TupleParser.TryWriteByte)),
+				[typeof(sbyte?)]            = (new Encoder<sbyte?>(TupleParser.WriteSByte), new SpanEncoder<sbyte?>(TupleParser.TryWriteSByte)),
+				[typeof(short?)]            = (new Encoder<short?>(TupleParser.WriteInt16), new SpanEncoder<short?>(TupleParser.TryWriteInt16)),
+				[typeof(ushort?)]           = (new Encoder<ushort?>(TupleParser.WriteUInt16), new SpanEncoder<ushort?>(TupleParser.TryWriteUInt16)),
+				[typeof(int?)]              = (new Encoder<int?>(TupleParser.WriteInt32), new SpanEncoder<int?>(TupleParser.TryWriteInt32)),
+				[typeof(uint?)]             = (new Encoder<uint?>(TupleParser.WriteUInt32), new SpanEncoder<uint?>(TupleParser.TryWriteUInt32)),
+				[typeof(long?)]             = (new Encoder<long?>(TupleParser.WriteInt64), new SpanEncoder<long?>(TupleParser.TryWriteInt64)),
+				[typeof(ulong?)]            = (new Encoder<ulong?>(TupleParser.WriteUInt64), new SpanEncoder<ulong?>(TupleParser.TryWriteUInt64)),
+				[typeof(float?)]            = (new Encoder<float?>(TupleParser.WriteSingle), new SpanEncoder<float?>(TupleParser.TryWriteSingle)),
+				[typeof(double?)]           = (new Encoder<double?>(TupleParser.WriteDouble), new SpanEncoder<double?>(TupleParser.TryWriteDouble)),
+				//[typeof(decimal?)]        = (new Encoder<decimal?>(TupleParser.WriteDecimal), new SpanEncoder<decimal?>(TupleParser.TryWriteDecimal)), //TODO: not implemented 
+				[typeof(VersionStamp?)]     = (new Encoder<VersionStamp?>(TupleParser.WriteVersionStamp), new SpanEncoder<VersionStamp?>(TupleParser.TryWriteVersionStamp)),
+				[typeof(Guid?)]             = (new Encoder<Guid?>(TupleParser.WriteGuid), new SpanEncoder<Guid?>(TupleParser.TryWriteGuid)),
+				[typeof(Uuid128?)]          = (new Encoder<Uuid128?>(TupleParser.WriteUuid128), new SpanEncoder<Uuid128?>(TupleParser.TryWriteUuid128)),
+				[typeof(Uuid96?)]           = (new Encoder<Uuid96?>(TupleParser.WriteUuid96), new SpanEncoder<Uuid96?>(TupleParser.TryWriteUuid96)),
+				[typeof(Uuid80?)]           = (new Encoder<Uuid80?>(TupleParser.WriteUuid80), new SpanEncoder<Uuid80?>(TupleParser.TryWriteUuid80)),
+				[typeof(Uuid64?)]           = (new Encoder<Uuid64?>(TupleParser.WriteUuid64), new SpanEncoder<Uuid64?>(TupleParser.TryWriteUuid64)),
+				[typeof(Uuid48?)]           = (new Encoder<Uuid48?>(TupleParser.WriteUuid48), new SpanEncoder<Uuid48?>(TupleParser.TryWriteUuid48)),
+				[typeof(TimeSpan?)]         = (new Encoder<TimeSpan?>(TupleParser.WriteTimeSpan), new SpanEncoder<TimeSpan?>(TupleParser.TryWriteTimeSpan)),
+				[typeof(DateTime?)]         = (new Encoder<DateTime?>(TupleParser.WriteDateTime), new SpanEncoder<DateTime?>(TupleParser.TryWriteDateTime)),
+				[typeof(DateTimeOffset?)]   = (new Encoder<DateTimeOffset?>(TupleParser.WriteDateTimeOffset), new SpanEncoder<DateTimeOffset?>(TupleParser.TryWriteDateTimeOffset)),
+				[typeof(NodaTime.Instant?)] = (new Encoder<NodaTime.Instant?>(TupleParser.WriteInstant), new SpanEncoder<NodaTime.Instant?>(TupleParser.TryWriteInstant)),
+				[typeof(BigInteger?)]       = (new Encoder<BigInteger?>(TupleParser.WriteBigInteger), new SpanEncoder<BigInteger?>(TupleParser.TryWriteBigInteger)),
+#if NET8_0_OR_GREATER
+				[typeof(Int128?)]           = (new Encoder<Int128?>(TupleParser.WriteInt128), null), //TODO
+				[typeof(UInt128?)]          = (new Encoder<UInt128?>(TupleParser.WriteUInt128), null), //TODO
+#endif
+			};
+
+			return map.ToFrozenDictionary();
+		}
+
+
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or that throws an exception if the type is not supported</returns>
@@ -98,45 +181,26 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 
 			// look for well-known types that have their own (non-generic) TuplePackers.SerializeTo(...) method
-			var directMethod = GetTuplePackersType().GetMethod(nameof(SerializeTo), BindingFlags.Static | BindingFlags.Public, binder: null, types: [ typeof(TupleWriter), type ], modifiers: null);
-			var spanMethod = typeof(TupleParser).GetMethods().FirstOrDefault(m =>
+
+			if (WellKnownSerializers.TryGetValue(type, out var methods))
 			{
-					if (!m.IsStatic || !m.IsPublic || !m.Name.StartsWith("TryWrite")) return false;
-					var args = m.GetParameters();
-					if (args.Length != 2) return false;
-					if (!args[0].ParameterType.IsByRef || args[0].ParameterType.GetElementType() != typeof(TupleSpanWriter)) return false;
-					if (!args[1].ParameterType.IsByRef || args[1].ParameterType.GetElementType() != type) return false;
-					return true;
-			});
-;
-			if (directMethod != null || spanMethod != null)
-			{ // we have a direct serializer
-				try
-				{
-					return (
-						directMethod?.CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
-						spanMethod?.CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
-					);
-				}
-				catch (Exception e)
-				{
-					throw new InvalidOperationException($"Failed to compile fast tuple serializer for type '{type.Name}'.", e);
-				}
+				return methods;
 			}
 
 			// maybe it is a nullable type ?
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
 			{ // nullable types can reuse the underlying type serializer
-				directMethod = GetTuplePackersType().GetMethod(nameof(SerializeNullableTo), BindingFlags.Static | BindingFlags.Public);
-				spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeNullableTo), BindingFlags.Static | BindingFlags.Public);
-				if (directMethod != null || spanMethod != null)
+				var directMethod = GetTuplePackersType().GetMethod(nameof(SerializeNullableTo), BindingFlags.Static | BindingFlags.Public);
+				var spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeNullableTo), BindingFlags.Static | BindingFlags.Public);
+				if (directMethod != null)
 				{
+					Contract.Debug.Assert(spanMethod != null);
 					try
 					{
 						return (
-							directMethod?.MakeGenericMethod(nullableType).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
-							spanMethod?.MakeGenericMethod(nullableType).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
+							directMethod.MakeGenericMethod(nullableType).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
+							spanMethod!.MakeGenericMethod(nullableType).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
 						);
 					}
 					catch (Exception e)
@@ -146,21 +210,22 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 			}
 
-			// maybe it is a tuple ?
+			// maybe it is an IVarTuple ?
 			if (type.IsAssignableTo(typeof(IVarTuple)))
 			{
 				if (type.IsAssignableTo(typeof(ITuplePackable)))
 				{ // most tuples implement ITupleFormattable directly!
 
-					directMethod = GetTuplePackersType().GetMethod(nameof(SerializePackableTupleTo), BindingFlags.Static | BindingFlags.Public);
-					spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializePackableTupleTo), BindingFlags.Static | BindingFlags.Public);
-					if (directMethod != null || spanMethod != null)
+					var directMethod = GetTuplePackersType().GetMethod(nameof(SerializePackableTupleTo), BindingFlags.Static | BindingFlags.Public);
+					var spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializePackableTupleTo), BindingFlags.Static | BindingFlags.Public);
+					if (directMethod != null)
 					{
+						Contract.Debug.Assert(spanMethod != null);
 						try
 						{
 							return (
-								directMethod?.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
-								spanMethod?.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
+								directMethod.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
+								spanMethod!.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
 							);
 						}
 						catch (Exception e)
@@ -169,39 +234,44 @@ namespace SnowBank.Data.Tuples.Binary
 						}
 					}
 				}
-
-				// will use the default IVarTuple packing implementation (which may use boxing)
-				directMethod = GetTuplePackersType().GetMethod(nameof(SerializeVarTupleTo), BindingFlags.Static | BindingFlags.Public);
-				spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeVarTupleTo), BindingFlags.Static | BindingFlags.Public);
-				if (directMethod != null || spanMethod != null)
+				else
 				{
-					try
+					// will use the default IVarTuple packing implementation (which may use boxing)
+					var directMethod = GetTuplePackersType().GetMethod(nameof(SerializeVarTupleTo), BindingFlags.Static | BindingFlags.Public);
+					var spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeVarTupleTo), BindingFlags.Static | BindingFlags.Public);
+					if (directMethod != null)
 					{
-						return (
-							directMethod?.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
-							spanMethod?.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
-						);
-					}
-					catch (Exception e)
-					{
-						throw new InvalidOperationException($"Failed to compile fast tuple serializer for Tuple type '{type.Name}'.", e);
+						Contract.Debug.Assert(spanMethod != null);
+						try
+						{
+							return (
+								directMethod.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
+								spanMethod!.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
+							);
+						}
+						catch (Exception e)
+						{
+							throw new InvalidOperationException($"Failed to compile fast tuple serializer for Tuple type '{type.Name}'.", e);
+						}
 					}
 				}
 			}
 
+			// is it a custom type that can pack its items?
 			if (type.IsAssignableTo(typeof(ITuplePackable)))
 			{
 				// this is NOT a tuple, but a custom type that can also "pack itself"
 
-				directMethod = GetTuplePackersType().GetMethod(nameof(SerializeTuplePackableTo), BindingFlags.Static | BindingFlags.Public);
-				spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializeTuplePackableTo), BindingFlags.Static | BindingFlags.Public);
-				if (directMethod != null || spanMethod != null)
+				var directMethod = GetTuplePackersType().GetMethod(nameof(SerializePackableItemsTo), BindingFlags.Static | BindingFlags.Public);
+				var spanMethod = GetTuplePackersType().GetMethod(nameof(TrySerializePackableItemsTo), BindingFlags.Static | BindingFlags.Public);
+				if (directMethod != null)
 				{
+					Contract.Debug.Assert(spanMethod != null);
 					try
 					{
 						return (
-							directMethod?.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
-							spanMethod?.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
+							directMethod.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type)),
+							spanMethod!.MakeGenericMethod(type).CreateDelegate(typeof(SpanEncoder<>).MakeGenericType(type))
 						);
 					}
 					catch (Exception e)
@@ -215,8 +285,8 @@ namespace SnowBank.Data.Tuples.Binary
 			if (type == typeof(ValueTuple) || (type.Name.StartsWith(nameof(System.ValueTuple) + "`", StringComparison.Ordinal) && type.Namespace == "System"))
 			{
 				var typeArgs = type.GetGenericArguments();
-				directMethod = FindValueTupleSerializerMethod(typeArgs);
-				spanMethod = FindValueTupleSpanSerializerMethod(typeArgs);
+				var directMethod = FindValueTupleSerializerMethod(typeArgs);
+				var spanMethod = FindValueTupleSpanSerializerMethod(typeArgs);
 				if (directMethod != null || spanMethod != null)
 				{
 					try
@@ -260,6 +330,7 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
 			(TupleWriter writer, T value)
 		{
+#if !DEBUG
 			//<JIT_HACK>
 			// - In Release builds, this will be cleaned up and inlined by the JIT as a direct invocation of the correct WriteXYZ method
 			// - In Debug builds, we have to disable this, because it would be too slow
@@ -282,6 +353,7 @@ namespace SnowBank.Data.Tuples.Binary
 				if (typeof(T) == typeof(TimeSpan)) { writer.WriteTimeSpan((TimeSpan) (object) value!); return; }
 				if (typeof(T) == typeof(DateTime)) { writer.WriteDateTime((DateTime) (object) value!); return; }
 				if (typeof(T) == typeof(DateTimeOffset)) { writer.WriteDateTimeOffset((DateTimeOffset) (object) value!); return; }
+				if (typeof(T) == typeof(NodaTime.Instant)) { writer.WriteInstant((NodaTime.Instant) (object) value!); return; }
 				if (typeof(T) == typeof(Guid)) { writer.WriteGuid((Guid) (object) value!); return; }
 				if (typeof(T) == typeof(Uuid128)) { writer.WriteUuid128((Uuid128) (object) value!); return; }
 				if (typeof(T) == typeof(Uuid96)) { writer.WriteUuid96((Uuid96) (object) value!); return; }
@@ -321,6 +393,7 @@ namespace SnowBank.Data.Tuples.Binary
 				if (typeof(T) == typeof(string)) { writer.WriteString((string?) (object?) value); return ; }
 			}
 			//</JIT_HACK>
+#endif
 
 			// invoke the encoder directly
 			TuplePacker<T>.Encoders.Direct(writer, value);
@@ -366,6 +439,7 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
 			(ref TupleSpanWriter writer, in T value)
 		{
+#if !DEBUG
 			//<JIT_HACK>
 			if (default(T) is not null)
 			{
@@ -424,6 +498,7 @@ namespace SnowBank.Data.Tuples.Binary
 				if (typeof(T) == typeof(string)) return TupleParser.TryWriteString(ref writer, (string?) (object?) value);
 			}
 			//</JIT_HACK>
+#endif
 
 			// invoke the encoder directly
 			return TuplePacker<T>.Encoders.Span(ref writer, value);
@@ -475,7 +550,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="value">Nullable value to serialize</param>
 		/// <remarks>Uses the underlying type's serializer if the value is not null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTuplePackableTo<T>(TupleWriter writer, T? value)
+		public static void SerializePackableItemsTo<T>(TupleWriter writer, T? value)
 			where T : ITuplePackable
 		{
 			if (value is null)
@@ -495,7 +570,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="value">Nullable value to serialize</param>
 		/// <remarks>Uses the underlying type's serializer if the value is not null</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool TrySerializeTuplePackableTo<T>(ref TupleSpanWriter writer, in T? value)
+		public static bool TrySerializePackableItemsTo<T>(ref TupleSpanWriter writer, in T? value)
 			where T : ITupleSpanPackable
 		{
 			if (value is null)
@@ -755,226 +830,6 @@ namespace SnowBank.Data.Tuples.Binary
 			var body = Expression.Call(m, writer, value);
 			return Expression.Lambda<SpanEncoder<object>>(body, writer, value).Compile();
 		}
-
-		/// <summary>Writes a slice as a byte[] array</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Slice value) => writer.WriteBytes(value);
-
-		/// <summary>Writes a byte[] array</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, byte[] value) => writer.WriteBytes(value);
-
-		/// <summary>Writes an array segment as a byte[] array</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, ArraySegment<byte> value) => writer.WriteBytes(value);
-
-		/// <summary>Writes a char as Unicode string</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, char value) => writer.WriteChar(value);
-
-		/// <summary>Writes a boolean as an integer</summary>
-		/// <remarks>Uses 0 for false, and -1 for true</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, bool value) => writer.WriteBool(value);
-
-		/// <summary>Writes a boolean to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, bool? value) => writer.WriteBool(value);
-		//REVIEW: only method for a nullable type? add others? or remove this one?
-
-		/// <summary>Writes a 32-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, sbyte value) => writer.WriteInt32(value);
-
-		/// <summary>Writes a 32-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, byte value) => writer.WriteByte(value);
-
-		/// <summary>Writes a 32-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, short value) => writer.WriteInt32(value);
-
-		/// <summary>Writes a 32-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, ushort value) => writer.WriteUInt32(value);
-
-		/// <summary>Writes a 32-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, int value) => writer.WriteInt32(value);
-
-		/// <summary>Writes a 32-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, int? value) => writer.WriteInt32(value);
-
-		/// <summary>Writes a 32-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, uint value) => writer.WriteUInt32(value);
-
-		/// <summary>Writes a 32-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, uint? value) => writer.WriteUInt32(value);
-
-		/// <summary>Writes a 64-bit signed integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, long value) => writer.WriteInt64(value);
-
-		/// <summary>Writes a 64-bit signed integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, long? value) => writer.WriteInt64(value);
-
-		/// <summary>Writes a 64-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, ulong value) => writer.WriteUInt64(value);
-
-		/// <summary>Writes a 64-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, ulong? value) => writer.WriteUInt64(value);
-
-		/// <summary>Writes a 32-bit IEEE floating point number to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, float value) => writer.WriteSingle(value);
-
-		/// <summary>Writes a 32-bit IEEE floating point number to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, float? value) => writer.WriteSingle(value);
-
-		/// <summary>Writes a 64-bit IEEE floating point number to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, double value) => writer.WriteDouble(value);
-
-		/// <summary>Writes a 64-bit IEEE floating point number to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, double? value) => writer.WriteDouble(value);
-
-		/// <summary>Writes a 128-bit IEEE floating point number to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, decimal value) => writer.WriteDecimal(value);
-
-		/// <summary>Writes a 128-bit IEEE floating point number to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, decimal? value) => writer.WriteDecimal(value);
-
-#if NET8_0_OR_GREATER
-
-		/// <summary>Writes a 128-bit signed integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Int128 value) => writer.WriteInt128(value);
-
-		/// <summary>Writes a 128-bit signed integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Int128? value) => writer.WriteInt128(value);
-
-		/// <summary>Writes a 128-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, UInt128 value) => writer.WriteUInt128(value);
-
-		/// <summary>Writes a 128-bit unsigned integer to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, UInt128? value) => writer.WriteUInt128(value);
-
-#endif
-
-		/// <summary>Writes a big integer or arbitrary length to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, BigInteger value) => writer.WriteBigInteger(value);
-
-		/// <summary>Writes a big integer or arbitrary length to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, BigInteger? value) => writer.WriteBigInteger(value);
-
-		/// <summary>Writes a Unicode string to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, string? value) => writer.WriteString(value);
-
-		/// <summary>Writes a TimeSpan converted to a number of seconds, encoded as a 64-bit decimal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, TimeSpan value) => writer.WriteTimeSpan(value);
-
-		/// <summary>Writes a TimeSpan converted to a number of seconds, encoded as a 64-bit decimal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, TimeSpan? value) => writer.WriteTimeSpan(value);
-
-		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, DateTime value) => writer.WriteDateTime(value);
-
-		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, DateTime? value) => writer.WriteDateTime(value);
-
-		/// <summary>Writes a DateTimeOffset converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, DateTimeOffset value) => writer.WriteDateTimeOffset(value);
-
-		/// <summary>Writes a <see cref="DateTimeOffset"/> to the tuple, converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, DateTimeOffset? value) => writer.WriteDateTimeOffset(value);
-
-		/// <summary>Writes a 128-bit <see cref="Guid"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Guid value) => writer.WriteGuid(value);
-		//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty byte string) ?
-		// => could spare 17 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
-
-		/// <summary>Writes a 128-bit <see cref="Guid"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Guid? value) => writer.WriteGuid(value);
-
-		/// <summary>Writes a 128-bit <see cref="Uuid128"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid128 value) => writer.WriteUuid128(value);
-
-		/// <summary>Writes a 128-bit <see cref="Uuid128"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid128? value) => writer.WriteUuid128(value);
-
-		/// <summary>Writes a 96-bit <see cref="Uuid96"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid96 value) => writer.WriteUuid96(value);
-
-		/// <summary>Writes a 96-bit <see cref="Uuid96"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid96? value) => writer.WriteUuid96(value);
-
-		/// <summary>Writes an 80-bit <see cref="Uuid80"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid80 value) => writer.WriteUuid80(value);
-
-		/// <summary>Writes an 80-bit <see cref="Uuid80"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid80? value) => writer.WriteUuid80(value);
-
-		/// <summary>Writes a 64-bit <see cref="Uuid64"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid64 value) => writer.WriteUuid64(value);
-
-		/// <summary>Writes a 64-bit <see cref="Uuid64"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid64? value) => writer.WriteUuid64(value);
-
-		/// <summary>Writes a 48-bit <see cref="Uuid48"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid48 value) => writer.WriteUuid48(value);
-
-		/// <summary>Writes a 64-bit <see cref="Uuid48"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, Uuid48? value) => writer.WriteUuid48(value);
-
-		/// <summary>Writes an 80-bit or 96-bit <see cref="VersionStamp"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, VersionStamp value) => writer.WriteVersionStamp(value);
-
-		/// <summary>Writes an 80-bit or 96-bit <see cref="VersionStamp"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, VersionStamp? value) => writer.WriteVersionStamp(value);
-
-		/// <summary>Writes a <see cref="TuPackUserType"/> to the tuple</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, TuPackUserType value) => writer.WriteUserType(value);
-
-		/// <summary>Writes an IP Address to the tuple, encoded as either a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, System.Net.IPAddress? value) => writer.WriteBytes(value?.GetAddressBytes());
 
 		/// <summary>Serializes an embedded tuples</summary>
 		public static void SerializeVarTupleTo<TTuple>(TupleWriter writer, TTuple? tuple)
@@ -1314,6 +1169,7 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(Uuid96)] = new Decoder<Uuid96>(DeserializeUuid96),
 				[typeof(Uuid80)] = new Decoder<Uuid80>(DeserializeUuid80),
 				[typeof(Uuid64)] = new Decoder<Uuid64>(DeserializeUuid64),
+				[typeof(Uuid48)] = new Decoder<Uuid48>(DeserializeUuid48),
 				[typeof(TimeSpan)] = new Decoder<TimeSpan>(DeserializeTimeSpan),
 				[typeof(DateTime)] = new Decoder<DateTime>(DeserializeDateTime),
 				[typeof(DateTimeOffset)] = new Decoder<DateTimeOffset>(DeserializeDateTimeOffset),
@@ -1347,6 +1203,7 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(Uuid96?)] = new Decoder<Uuid96?>(DeserializeUuid96Nullable),
 				[typeof(Uuid80?)] = new Decoder<Uuid80?>(DeserializeUuid80Nullable),
 				[typeof(Uuid64?)] = new Decoder<Uuid64?>(DeserializeUuid64Nullable),
+				[typeof(Uuid48?)] = new Decoder<Uuid48?>(DeserializeUuid48Nullable),
 				[typeof(TimeSpan?)] = new Decoder<TimeSpan?>(DeserializeTimeSpanNullable),
 				[typeof(DateTime?)] = new Decoder<DateTime?>(DeserializeDateTimeNullable),
 				[typeof(DateTimeOffset?)] = new Decoder<DateTimeOffset?>(DeserializeDateTimeOffsetNullable),
@@ -1416,14 +1273,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return (value) => TypeConverters.ConvertBoxed<T>(DeserializeBoxed(value))!;
 		}
 
-		/// <summary>Check if a tuple segment is the equivalent of 'Nil'</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal static bool IsNilSegment(Slice slice)
-		{
-			return slice.IsNullOrEmpty || slice[0] == TupleTypes.Nil;
-		}
-
-		/// <summary>Check if a tuple segment is the equivalent of 'Nil'</summary>
+		/// <summary>Checks if a tuple segment is the equivalent of 'Nil'</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal static bool IsNilSegment(ReadOnlySpan<byte> slice)
 		{
@@ -1446,7 +1296,7 @@ namespace SnowBank.Data.Tuples.Binary
 			Contract.Debug.Requires(nullableType != null && type != null && decoder != null);
 			// We have a Decoder of T, but we have to transform it into a Decoder for Nullable<T>, which returns null if the slice is "nil", or falls back to the underlying decoder if the slice contains something
 
-			var prmSlice = Expression.Parameter(typeof(Slice), "slice");
+			var prmSlice = Expression.Parameter(typeof(ReadOnlySpan<byte>), "slice");
 			var body = Expression.Condition(
 				// IsNilSegment(slice) ?
 				Expression.Call(GetTuplePackersType().GetMethod(nameof(IsNilSegment), BindingFlags.Static | BindingFlags.NonPublic)!, prmSlice),
@@ -2485,10 +2335,6 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into a <see cref="Boolean"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static bool DeserializeBoolean(Slice slice) => DeserializeBoolean(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a <see cref="Boolean"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static bool DeserializeBoolean(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return false; //TODO: fail ?
@@ -2553,16 +2399,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Deserializes a tuple segment into a nullable <see cref="Boolean"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool? DeserializeBooleanNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeBoolean(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Boolean"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool? DeserializeBooleanNullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeBoolean(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into an <see cref="SByte"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		public static sbyte DeserializeSByte(Slice slice) => checked((sbyte) DeserializeInt64(slice.Span));
 
 		/// <summary>Deserializes a tuple segment into an <see cref="SByte"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2571,16 +2408,7 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Deserializes a tuple segment into a nullable <see cref="SByte"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static sbyte? DeserializeSByteNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeSByte(slice.Span) : null;
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="SByte"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static sbyte? DeserializeSByteNullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeSByte(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into an <see cref="Int16"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		public static short DeserializeInt16(Slice slice) => checked((short) DeserializeInt64(slice.Span));
 
 		/// <summary>Deserializes a tuple segment into an <see cref="Int16"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2589,25 +2417,11 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Deserializes a tuple segment into a nullable <see cref="Int16"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static short? DeserializeInt16Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeInt16(slice.Span) : null;
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Int16"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static short? DeserializeInt16Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeInt16(slice) : null;
 
 		/// <summary>Deserializes a tuple segment into an <see cref="Int32"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static int DeserializeInt32(Slice slice) => checked((int) DeserializeInt64(slice.Span));
-
-		/// <summary>Deserializes a tuple segment into an <see cref="Int32"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static int DeserializeInt32(ReadOnlySpan<byte> slice) => checked((int) DeserializeInt64(slice));
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Int32"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static int? DeserializeInt32Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeInt32(slice.Span) : null;
 
 		/// <summary>Deserializes a tuple segment into a nullable <see cref="Int32"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2619,15 +2433,6 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Tests if the slice corresponding to the encoding of a positive integer (including 0)</summary>
 		public static bool IsPositiveInteger(ReadOnlySpan<byte> slice) => slice.Length != 0 && (slice[0] is >= TupleTypes.IntZero and <= TupleTypes.IntPos8);
-
-		/// <summary>Deserializes a tuple segment into an <see cref="Int64"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		public static long DeserializeInt64(Slice slice) => DeserializeInt64(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Int64"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static long? DeserializeInt64Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeInt64(slice.Span) : null;
 
 		/// <summary>Deserializes a tuple segment into an Int64, if possible</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2723,16 +2528,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into an <see cref="Byte"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static byte DeserializeByte(Slice slice) => checked((byte) DeserializeUInt64(slice.Span));
-
-		/// <summary>Deserializes a tuple segment into an <see cref="Byte"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static byte DeserializeByte(ReadOnlySpan<byte> slice) => checked((byte) DeserializeUInt64(slice));
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Byte"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static byte? DeserializeByteNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeByte(slice.Span) : null;
 
 		/// <summary>Deserializes a tuple segment into a nullable <see cref="Byte"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2741,16 +2537,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into an <see cref="UInt16"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static ushort DeserializeUInt16(Slice slice) => checked((ushort) DeserializeUInt64(slice.Span));
-
-		/// <summary>Deserializes a tuple segment into an <see cref="UInt16"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static ushort DeserializeUInt16(ReadOnlySpan<byte> slice) => checked((ushort) DeserializeUInt64(slice));
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="UInt16"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ushort? DeserializeUInt16Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeUInt16(slice.Span) : null;
 
 		/// <summary>Deserializes a tuple segment into a nullable <see cref="UInt16"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2759,31 +2546,12 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a slice into an <see cref="UInt32"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static uint DeserializeUInt32(Slice slice) => checked((uint) DeserializeUInt64(slice.Span));
-
-		/// <summary>Deserializes a slice into an <see cref="UInt32"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static uint DeserializeUInt32(ReadOnlySpan<byte> slice) => checked((uint) DeserializeUInt64(slice));
 
 		/// <summary>Deserializes a tuple segment into a nullable <see cref="UInt32"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static uint? DeserializeUInt32Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeUInt32(slice.Span) : null;
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="UInt32"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static uint? DeserializeUInt32Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeUInt32(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into an <see cref="UInt64"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong DeserializeUInt64(Slice slice) => DeserializeUInt64(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="UInt64"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static ulong? DeserializeUInt64Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeUInt64(slice.Span) : null;
 
 		/// <summary>Deserializes a tuple segment into an <see cref="UInt64"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2856,16 +2624,6 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static ulong? DeserializeUInt64Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeUInt64(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="Single"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float DeserializeSingle(Slice slice) => DeserializeSingle(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Single"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static float? DeserializeSingleNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeSingle(slice.Span) : null;
 
 		/// <summary>Deserializes a tuple segment into a <see cref="Single"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -2987,16 +2745,6 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static float? DeserializeSingleNullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeSingle(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="Double"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static double DeserializeDouble(Slice slice) => DeserializeDouble(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Double"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static double? DeserializeDoubleNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeDouble(slice.Span) : null;
 
 		/// <summary>Deserialize a tuple segment into a <see cref="Double"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -3334,19 +3082,6 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <returns>DateTime in UTC</returns>
 		/// <remarks>The returned DateTime will be in UTC, because the original TimeZone details are lost.</remarks>
-		public static DateTime DeserializeDateTime(Slice slice) => DeserializeDateTime(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="DateTime"/> (UTC)</summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <returns>DateTime in UTC</returns>
-		/// <remarks>The returned DateTime will be in UTC, because the original TimeZone details are lost.</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static DateTime? DeserializeDateTimeNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeDateTime(slice.Span) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="DateTime"/> (UTC)</summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <returns>DateTime in UTC</returns>
-		/// <remarks>The returned DateTime will be in UTC, because the original TimeZone details are lost.</remarks>
 		public static DateTime DeserializeDateTime(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return DateTime.MinValue; //TODO: fail ?
@@ -3398,19 +3133,6 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <remarks>The returned DateTime will be in UTC, because the original TimeZone details are lost.</remarks>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static DateTime? DeserializeDateTimeNullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeDateTime(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="DateTimeOffset"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <returns>DateTime in UTC</returns>
-		/// <remarks>The returned DateTimeOffset will be in UTC if converted value did not specify any offset.</remarks>
-		public static DateTimeOffset DeserializeDateTimeOffset(Slice slice) => DeserializeDateTimeOffset(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="DateTimeOffset"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <returns>DateTime in UTC</returns>
-		/// <remarks>The returned DateTimeOffset will be in UTC if converted value did not specify any offset.</remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static DateTimeOffset? DeserializeDateTimeOffsetNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeDateTimeOffset(slice.Span) : null;
 
 		/// <summary>Deserializes a tuple segment into a <see cref="DateTimeOffset"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -3470,15 +3192,6 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into a <see cref="TimeSpan"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static TimeSpan DeserializeTimeSpan(Slice slice) => DeserializeTimeSpan(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="TimeSpan"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static TimeSpan? DeserializeTimeSpanNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeTimeSpan(slice.Span) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="TimeSpan"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static TimeSpan DeserializeTimeSpan(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return TimeSpan.Zero; //TODO: fail ?
@@ -3530,15 +3243,6 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into a Unicode character</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static char DeserializeChar(Slice slice) => DeserializeChar(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable Unicode character</summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static char? DeserializeCharNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeChar(slice.Span) : null;
-
-		/// <summary>Deserializes a tuple segment into a Unicode character</summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static char DeserializeChar(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return '\0';
@@ -3579,10 +3283,6 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static char? DeserializeCharNullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeChar(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into a Unicode string</summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		public static string? DeserializeString(Slice slice) => DeserializeString(slice.Span);
 
 		/// <summary>Deserializes a tuple segment into a Unicode string</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -3725,15 +3425,6 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into a <see cref="Guid"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static Guid DeserializeGuid(Slice slice) => DeserializeGuid(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Guid"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Guid? DeserializeGuidNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeGuid(slice.Span) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="Guid"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <param name="value">Corresponding value</param>
 		public static bool TryDeserializeGuid(ReadOnlySpan<byte> slice, out Guid value)
 		{
@@ -3801,15 +3492,6 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into a <see cref="Uuid128"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static Uuid128 DeserializeUuid128(Slice slice) => DeserializeUuid128(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Uuid128"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid128? DeserializeUuid128Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeUuid128(slice.Span) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="Uuid128"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static Uuid128 DeserializeUuid128(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return Uuid128.Empty;
@@ -3845,15 +3527,6 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid128? DeserializeUuid128Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeUuid128(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="Uuid96"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		public static Uuid96 DeserializeUuid96(Slice slice) => DeserializeUuid96(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Uuid96"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid96? DeserializeUuid96Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeUuid96(slice.Span) : null;
 
 		/// <summary>Deserializes a tuple segment into a <see cref="Uuid96"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -3894,15 +3567,6 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into a <see cref="Uuid80"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static Uuid80 DeserializeUuid80(Slice slice) => DeserializeUuid80(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Uuid80"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid80? DeserializeUuid80Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeUuid80(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into a <see cref="Uuid80"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
 		public static Uuid80 DeserializeUuid80(ReadOnlySpan<byte> slice)
 		{
 			if (slice.Length == 0) return Uuid80.Empty;
@@ -3939,15 +3603,6 @@ namespace SnowBank.Data.Tuples.Binary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid80? DeserializeUuid80Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeUuid80(slice) : null;
 
-		/// <summary>Deserializes a tuple segment into a <see cref="Uuid64"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		public static Uuid64 DeserializeUuid64(Slice slice) => DeserializeUuid64(slice.Span);
-
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="Uuid64"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Uuid64? DeserializeUuid64Nullable(Slice slice) => !IsNilSegment(slice) ? DeserializeUuid64(slice) : null;
-
 		/// <summary>Deserializes a tuple segment into 64-bit UUID</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <param name="value">Corresponding value</param>
@@ -3969,7 +3624,7 @@ namespace SnowBank.Data.Tuples.Binary
 					return true;
 				}
 				case TupleTypes.Bytes:
-				{ // expect binary representation as a 16-byte array
+				{ // expect binary representation as an 8-byte array
 					if (TupleParser.TryParseBytes(slice, out var bytes))
 					{
 						return Uuid64.TryRead(bytes, out value);
@@ -3990,9 +3645,9 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case >= TupleTypes.IntZero and <= TupleTypes.IntPos8:
 				{ // expect 64-bit number
-					if (TupleParser.TryParseInt64(type, slice, out var l))
+					if (TupleParser.TryParseUInt64(type, slice, out var l))
 					{
-						value = new Uuid64(l);
+						value = Uuid64.FromUInt64(l);
 						return true;
 					}
 					break;
@@ -4019,7 +3674,7 @@ namespace SnowBank.Data.Tuples.Binary
 					return Uuid64.Empty;
 				}
 				case TupleTypes.Bytes:
-				{ // expect binary representation as a 16-byte array
+				{ // expect binary representation as an 8-byte array
 					return Uuid64.Read(TupleParser.ParseBytes(slice));
 				}
 				case TupleTypes.Utf8:
@@ -4032,7 +3687,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case >= TupleTypes.IntZero and <= TupleTypes.IntPos8:
 				{ // expect 64-bit number
-					return new Uuid64(TupleParser.ParseInt64(type, slice));
+					return Uuid64.FromUInt64(TupleParser.ParseUInt64(type, slice));
 				}
 				default:
 				{
@@ -4047,14 +3702,44 @@ namespace SnowBank.Data.Tuples.Binary
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Uuid64? DeserializeUuid64Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeUuid64(slice) : null;
 
-		/// <summary>Deserializes a tuple segment into a <see cref="VersionStamp"/></summary>
+		/// <summary>Deserializes a tuple segment into 64-bit UUID</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		public static VersionStamp DeserializeVersionStamp(Slice slice) => DeserializeVersionStamp(slice.Span);
+		public static Uuid48 DeserializeUuid48(ReadOnlySpan<byte> slice)
+		{
+			if (slice.Length == 0) return Uuid48.Empty;
 
-		/// <summary>Deserializes a tuple segment into a nullable <see cref="VersionStamp"/></summary>
+			int type = slice[0];
+
+			switch (type)
+			{
+				case TupleTypes.Nil:
+				{
+					return Uuid48.Empty;
+				}
+				case TupleTypes.Bytes:
+				{ // expect binary representation as a 6-byte array
+					return Uuid48.Read(TupleParser.ParseBytes(slice));
+				}
+				case TupleTypes.Utf8:
+				{ // expect text representation
+					return Uuid48.Parse(TupleParser.ParseUnicode(slice));
+				}
+				case >= TupleTypes.IntZero and <= TupleTypes.IntPos8:
+				{ // expect 48-bit number
+					return Uuid48.FromUInt64(TupleParser.ParseUInt64(type, slice));
+				}
+				default:
+				{
+					// we don't support negative numbers!
+					throw new FormatException($"Cannot convert tuple segment of type 0x{type:X} into an Uuid48");
+				}
+			}
+		}
+
+		/// <summary>Deserializes a tuple segment into a nullable <see cref="Uuid64"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static VersionStamp? DeserializeVersionStampNullable(Slice slice) => !IsNilSegment(slice) ? DeserializeVersionStamp(slice.Span) : null;
+		public static Uuid48? DeserializeUuid48Nullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeUuid48(slice) : null;
 
 		/// <summary>Deserializes a tuple segment into a <see cref="VersionStamp"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -4104,10 +3789,6 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="slice">Slice that contains a single packed element</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static VersionStamp? DeserializeVersionStampNullable(ReadOnlySpan<byte> slice) => !IsNilSegment(slice) ? DeserializeVersionStamp(slice) : null;
-
-		/// <summary>Deserializes a tuple segment into an <see cref="System.Net.IPAddress"/></summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		public static System.Net.IPAddress? DeserializeIpAddress(Slice slice) => DeserializeIpAddress(slice.Span);
 
 		/// <summary>Deserializes a tuple segment into an <see cref="System.Net.IPAddress"/></summary>
 		/// <param name="slice">Slice that contains a single packed element</param>

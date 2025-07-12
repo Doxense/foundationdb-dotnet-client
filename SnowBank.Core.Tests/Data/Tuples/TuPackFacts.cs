@@ -548,84 +548,84 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(TuplePackers.DeserializeBoxed(slice), Is.EqualTo(value), $"DeserializeBoxed({encoded})");
 
 				// int64
-				Assert.That(TuplePackers.DeserializeInt64(slice), Is.EqualTo(value), $"DeserializeInt64({encoded})");
+				Assert.That(TuplePackers.DeserializeInt64(slice.Span), Is.EqualTo(value), $"DeserializeInt64({encoded})");
 				Assert.That(TuplePacker<long>.Deserialize(slice), Is.EqualTo(value), $"Deserialize<long>({encoded})");
 
 				// uint64
 				if (value >= 0)
 				{
-					Assert.That(TuplePackers.DeserializeUInt64(slice), Is.EqualTo((ulong) value), $"DeserializeUInt64({encoded})");
+					Assert.That(TuplePackers.DeserializeUInt64(slice.Span), Is.EqualTo((ulong) value), $"DeserializeUInt64({encoded})");
 					Assert.That(TuplePacker<ulong>.Deserialize(slice), Is.EqualTo((ulong) value), $"Deserialize<ulong>({encoded})");
 				}
 				else
 				{
-					Assert.That(() => TuplePackers.DeserializeUInt64(slice), Throws.InstanceOf<OverflowException>(), $"DeserializeUInt64({encoded})");
+					Assert.That(() => TuplePackers.DeserializeUInt64(slice.Span), Throws.InstanceOf<OverflowException>(), $"DeserializeUInt64({encoded})");
 				}
 
 				// int32
 				if (value <= int.MaxValue && value >= int.MinValue)
 				{
-					Assert.That(TuplePackers.DeserializeInt32(slice), Is.EqualTo((int) value), $"DeserializeInt32({encoded})");
+					Assert.That(TuplePackers.DeserializeInt32(slice.Span), Is.EqualTo((int) value), $"DeserializeInt32({encoded})");
 					Assert.That(TuplePacker<long>.Deserialize(slice), Is.EqualTo((int) value), $"Deserialize<int>({encoded})");
 				}
 				else
 				{
-					Assert.That(() => TuplePackers.DeserializeInt32(slice), Throws.InstanceOf<OverflowException>(), $"DeserializeInt32({encoded})");
+					Assert.That(() => TuplePackers.DeserializeInt32(slice.Span), Throws.InstanceOf<OverflowException>(), $"DeserializeInt32({encoded})");
 				}
 
 				// uint32
 				if (value <= uint.MaxValue && value >= 0)
 				{
-					Assert.That(TuplePackers.DeserializeUInt32(slice), Is.EqualTo((uint) value), $"DeserializeUInt32({encoded})");
+					Assert.That(TuplePackers.DeserializeUInt32(slice.Span), Is.EqualTo((uint) value), $"DeserializeUInt32({encoded})");
 					Assert.That(TuplePacker<uint>.Deserialize(slice), Is.EqualTo((uint) value), $"Deserialize<uint>({encoded})");
 				}
 				else
 				{
-					Assert.That(() => TuplePackers.DeserializeUInt32(slice), Throws.InstanceOf<OverflowException>(), $"DeserializeUInt32({encoded})");
+					Assert.That(() => TuplePackers.DeserializeUInt32(slice.Span), Throws.InstanceOf<OverflowException>(), $"DeserializeUInt32({encoded})");
 				}
 
 				// int16
 				if (value <= short.MaxValue && value >= short.MinValue)
 				{
-					Assert.That(TuplePackers.DeserializeInt16(slice), Is.EqualTo((short) value), $"DeserializeInt16({encoded})");
+					Assert.That(TuplePackers.DeserializeInt16(slice.Span), Is.EqualTo((short) value), $"DeserializeInt16({encoded})");
 					Assert.That(TuplePacker<short>.Deserialize(slice), Is.EqualTo((short) value), $"Deserialize<short>({encoded})");
 				}
 				else
 				{
-					Assert.That(() => TuplePackers.DeserializeInt16(slice), Throws.InstanceOf<OverflowException>(), $"DeserializeInt16({encoded})");
+					Assert.That(() => TuplePackers.DeserializeInt16(slice.Span), Throws.InstanceOf<OverflowException>(), $"DeserializeInt16({encoded})");
 				}
 
 				// uint16
 				if (value <= ushort.MaxValue && value >= 0)
 				{
-					Assert.That(TuplePackers.DeserializeUInt16(slice), Is.EqualTo((ushort) value), $"DeserializeUInt16({encoded})");
+					Assert.That(TuplePackers.DeserializeUInt16(slice.Span), Is.EqualTo((ushort) value), $"DeserializeUInt16({encoded})");
 					Assert.That(TuplePacker<ushort>.Deserialize(slice), Is.EqualTo((ushort) value), $"Deserialize<ushort>({encoded})");
 				}
 				else
 				{
-					Assert.That(() => TuplePackers.DeserializeUInt16(slice), Throws.InstanceOf<OverflowException>(), $"DeserializeUInt16({encoded})");
+					Assert.That(() => TuplePackers.DeserializeUInt16(slice.Span), Throws.InstanceOf<OverflowException>(), $"DeserializeUInt16({encoded})");
 				}
 
 				// sbyte
 				if (value <= sbyte.MaxValue && value >= sbyte.MinValue)
 				{
-					Assert.That(TuplePackers.DeserializeSByte(slice), Is.EqualTo((sbyte) value), $"DeserializeSByte({encoded})");
+					Assert.That(TuplePackers.DeserializeSByte(slice.Span), Is.EqualTo((sbyte) value), $"DeserializeSByte({encoded})");
 					Assert.That(TuplePacker<sbyte>.Deserialize(slice), Is.EqualTo((sbyte) value), $"Deserialize<sbyte>({encoded})");
 				}
 				else
 				{
-					Assert.That(() => TuplePackers.DeserializeSByte(slice), Throws.InstanceOf<OverflowException>(), $"DeserializeSByte({encoded})");
+					Assert.That(() => TuplePackers.DeserializeSByte(slice.Span), Throws.InstanceOf<OverflowException>(), $"DeserializeSByte({encoded})");
 				}
 
 				// byte
 				if (value <= 255 && value >= 0)
 				{
-					Assert.That(TuplePackers.DeserializeByte(slice), Is.EqualTo((byte) value), $"DeserializeByte({encoded})");
+					Assert.That(TuplePackers.DeserializeByte(slice.Span), Is.EqualTo((byte) value), $"DeserializeByte({encoded})");
 					Assert.That(TuplePacker<byte>.Deserialize(slice), Is.EqualTo((byte) value), $"Deserialize<byte>({encoded})");
 				}
 				else
 				{
-					Assert.That(() => TuplePackers.DeserializeByte(slice), Throws.InstanceOf<OverflowException>(), $"DeserializeByte({encoded})");
+					Assert.That(() => TuplePackers.DeserializeByte(slice.Span), Throws.InstanceOf<OverflowException>(), $"DeserializeByte({encoded})");
 				}
 			}
 

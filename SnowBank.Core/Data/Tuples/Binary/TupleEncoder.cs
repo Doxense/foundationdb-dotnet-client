@@ -30,6 +30,7 @@
 
 namespace SnowBank.Data.Tuples.Binary
 {
+	using System.Buffers;
 	using System.Runtime.InteropServices;
 	using SnowBank.Data.Tuples;
 	using SnowBank.Data.Binary;
@@ -395,7 +396,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 1-tuple</summary>
 		[Pure]
-		public static bool TryPackTo<T1>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in ValueTuple<T1?> items)
+		public static bool TryPackTo<T1>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in STuple<T1> items)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
 			if (!tw.TryWriteLiteral(prefix) || !TuplePackers.TrySerializeTo(ref tw, items.Item1))
@@ -410,7 +411,22 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 1-tuple</summary>
 		[Pure]
-		public static Slice Pack<T1>(ReadOnlySpan<byte> prefix, in ValueTuple<T1?> items)
+		public static bool TryPackTo<T1>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in ValueTuple<T1> items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix) || !TuplePackers.TrySerializeTo(ref tw, items.Item1))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 1-tuple</summary>
+		[Pure]
+		public static Slice Pack<T1>(ReadOnlySpan<byte> prefix, in ValueTuple<T1> items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -447,7 +463,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 2-tuple</summary>
 		[Pure]
-		public static bool TryPackTo<T1, T2>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1?, T2?) items)
+		public static bool TryPackTo<T1, T2>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in STuple<T1, T2> items)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
 			if (!tw.TryWriteLiteral(prefix)
@@ -464,7 +480,24 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 2-tuple</summary>
 		[Pure]
-		public static Slice Pack<T1, T2>(ReadOnlySpan<byte> prefix, in (T1?, T2?) items)
+		public static bool TryPackTo<T1, T2>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1, T2) items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item1)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item2))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 2-tuple</summary>
+		[Pure]
+		public static Slice Pack<T1, T2>(ReadOnlySpan<byte> prefix, in (T1, T2) items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -502,7 +535,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 3-tuple</summary>
 		[Pure]
-		public static bool TryPackTo<T1, T2, T3>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?) items)
+		public static bool TryPackTo<T1, T2, T3>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3> items)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
 			if (!tw.TryWriteLiteral(prefix)
@@ -519,7 +552,25 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 3-tuple</summary>
-		public static Slice Pack<T1, T2, T3>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?) items)
+		[Pure]
+		public static bool TryPackTo<T1, T2, T3>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1, T2, T3) items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item1)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item2)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item3))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 3-tuple</summary>
+		public static Slice Pack<T1, T2, T3>(ReadOnlySpan<byte> prefix, in (T1, T2, T3) items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -559,7 +610,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 4-tuple</summary>
 		[Pure]
-		public static bool TryPackTo<T1, T2, T3, T4>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?) items)
+		public static bool TryPackTo<T1, T2, T3, T4>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4> items)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
 			if (!tw.TryWriteLiteral(prefix)
@@ -577,7 +628,26 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 4-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?) items)
+		[Pure]
+		public static bool TryPackTo<T1, T2, T3, T4>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4) items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item1)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item2)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item3)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item4))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 4-tuple</summary>
+		public static Slice Pack<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4) items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -619,7 +689,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 5-tuple</summary>
 		[Pure]
-		public static bool TryPackTo<T1, T2, T3, T4, T5>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?) items)
+		public static bool TryPackTo<T1, T2, T3, T4, T5>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5> items)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
 			if (!tw.TryWriteLiteral(prefix)
@@ -638,7 +708,27 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 5-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?) items)
+		[Pure]
+		public static bool TryPackTo<T1, T2, T3, T4, T5>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5) items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item1)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item2)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item3)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item4)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item5))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 5-tuple</summary>
+		public static Slice Pack<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5) items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -682,7 +772,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 6-tuple</summary>
 		[Pure]
-		public static bool TryPackTo<T1, T2, T3, T4, T5, T6>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?) items)
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6> items)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
 			if (!tw.TryWriteLiteral(prefix)
@@ -702,7 +792,28 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 6-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?) items)
+		[Pure]
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6) items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item1)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item2)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item3)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item4)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item5)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item6))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 6-tuple</summary>
+		public static Slice Pack<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6) items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -748,7 +859,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 7-tuple</summary>
 		[Pure]
-		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?) items)
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6, T7> items)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
 			if (!tw.TryWriteLiteral(prefix)
@@ -769,7 +880,29 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 7-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?) items)
+		[Pure]
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7) items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item1)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item2)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item3)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item4)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item5)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item6)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item7))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 7-tuple</summary>
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7) items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -817,7 +950,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
 		[Pure]
-		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7, T8>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) items)
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7, T8>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> items)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
 			if (!tw.TryWriteLiteral(prefix)
@@ -839,7 +972,30 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) items)
+		[Pure]
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7, T8>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7, T8) items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item1)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item2)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item3)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item4)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item5)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item6)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item7)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item8))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7, T8) items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -874,7 +1030,7 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of an 9-tuple</summary>
-		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> prefix, in (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) items)
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7, T8, T9) items)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
@@ -889,6 +1045,240 @@ namespace SnowBank.Data.Tuples.Binary
 			TuplePackers.SerializeTo(tw, items.Item8);
 			TuplePackers.SerializeTo(tw, items.Item9);
 			return sw.ToSlice();
+		}
+
+		// SliceOwner/ArrayPool
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 1-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in ValueTuple<T1> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 1-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in STuple<T1> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 2-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in STuple<T1, T2> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 2-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in (T1, T2) items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 3-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 3-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in (T1, T2, T3) items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 4-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 4-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4) items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 5-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4, T5>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 5-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4, T5>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5) items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 6-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4, T5, T6>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 6-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4, T5, T6>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6) items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 7-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4, T5, T6, T7>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6, T7> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			TuplePackers.SerializeTo(tw, items.Item7);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a 7-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4, T5, T6, T7>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7) items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			TuplePackers.SerializeTo(tw, items.Item7);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4, T5, T6, T7, T8>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			TuplePackers.SerializeTo(tw, items.Item7);
+			TuplePackers.SerializeTo(tw, items.Item8);
+			return sw.ToSliceOwner();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of an 8-tuple</summary>
+		[Pure]
+		public static SliceOwner Pack<T1, T2, T3, T4, T5, T6, T7, T8>(ArrayPool<byte> pool, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7, T8) items)
+		{
+			var sw = new SliceWriter(pool);
+			sw.WriteBytes(prefix);
+			var tw = new TupleWriter(ref sw);
+			TuplePackers.SerializeTo(tw, items.Item1);
+			TuplePackers.SerializeTo(tw, items.Item2);
+			TuplePackers.SerializeTo(tw, items.Item3);
+			TuplePackers.SerializeTo(tw, items.Item4);
+			TuplePackers.SerializeTo(tw, items.Item5);
+			TuplePackers.SerializeTo(tw, items.Item6);
+			TuplePackers.SerializeTo(tw, items.Item7);
+			TuplePackers.SerializeTo(tw, items.Item8);
+			return sw.ToSliceOwner();
 		}
 
 		// EncodeKey...

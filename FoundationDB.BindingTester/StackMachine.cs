@@ -486,7 +486,7 @@ namespace FoundationDB.Client.Testing
 						async (t) =>
 						{
 							var chunk = await t;
-							var res = STuple.Empty;
+							IVarTuple res = STuple.Empty;
 							foreach (var (k, v) in chunk.Items)
 							{
 								res = res.Append(k, v);

@@ -2457,6 +2457,8 @@ namespace SnowBank.Data.Tuples.Tests
 			var vs = VersionStamp.FromUuid96(u96);
 			Verify(STuple.Create(vs), $"({vs},)");
 
+			var ip = IPAddress.Parse("192.168.1.23");
+			Verify(STuple.Create(ip), "('192.168.1.23',)", "(`<C0><A8><01><17>`,)");
 		}
 
 		[Test]
@@ -2511,6 +2513,98 @@ namespace SnowBank.Data.Tuples.Tests
 			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false), "\"hello\", 123, true, \"world\", 3.141592653589793, false");
 			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false, 1.23d), "\"hello\", 123, true, \"world\", 3.141592653589793, false, 1.23");
 			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false, 1.23d, 4.56f), "\"hello\", 123, true, \"world\", 3.141592653589793, false, 1.23, 4.56");
+		}
+
+		[Test]
+		public void Test_Tuple_ISpanFormattable_TryFormat()
+		{
+
+			static void Verify<TTuple>(TTuple t, string expected)
+				where TTuple : IVarTuple, ISpanFormattable
+			{
+				Log($"# ({typeof(TTuple).GetFriendlyName()}) `{expected}` [{expected.Length}]");
+
+				// string interpolation
+				Assert.That($"***{t}***", Is.EqualTo("***" + expected + "***"));
+
+				var buffer = new char[expected.Length + 32];
+
+				// buffer with more space
+				{
+					var span = buffer.AsSpan();
+					span.Fill('_');
+					Assert.That(t.TryFormat(span, out var charsWritten, default, null), Is.True.WithOutput(charsWritten).EqualTo(expected.Length));
+					Assert.That(span[..charsWritten].ToString(), Is.EqualTo(expected));
+					Log($"> {span.Length:D02} `{span}`");
+					Assert.That(buffer.AsSpan(span.Length).ContainsAnyExcept('∅'), Is.False);
+				}
+
+				// buffer with exact space
+				{
+					buffer.AsSpan().Fill('∅');
+					var span = buffer.AsSpan(0, expected.Length);
+					span.Fill('_');
+					Assert.That(t.TryFormat(span, out var charsWritten, default, null), Is.True.WithOutput(charsWritten).EqualTo(expected.Length));
+					Assert.That(span[..charsWritten].ToString(), Is.EqualTo(expected));
+					Log($"> {span.Length:D02} `{span}`");
+					Assert.That(buffer.AsSpan(span.Length).ContainsAnyExcept('∅'), Is.False);
+				}
+
+				// all buffer sizes that are not enough
+				for (int i = expected.Length - 1; i >= 0; i--)
+				{
+					buffer.AsSpan().Fill('∅');
+					var span = buffer.AsSpan(0, i);
+					span.Fill('_');
+					Assert.That(t.TryFormat(span, out var charsWritten, default, null), Is.False.WithOutput(charsWritten).Zero, $"{expected}.TryFormat([{i}]) with buffer too small should fail");
+					Log($"> {span.Length:D02} `{span}`");
+					Assert.That(buffer.AsSpan(span.Length).ContainsAnyExcept('∅'), Is.False);
+				}
+			}
+
+			Verify(new STuple(), "()");
+			Verify(STuple.Create("hello"), "(\"hello\",)");
+			Verify(STuple.Create(123), "(123,)");
+			Verify(STuple.Create(true), "(true,)");
+			Verify(STuple.Create(false), "(false,)");
+			Verify(STuple.Create("hello", 123), "(\"hello\", 123)");
+			Verify(STuple.Create("hello", 123, true), "(\"hello\", 123, true)");
+			Verify(STuple.Create("hello", 123, true, "world"), "(\"hello\", 123, true, \"world\")");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI), "(\"hello\", 123, true, \"world\", 3.141592653589793)");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false), "(\"hello\", 123, true, \"world\", 3.141592653589793, false)");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false, 1.23d), "(\"hello\", 123, true, \"world\", 3.141592653589793, false, 1.23)");
+			Verify(STuple.Create("hello", 123, true, "world", Math.PI, false, 1.23d, 4.56f), "(\"hello\", 123, true, \"world\", 3.141592653589793, false, 1.23, 4.56)");
+
+			var dt = DateTime.Now;
+			Verify(STuple.Create(dt), $"(\"{dt:O}\",)");
+
+			var dto = DateTimeOffset.Now;
+			Verify(STuple.Create(dto), $"(\"{dto:O}\",)");
+
+			var g = Guid.NewGuid();
+			Verify(STuple.Create(g), $"({g:B},)");
+
+			var u128 = Uuid128.NewUuid();
+			Verify(STuple.Create(u128), $"({u128:B},)");
+
+			var u96 = Uuid96.NewUuid();
+			Verify(STuple.Create(u96), $"({u96:B},)");
+
+			var u80 = Uuid80.NewUuid();
+			Verify(STuple.Create(u80), $"({u80:B},)");
+
+			var u64 = Uuid64.NewUuid();
+			Verify(STuple.Create(u64), $"({u64:B},)");
+
+			var u48 = Uuid48.NewUuid();
+			Verify(STuple.Create(u48), $"({u48:B},)");
+
+			var vs = VersionStamp.FromUuid96(u96);
+			Verify(STuple.Create(vs), $"({vs},)");
+
+			Verify(STuple.Create(IPAddress.Loopback), "('127.0.0.1',)");
+			Verify(STuple.Create(IPAddress.Parse("192.168.1.23")), "('192.168.1.23',)");
+			Verify(STuple.Create(IPAddress.IPv6Loopback), "('::1',)");
 		}
 
 		#endregion

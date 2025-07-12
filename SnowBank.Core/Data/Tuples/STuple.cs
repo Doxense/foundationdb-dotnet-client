@@ -797,11 +797,7 @@ namespace SnowBank.Data.Tuples
 					if (typeof(T) == typeof(VersionStamp?)) { StringifyTo(ref sb, (VersionStamp) (object) item); return; }
 					// </JIT_HACK>
 
-					if (item is string s)
-					{
-						StringifyTo(ref sb, s); 
-						return;
-					}
+					if (item is string s) { StringifyTo(ref sb, s);  return; }
 				}
 
 				if (typeof(T) == typeof(object))
@@ -1029,6 +1025,7 @@ namespace SnowBank.Data.Tuples
 				byte[] bytes => Stringify(bytes.AsSlice()),
 				Slice slice => Stringify(slice),
 				ArraySegment<byte> buffer => Stringify(buffer.AsSlice()),
+				System.Net.IPAddress ip => Stringify(ip),
 				//TODO: Memory<T>, ReadOnlyMemory<T>, ...
 				IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
 				_ => item.ToString() ?? TokenNull
@@ -1044,6 +1041,7 @@ namespace SnowBank.Data.Tuples
 					case byte[] bytes:              { StringifyTo(ref sb, bytes.AsSlice()); break; }
 					case Slice slice:               { StringifyTo(ref sb, slice); break; }
 					case ArraySegment<byte> buffer: { StringifyTo(ref sb, buffer.AsSlice()); break; }
+					case System.Net.IPAddress ip:   { StringifyTo(ref sb, ip); break; }
 					case ISpanFormattable sf:       { sb.Append(sf); break; }
 					case IFormattable f:            { sb.Append(f.ToString(null, CultureInfo.InvariantCulture)); break; }
 					default:                        { sb.Append(item.ToString() ?? TokenNull); break; }
@@ -1060,6 +1058,7 @@ namespace SnowBank.Data.Tuples
 					case byte[] bytes:              return TryStringifyTo(destination, out charsWritten, bytes.AsSlice());
 					case Slice slice:               return TryStringifyTo(destination, out charsWritten, slice);
 					case ArraySegment<byte> buffer: return TryStringifyTo(destination, out charsWritten, buffer.AsSlice());
+					case System.Net.IPAddress ip:   return TryStringifyTo(destination, out charsWritten, ip);
 					case ISpanFormattable sf:       return sf.TryFormat(destination, out charsWritten, default, null);
 					case IFormattable f:            return f.ToString(null, CultureInfo.InvariantCulture).TryCopyTo(destination, out charsWritten);
 					default:                        return (item.ToString() ?? TokenNull).TryCopyTo(destination, out charsWritten);
@@ -1496,6 +1495,15 @@ namespace SnowBank.Data.Tuples
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, NodaTime.Instant item) => destination.TryWrite(CultureInfo.InvariantCulture, $"\"{item.ToDateTimeUtc():O}\"", out charsWritten);
+
+			public static string Stringify(System.Net.IPAddress? value) => value is null ? "null" : $"'{value}'";
+
+			public static void StringifyTo(ref FastStringBuilder sb, System.Net.IPAddress? value) => sb.Append(value is null ? "null" : $"'{value}'");
+
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, System.Net.IPAddress? item)
+				=> item is null
+					? "null".TryCopyTo(destination, out charsWritten)
+					: destination.TryWrite(CultureInfo.InvariantCulture, $"'{item}'", out charsWritten);
 
 			/// <summary>Converts a list of object into a displaying string, for logging/debugging purpose</summary>
 			/// <param name="items">Span of items to stringify</param>
