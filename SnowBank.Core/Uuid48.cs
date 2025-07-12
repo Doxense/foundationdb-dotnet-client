@@ -160,7 +160,9 @@ namespace System
 			// spread the upper 16 bits three times other the lower 48 bits
 			var mixed48 = mixed64 & MASK_48;
 			var upper16 = mixed64 >> 48;
-			mixed48 |= (upper16 << 32) | (upper16 << 16) | upper16;
+			mixed48 ^= (upper16 << 32);
+			mixed48 ^= (upper16 << 16);
+			mixed48 ^= upper16;
 
 			return new Uuid48(mixed48);
 		}

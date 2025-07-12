@@ -481,15 +481,50 @@ namespace SnowBank.Core.Tests
 			Assert.That(a.ToUInt64(), Is.Not.EqualTo(b.ToUInt64()));
 			Assert.That(a, Is.Not.EqualTo(b));
 
-			const int N = 1_000;
+			const int N = 10_000;
+
+			//note: this test fails from time to time because of bad luck (
+
+			List<Uuid48> collisions = [ ];
 			var uids = new HashSet<ulong>();
 			for (int i = 0; i < N; i++)
 			{
 				var uid = Uuid48.NewUuid();
-				if (uids.Contains(uid.ToUInt64())) Assert.Fail($"Duplicate Uuid48 generated: {uid}");
+				if (!uids.Add(uid.ToUInt64()))
+				{
+					collisions.Add(uid);
+					LogError($"!!! collision on {uid}");
+				}
 				uids.Add(uid.ToUInt64());
 			}
+
+			// verify the distribution of 4 bit "digits"
+			var occurrences = new int[16];
+			foreach (var x in uids)
+			{
+				var s = x.ToString("X012");
+				foreach (var c in s)
+				{
+					occurrences[c - (c <= '9' ? 48 : 55)]++;
+				}
+			}
+
+			long total = occurrences.Sum();
+			Log($"# Distribution of {total:N0} digits:");
+			double[] distrib = occurrences.Select(x => 100.0 * x / total).ToArray();
+			for (int i = 0; i < occurrences.Length; i++)
+			{
+				var p = distrib[i];
+				Log($"  - digit '{i:X}' ({i:B04}) : {occurrences[i],6:N0} : {p,5:N01}% : {new string('#', (int) Math.Round(p))}");
+			}
+
+			Log($"> Range from {distrib.Min():N03}% to {distrib.Max():N03}%");
+
+			Assert.That(collisions, Is.Empty, "Found duplicate random Uuid48");
 			Assert.That(uids.Count, Is.EqualTo(N));
+
+			// check that this falls in an acceptable range
+			Assert.That(distrib, Is.All.GreaterThan(5.75).And.LessThan(6.75), $"Distribution of digits from 0 to F should be 6.25% +/- 0.5%, but smallest is {distrib.Min()} and largest is {distrib.Max()}");
 		}
 
 		[Test]
