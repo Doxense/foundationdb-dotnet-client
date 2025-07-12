@@ -14,6 +14,8 @@ namespace FoundationDB.Client
 
 		public const int MaxSize = Fdb.MaxValueSize;
 
+		public static readonly FdbRawValue Empty = new(Slice.Empty);
+
 		public static class Binary
 		{
 
@@ -47,18 +49,35 @@ namespace FoundationDB.Client
 
 			/// <summary>Returns a value that wraps a tuple</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbValue<STuple<T1>, SpanEncoders.TupleEncoder<STuple<T1>>> Key<T1>(T1 item1)
-				=> new(new(item1));
+			public static FdbTupleValue<T1> Key<T1>(T1 item1) => new(item1);
 
 			/// <summary>Returns a value that wraps a tuple</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbValue<STuple<T1, T2>, SpanEncoders.TupleEncoder<STuple<T1, T2>>> Key<T1, T2>(T1 item1, T2 item2)
-				=> new(new(item1, item2));
+			public static FdbTupleValue<T1, T2> Key<T1, T2>(T1 item1, T2 item2) => new(item1, item2);
 
 			/// <summary>Returns a value that wraps a tuple</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbValue<STuple<T1, T2, T3>, SpanEncoders.TupleEncoder<STuple<T1, T2, T3>>> Key<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
-				=> new(new(item1, item2, item3));
+			public static FdbTupleValue<T1, T2, T3> Key<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new(item1, item2, item3);
+
+			/// <summary>Returns a value that wraps a tuple</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbTupleValue<T1, T2, T3, T4> Key<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => new(item1, item2, item3, item4);
+
+			/// <summary>Returns a value that wraps a tuple</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbTupleValue<T1, T2, T3, T4, T5> Key<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => new(item1, item2, item3, item4, item5);
+
+			/// <summary>Returns a value that wraps a tuple</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbTupleValue<T1, T2, T3, T4, T5, T6> Key<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(item1, item2, item3, item4, item5, item6);
+
+			/// <summary>Returns a value that wraps a tuple</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> Key<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(item1, item2, item3, item4, item5, item6, item7);
+
+			/// <summary>Returns a value that wraps a tuple</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> Key<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(item1, item2, item3, item4, item5, item6, item7, item8);
 
 		}
 
@@ -160,6 +179,17 @@ namespace FoundationDB.Client
 				public static FdbValue<ulong, SpanEncoders.CompactBigEndianEncoder> FromUInt64(ulong value) => new(value);
 
 			}
+
+		}
+
+		public static class Uuids
+		{
+
+			public static FdbValue<Guid, SpanEncoders.FixedSizeUuidEncoder> FromUuid128(Guid value) => new(value);
+
+			public static FdbValue<Uuid128, SpanEncoders.FixedSizeUuidEncoder> FromUuid128(Uuid128 value) => new(value);
+
+			public static FdbValue<VersionStamp, SpanEncoders.FixedSizeUuidEncoder> FromVersionStamp(VersionStamp value) => new(value);
 
 		}
 
@@ -566,6 +596,465 @@ namespace FoundationDB.Client
 
 			throw new NotSupportedException();
 		}
+
+	}
+
+	public readonly struct FdbTupleValue<T1> : IFdbValue
+	{
+
+		[SkipLocalsInit]
+		public FdbTupleValue(T1 item1)
+		{
+			this.Item1 = item1;
+		}
+
+		public readonly T1 Item1;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2> Append<T2>(T2 item2) => new(this.Item1, item2);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3> Append<T2, T3>(T2 item2, T3 item3) => new(STuple.Create(this.Item1, item2, item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5> Append<T2, T3, T4, T5>(T2 item2, T3 item3, T4 item4, T5 item5) => new(STuple.Create(this.Item1, item2, item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6> Append<T2, T3, T4, T5, T6>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(STuple.Create(this.Item1, item2, item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> Append<T2, T3, T4, T5, T6, T7>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(STuple.Create(this.Item1, item2, item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> Append<T2, T3, T4, T5, T6, T7, T8>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(STuple.Create(this.Item1, item2, item3, item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => STuple.Create(this.Item1).ToString();
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"{STuple.Create(this.Item1)}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, this.Item1);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.EncodeKey(default, this.Item1);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, STuple.Create(this.Item1));
+
+	}
+
+	public readonly struct FdbTupleValue<T1, T2> : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in STuple<T1, T2> items)
+		{
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in ValueTuple<T1, T2> items)
+		{
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(T1 item1, T2 item2)
+		{
+			this.Items = STuple.Create(item1, item2);
+		}
+
+		public readonly STuple<T1, T2> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3> Append<T3>(T3 item3) => new(STuple.Create(this.Items.Item1, this.Items.Item2, item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5> Append<T3, T4, T5>(T3 item3, T4 item4, T5 item5) => new(STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6> Append<T3, T4, T5, T6>(T3 item3, T4 item4, T5 item5, T6 item6) => new(STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> Append<T3, T4, T5, T6, T7>(T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> Append<T3, T4, T5, T6, T7, T8>(T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => this.Items.ToString();
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => this.Items.TryFormat(destination, out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleValue<T1, T2, T3> : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in STuple<T1, T2, T3> items)
+		{
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in ValueTuple<T1, T2, T3> items)
+		{
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(T1 item1, T2 item2, T3 item3)
+		{
+			this.Items = STuple.Create(item1, item2, item3);
+		}
+
+		public readonly STuple<T1, T2, T3> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4> Append<T4>(T4 item4) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5> Append<T4, T5>(T4 item4, T5 item5) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6> Append<T4, T5, T6>(T4 item4, T5 item5, T6 item6) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> Append<T4, T5, T6, T7>(T4 item4, T5 item5, T6 item6, T7 item7) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> Append<T4, T5, T6, T7, T8>(T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => this.Items.ToString();
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => this.Items.TryFormat(destination, out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleValue<T1, T2, T3, T4> : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in STuple<T1, T2, T3, T4> items)
+		{
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in ValueTuple<T1, T2, T3, T4> items)
+		{
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(T1 item1, T2 item2, T3 item3, T4 item4)
+		{
+			this.Items = STuple.Create(item1, item2, item3, item4);
+		}
+
+		public readonly STuple<T1, T2, T3, T4> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5> Append<T5>(T5 item5) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6> Append<T5, T6>(T5 item5, T6 item6) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> Append<T5, T6, T7>(T5 item5, T6 item6, T7 item7) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> Append<T5, T6, T7, T8>(T5 item5, T6 item6, T7 item7, T8 item8) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => this.Items.ToString();
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => this.Items.TryFormat(destination, out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleValue<T1, T2, T3, T4, T5> : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in STuple<T1, T2, T3, T4, T5> items)
+		{
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in ValueTuple<T1, T2, T3, T4, T5> items)
+		{
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			this.Items = STuple.Create(item1, item2, item3, item4, item5);
+		}
+
+		public readonly STuple<T1, T2, T3, T4, T5> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6> Append<T6>(T6 item6) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> Append<T6, T7>(T6 item6, T7 item7) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> Append<T6, T7, T8>(T6 item6, T7 item7, T8 item8) => new(STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => this.Items.ToString();
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => this.Items.TryFormat(destination, out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleValue<T1, T2, T3, T4, T5, T6> : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in STuple<T1, T2, T3, T4, T5, T6> items)
+		{
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in ValueTuple<T1, T2, T3, T4, T5, T6> items)
+		{
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		{
+			this.Items = STuple.Create(item1, item2, item3, item4, item5, item6);
+		}
+
+		public readonly STuple<T1, T2, T3, T4, T5, T6> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> Append<T7>(T7 item7) => new(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> Append<T7, T8>(T7 item7, T8 item8) => new(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7, item8);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => this.Items.ToString();
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => this.Items.TryFormat(destination, out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in STuple<T1, T2, T3, T4, T5, T6, T7> items)
+		{
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> items)
+		{
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		{
+			this.Items = STuple.Create(item1, item2, item3, item4, item5, item6, item7);
+		}
+
+
+		public readonly STuple<T1, T2, T3, T4, T5, T6, T7> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> Append<T8>(T8 item8) => new(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, this.Items.Item7, item8);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => this.Items.ToString();
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => this.Items.TryFormat(destination, out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in STuple<T1, T2, T3, T4, T5, T6, T7, T8> items)
+		{
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> items)
+		{
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleValue(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			this.Items = STuple.Create(item1, item2, item3, item4, item5, item6, item7, item8);
+		}
+
+		public readonly STuple<T1, T2, T3, T4, T5, T6, T7, T8> Items;
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => this.Items.ToString();
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => this.Items.TryFormat(destination, out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
 
 	}
 

@@ -281,4 +281,524 @@ namespace FoundationDB.Client
 
 	}
 
+	public readonly struct FdbTupleKey<T1> : IFdbKey
+	{
+
+		[SkipLocalsInit]
+		public FdbTupleKey(IDynamicKeySubspace subspace, T1 item1)
+		{
+			this.Subspace = subspace;
+			this.Item1 = item1;
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly T1 Item1;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2> Append<T2>(T2 item2) => new(Subspace, this.Item1, item2);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3> Append<T2, T3>(T2 item2, T3 item3) => new(this.Subspace, STuple.Create(this.Item1, item2, item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T2, T3, T4, T5>(T2 item2, T3 item3, T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T2, T3, T4, T5, T6>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T2, T3, T4, T5, T6, T7>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T2, T3, T4, T5, T6, T7, T8>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => $"[{this.Subspace}] {STuple.Create(this.Item1)}";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {STuple.Create(this.Item1)}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryEncodeKey(destination, out bytesWritten, this.Subspace.GetPrefix().Span, this.Item1);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.EncodeKey(this.Subspace.GetPrefix().Span, this.Item1);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, STuple.Create(this.Item1));
+
+	}
+
+	public readonly struct FdbTupleKey<T1, T2> : IFdbKey
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in STuple<T1, T2> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in ValueTuple<T1, T2> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, T1 item1, T2 item2)
+		{
+			this.Subspace = subspace;
+			this.Items = STuple.Create(item1, item2);
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly STuple<T1, T2> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3> Append<T3>(T3 item3) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T3, T4, T5>(T3 item3, T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T3, T4, T5, T6>(T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T3, T4, T5, T6, T7>(T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T3, T4, T5, T6, T7, T8>(T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => $"[{this.Subspace}] {this.Items}";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleKey<T1, T2, T3> : IFdbKey
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in STuple<T1, T2, T3> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3)
+		{
+			this.Subspace = subspace;
+			this.Items = STuple.Create(item1, item2, item3);
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly STuple<T1, T2, T3> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4> Append<T4>(T4 item4) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T4, T5>(T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T4, T5, T6>(T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T4, T5, T6, T7>(T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T4, T5, T6, T7, T8>(T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => $"[{this.Subspace}] {this.Items}";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleKey<T1, T2, T3, T4> : IFdbKey
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4)
+		{
+			this.Subspace = subspace;
+			this.Items = STuple.Create(item1, item2, item3, item4);
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly STuple<T1, T2, T3, T4> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T5>(T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T5, T6>(T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T5, T6, T7>(T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T5, T6, T7, T8>(T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => $"[{this.Subspace}] {this.Items}";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5> : IFdbKey
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			this.Subspace = subspace;
+			this.Items = STuple.Create(item1, item2, item3, item4, item5);
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly STuple<T1, T2, T3, T4, T5> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T6>(T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T6, T7>(T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T6, T7, T8>(T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => $"[{this.Subspace}] {this.Items}";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6> : IFdbKey
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		{
+			this.Subspace = subspace;
+			this.Items = STuple.Create(item1, item2, item3, item4, item5, item6);
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly STuple<T1, T2, T3, T4, T5, T6> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T7>(T7 item7) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T7, T8>(T7 item7, T8 item8) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7, item8);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => $"[{this.Subspace}] {this.Items}";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> : IFdbKey
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		{
+			this.Subspace = subspace;
+			this.Items = STuple.Create(item1, item2, item3, item4, item5, item6, item7);
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly STuple<T1, T2, T3, T4, T5, T6, T7> Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T8>(T8 item8) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, this.Items.Item7, item8);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => $"[{this.Subspace}] {this.Items}";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
+
+	}
+
+	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> : IFdbKey
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items;
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> items)
+		{
+			this.Subspace = subspace;
+			this.Items = items.ToSTuple();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey(IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			this.Subspace = subspace;
+			this.Items = STuple.Create(item1, item2, item3, item4, item5, item6, item7, item8);
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly STuple<T1, T2, T3, T4, T5, T6, T7, T8> Items;
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider) => $"[{this.Subspace}] {this.Items}";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
+
+		/// <inheritdoc />
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
+
+	}
+
 }
