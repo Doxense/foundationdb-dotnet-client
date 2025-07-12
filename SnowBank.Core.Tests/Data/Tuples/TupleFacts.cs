@@ -59,6 +59,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(t0.Count, Is.Zero);
 			Assert.That(t0.ToArray(), Is.EqualTo(Array.Empty<object>()));
 			Assert.That(t0.ToString(), Is.EqualTo("()"));
+			Assert.That(t0.ToString(null, null), Is.EqualTo("()"));
+			Assert.That($"***{t0}***", Is.EqualTo("***()***"));
 			Assert.That(t0, Is.InstanceOf<STuple>());
 			Assert.That(((IVarTuple) t0)[0, 0], Is.EqualTo(STuple.Empty));
 			Assert.That(((IVarTuple) t0)[..], Is.EqualTo(STuple.Empty));
@@ -81,6 +83,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(((IVarTuple)t1)[0], Is.EqualTo("hello world"));
 			Assert.That(t1.ToArray(), Is.EqualTo(new object[] { "hello world" }));
 			Assert.That(t1.ToString(), Is.EqualTo("(\"hello world\",)"));
+			Assert.That(t1.ToString(null, null), Is.EqualTo("(\"hello world\",)"));
+			Assert.That($"***{t1}***", Is.EqualTo("***(\"hello world\",)***"));
 			Assert.That(t1, Is.InstanceOf<STuple<string>>());
 			Assert.That(t1[0, 1], Is.EqualTo(t1));
 			Assert.That(t1[..], Is.EqualTo(t1));
@@ -170,6 +174,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(((IVarTuple) t2)[1], Is.EqualTo(123));
 			Assert.That(t2.ToArray(), Is.EqualTo(new object[] { "hello world", 123 }));
 			Assert.That(t2.ToString(), Is.EqualTo("(\"hello world\", 123)"));
+			Assert.That(t2.ToString(null, null), Is.EqualTo("(\"hello world\", 123)"));
+			Assert.That($"***{t2}***", Is.EqualTo("***(\"hello world\", 123)***"));
 			Assert.That(t2, Is.InstanceOf<STuple<string, int>>());
 			Assert.That(t2[0, 2], Is.EqualTo(t2));
 			Assert.That(t2[0, 1], Is.EqualTo(STuple.Create("hello world")));
@@ -243,6 +249,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			var t3 = STuple.Create("hello world", 123, false);
 			Log(t3);
+			Assert.That(t3, Is.InstanceOf<STuple<string, int, bool>>());
 			Assert.That(t3.Count, Is.EqualTo(3));
 			Assert.That(t3.Item1, Is.EqualTo("hello world"));
 			Assert.That(t3.Item2, Is.EqualTo(123));
@@ -255,7 +262,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(((IVarTuple) t3)[2], Is.False);
 			Assert.That(t3.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false }));
 			Assert.That(t3.ToString(), Is.EqualTo(@"(""hello world"", 123, false)"));
-			Assert.That(t3, Is.InstanceOf<STuple<string, int, bool>>());
+			Assert.That(t3.ToString(null, null), Is.EqualTo("(\"hello world\", 123, false)"));
+			Assert.That($"***{t3}***", Is.EqualTo("***(\"hello world\", 123, false)***"));
 
 			Assert.That(((IVarTuple) t3)[^1], Is.EqualTo(false));
 			Assert.That(((IVarTuple) t3)[^2], Is.EqualTo(123));
@@ -348,6 +356,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			var t4 = STuple.Create("hello world", 123, false, 1234L);
 			Log(t4);
+			Assert.That(t4, Is.InstanceOf<STuple<string, int, bool, long>>());
 			Assert.That(t4.Count, Is.EqualTo(4));
 			Assert.That(t4.Item1, Is.EqualTo("hello world"));
 			Assert.That(t4.Item2, Is.EqualTo(123));
@@ -363,7 +372,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(((IVarTuple) t4)[3], Is.EqualTo(1234L));
 			Assert.That(t4.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L}));
 			Assert.That(t4.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234)"));
-			Assert.That(t4, Is.InstanceOf<STuple<string, int, bool, long>>());
+			Assert.That(t4.ToString(null, null), Is.EqualTo("(\"hello world\", 123, false, 1234)"));
+			Assert.That($"***{t4}***", Is.EqualTo("***(\"hello world\", 123, false, 1234)***"));
 
 			Assert.That(((IVarTuple) t4)[^1], Is.EqualTo(1234L));
 			Assert.That(((IVarTuple) t4)[^2], Is.EqualTo(false));
@@ -465,6 +475,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			var t5 = STuple.Create("hello world", 123, false, 1234L, -1234);
 			Log(t5);
+			Assert.That(t5, Is.InstanceOf<STuple<string, int, bool, long, int>>());
 			Assert.That(t5.Count, Is.EqualTo(5));
 			Assert.That(t5.Item1, Is.EqualTo("hello world"));
 			Assert.That(t5.Item2, Is.EqualTo(123));
@@ -483,7 +494,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(((IVarTuple) t5)[4], Is.EqualTo(-1234));
 			Assert.That(t5.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234 }));
 			Assert.That(t5.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234, -1234)"));
-			Assert.That(t5, Is.InstanceOf<STuple<string, int, bool, long, int>>());
+			Assert.That(t5.ToString(null, null), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234)"));
+			Assert.That($"***{t5}***", Is.EqualTo("***(\"hello world\", 123, false, 1234, -1234)***"));
 
 			Assert.That(((IVarTuple) t5)[^1], Is.EqualTo(-1234));
 			Assert.That(((IVarTuple) t5)[^2], Is.EqualTo(1234L));
@@ -589,6 +601,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			var t6 = STuple.Create("hello world", 123, false, 1234L, -1234, "six");
 			Log(t6);
+			Assert.That(t6, Is.InstanceOf<STuple<string, int, bool, long, int, string>>());
 			Assert.That(t6.Count, Is.EqualTo(6));
 			Assert.That(t6.Item1, Is.EqualTo("hello world"));
 			Assert.That(t6.Item2, Is.EqualTo(123));
@@ -610,7 +623,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(((IVarTuple) t6)[5], Is.EqualTo("six"));
 			Assert.That(t6.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234, "six" }));
 			Assert.That(t6.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234, -1234, ""six"")"));
-			Assert.That(t6, Is.InstanceOf<STuple<string, int, bool, long, int, string>>());
+			Assert.That(t6.ToString(null, null), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234, \"six\")"));
+			Assert.That($"***{t6}***", Is.EqualTo("***(\"hello world\", 123, false, 1234, -1234, \"six\")***"));
 
 			Assert.That(((IVarTuple) t6)[^1], Is.EqualTo("six"));
 			Assert.That(((IVarTuple) t6)[^2], Is.EqualTo(-1234));
@@ -721,6 +735,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			var t7 = STuple.Create("hello world", 123, false, 1234L, -1234, "six", 777);
 			Log(t7);
+			Assert.That(t7, Is.InstanceOf<STuple<string, int, bool, long, int, string, int>>());
 			Assert.That(t7.Count, Is.EqualTo(7));
 			Assert.That(t7.Item1, Is.EqualTo("hello world"));
 			Assert.That(t7.Item2, Is.EqualTo(123));
@@ -745,7 +760,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(((IVarTuple) t7)[6], Is.EqualTo(777));
 			Assert.That(t7.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234, "six", 777 }));
 			Assert.That(t7.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234, -1234, ""six"", 777)"));
-			Assert.That(t7, Is.InstanceOf<STuple<string, int, bool, long, int, string, int>>());
+			Assert.That(t7.ToString(null, null), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234, \"six\", 777)"));
+			Assert.That($"***{t7}***", Is.EqualTo("***(\"hello world\", 123, false, 1234, -1234, \"six\", 777)***"));
 
 			Assert.That(((IVarTuple) t7)[^1], Is.EqualTo(777));
 			Assert.That(((IVarTuple) t7)[^2], Is.EqualTo("six"));
@@ -853,6 +869,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			var t8 = STuple.Create("hello world", 123, false, 1234L, -1234, "six", 777, "eight");
 			Log(t8);
+			Assert.That(t8, Is.InstanceOf<STuple<string, int, bool, long, int, string, int, string>>());
 			Assert.That(t8.Count, Is.EqualTo(8));
 			Assert.That(t8.Item1, Is.EqualTo("hello world"));
 			Assert.That(t8.Item2, Is.EqualTo(123));
@@ -880,7 +897,8 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(((IVarTuple) t8)[7], Is.EqualTo("eight"));
 			Assert.That(t8.ToArray(), Is.EqualTo(new object[] { "hello world", 123, false, 1234L, -1234, "six", 777, "eight" }));
 			Assert.That(t8.ToString(), Is.EqualTo(@"(""hello world"", 123, false, 1234, -1234, ""six"", 777, ""eight"")"));
-			Assert.That(t8, Is.InstanceOf<STuple<string, int, bool, long, int, string, int, string>>());
+			Assert.That(t8.ToString(null, null), Is.EqualTo("(\"hello world\", 123, false, 1234, -1234, \"six\", 777, \"eight\")"));
+			Assert.That($"***{t8}***", Is.EqualTo("***(\"hello world\", 123, false, 1234, -1234, \"six\", 777, \"eight\")***"));
 
 			Assert.That(((IVarTuple) t8)[^1], Is.EqualTo("eight"));
 			Assert.That(((IVarTuple) t8)[^2], Is.EqualTo(777));

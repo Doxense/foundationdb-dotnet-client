@@ -48,6 +48,7 @@ namespace SnowBank.Data.Tuples
 		, IComparable
 		, ITupleSpanPackable
 		, ITupleFormattable
+		, ISpanFormattable
 	{
 		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -306,7 +307,11 @@ namespace SnowBank.Data.Tuples
 			return GetEnumerator();
 		}
 
-		public override string ToString()
+		/// <inheritdoc />
+		public override string ToString() => ToString(null, null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? provider = null)
 		{
 			var sb = new FastStringBuilder(stackalloc char[128]);
 			sb.Append('(');
@@ -319,6 +324,30 @@ namespace SnowBank.Data.Tuples
 			STuple.Formatter.StringifyTo(ref sb, this.Item4);
 			sb.Append(')');
 			return sb.ToString();
+		}
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+		{
+			var buffer = destination;
+			if (!buffer.TryAppendAndAdvance('(')) goto too_small;
+			if (!STuple.Formatter.TryStringifyTo(buffer, out charsWritten, this.Item1)) goto too_small;
+			buffer = buffer[charsWritten..];
+			if (!buffer.TryAppendAndAdvance(", ")) goto too_small;
+			if (!STuple.Formatter.TryStringifyTo(buffer, out charsWritten, this.Item2)) goto too_small;
+			buffer = buffer[charsWritten..];
+			if (!buffer.TryAppendAndAdvance(", ")) goto too_small;
+			if (!STuple.Formatter.TryStringifyTo(buffer, out charsWritten, this.Item3)) goto too_small;
+			buffer = buffer[charsWritten..];
+			if (!buffer.TryAppendAndAdvance(", ")) goto too_small;
+			if (!STuple.Formatter.TryStringifyTo(buffer, out charsWritten, this.Item4)) goto too_small;
+			buffer = buffer[charsWritten..];
+			if (!buffer.TryAppendAndAdvance(')')) goto too_small;
+			charsWritten = destination.Length - buffer.Length;
+			return true;
+		too_small:
+			charsWritten = 0;
+			return false;
 		}
 
 		public override bool Equals(object? obj)

@@ -727,6 +727,20 @@ namespace SnowBank.Data.Tuples
 			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
+		/// <summary>Returns the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7}"/></summary>
+		[Pure]
+		public static STuple<T1, T2, T3, T4, T5, T6, T7> ToSTuple<T1, T2, T3, T4, T5, T6, T7>(this (T1, T2, T3, T4, T5, T6, T7) tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
+		}
+
+		/// <summary>Returns the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7,T8}"/></summary>
+		[Pure]
+		public static STuple<T1, T2, T3, T4, T5, T6, T7, T8> ToSTuple<T1, T2, T3, T4, T5, T6, T7, T8>(this (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
+		{
+			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8);
+		}
+
 		/// <summary>Returns a new tuple with the concatenation of this tuple and another tuple</summary>
 		[Pure]
 		public static ValueTuple<T1, T2> Concat<T1, T2>(this ValueTuple<T1> t1, ValueTuple<T2> t2) => (t1.Item1, t2.Item1);

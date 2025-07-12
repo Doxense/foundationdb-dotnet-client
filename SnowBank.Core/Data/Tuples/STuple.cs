@@ -28,6 +28,7 @@ namespace SnowBank.Data.Tuples
 {
 	using System.Collections;
 	using System.Globalization;
+	using System.Numerics;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
 	using SnowBank.Data.Tuples.Binary;
@@ -42,6 +43,7 @@ namespace SnowBank.Data.Tuples
 		, IEquatable<STuple>, IComparable<STuple>, IComparable
 		, ITupleSpanPackable
 		, ITupleFormattable
+		, ISpanFormattable
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
@@ -123,10 +125,13 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		public override string ToString()
-		{
-			return "()";
-		}
+		public override string ToString() => "()";
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? provider = null) => "()";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null) => "()".TryCopyTo(destination, out charsWritten);
 
 		/// <inheritdoc />
 		public override int GetHashCode()
@@ -809,6 +814,84 @@ namespace SnowBank.Data.Tuples
 				}
 			}
 
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo<T>(Span<char> destination, out int charsWritten, T? item)
+			{
+				if (item is null)
+				{
+					return TokenNull.TryCopyTo(destination, out charsWritten);
+				}
+
+				if (default(T) is not null)
+				{
+					// <JIT_HACK>!
+					if (typeof(T) == typeof(int))                  return TryStringifyTo(destination, out charsWritten, (int) (object) item);
+					if (typeof(T) == typeof(uint))                 return TryStringifyTo(destination, out charsWritten, (uint) (object) item);
+					if (typeof(T) == typeof(long))                 return TryStringifyTo(destination, out charsWritten, (long) (object) item);
+					if (typeof(T) == typeof(ulong))                return TryStringifyTo(destination, out charsWritten, (ulong) (object) item);
+					if (typeof(T) == typeof(bool))                 return TryStringifyTo(destination, out charsWritten, (bool) (object) item);
+					if (typeof(T) == typeof(char))                 return TryStringifyTo(destination, out charsWritten, (char) (object) item);
+					if (typeof(T) == typeof(Slice))                return TryStringifyTo(destination, out charsWritten, (Slice) (object) item);
+					if (typeof(T) == typeof(double))               return TryStringifyTo(destination, out charsWritten, (double) (object) item);
+					if (typeof(T) == typeof(float))                return TryStringifyTo(destination, out charsWritten, (float) (object) item);
+					if (typeof(T) == typeof(decimal))              return TryStringifyTo(destination, out charsWritten, (decimal) (object) item);
+					if (typeof(T) == typeof(Guid))                 return TryStringifyTo(destination, out charsWritten, (Guid) (object) item);
+					if (typeof(T) == typeof(Uuid128))              return TryStringifyTo(destination, out charsWritten, (Uuid128) (object) item);
+					if (typeof(T) == typeof(Uuid96))               return TryStringifyTo(destination, out charsWritten, (Uuid96) (object) item);
+					if (typeof(T) == typeof(Uuid80))               return TryStringifyTo(destination, out charsWritten, (Uuid80) (object) item);
+					if (typeof(T) == typeof(Uuid64))               return TryStringifyTo(destination, out charsWritten, (Uuid64) (object) item);
+					if (typeof(T) == typeof(Uuid48))               return TryStringifyTo(destination, out charsWritten, (Uuid48) (object) item);
+					if (typeof(T) == typeof(DateTime))             return TryStringifyTo(destination, out charsWritten, (DateTime) (object) item);
+					if (typeof(T) == typeof(DateTimeOffset))       return TryStringifyTo(destination, out charsWritten, (DateTimeOffset) (object) item);
+					if (typeof(T) == typeof(NodaTime.Instant))     return TryStringifyTo(destination, out charsWritten, (NodaTime.Instant) (object) item);
+					if (typeof(T) == typeof(VersionStamp))         return TryStringifyTo(destination, out charsWritten, (VersionStamp) (object) item);
+					if (typeof(T) == typeof(ArraySegment<byte>))   return TryStringifyTo(destination, out charsWritten, ((ArraySegment<byte>) (object) item).AsSlice());
+					if (typeof(T) == typeof(ReadOnlyMemory<byte>)) return TryStringifyTo(destination, out charsWritten, ((ReadOnlyMemory<byte>) (object) item).Span);
+					if (typeof(T) == typeof(BigInteger))           return TryStringifyTo(destination, out charsWritten, (BigInteger) (object) item);
+					// </JIT_HACK>
+				}
+				else
+				{
+					// <JIT_HACK>!
+					if (typeof(T) == typeof(int?))              return TryStringifyTo(destination, out charsWritten, (int) (object) item);
+					if (typeof(T) == typeof(uint?))             return TryStringifyTo(destination, out charsWritten, (uint) (object) item);
+					if (typeof(T) == typeof(long?))             return TryStringifyTo(destination, out charsWritten, (long) (object) item);
+					if (typeof(T) == typeof(ulong?))            return TryStringifyTo(destination, out charsWritten, (ulong) (object) item);
+					if (typeof(T) == typeof(bool?))             return TryStringifyTo(destination, out charsWritten, (bool) (object) item);
+					if (typeof(T) == typeof(char?))             return TryStringifyTo(destination, out charsWritten, (char) (object) item);
+					if (typeof(T) == typeof(Slice?))            return TryStringifyTo(destination, out charsWritten, (Slice) (object) item);
+					if (typeof(T) == typeof(double?))           return TryStringifyTo(destination, out charsWritten, (double) (object) item);
+					if (typeof(T) == typeof(float?))            return TryStringifyTo(destination, out charsWritten, (float) (object) item);
+					if (typeof(T) == typeof(decimal?))          return TryStringifyTo(destination, out charsWritten, (decimal) (object) item);
+					if (typeof(T) == typeof(Guid?))             return TryStringifyTo(destination, out charsWritten, (Guid) (object) item);
+					if (typeof(T) == typeof(Uuid128?))          return TryStringifyTo(destination, out charsWritten, (Uuid128) (object) item);
+					if (typeof(T) == typeof(Uuid96?))           return TryStringifyTo(destination, out charsWritten, (Uuid96) (object) item);
+					if (typeof(T) == typeof(Uuid80?))           return TryStringifyTo(destination, out charsWritten, (Uuid80) (object) item);
+					if (typeof(T) == typeof(Uuid64?))           return TryStringifyTo(destination, out charsWritten, (Uuid64) (object) item);
+					if (typeof(T) == typeof(Uuid48?))           return TryStringifyTo(destination, out charsWritten, (Uuid48) (object) item);
+					if (typeof(T) == typeof(DateTime?))         return TryStringifyTo(destination, out charsWritten, (DateTime) (object) item);
+					if (typeof(T) == typeof(DateTimeOffset?))   return TryStringifyTo(destination, out charsWritten, (DateTimeOffset) (object) item);
+					if (typeof(T) == typeof(NodaTime.Instant?)) return TryStringifyTo(destination, out charsWritten, (NodaTime.Instant) (object) item);
+					if (typeof(T) == typeof(VersionStamp?))     return TryStringifyTo(destination, out charsWritten, (VersionStamp) (object) item);
+					if (typeof(T) == typeof(BigInteger?))       return TryStringifyTo(destination, out charsWritten, (BigInteger) (object) item);
+					// </JIT_HACK>
+
+					if (item is string s)
+					{
+						return TryStringifyTo(destination, out charsWritten, s); 
+					}
+				}
+
+				if (typeof(T) == typeof(object))
+				{
+					return TryStringifyBoxedTo(destination, out charsWritten, item); // probably a List<object?> or ReadOnlySpan<object?> that was misrouted here instead of StringifyBoxed!
+				}
+				else
+				{
+					return TryStringifyInternalTo(destination, out charsWritten, item);
+				}
+			}
+
 			/// <summary>Converts any object into a displayable string, for logging/debugging purpose</summary>
 			/// <param name="item">Object to stringify</param>
 			/// <returns>String representation of the object</returns>
@@ -895,6 +978,49 @@ namespace SnowBank.Data.Tuples
 				StringifyInternalTo(ref sb, item);
 			}
 
+			/// <summary>Converts any object into a displayable string, for logging/debugging purpose</summary>
+			/// <param name="item">Object to stringify</param>
+			/// <returns>String representation of the object</returns>
+			/// <example>
+			/// Stringify(null) => "nil"
+			/// Stringify("hello") => "\"hello\""
+			/// Stringify(123) => "123"
+			/// Stringify(123.4d) => "123.4"
+			/// Stringify(true) => "true"
+			/// Stringify('Z') => "'Z'"
+			/// Stringify((Slice)...) => hexadecimal string ("01 23 45 67 89 AB CD EF")
+			/// </example>
+			internal static bool TryStringifyBoxedTo(Span<char> destination, out int charsWritten, object? item)
+			{
+				switch (item)
+				{
+					case null:               return TokenNull.TryCopyTo(destination, out charsWritten);
+					case string s:           return TryStringifyTo(destination, out charsWritten, s);
+					case int i:              return TryStringifyTo(destination, out charsWritten, i);
+					case long l:             return TryStringifyTo(destination, out charsWritten, l);
+					case uint u:             return TryStringifyTo(destination, out charsWritten, u);
+					case ulong ul:           return TryStringifyTo(destination, out charsWritten, ul);
+					case bool b:             return TryStringifyTo(destination, out charsWritten, b);
+					case char c:             return TryStringifyTo(destination, out charsWritten, c);
+					case Slice sl:           return TryStringifyTo(destination, out charsWritten, sl);
+					case double d:           return TryStringifyTo(destination, out charsWritten, d);
+					case float f:            return TryStringifyTo(destination, out charsWritten, f);
+					case Guid guid:          return TryStringifyTo(destination, out charsWritten, guid);
+					case Uuid128 u128:       return TryStringifyTo(destination, out charsWritten, u128);
+					case Uuid96 u96:         return TryStringifyTo(destination, out charsWritten, u96);
+					case Uuid80 u80:         return TryStringifyTo(destination, out charsWritten, u80);
+					case Uuid64 u64:         return TryStringifyTo(destination, out charsWritten, u64);
+					case Uuid48 u48:         return TryStringifyTo(destination, out charsWritten, u48);
+					case DateTime dt:        return TryStringifyTo(destination, out charsWritten, dt);
+					case DateTimeOffset dto: return TryStringifyTo(destination, out charsWritten, dto);
+					case NodaTime.Instant t: return TryStringifyTo(destination, out charsWritten, t);
+					case VersionStamp vs:    return TryStringifyTo(destination, out charsWritten, vs);
+				}
+
+				// some other type
+				return TryStringifyInternalTo(destination, out charsWritten, item);
+			}
+
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			private static string StringifyInternal(object? item) => item switch
 			{
@@ -924,6 +1050,22 @@ namespace SnowBank.Data.Tuples
 				}
 			}
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			private static bool TryStringifyInternalTo(Span<char> destination, out int charsWritten, object? item)
+			{
+				switch (item)
+				{
+					case null:                      return TokenNull.TryCopyTo(destination, out charsWritten);
+					case string s:                  return TryStringifyTo(destination, out charsWritten, s);
+					case byte[] bytes:              return TryStringifyTo(destination, out charsWritten, bytes.AsSlice());
+					case Slice slice:               return TryStringifyTo(destination, out charsWritten, slice);
+					case ArraySegment<byte> buffer: return TryStringifyTo(destination, out charsWritten, buffer.AsSlice());
+					case ISpanFormattable sf:       return sf.TryFormat(destination, out charsWritten, default, null);
+					case IFormattable f:            return f.ToString(null, CultureInfo.InvariantCulture).TryCopyTo(destination, out charsWritten);
+					default:                        return (item.ToString() ?? TokenNull).TryCopyTo(destination, out charsWritten);
+				}
+			}
+
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
@@ -934,7 +1076,11 @@ namespace SnowBank.Data.Tuples
 			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
 			public static void StringifyTo(ref FastStringBuilder sb, string? item)
 			{
-				if (string.IsNullOrEmpty(item))
+				if (item is null)
+				{
+					sb.Append("null");
+				}
+				else if (item.Length == 0)
 				{
 					sb.Append("\"\""); //BUGBUG: maybe output 'null' ?
 				}
@@ -948,12 +1094,34 @@ namespace SnowBank.Data.Tuples
 			}
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, string? item)
+			{
+				if (item is null)
+				{
+					return "null".TryCopyTo(destination, out charsWritten);
+				}
+				if (item.Length == 0)
+				{
+					return "\"\"".TryCopyTo(destination, out charsWritten);
+				}
+
+				//BUGBUG: TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
+				return destination.TryWrite(CultureInfo.InvariantCulture, $"\"{item}\"", out charsWritten);
+			}
+
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(bool item) => item ? TokenTrue : TokenFalse;
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, bool item) => sb.Append(item ? TokenTrue : TokenFalse);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, bool item) => (item ? "true" : "false").TryCopyTo(destination, out charsWritten);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -964,12 +1132,20 @@ namespace SnowBank.Data.Tuples
 			public static void StringifyTo(ref FastStringBuilder sb, int item) => sb.Append(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, int item) => item.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(uint item) => StringConverters.ToString(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, uint item) => sb.Append(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, uint item) => item.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -980,12 +1156,20 @@ namespace SnowBank.Data.Tuples
 			public static void StringifyTo(ref FastStringBuilder sb, long item) => sb.Append(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, long item) => item.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ulong item) => StringConverters.ToString(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, ulong item) => sb.Append(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, ulong item) => item.TryFormat(destination, out charsWritten, default, CultureInfo.InvariantCulture);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -996,12 +1180,20 @@ namespace SnowBank.Data.Tuples
 			public static void StringifyTo(ref FastStringBuilder sb, double item) => sb.Append(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, double item) => item.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(float item) => item.ToString("R", CultureInfo.InvariantCulture);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, float item) => sb.Append(item);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, float item) => item.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1017,12 +1209,25 @@ namespace SnowBank.Data.Tuples
 			public static void StringifyTo(ref FastStringBuilder sb, decimal item) => sb.Append(item);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, decimal item)
+#if NET8_0_OR_GREATER
+				=> item.TryFormat(destination, out charsWritten, "R", CultureInfo.InvariantCulture);
+#else
+				=> item.TryFormat(destination, out charsWritten, "G", CultureInfo.InvariantCulture);
+#endif
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static string Stringify(System.Numerics.BigInteger item) => item.ToString("D", NumberFormatInfo.InvariantInfo);
+			public static string Stringify(BigInteger item) => item.ToString("D", NumberFormatInfo.InvariantInfo);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void StringifyTo(ref FastStringBuilder sb, System.Numerics.BigInteger item) => sb.Append(item, "D");
+			public static void StringifyTo(ref FastStringBuilder sb, BigInteger item) => sb.Append(item, "D");
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, BigInteger item) => item.TryFormat(destination, out charsWritten, "D", CultureInfo.InvariantCulture);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1036,6 +1241,10 @@ namespace SnowBank.Data.Tuples
 				sb.Append(item); //BUGBUG: TODO: escape !
 				sb.Append('\'');
 			}
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, char item) => destination.TryWrite($"'{item}'", out charsWritten);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1056,6 +1265,19 @@ namespace SnowBank.Data.Tuples
 					sb.Append('`');
 				}
 				;
+			}
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, ReadOnlySpan<byte> item)
+			{
+				if (item.Length == 0)
+				{
+					return "``".TryCopyTo(destination, out charsWritten);
+				}
+
+				//TODO: BUGBUG: PERF: implement a TryDump() ??
+				return destination.TryWrite($"`{Slice.Dump(item, item.Length)}`", out charsWritten);
 			}
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
@@ -1084,6 +1306,17 @@ namespace SnowBank.Data.Tuples
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, Slice item)
+			{
+				if (item.Count == 0)
+				{
+					return (item.IsNull ? "null" : "``").TryCopyTo(destination, out charsWritten);
+				}
+				return destination.TryWrite($"`{item}`", out charsWritten);
+			}
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(byte[]? item) => item == null ? "null" : item.Length == 0 ? "``" : ('`' + Slice.Dump(item, item.Length) + '`');
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
@@ -1108,11 +1341,31 @@ namespace SnowBank.Data.Tuples
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, byte[]? item)
+			{
+				return item is null ? "null".TryCopyTo(destination, out charsWritten)
+					: item.Length == 0 ? "``".TryCopyTo(destination, out charsWritten)
+					: destination.TryWrite($"`{new Slice(item)}`", out charsWritten);
+			}
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(ArraySegment<byte> item) => Stringify(item.AsSlice());
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, ArraySegment<byte> item) => StringifyTo(ref sb, item.AsSlice());
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, ArraySegment<byte> item)
+			{
+				if (item.Count == 0)
+				{
+					return (item.Array is null ? "null" : "``").TryCopyTo(destination, out charsWritten);
+				}
+				return destination.TryWrite($"`{item.AsSlice()}`", out charsWritten);
+			}
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1123,12 +1376,20 @@ namespace SnowBank.Data.Tuples
 			public static void StringifyTo(ref FastStringBuilder sb, Guid item) => sb.Append(item, "B"); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, Guid item) => item.TryFormat(destination, out charsWritten, "B");
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid128 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, Uuid128 item) => sb.Append(item, "B"); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, Uuid128 item) => item.TryFormat(destination, out charsWritten, "B");
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1139,12 +1400,20 @@ namespace SnowBank.Data.Tuples
 			public static void StringifyTo(ref FastStringBuilder sb, Uuid96 item) => sb.Append(item, "B"); /* {XXXXXXXX-XXXXXXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, Uuid96 item) => item.TryFormat(destination, out charsWritten, "B");
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid80 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXX-XXXXXXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, Uuid80 item) => sb.Append(item, "B"); /* {XXXX-XXXXXXXX-XXXXXXXX} */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, Uuid80 item) => item.TryFormat(destination, out charsWritten, "B");
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1155,6 +1424,10 @@ namespace SnowBank.Data.Tuples
 			public static void StringifyTo(ref FastStringBuilder sb, Uuid64 item) => sb.Append(item, "B"); /* {XXXXXXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, Uuid64 item) => item.TryFormat(destination, out charsWritten, "B");
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(Uuid48 item) => item.ToString("B", CultureInfo.InstalledUICulture); /* {XXXX-XXXXXXXX} */
 
@@ -1163,12 +1436,20 @@ namespace SnowBank.Data.Tuples
 			public static void StringifyTo(ref FastStringBuilder sb, Uuid48 item) => sb.Append(item, "B"); /* {XXXX-XXXXXXXX} */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, Uuid48 item) => item.TryFormat(destination, out charsWritten, "B");
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(VersionStamp item) => item.ToString(); /* @xxxxx-xx#xx */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, VersionStamp item) => sb.Append(item); /* @xxxxx-xx#xx */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, VersionStamp item) => item.TryFormat(destination, out charsWritten);
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1184,6 +1465,10 @@ namespace SnowBank.Data.Tuples
 			}
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, DateTime item) => destination.TryWrite(CultureInfo.InvariantCulture, $"\"{item:O}\"", out charsWritten);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(DateTimeOffset item) => "\"" + item.ToString("O", CultureInfo.InvariantCulture) + "\""; /* "yyyy-mm-ddThh:mm:ss.ffffff+hh:mm" */
 
@@ -1197,12 +1482,20 @@ namespace SnowBank.Data.Tuples
 			}
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, DateTimeOffset item) => destination.TryWrite(CultureInfo.InvariantCulture, $"\"{item:O}\"", out charsWritten);
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static string Stringify(NodaTime.Instant item) => Stringify(item.ToDateTimeUtc()); /* "yyyy-mm-ddThh:mm:ss.ffffff" */
 
 			/// <summary>Encodes a value into a tuple text literal</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static void StringifyTo(ref FastStringBuilder sb, NodaTime.Instant item) => StringifyTo(ref sb, item.ToDateTimeUtc()); /* "yyyy-mm-ddThh:mm:ss.ffffff" */
+
+			/// <summary>Encodes a value into a tuple text literal</summary>
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryStringifyTo(Span<char> destination, out int charsWritten, NodaTime.Instant item) => destination.TryWrite(CultureInfo.InvariantCulture, $"\"{item.ToDateTimeUtc():O}\"", out charsWritten);
 
 			/// <summary>Converts a list of object into a displaying string, for logging/debugging purpose</summary>
 			/// <param name="items">Span of items to stringify</param>
