@@ -217,7 +217,13 @@ namespace SnowBank.Data.Tuples
 			return STuple.Formatter.AppendItemsTo(ref sb, m_items.Span);
 		}
 
-		public override string ToString()
+		/// <summary>Returns a human-readable representation of this tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override string ToString() => ToString(null, null);
+
+		/// <summary>Returns a human-readable representation of this tuple</summary>
+		[Pure]
+		public string ToString(string? format, IFormatProvider? provider = null)
 		{
 			return STuple.Formatter.ToString(m_items.Span);
 		}

@@ -182,7 +182,13 @@ namespace SnowBank.Data.Tuples
 			return n + 1;
 		}
 
-		public override string ToString()
+		/// <summary>Returns a human-readable representation of this tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override string ToString() => ToString(null, null);
+
+		/// <summary>Returns a human-readable representation of this tuple</summary>
+		[Pure]
+		public string ToString(string? format, IFormatProvider? provider = null)
 		{
 			var sb = new FastStringBuilder(stackalloc char[128]);
 			sb.Append('(');

@@ -426,7 +426,12 @@ namespace SnowBank.Data.Tuples.Binary
 		IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		/// <summary>Returns a human-readable representation of this tuple</summary>
-		public override string ToString()
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override string ToString() => ToString(null, null);
+
+		/// <summary>Returns a human-readable representation of this tuple</summary>
+		[Pure]
+		public string ToString(string? format, IFormatProvider? provider = null)
 		{
 			var sb = new FastStringBuilder(stackalloc char[128]);
 			ToString(ref sb);

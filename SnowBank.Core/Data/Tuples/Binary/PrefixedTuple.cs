@@ -150,7 +150,13 @@ namespace SnowBank.Data.Tuples.Binary
 			return this.GetEnumerator();
 		}
 
-		public override string ToString()
+		/// <summary>Returns a human-readable representation of this tuple</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override string ToString() => ToString(null, null);
+
+		/// <summary>Returns a human-readable representation of this tuple</summary>
+		[Pure]
+		public string ToString(string? format, IFormatProvider? provider = null)
 		{
 			//TODO: should we add the prefix to the string representation ?
 			// => something like "<prefix>(123, 'abc', true)"
