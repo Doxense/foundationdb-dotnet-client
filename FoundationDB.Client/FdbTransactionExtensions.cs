@@ -212,6 +212,14 @@ namespace FoundationDB.Client
 		public static Task<int> GetValueInt32Async(this IFdbReadOnlyTransaction trans, Slice key, int missingValue)
 			=> GetValueInt32Async(trans, ToSpanKey(key), missingValue);
 
+		/// <inheritdoc cref="GetValueInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},int)"/>
+		public static Task<int> GetValueInt32Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key, int missingValue)
+			where TKey : struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			return GetValueInt32Async(trans, keyBytes.Span, missingValue);
+		}
+
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 32-bit unsigned integer</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -476,6 +484,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set(this IFdbTransaction trans, Slice key, Slice value)
 			=> trans.Set(ToSpanKey(key), ToSpanValue(value));
 
@@ -486,6 +495,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set(this IFdbTransaction trans, ReadOnlySpan<byte> key, Slice value)
 			=> trans.Set(key, ToSpanValue(value));
 
@@ -496,8 +506,70 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set(this IFdbTransaction trans, Slice key, ReadOnlySpan<byte> value)
 			=> trans.Set(ToSpanKey(key), value);
+
+		/// <inheritdoc cref="Set{TKey}(FoundationDB.Client.IFdbTransaction,in TKey,System.ReadOnlySpan{byte})"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Set<TKey>(this IFdbTransaction trans, in TKey key, Slice value)
+			where TKey : struct, IFdbKey
+			=> Set<TKey>(trans, in key, ToSpanKey(value));
+
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		public static void Set<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
+			where TKey : struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+
+			trans.Set(keyBytes.Span, value);
+		}
+
+		/// <inheritdoc cref="Set{TValue}(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},in TValue)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Set<TValue>(this IFdbTransaction trans, Slice key, in TValue value)
+			where TValue : struct, IFdbValue
+			=> Set<TValue>(trans, ToSpanKey(key), in value);
+
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		public static void Set<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
+			where TValue : struct, IFdbValue
+		{
+			using var valueBytes = value.ToSlice(ArrayPool<byte>.Shared);
+
+			trans.Set(key, valueBytes.Span);
+		}
+
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		public static void Set<TKey, TValue>(this IFdbTransaction trans, in TKey key, in TValue value)
+			where TKey : struct, IFdbKey
+			where TValue : struct, IFdbValue
+		{
+			var pool = ArrayPool<byte>.Shared;
+
+			using var keyBytes = key.ToSlice(pool);
+			using var valueBytes = value.ToSlice(pool);
+
+			trans.Set(keyBytes.Span, valueBytes.Span);
+		}
 
 		/// <summary>Set the value of a key in the database, using a custom value encoder.</summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -505,6 +577,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to set</param>
 		/// <param name="value">Value of the key</param>
 		/// <param name="encoder">Encoder used to convert <paramref name="value"/> into a binary literal.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TValue>(this IFdbTransaction trans, Slice key, IValueEncoder<TValue> encoder, TValue value)
 			=> Set<TValue>(trans, ToSpanKey(key), encoder, value);
 
@@ -608,6 +681,7 @@ namespace FoundationDB.Client
 		#region Int32
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueInt32(this IFdbTransaction trans, Slice key, int value) => SetValueInt32(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
@@ -618,6 +692,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueInt32Compact(this IFdbTransaction trans, Slice key, int value) => SetValueInt64Compact(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
@@ -628,6 +703,7 @@ namespace FoundationDB.Client
 		#region UInt32
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUInt32(this IFdbTransaction trans, Slice key, uint value) => SetValueUInt32(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
@@ -638,6 +714,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUInt32Compact(this IFdbTransaction trans, Slice key, uint value) => SetValueUInt64Compact(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
@@ -648,6 +725,7 @@ namespace FoundationDB.Client
 		#region Int64
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueInt64(this IFdbTransaction trans, Slice key, long value) => SetValueInt64(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
@@ -658,6 +736,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueInt64Compact(this IFdbTransaction trans, Slice key, long value) => SetValueInt64Compact(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
@@ -677,6 +756,7 @@ namespace FoundationDB.Client
 		#region UInt64
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUInt64(this IFdbTransaction trans, Slice key, ulong value) => SetValueUInt64(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
@@ -687,6 +767,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUInt64Compact(this IFdbTransaction trans, Slice key, ulong value) => SetValueUInt64Compact(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
@@ -1251,6 +1332,17 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will be encoded as 4 bytes in little-endian.</param>
+		public static void AtomicAdd32<TKey>(this IFdbTransaction trans, in TKey key, int value)
+			where TKey : struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			trans.AtomicAdd32(keyBytes.Span, value);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 4 bytes in little-endian.</param>
 		public static void AtomicAdd32(this IFdbTransaction trans, ReadOnlySpan<byte> key, int value)
 		{
 			if (value == 0) return;
@@ -1266,6 +1358,17 @@ namespace FoundationDB.Client
 		/// <param name="value">Integer add to existing value of key. It will be encoded as 4 bytes in little-endian.</param>
 		public static void AtomicAdd32(this IFdbTransaction trans, Slice key, uint value)
 			=> trans.AtomicAdd32(ToSpanKey(key), value);
+
+		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 4 bytes in little-endian.</param>
+		public static void AtomicAdd32<TKey>(this IFdbTransaction trans, in TKey key, uint value)
+			where TKey : struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			trans.AtomicAdd32(keyBytes.Span, value);
+		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -1291,6 +1394,17 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Integer add to existing value of key. It will be encoded as 8 bytes in little-endian.</param>
+		public static void AtomicAdd64<TKey>(this IFdbTransaction trans, in TKey key, long value)
+			where TKey : struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			trans.AtomicAdd64(keyBytes.Span, value);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 8 bytes in little-endian.</param>
 		public static void AtomicAdd64(this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
 		{
 			if (value == 0) return;
@@ -1306,6 +1420,17 @@ namespace FoundationDB.Client
 		/// <param name="value">Integer add to existing value of key. It will be encoded as 8 bytes in little-endian.</param>
 		public static void AtomicAdd64(this IFdbTransaction trans, Slice key, ulong value)
 			=> trans.AtomicAdd64(ToSpanKey(key), value);
+
+		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Integer add to existing value of key. It will be encoded as 8 bytes in little-endian.</param>
+		public static void AtomicAdd64<TKey>(this IFdbTransaction trans, in TKey key, ulong value)
+			where TKey : struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			trans.AtomicAdd64(keyBytes.Span, value);
+		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -1442,10 +1567,8 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static NotSupportedException FailVersionStampNotSupported(int apiVersion) => new($"VersionStamps are not supported at API version {apiVersion}. You need to select at least API Version 400 or above.");
 
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
-		/// <param name="value">New value for this key.</param>
+		/// <inheritdoc cref="SetVersionStampedKey(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},System.ReadOnlySpan{byte})"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetVersionStampedKey(this IFdbTransaction trans, Slice key, Slice value)
 			=> SetVersionStampedKey(trans, ToSpanKey(key), ToSpanValue(value));
 
@@ -1484,11 +1607,8 @@ namespace FoundationDB.Client
 
 		}
 
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose start is defined by <paramref name="stampOffset"/>.</param>
-		/// <param name="stampOffset">Offset in <paramref name="key"/> where the 80-bit VersionStamp is located.</param>
-		/// <param name="value">New value for this key.</param>
+		/// <inheritdoc cref="SetVersionStampedKey(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},int,System.ReadOnlySpan{byte})"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetVersionStampedKey(this IFdbTransaction trans, Slice key, int stampOffset, Slice value)
 			=> SetVersionStampedKey(trans, ToSpanKey(key), stampOffset, ToSpanValue(value));
 
@@ -1529,17 +1649,55 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the first 10 bytes overwritten with the transaction's <see cref="VersionStamp"/>.</summary>
+		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Value whose first 10 bytes will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
+		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
+		/// <param name="value">New value for this key.</param>
+		public static void SetVersionStampedKey<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
+			where TKey: struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			trans.SetVersionStampedKey(keyBytes.Span, value);
+		}
+
+		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
+		/// <param name="value">New value for this key.</param>
+		public static void SetVersionStampedKey<TKey>(this IFdbTransaction trans, in TKey key, Slice value)
+			where TKey: struct, IFdbKey
+		{
+			trans.SetVersionStampedKey(key, ToSpanValue(value));
+		}
+
+		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
+		/// <param name="value">New value for this key.</param>
+		public static void SetVersionStampedKey<TKey, TValue>(this IFdbTransaction trans, in TKey key, in TValue value)
+			where TKey: struct, IFdbKey
+			where TValue: struct, IFdbValue
+		{
+			var pool = ArrayPool<byte>.Shared;
+
+			using var keyBytes = key.ToSlice(pool);
+			using var valueBytes = value.ToSlice(pool);
+
+			trans.SetVersionStampedKey(keyBytes.Span, valueBytes.Span);
+		}
+
+		/// <inheritdoc cref="SetVersionStampedValue(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},System.ReadOnlySpan{byte})"/>
 		public static void SetVersionStampedValue(this IFdbTransaction trans, Slice key, Slice value)
 			=> SetVersionStampedValue(trans, ToSpanKey(key), ToSpanValue(value));
 
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the first 10 bytes overwritten with the transaction's <see cref="VersionStamp"/>.</summary>
+		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Value whose first 10 bytes will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
+		/// <param name="value">Value that contains an <see cref="VersionStamp.Incomplete()"/> stamp. This part of the value will be overwritten, by the database, with the resolved <see cref="VersionStamp"/> at commit time.</param>
+		/// <remarks>
+		/// <para>Prior to API level 520, the version stamp can only be in the first 10 bytes of the value. From 520 and greater, the version stamp can be anywhere inside the value.</para>
+		/// <para>There must be only one incomplete version stamp per value, which must be equal to the value returned by <see cref="IFdbTransaction.CreateVersionStamp()"/> (or similar methods).</para>
+		/// </remarks>
 		public static void SetVersionStampedValue(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value)
 		{
 			Contract.NotNull(trans);
@@ -1576,7 +1734,68 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the first 10 bytes overwritten with the transaction's <see cref="VersionStamp"/>.</summary>
+		/// <inheritdoc cref="SetVersionStampedValue{TKey}(FoundationDB.Client.IFdbTransaction,in TKey,System.ReadOnlySpan{byte})"/>
+		public static void SetVersionStampedValue<TKey>(this IFdbTransaction trans, in TKey key, Slice value)
+			where TKey: struct, IFdbKey
+			=> SetVersionStampedValue<TKey>(trans, in key, ToSpanValue(value));
+
+		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Value that contains an <see cref="VersionStamp.Incomplete()"/> stamp. This part of the value will be overwritten, by the database, with the resolved <see cref="VersionStamp"/> at commit time.</param>
+		/// <remarks>
+		/// <para>Prior to API level 520, the version stamp can only be in the first 10 bytes of the value. From 520 and greater, the version stamp can be anywhere inside the value.</para>
+		/// <para>There must be only one incomplete version stamp per value, which must be equal to the value returned by <see cref="IFdbTransaction.CreateVersionStamp()"/> (or similar methods).</para>
+		/// </remarks>
+		public static void SetVersionStampedValue<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
+			where TKey: struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			trans.SetVersionStampedValue(keyBytes.Span, value);
+		}
+
+		/// <inheritdoc cref="SetVersionStampedValue{TValue}(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},in TValue)"/>
+		public static void SetVersionStampedValue<TValue>(this IFdbTransaction trans, Slice key, in TValue value)
+			where TValue : struct, IFdbValue
+			=> SetVersionStampedValue<TValue>(trans, ToSpanKey(key), in value);
+
+		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Value that contains an <see cref="VersionStamp.Incomplete()"/> stamp. This part of the value will be overwritten, by the database, with the resolved <see cref="VersionStamp"/> at commit time.</param>
+		/// <remarks>
+		/// <para>Prior to API level 520, the version stamp can only be in the first 10 bytes of the value. From 520 and greater, the version stamp can be anywhere inside the value.</para>
+		/// <para>There must be only one incomplete version stamp per value, which must be equal to the value returned by <see cref="IFdbTransaction.CreateVersionStamp()"/> (or similar methods).</para>
+		/// </remarks>
+		public static void SetVersionStampedValue<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
+			where TValue: struct, IFdbValue
+		{
+			using var valueBytes = value.ToSlice(ArrayPool<byte>.Shared);
+
+			trans.SetVersionStampedValue(key, valueBytes.Span);
+		}
+
+		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Value that contains an <see cref="VersionStamp.Incomplete()"/> stamp. This part of the value will be overwritten, by the database, with the resolved <see cref="VersionStamp"/> at commit time.</param>
+		/// <remarks>
+		/// <para>Prior to API level 520, the version stamp can only be in the first 10 bytes of the value. From 520 and greater, the version stamp can be anywhere inside the value.</para>
+		/// <para>There must be only one incomplete version stamp per value, which must be equal to the value returned by <see cref="IFdbTransaction.CreateVersionStamp()"/> (or similar methods).</para>
+		/// </remarks>
+		public static void SetVersionStampedValue<TKey, TValue>(this IFdbTransaction trans, in TKey key, in TValue value)
+			where TKey: struct, IFdbKey
+			where TValue: struct, IFdbValue
+		{
+			var pool = ArrayPool<byte>.Shared;
+
+			using var keyBytes = key.ToSlice(pool);
+			using var valueBytes = value.ToSlice(pool);
+
+			trans.SetVersionStampedValue(keyBytes.Span, valueBytes.Span);
+		}
+
+		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> at the given offset in the value with the resolved VersionStamp at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value of the key. The 10 bytes starting at <paramref name="stampOffset"/> will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
@@ -1584,7 +1803,7 @@ namespace FoundationDB.Client
 		public static void SetVersionStampedValue(this IFdbTransaction trans, Slice key, Slice value, int stampOffset)
 			=> SetVersionStampedValue(trans, ToSpanKey(key), ToSpanValue(value), stampOffset);
 
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the first 10 bytes overwritten with the transaction's <see cref="VersionStamp"/>.</summary>
+		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> at the given offset in the value with the resolved VersionStamp at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value of the key. The 10 bytes starting at <paramref name="stampOffset"/> will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
@@ -2017,9 +2236,19 @@ namespace FoundationDB.Client
 		#region Clear...
 
 		/// <inheritdoc cref="IFdbTransaction.Clear"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Clear(this IFdbTransaction trans, Slice key)
 		{
 			trans.Clear(ToSpanKey(key));
+		}
+
+		/// <inheritdoc cref="IFdbTransaction.Clear"/>
+		public static void Clear<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey: struct, IFdbKey
+		{
+			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			
+			trans.Clear(keyBytes.Span);
 		}
 
 		#endregion

@@ -134,8 +134,8 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await db.Root[FdbPath.Parse($"users/{user}/documents/music")].Resolve(tr).ConfigureAwait(false);
 					
-					tr.SetValueString(subspace.Encode("name"), "Albums");
-					tr.SetValueInt32(subspace.Encode("count"), count);
+					tr.Set(subspace.GetKey("name"), FdbValue.Text.FromUtf8("Albums"));
+					tr.Set(subspace.GetKey("count"), FdbValue.FixedSize.FromInt32LittleEndian(count));
 					
 					for (int i = 0; i < albums.Count; i++)
 					{
@@ -143,11 +143,11 @@ namespace FoundationDB.Client.Tests
 						var rid = ++idCounter;
 						set.Add((rid, album));
 						var json = CrystalJson.ToSlice(album, ArrayPool<byte>.Shared);
-						tr.Set(subspace.Encode(0, rid), json.Data);
-						tr.SetValueInt32(subspace.Encode(1, album.Id), rid);
-						tr.Set(subspace.Encode(2, album.Genre, rid ), Slice.Empty);
-						tr.Set(subspace.Encode(3, album.Artist, rid), Slice.Empty);
-						tr.Set(subspace.Encode(4, album.ReleaseDate.Year, rid), Slice.Empty);
+						tr.Set(subspace.GetKey(0, rid), json.Data);
+						tr.Set(subspace.GetKey(1, album.Id), FdbValue.FixedSize.FromInt32LittleEndian(rid));
+						tr.Set(subspace.GetKey(2, album.Genre, rid ), FdbValue.Empty);
+						tr.Set(subspace.GetKey(3, album.Artist, rid), FdbValue.Empty);
+						tr.Set(subspace.GetKey(4, album.ReleaseDate.Year, rid), FdbValue.Empty);
 						json.Dispose();
 					}
 				}, this.Cancellation);
