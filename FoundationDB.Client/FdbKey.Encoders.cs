@@ -26,11 +26,14 @@
 
 namespace FoundationDB.Client
 {
+	using System;
 
 	public static partial class FdbKey
 	{
 
 		public const int MaxSize = Fdb.MaxKeySize;
+
+		public static readonly FdbRawKey Nil = default;
 
 		/// <summary>Returns a key that wraps a <see cref="Slice"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -182,16 +185,64 @@ namespace FoundationDB.Client
 		[Pure, MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		bool TryEncode(Span<byte> destination, out int bytesWritten);
 
-		/// <summary>Encodes this key into <see cref="Slice"/></summary>
-		/// <returns>Slice that contains the binary representation of this key</returns>
-		[Pure]
-		Slice ToSlice();
+	}
 
-		/// <summary>Encodes this key into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
-		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
-		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this key</returns>
-		[Pure, MustDisposeResource]
-		SliceOwner ToSlice(ArrayPool<byte>? pool);
+	public readonly struct FdbRawKey : IFdbKey
+	{
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbRawKey Return(Slice slice) => new(slice);
+
+		internal FdbRawKey(Slice data)
+		{
+			this.Data = data;
+		}
+
+		public readonly Slice Data;
+
+		/// <summary>Returns <see langword="true"/> if the key is null</summary>
+		public bool IsNull
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Data.IsNull;
+		}
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => null;
+
+		/// <inheritdoc />
+		public override string ToString() => this.Data.ToString();
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider)
+			=> this.Data.ToString(format, formatProvider);
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+			=> this.Data.TryFormat(destination, out charsWritten, format, provider);
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			span = this.Data.Span;
+			return true;
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			sizeHint = this.Data.Count;
+			return true;
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			return this.Data.TryCopyTo(destination, out bytesWritten);
+		}
 
 	}
 
@@ -232,36 +283,7 @@ namespace FoundationDB.Client
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TEncoder.TryEncode(destination, out bytesWritten, in this.Data);
 
 		/// <inheritdoc />
-		[Pure]
-		public Slice ToSlice()
-		{
-			var pool = ArrayPool<byte>.Shared;
-			SpanEncoders.Encode<TEncoder, TKey>(in this.Data, pool, Fdb.MaxKeySize, out var span, out var buffer, out _);
-			var slice = span.ToSlice();
-			if (buffer is not null)
-			{
-				pool.Return(buffer);
-			}
-			return slice;
-		}
-
-		/// <inheritdoc />
-		[Pure, MustDisposeResource]
-		public SliceOwner ToSlice(ArrayPool<byte>? pool)
-		{
-			pool ??= ArrayPool<byte>.Shared;
-
-			SpanEncoders.Encode<TEncoder, TKey>(in this.Data, pool, Fdb.MaxKeySize, out var span, out var buffer, out var range);
-
-			if (buffer is null)
-			{
-				return SliceOwner.Copy(span, pool);
-			}
-			return SliceOwner.Create(buffer.AsSlice(range), pool);
-		}
-
-		/// <inheritdoc />
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? provider = null)
@@ -281,6 +303,68 @@ namespace FoundationDB.Client
 
 	}
 
+	public readonly struct FdbVarTupleKey : IFdbKey
+	{
+
+		[SkipLocalsInit]
+		public FdbVarTupleKey(IDynamicKeySubspace subspace, IVarTuple items)
+		{
+			this.Subspace = subspace;
+			this.Items = items;
+		}
+
+		public readonly IDynamicKeySubspace Subspace;
+
+		public readonly IVarTuple Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleKey Append<T1>(T1 item1) => new(this.Subspace, this.Items.Append(item1));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleKey Append<T1, T2>(T1 item1, T2 item2) => new(this.Subspace, this.Items.Append(item1, item2));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleKey Append<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new(this.Subspace, this.Items.Append(item1, item2, item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleKey Append<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleKey Append<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => this.Items.ToString()!;
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"{this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TuPack.TryPackTo(destination, out bytesWritten, in this.Items);
+
+	}
+
+
 	public readonly struct FdbTupleKey<T1> : IFdbKey
 	{
 
@@ -289,6 +373,20 @@ namespace FoundationDB.Client
 		{
 			this.Subspace = subspace;
 			this.Item1 = item1;
+		}
+
+		[SkipLocalsInit]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in STuple<T1> items)
+		{
+			this.Subspace = subspace;
+			this.Item1 = items.Item1;
+		}
+
+		[SkipLocalsInit]
+		public FdbTupleKey(IDynamicKeySubspace subspace, in ValueTuple<T1> items)
+		{
+			this.Subspace = subspace;
+			this.Item1 = items.Item1;
 		}
 
 		public readonly IDynamicKeySubspace Subspace;
@@ -320,7 +418,7 @@ namespace FoundationDB.Client
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"[{this.Subspace}] {STuple.Create(this.Item1)}", out charsWritten);
 
 		/// <inheritdoc />
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
@@ -333,12 +431,6 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryEncodeKey(destination, out bytesWritten, this.Subspace.GetPrefix().Span, this.Item1);
-
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.EncodeKey(this.Subspace.GetPrefix().Span, this.Item1);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, STuple.Create(this.Item1));
 
 	}
 
@@ -406,12 +498,6 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
-
 	}
 
 	public readonly struct FdbTupleKey<T1, T2, T3> : IFdbKey
@@ -478,12 +564,6 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
-
 	}
 
 	public readonly struct FdbTupleKey<T1, T2, T3, T4> : IFdbKey
@@ -547,12 +627,6 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
-
 	}
 
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5> : IFdbKey
@@ -613,12 +687,6 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
-
 	}
 
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6> : IFdbKey
@@ -676,12 +744,6 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
-
 	}
 
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> : IFdbKey
@@ -736,12 +798,6 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
-
 	}
 
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> : IFdbKey
@@ -792,12 +848,6 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
-
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(this.Subspace.GetPrefix().Span, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, this.Subspace.GetPrefix().Span, in this.Items);
 
 	}
 

@@ -399,7 +399,7 @@ namespace FoundationDB.Client.Tests
 				var subspace = await location.Resolve(tr);
 
 				tr.Set(subspace.GetKey("hello"), FdbValue.Text.FromUtf8("World!"));
-				tr.Set(subspace.GetKey("timestamp"), FdbValue.Compact.LittleEndian.FromInt64(ticks));
+				tr.Set(subspace.GetKey("timestamp"), FdbValue.Compact.FromInt64LittleEndian(ticks));
 
 				Span<byte> blobData = [ 42, 123, 7 ];
 				tr.Set(subspace.GetKey("blob"), blobData);

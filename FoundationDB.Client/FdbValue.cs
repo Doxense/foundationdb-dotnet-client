@@ -25,7 +25,11 @@ namespace FoundationDB.Client
 
 			/// <summary>Returns a value that wraps a byte array</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbRawValue FromBytes(byte[] value) => new(Slice.FromBytes(value));
+			public static FdbRawValue FromBytes(byte[] value) => new(value.AsSlice());
+
+			/// <summary>Returns a value that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbRawValue FromBytes(byte[] value, int start, int length) => new(value.AsSlice(start, length));
 
 			/// <summary>Returns a value that wraps a span of bytes</summary>
 			public static FdbSpanValue<byte> FromBytes(ReadOnlySpan<byte> value)
@@ -43,9 +47,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Returns a value that wraps a tuple</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbValue<TTuple, SpanEncoders.TupleEncoder<TTuple>> Pack<TTuple>(in TTuple value)
-				where TTuple : IVarTuple
-				=> new(in value);
+			public static FdbVarTupleValue Pack(IVarTuple value) => new(value);
 
 			/// <summary>Returns a value that wraps a tuple</summary>
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -84,7 +86,13 @@ namespace FoundationDB.Client
 		public static class Text
 		{
 
-			public static FdbValue<string, SpanEncoders.Utf8Encoder> FromUtf8(string? value) => new(value ?? "");
+			public static FdbValue<string, SpanEncoders.Utf8Encoder> FromUtf8(string? value) => new(value);
+
+			public static FdbValue<StringBuilder, SpanEncoders.Utf8Encoder> FromUtf8(StringBuilder? value) => new(value);
+
+			public static FdbValue<ReadOnlyMemory<char>, SpanEncoders.Utf8Encoder> FromUtf8(char[] value) => new(value.AsMemory());
+
+			public static FdbValue<ReadOnlyMemory<char>, SpanEncoders.Utf8Encoder> FromUtf8(char[] value, int start, int length) => new(value.AsMemory(start, length));
 
 			public static FdbValue<ReadOnlyMemory<char>, SpanEncoders.Utf8Encoder> FromUtf8(ReadOnlyMemory<char> value) => new(value);
 
@@ -95,90 +103,90 @@ namespace FoundationDB.Client
 		public static class FixedSize
 		{
 
-			public static class LittleEndian
-			{
-				/// <summary>Returns a value that wraps a fixed-size signed 32-bit integer, encoded as little-endian</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<int, SpanEncoders.FixedSizeLittleEndianEncoder> FromInt32(int value) => new(value);
+			#region Little Endian...
 
-				/// <summary>Returns a value that wraps a fixed-size unsigned 32-bit integer, encoded as little-endian</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<uint, SpanEncoders.FixedSizeLittleEndianEncoder> FromUInt32(uint value) => new(value);
+			/// <summary>Returns a value that wraps a fixed-size signed 32-bit integer, encoded as little-endian</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<int, SpanEncoders.FixedSizeLittleEndianEncoder> FromInt32LittleEndian(int value) => new(value);
 
-				/// <summary>Returns a value that wraps a fixed-size signed 64-bit integer, encoded as little-endian</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<long, SpanEncoders.FixedSizeLittleEndianEncoder> FromInt64(long value) => new(value);
+			/// <summary>Returns a value that wraps a fixed-size unsigned 32-bit integer, encoded as little-endian</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<uint, SpanEncoders.FixedSizeLittleEndianEncoder> FromUInt32LittleEndian(uint value) => new(value);
 
-				/// <summary>Returns a value that wraps a fixed-size unsigned 64-bit integer, encoded as little-endian</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<ulong, SpanEncoders.FixedSizeLittleEndianEncoder> FromUInt64(ulong value) => new(value);
+			/// <summary>Returns a value that wraps a fixed-size signed 64-bit integer, encoded as little-endian</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<long, SpanEncoders.FixedSizeLittleEndianEncoder> FromInt64LittleEndian(long value) => new(value);
 
-			}
+			/// <summary>Returns a value that wraps a fixed-size unsigned 64-bit integer, encoded as little-endian</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<ulong, SpanEncoders.FixedSizeLittleEndianEncoder> FromUInt64LittleEndian(ulong value) => new(value);
 
-			public static class BigEndian
-			{
-				/// <summary>Returns a value that wraps a fixed-size signed 32-bit integer, encoded as big-endian</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<int, SpanEncoders.FixedSizeBigEndianEncoder> FromInt32(int value) => new(value);
+			#endregion
 
-				/// <summary>Returns a value that wraps a fixed-size unsigned 32-bit integer, encoded as big-endian</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<uint, SpanEncoders.FixedSizeBigEndianEncoder> FromUInt32(uint value) => new(value);
+			#region Big Endian...
 
-				/// <summary>Returns a value that wraps a fixed-size signed 64-bit integer, encoded as big-endian</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<long, SpanEncoders.FixedSizeBigEndianEncoder> FromInt64(long value) => new(value);
+			/// <summary>Returns a value that wraps a fixed-size signed 32-bit integer, encoded as big-endian</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<int, SpanEncoders.FixedSizeBigEndianEncoder> FromInt32BigEndian(int value) => new(value);
 
-				/// <summary>Returns a value that wraps a fixed-size unsigned 64-bit integer, encoded as big-endian</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<ulong, SpanEncoders.FixedSizeBigEndianEncoder> FromUInt64(ulong value) => new(value);
+			/// <summary>Returns a value that wraps a fixed-size unsigned 32-bit integer, encoded as big-endian</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<uint, SpanEncoders.FixedSizeBigEndianEncoder> FromUInt32BigEndian(uint value) => new(value);
 
-			}
+			/// <summary>Returns a value that wraps a fixed-size signed 64-bit integer, encoded as big-endian</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<long, SpanEncoders.FixedSizeBigEndianEncoder> FromInt64BigEndian(long value) => new(value);
+
+			/// <summary>Returns a value that wraps a fixed-size unsigned 64-bit integer, encoded as big-endian</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<ulong, SpanEncoders.FixedSizeBigEndianEncoder> FromUInt64BigEndian(ulong value) => new(value);
+
+			#endregion
 
 		}
 
 		public static class Compact
 		{
 
-			public static class LittleEndian
-			{
-				/// <summary>Returns a key that wraps a byte array</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<int, SpanEncoders.CompactLittleEndianEncoder> FromInt32(int value) => new(value);
+			#region Little Endian...
 
-				/// <summary>Returns a key that wraps a byte array</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<uint, SpanEncoders.CompactLittleEndianEncoder> FromUInt32(uint value) => new(value);
+			/// <summary>Returns a key that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<int, SpanEncoders.CompactLittleEndianEncoder> FromInt32LittleEndian(int value) => new(value);
 
-				/// <summary>Returns a key that wraps a byte array</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<long, SpanEncoders.CompactLittleEndianEncoder> FromInt64(long value) => new(value);
+			/// <summary>Returns a key that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<uint, SpanEncoders.CompactLittleEndianEncoder> FromUInt32LittleEndian(uint value) => new(value);
 
-				/// <summary>Returns a key that wraps a byte array</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<ulong, SpanEncoders.CompactLittleEndianEncoder> FromUInt64(ulong value) => new(value);
+			/// <summary>Returns a key that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<long, SpanEncoders.CompactLittleEndianEncoder> FromInt64LittleEndian(long value) => new(value);
 
-			}
+			/// <summary>Returns a key that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<ulong, SpanEncoders.CompactLittleEndianEncoder> FromUInt64LittleEndian(ulong value) => new(value);
 
-			public static class BigEndian
-			{
-				/// <summary>Returns a key that wraps a byte array</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<int, SpanEncoders.CompactBigEndianEncoder> FromInt32(int value) => new(value);
+			#endregion
 
-				/// <summary>Returns a key that wraps a byte array</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<uint, SpanEncoders.CompactBigEndianEncoder> FromUInt32(uint value) => new(value);
+			#region Big Endian...
 
-				/// <summary>Returns a key that wraps a byte array</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<long, SpanEncoders.CompactBigEndianEncoder> FromInt64(long value) => new(value);
+			/// <summary>Returns a key that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<int, SpanEncoders.CompactBigEndianEncoder> FromInt32BigEndian(int value) => new(value);
 
-				/// <summary>Returns a key that wraps a byte array</summary>
-				[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-				public static FdbValue<ulong, SpanEncoders.CompactBigEndianEncoder> FromUInt64(ulong value) => new(value);
+			/// <summary>Returns a key that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<uint, SpanEncoders.CompactBigEndianEncoder> FromUInt32BigEndian(uint value) => new(value);
 
-			}
+			/// <summary>Returns a key that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<long, SpanEncoders.CompactBigEndianEncoder> FromInt64BigEndian(long value) => new(value);
+
+			/// <summary>Returns a key that wraps a byte array</summary>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static FdbValue<ulong, SpanEncoders.CompactBigEndianEncoder> FromUInt64BigEndian(ulong value) => new(value);
+
+			#endregion
 
 		}
 
@@ -189,6 +197,14 @@ namespace FoundationDB.Client
 
 			public static FdbValue<Uuid128, SpanEncoders.FixedSizeUuidEncoder> FromUuid128(Uuid128 value) => new(value);
 
+			public static FdbValue<Uuid96, SpanEncoders.FixedSizeUuidEncoder> FromUuid96(Uuid96 value) => new(value);
+
+			public static FdbValue<Uuid80, SpanEncoders.FixedSizeUuidEncoder> FromUuid80(Uuid80 value) => new(value);
+
+			public static FdbValue<Uuid64, SpanEncoders.FixedSizeUuidEncoder> FromUuid64(Uuid64 value) => new(value);
+
+			public static FdbValue<Uuid48, SpanEncoders.FixedSizeUuidEncoder> FromUuid48(Uuid48 value) => new(value);
+
 			public static FdbValue<VersionStamp, SpanEncoders.FixedSizeUuidEncoder> FromVersionStamp(VersionStamp value) => new(value);
 
 		}
@@ -198,25 +214,162 @@ namespace FoundationDB.Client
 	public static class FdbValueExtensions
 	{
 
-		/// <summary>Returns a pre-encoded version of a key</summary>
-		/// <typeparam name="TKey">Type of the key to pre-encode</typeparam>
-		/// <param name="key">Key to pre-encoded</param>
-		/// <returns>Key with a cached version of the encoded original</returns>
-		/// <remarks>This key can be used multiple times without re-encoding the original</remarks>
+		/// <summary>Returns a pre-encoded version of a value</summary>
+		/// <typeparam name="TValue">Type of the value to pre-encode</typeparam>
+		/// <param name="value">value to pre-encoded</param>
+		/// <returns>Value with a cached version of the encoded original</returns>
+		/// <remarks>This value can be used multiple times without re-encoding the original</remarks>
 		[Pure]
-		public static FdbRawValue Memoize<TKey>(this TKey key)
-			where TKey : struct, IFdbKey
+		public static FdbRawValue Memoize<TValue>(this TValue value)
+			where TValue : struct, IFdbValue
 		{
-			if (typeof(TKey) == typeof(FdbRawValue))
+			if (typeof(TValue) == typeof(FdbRawValue))
 			{ // already cached!
-				return (FdbRawValue) (object) key;
+				return (FdbRawValue) (object) value;
 			}
 
-			return new(key.ToSlice());
+			return new(value.ToSlice());
+		}
+
+		/// <summary>Encodes this value into <see cref="Slice"/></summary>
+		/// <param name="value">Value to encode</param>
+		/// <returns><see cref="Slice"/> that contains the binary representation of this value</returns>
+		[Pure]
+		public static Slice ToSlice<TValue>(this TValue value)
+			where TValue : struct, IFdbValue
+		{
+			if (typeof(TValue) == typeof(FdbRawKey))
+			{
+				return ((FdbRawKey) (object) value).Data;
+			}
+
+			if (value.TryGetSpan(out var span))
+			{
+				return Slice.FromBytes(span);
+			}
+
+			byte[]? tmp = null;
+			if (value.TryGetSizeHint(out var capacity))
+			{ // we will hope for the best, and pre-allocate the slice
+
+				tmp = new byte[capacity];
+				if (value.TryEncode(tmp, out var bytesWritten))
+				{
+					return tmp.AsSlice(0, bytesWritten);
+				}
+				if (capacity >= FdbValue.MaxSize)
+				{
+					goto key_too_long;
+				}
+				capacity *= 2;
+			}
+			else
+			{
+				capacity = 256;
+			}
+
+			var pool = ArrayPool<byte>.Shared;
+			try
+			{
+				while (true)
+				{
+					tmp = pool.Rent(capacity);
+					if (value.TryEncode(tmp, out int bytesWritten))
+					{
+						return tmp.AsSlice(0, bytesWritten).Copy();
+					}
+
+					pool.Return(tmp);
+					tmp = null;
+
+					if (capacity >= FdbValue.MaxSize)
+					{
+						goto key_too_long;
+					}
+					capacity *= 2;
+				}
+			}
+			catch(Exception)
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				throw;
+			}
+
+		key_too_long:
+			// it would be too large anyway!
+			throw new ArgumentException("Cannot encode value because it would exceed the maximum allowed length.");
+		}
+
+		/// <summary>Encodes this value into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
+		/// <param name="value">Value to encode</param>
+		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
+		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this value</returns>
+		[Pure, MustDisposeResource]
+		public static SliceOwner ToSlice<TValue>(this TValue value, ArrayPool<byte>? pool)
+			where TValue : struct, IFdbValue
+		{
+			pool ??= ArrayPool<byte>.Shared;
+
+			if (typeof(TValue) == typeof(FdbRawKey))
+			{
+				return SliceOwner.Wrap(((FdbRawKey) (object) value).Data);
+			}
+
+			if (value.TryGetSpan(out var span))
+			{
+				return SliceOwner.Copy(span, pool);
+			}
+
+			if (!value.TryGetSizeHint(out var capacity))
+			{ // we will hope for the best, and pre-allocate the slice
+				capacity = 256;
+			}
+
+			byte[]? tmp = null;
+			try
+			{
+				while (true)
+				{
+					tmp = pool.Rent(capacity);
+					if (value.TryEncode(tmp, out int bytesWritten))
+					{
+						if (bytesWritten == 0)
+						{
+							pool.Return(tmp);
+							tmp = null;
+							return SliceOwner.Empty;
+						}
+
+						return SliceOwner.Create(tmp.AsSlice(0, bytesWritten), pool);
+					}
+
+					pool.Return(tmp);
+					tmp = null;
+
+					if (capacity >= FdbValue.MaxSize)
+					{
+						// it would be too large anyway!
+						throw new ArgumentException("Cannot encode value because it would exceed the maximum allowed length.");
+					}
+					capacity *= 2;
+				}
+			}
+			catch(Exception)
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				throw;
+			}
 		}
 
 	}
 
+	/// <summary>Value that can be encoded into bytes</summary>
 	public interface IFdbValue : ISpanFormattable
 	{
 
@@ -242,19 +395,10 @@ namespace FoundationDB.Client
 		[Pure, MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		bool TryEncode(Span<byte> destination, out int bytesWritten);
 
-		/// <summary>Encodes this value into <see cref="Slice"/></summary>
-		/// <returns>Slice that contains the binary representation of this value</returns>
-		[Pure]
-		Slice ToSlice();
-
-		/// <summary>Encodes this value into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
-		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
-		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this key</returns>
-		[Pure, MustDisposeResource]
-		SliceOwner ToSlice(ArrayPool<byte>? pool);
-
 	}
 
+	/// <summary>Value that wraps raw bytes</summary>
+	[PublicAPI]
 	public readonly struct FdbRawValue : IFdbValue
 	{
 
@@ -306,27 +450,17 @@ namespace FoundationDB.Client
 			return this.Data.TryCopyTo(destination, out bytesWritten);
 		}
 
-		/// <inheritdoc />
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ToSlice()
-		{
-			return this.Data;
-		}
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool)
-		{
-			return SliceOwner.Wrap(this.Data);
-		}
-
 	}
 
+	/// <summary>Value that will be converted into bytes by a <see cref="ISpanEncoder{TValue}"/></summary>
+	/// <typeparam name="TValue">Type of the value</typeparam>
+	/// <typeparam name="TEncoder">Type of the encoder for this value</typeparam>
 	[DebuggerDisplay("Data={Data}")]
 	public readonly struct FdbValue<TValue, TEncoder> : IFdbValue
 		where TEncoder: struct, ISpanEncoder<TValue>
 	{
 
-		public FdbValue(TValue data)
+		public FdbValue(TValue? data)
 		{
 			this.Data = data;
 		}
@@ -336,13 +470,13 @@ namespace FoundationDB.Client
 			this.Data = data;
 		}
 
-		public readonly TValue Data;
+		public readonly TValue? Data;
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) => TEncoder.TryGetSpan(in this.Data, out span);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) => TEncoder.TryGetSizeHint(this.Data, out sizeHint);
+		public bool TryGetSizeHint(out int sizeHint) => TEncoder.TryGetSizeHint(in this.Data, out sizeHint);
 
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TEncoder.TryEncode(destination, out bytesWritten, in this.Data);
@@ -436,7 +570,7 @@ namespace FoundationDB.Client
 
 
 		/// <inheritdoc />
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? provider = null)
@@ -452,7 +586,7 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Wraps a span of bytes or characters</summary>
+	/// <summary>Value that wraps a span of bytes or characters</summary>
 	/// <typeparam name="TElement">Type of the elements. Can only be <see cref="byte"/> or <see cref="char"/></typeparam>
 	[DebuggerDisplay("Data={Data}")]
 	public readonly ref struct FdbSpanValue<TElement> : IFdbValue
@@ -473,20 +607,26 @@ namespace FoundationDB.Client
 
 		private ReadOnlySpan<byte> GetAsBytes()
 		{
-			if (typeof(TElement) == typeof(byte))
+			if (typeof(TElement) != typeof(byte))
 			{
-				return new(ref Unsafe.As<TElement, byte>(ref MemoryMarshal.GetReference(this.Data)));
+				throw new NotSupportedException();
 			}
-			throw new NotSupportedException();
+
+			ref byte ptr = ref Unsafe.As<TElement, byte>(ref MemoryMarshal.GetReference(this.Data));
+			return MemoryMarshal.CreateSpan(ref ptr, this.Data.Length);
+
 		}
 
 		private ReadOnlySpan<char> GetAsChars()
 		{
-			if (typeof(TElement) == typeof(char))
+			if (typeof(TElement) != typeof(char))
 			{
-				return new(ref Unsafe.As<TElement, char>(ref MemoryMarshal.GetReference(this.Data)));
+				throw new NotSupportedException();
 			}
-			throw new NotSupportedException();
+
+			ref char ptr = ref Unsafe.As<TElement, char>(ref MemoryMarshal.GetReference(this.Data));
+			return MemoryMarshal.CreateSpan(ref ptr, this.Data.Length);
+
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -498,8 +638,13 @@ namespace FoundationDB.Client
 				return true;
 			}
 
-			span = default;
-			return false;
+			if (typeof(TElement) == typeof(char))
+			{
+				span = default;
+				return this.Data.Length == 0;
+			}
+
+			throw new NotSupportedException();
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -540,10 +685,12 @@ namespace FoundationDB.Client
 			{
 				return Slice.FromBytes(GetAsBytes());
 			}
+
 			if (typeof(TElement) == typeof(char))
 			{
 				return Slice.FromStringUtf8(GetAsChars());
 			}
+
 			throw new NotSupportedException();
 		}
 
@@ -563,7 +710,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? provider = null)
@@ -599,6 +746,65 @@ namespace FoundationDB.Client
 
 	}
 
+	#region Tuples...
+
+	/// <summary>Value that wraps an <see cref="IVarTuple"/> with any number of elements</summary>
+	public readonly struct FdbVarTupleValue : IFdbValue
+	{
+
+		[SkipLocalsInit]
+		public FdbVarTupleValue(IVarTuple items)
+		{
+			this.Items = items;
+		}
+
+		public readonly IVarTuple Items;
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleValue Append<T1>(T1 item1) => new(this.Items.Append(item1));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleValue Append<T1, T2>(T1 item1, T2 item2) => new(this.Items.Append(item1, item2));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleValue Append<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new(this.Items.Append(item1, item2, item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleValue Append<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => new(this.Items.Append(item1, item2, item3, item4));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleValue Append<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => new(this.Items.Append(item1, item2, item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleValue Append<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Items.Append(item1, item2, item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleValue Append<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Items.Append(item1, item2, item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbVarTupleValue Append<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Items.Append(item1, item2, item3, item4, item5, item6, item7, item8));
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => this.Items.ToString()!;
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"{this.Items}", out charsWritten);
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TuPack.TryPackTo(destination, out bytesWritten, in this.Items);
+
+	}
+
+	/// <summary>Value that wraps a tuple with 1 element</summary>
 	public readonly struct FdbTupleValue<T1> : IFdbValue
 	{
 
@@ -635,7 +841,7 @@ namespace FoundationDB.Client
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => destination.TryWrite($"{STuple.Create(this.Item1)}", out charsWritten);
 
 		/// <inheritdoc />
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
@@ -646,14 +852,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, this.Item1);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.EncodeKey(default, this.Item1);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, STuple.Create(this.Item1));
-
 	}
 
+	/// <summary>Value that wraps a tuple with 2 elements</summary>
 	public readonly struct FdbTupleValue<T1, T2> : IFdbValue
 	{
 
@@ -710,14 +911,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
-
 	}
 
+	/// <summary>Value that wraps a tuple with 3 elements</summary>
 	public readonly struct FdbTupleValue<T1, T2, T3> : IFdbValue
 	{
 
@@ -774,14 +970,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
-
 	}
 
+	/// <summary>Value that wraps a tuple with 4 elements</summary>
 	public readonly struct FdbTupleValue<T1, T2, T3, T4> : IFdbValue
 	{
 
@@ -835,14 +1026,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
-
 	}
 
+	/// <summary>Value that wraps a tuple with 5 elements</summary>
 	public readonly struct FdbTupleValue<T1, T2, T3, T4, T5> : IFdbValue
 	{
 
@@ -893,14 +1079,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
-
 	}
 
+	/// <summary>Value that wraps a tuple with 6 elements</summary>
 	public readonly struct FdbTupleValue<T1, T2, T3, T4, T5, T6> : IFdbValue
 	{
 
@@ -948,14 +1129,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
-
 	}
 
+	/// <summary>Value that wraps a tuple with 7 elements</summary>
 	public readonly struct FdbTupleValue<T1, T2, T3, T4, T5, T6, T7> : IFdbValue
 	{
 
@@ -1001,14 +1177,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
-
 	}
 
+	/// <summary>Value that wraps a tuple with 8 elements</summary>
 	public readonly struct FdbTupleValue<T1, T2, T3, T4, T5, T6, T7, T8> : IFdbValue
 	{
 
@@ -1050,12 +1221,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
-		/// <inheritdoc />
-		public Slice ToSlice() => TupleEncoder.Pack(default, in this.Items);
-
-		/// <inheritdoc />
-		public SliceOwner ToSlice(ArrayPool<byte>? pool) => TupleEncoder.Pack(pool ?? ArrayPool<byte>.Shared, default, in this.Items);
-
 	}
+
+	#endregion
 
 }

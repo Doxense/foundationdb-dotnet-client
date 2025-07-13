@@ -32,210 +32,246 @@ namespace FoundationDB.Client
 	public static class FdbKeyExtensions
 	{
 
-		#region Transaction Set...
+		#region Encoding...
 
-		/// <summary>
-		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
-		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		public static void Set<TKey>(this IFdbTransaction trans, TKey key, Slice value)
+		/// <summary>Returns a pre-encoded version of a key</summary>
+		/// <typeparam name="TKey">Type of the key to pre-encode</typeparam>
+		/// <param name="key">Key to pre-encoded</param>
+		/// <returns>Key with a cached version of the encoded original</returns>
+		/// <remarks>This key can be used multiple times without re-encoding the original</remarks>
+		[Pure]
+		public static FdbRawKey Memoize<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			if (typeof(TKey) == typeof(FdbRawKey))
+			{ // already cached!
+				return (FdbRawKey) (object) key;
+			}
 
-			trans.Set(keyBytes.Span, value);
+			return new(key.ToSlice());
 		}
 
-		/// <summary>
-		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
-		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		public static void Set<TKey>(this IFdbTransaction trans, TKey key, ReadOnlySpan<byte> value)
+		/// <summary>Encodes this key into <see cref="Slice"/></summary>
+		/// <param name="key">Key to encode</param>
+		/// <returns><see cref="Slice"/> that contains the binary representation of this key</returns>
+		[Pure]
+		public static Slice ToSlice<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
+			if (typeof(TKey) == typeof(FdbRawKey))
+			{
+				return ((FdbRawKey) (object) key).Data;
+			}
 
-			trans.Set(keyBytes.Span, value);
+			if (key.TryGetSpan(out var span))
+			{
+				return Slice.FromBytes(span);
+			}
+
+			byte[]? tmp = null;
+			if (key.TryGetSizeHint(out var capacity))
+			{ // we will hope for the best, and pre-allocate the slice
+
+				tmp = new byte[capacity];
+				if (key.TryEncode(tmp, out var bytesWritten))
+				{
+					return tmp.AsSlice(0, bytesWritten);
+				}
+				if (capacity >= FdbKey.MaxSize)
+				{
+					goto key_too_long;
+				}
+				capacity *= 2;
+			}
+			else
+			{
+				capacity = 128;
+			}
+
+			var pool = ArrayPool<byte>.Shared;
+			try
+			{
+				while (true)
+				{
+					tmp = pool.Rent(capacity);
+					if (key.TryEncode(tmp, out int bytesWritten))
+					{
+						return tmp.AsSlice(0, bytesWritten).Copy();
+					}
+
+					pool.Return(tmp);
+					tmp = null;
+
+					if (capacity >= FdbKey.MaxSize)
+					{
+						goto key_too_long;
+					}
+					capacity *= 2;
+				}
+			}
+			catch(Exception)
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				throw;
+			}
+
+		key_too_long:
+			// it would be too large anyway!
+			throw new ArgumentException("Cannot format key because it would exceed the maximum allowed length.");
 		}
 
-		/// <summary>
-		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
-		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		public static void Set<TValue>(this IFdbTransaction trans, Slice key, TValue value)
-			where TValue: struct, IFdbValue
-		{
-			using var valueBytes = value.ToSlice(ArrayPool<byte>.Shared);
-
-			trans.Set(FdbTransactionExtensions.ToSpanKey(key), valueBytes.Span);
-		}
-
-		/// <summary>
-		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
-		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		public static void Set<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, TValue value)
-			where TValue : struct, IFdbValue
-		{
-			using var valueBytes = value.ToSlice(ArrayPool<byte>.Shared);
-
-			trans.Set(key, valueBytes.Span);
-		}
-
-		/// <summary>
-		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
-		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		public static void Set<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value)
+		/// <summary>Encodes this key into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
+		/// <param name="key">Key to encode</param>
+		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
+		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this key</returns>
+		[Pure, MustDisposeResource]
+		public static SliceOwner ToSlice<TKey>(this TKey key, ArrayPool<byte>? pool)
 			where TKey : struct, IFdbKey
-			where TValue : struct, IFdbValue
 		{
-			var pool = ArrayPool<byte>.Shared;
+			pool ??= ArrayPool<byte>.Shared;
 
-			using var keyBytes = key.ToSlice(pool);
-			using var valueBytes = value.ToSlice(pool);
+			if (typeof(TKey) == typeof(FdbRawKey))
+			{
+				return SliceOwner.Wrap(((FdbRawKey) (object) key).Data);
+			}
 
-			trans.Set(keyBytes.Span, valueBytes.Span);
-		}
+			if (key.TryGetSpan(out var span))
+			{
+				return SliceOwner.Copy(span, pool);
+			}
 
-		/// <inheritdoc cref="IFdbTransaction.Clear"/>
-		public static void Clear<TKey>(this IFdbTransaction trans, TKey key)
-			where TKey: struct, IFdbKey
-		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			
-			trans.Clear(keyBytes.Span);
-		}
+			if (!key.TryGetSizeHint(out var capacity))
+			{ // we will hope for the best, and pre-allocate the slice
+				capacity = 128;
+			}
 
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
-		/// <param name="value">New value for this key.</param>
-		public static void SetVersionStampedKey<TKey>(this IFdbTransaction trans, TKey key, ReadOnlySpan<byte> value)
-			where TKey: struct, IFdbKey
-		{
-			var pool = ArrayPool<byte>.Shared;
+			byte[]? tmp = null;
+			try
+			{
+				while (true)
+				{
+					tmp = pool.Rent(capacity);
+					if (key.TryEncode(tmp, out int bytesWritten))
+					{
+						if (bytesWritten == 0)
+						{
+							pool.Return(tmp);
+							tmp = null;
+							return SliceOwner.Empty;
+						}
 
-			using var keyBytes = key.ToSlice(pool);
+						return SliceOwner.Create(tmp.AsSlice(0, bytesWritten), pool);
+					}
 
-			trans.SetVersionStampedKey(keyBytes.Span, value);
-		}
+					pool.Return(tmp);
+					tmp = null;
 
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
-		/// <param name="value">New value for this key.</param>
-		public static void SetVersionStampedKey<TKey>(this IFdbTransaction trans, TKey key, Slice value)
-			where TKey: struct, IFdbKey
-		{
-			trans.SetVersionStampedKey(key, FdbTransactionExtensions.ToSpanValue(value));
-		}
-
-		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
-		/// <param name="value">New value for this key.</param>
-		public static void SetVersionStampedKey<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value)
-			where TKey: struct, IFdbKey
-			where TValue: struct, IFdbValue
-		{
-			var pool = ArrayPool<byte>.Shared;
-
-			using var keyBytes = key.ToSlice(pool);
-			using var valueBytes = value.ToSlice(pool);
-
-			trans.SetVersionStampedKey(keyBytes.Span, valueBytes.Span);
-		}
-
-		public static void SetVersionStampedValue<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value)
-			where TKey: struct, IFdbKey
-			where TValue: struct, IFdbValue
-		{
-			var pool = ArrayPool<byte>.Shared;
-
-			using var keyBytes = key.ToSlice(pool);
-			using var valueBytes = value.ToSlice(pool);
-
-			trans.SetVersionStampedValue(keyBytes.Span, valueBytes.Span);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Task<Slice> GetAsync<TKey>(this IFdbReadOnlyTransaction trans, TKey key)
-			where TKey: struct, IFdbKey
-		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-
-			return trans.GetAsync(keyBytes.Span);
-		}
-
-		public static Task<TResult> GetAsync<TKey, TResult>(this IFdbReadOnlyTransaction trans, TKey key, FdbValueDecoder<TResult> decoder)
-			where TKey: struct, IFdbKey
-		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-
-			return trans.GetAsync<TResult>(keyBytes.Span, decoder);
-		}
-
-		public static Task<TResult> GetAsync<TKey, TState, TResult>(this IFdbReadOnlyTransaction trans, TKey key, TState state, FdbValueDecoder<TState, TResult> decoder)
-			where TKey: struct, IFdbKey
-		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-
-			return trans.GetAsync<TState, TResult>(keyBytes.Span, state, decoder);
+					if (capacity >= FdbKey.MaxSize)
+					{
+						// it would be too large anyway!
+						throw new ArgumentException("Cannot format key because it would exceed the maximum allowed length.");
+					}
+					capacity *= 2;
+				}
+			}
+			catch(Exception)
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				throw;
+			}
 		}
 
 		#endregion
 
-		//EXPERIMENTAL
-
 		#region TSubspace Keys...
 
+		/// <summary>Returns a key that packs the given items under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="items">elements of the key</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbVarTupleKey PackKey(this IDynamicKeySubspace subspace, IVarTuple items) => new(subspace, items);
+
+		/// <summary>Returns a key under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="item1">value of the single element in the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1> GetKey<T1>(this IDynamicKeySubspace subspace, T1 item1) => new(subspace, item1);
 
+		/// <summary>Returns a key with 2 elements under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="item1">value of the 1st element in the key</param>
+		/// <param name="item2">value of the 2nd element in the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2> GetKey<T1, T2>(this IDynamicKeySubspace subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
 
+		/// <summary>Returns a key with 3 elements under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="item1">value of the 1st element in the key</param>
+		/// <param name="item2">value of the 2nd element in the key</param>
+		/// <param name="item3">value of the 3rd element in the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3> GetKey<T1, T2, T3>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3) => new(subspace, item1, item2, item3);
 
+		/// <summary>Returns a key with 4 elements under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="item1">value of the 1st element in the key</param>
+		/// <param name="item2">value of the 2nd element in the key</param>
+		/// <param name="item3">value of the 3rd element in the key</param>
+		/// <param name="item4">value of the 4th element in the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4> GetKey<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4) => new(subspace, item1, item2, item3, item4);
 
+		/// <summary>Returns a key with 5 elements under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="item1">value of the 1st element in the key</param>
+		/// <param name="item2">value of the 2nd element in the key</param>
+		/// <param name="item3">value of the 3rd element in the key</param>
+		/// <param name="item4">value of the 4th element in the key</param>
+		/// <param name="item5">value of the 5th element in the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5> GetKey<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => new(subspace, item1, item2, item3, item4, item5);
 
+		/// <summary>Returns a key with 6 elements under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="item1">value of the 1st element in the key</param>
+		/// <param name="item2">value of the 2nd element in the key</param>
+		/// <param name="item3">value of the 3rd element in the key</param>
+		/// <param name="item4">value of the 4th element in the key</param>
+		/// <param name="item5">value of the 5th element in the key</param>
+		/// <param name="item6">value of the 6th element in the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> GetKey<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(subspace, item1, item2, item3, item4, item5, item6);
 
+		/// <summary>Returns a key with 7 elements under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="item1">value of the 1st element in the key</param>
+		/// <param name="item2">value of the 2nd element in the key</param>
+		/// <param name="item3">value of the 3rd element in the key</param>
+		/// <param name="item4">value of the 4th element in the key</param>
+		/// <param name="item5">value of the 5th element in the key</param>
+		/// <param name="item6">value of the 6th element in the key</param>
+		/// <param name="item7">value of the 7th element in the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> GetKey<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(subspace, item1, item2, item3, item4, item5, item6, item7);
 
+		/// <summary>Returns a key with 8 elements under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="item1">value of the 1st element in the key</param>
+		/// <param name="item2">value of the 2nd element in the key</param>
+		/// <param name="item3">value of the 3rd element in the key</param>
+		/// <param name="item4">value of the 4th element in the key</param>
+		/// <param name="item5">value of the 5th element in the key</param>
+		/// <param name="item6">value of the 6th element in the key</param>
+		/// <param name="item7">value of the 7th element in the key</param>
+		/// <param name="item8">value of the 8th element in the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> GetKey<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(subspace, item1, item2, item3, item4, item5, item6, item7, item8);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>> PackKey<TSubspace, TTuple>(this TSubspace subspace, TTuple key)
-			where TSubspace : IDynamicKeySubspace
-			where TTuple : IVarTuple
-		{
-			return new((subspace, key), subspace);
-		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKey<(ITypedKeySubspace<T1> Subspace, T1 Key), FdbKey.TypedSubspaceEncoder<T1>> GetKey<T1>(this ITypedKeySubspace<T1> subspace, T1 key1)
@@ -251,132 +287,171 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>[] PackKeys<TSubspace, TTuple>(this TSubspace subspace, ReadOnlySpan<TTuple> keys)
-			where TSubspace : IDynamicKeySubspace
-			where TTuple : IVarTuple
+		public static FdbVarTupleKey[] PackKeys(this IDynamicKeySubspace subspace, ReadOnlySpan<IVarTuple> keys)
 		{
 			if (keys.Length == 0)
 			{
 				return [ ];
 			}
 
-			var res = new FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>[keys.Length];
+			var res = new FdbVarTupleKey[keys.Length];
 			for (int i = 0; i < keys.Length; i++)
 			{
-				res[i] = new((subspace, keys[i]), subspace);
+				res[i] = new(subspace, keys[i]);
 			}
 			return res;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>> PackKeys<TSubspace, TTuple>(this TSubspace subspace, IEnumerable<TTuple> keys)
-			where TSubspace : IDynamicKeySubspace
-			where TTuple : IVarTuple
+		public static IEnumerable<FdbVarTupleKey> PackKeys(this IDynamicKeySubspace subspace, IEnumerable<IVarTuple> keys)
 		{
 			return keys.TryGetSpan(out var span)
 				? PackKeys(subspace, span)
 				: GetKeysSlow(subspace, keys);
 
-			static IEnumerable<FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>> GetKeysSlow(TSubspace subspace, IEnumerable<TTuple> keys)
+			static IEnumerable<FdbVarTupleKey> GetKeysSlow(IDynamicKeySubspace subspace, IEnumerable<IVarTuple> keys)
 			{
 				foreach (var key in keys)
 				{
-					yield return new((subspace, key), subspace);
+					yield return new(subspace, key);
 				}
 			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>[] PackKeys<TSubspace, TItem, TTuple>(this TSubspace subspace, ReadOnlySpan<TItem> items, Func<TItem, TTuple> selector)
-			where TSubspace : IDynamicKeySubspace
-			where TTuple : IVarTuple
+		public static FdbVarTupleKey[] PackKeys<TItem>(this IDynamicKeySubspace subspace, ReadOnlySpan<TItem> items, Func<TItem, IVarTuple> selector)
 		{
 			if (items.Length == 0)
 			{
 				return [ ];
 			}
 
-			var res = new FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>[items.Length];
+			var res = new FdbVarTupleKey[items.Length];
 			for(int i = 0; i < items.Length; i++)
 			{
-				res[i] = new((subspace, selector(items[i])), subspace);
+				res[i] = new(subspace, selector(items[i]));
 			}
 			return res;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>> PackKeys<TSubspace, TItem, TTuple>(this TSubspace subspace, IEnumerable<TItem> items, Func<TItem, TTuple> selector)
-			where TSubspace : IDynamicKeySubspace
-			where TTuple : IVarTuple
+		public static IEnumerable<FdbVarTupleKey> PackKeys<TItem>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, IVarTuple> selector)
 		{
 			return items.TryGetSpan(out var span)
 				? PackKeys(subspace, span, selector)
 				: EncodeSlow(subspace, items, selector);
 
-			static IEnumerable<FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>> EncodeSlow(TSubspace subspace, IEnumerable<TItem> items, Func<TItem, TTuple> selector)
+			static IEnumerable<FdbVarTupleKey> EncodeSlow(IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, IVarTuple> selector)
 			{
 				foreach (var item in items)
 				{
-					yield return new((subspace, selector(item)), subspace);
+					yield return new(subspace, selector(item));
 				}
 			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>[] PackKeys<TSubspace, TItem, TState, TTuple>(this TSubspace subspace, ReadOnlySpan<TItem> items, TState state, Func<TState, TItem, TTuple> selector)
-			where TSubspace : IDynamicKeySubspace
-			where TTuple : IVarTuple
+		public static FdbVarTupleKey[] PackKeys<TItem, TState>(this IDynamicKeySubspace subspace, ReadOnlySpan<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
 		{
 			if (items.Length == 0)
 			{
 				return [ ];
 			}
 
-			var res = new FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>[items.Length];
+			var res = new FdbVarTupleKey[items.Length];
 			for(int i = 0; i < items.Length; i++)
 			{
-				res[i] = new((subspace, selector(state, items[i])), subspace);
+				res[i] = new(subspace, selector(state, items[i]));
 			}
 			return res;
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		private static IEnumerable<FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>> PackKeys<TSubspace, TItem, TState, TTuple>(this TSubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, TTuple> selector)
-			where TSubspace : IDynamicKeySubspace
-			where TTuple : IVarTuple
+		public static IEnumerable<FdbVarTupleKey> PackKeys<TItem, TState>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
 		{
 			return items.TryGetSpan(out var span)
 				? PackKeys(subspace, span, state, selector)
 				: EncodeSlow(subspace, items, state, selector);
 
-			static IEnumerable<FdbKey<(TSubspace Subspace, TTuple Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, TTuple>>> EncodeSlow(TSubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, TTuple> selector)
+			static IEnumerable<FdbVarTupleKey> EncodeSlow(IDynamicKeySubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
 			{
 				foreach (var item in items)
 				{
-					yield return new((subspace, selector(state, item)), subspace);
+					yield return new(subspace, selector(state, item));
 				}
 			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbKey<(TSubspace Subspace, STuple<T1> Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, STuple<T1>>>> PackKeys<TSubspace, TItem, T1>(this TSubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1>> selector)
-			where TSubspace : IDynamicKeySubspace
+		public static IEnumerable<FdbTupleKey<T1>> PackKeys<TItem, T1>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1>> selector)
 		{
-			return PackKeys(subspace, items, selector, (fn, item) => fn(item).ToSTuple());
+			foreach (var item in items)
+			{
+				yield return new(subspace, selector(item));
+			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbKey<(TSubspace Subspace, STuple<T1, T2> Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, STuple<T1, T2>>>> PackKeys<TSubspace, TItem, T1, T2>(this TSubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2>> selector)
-			where TSubspace : IDynamicKeySubspace
+		public static IEnumerable<FdbTupleKey<T1, T2>> PackKeys<TItem, T1, T2>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2>> selector)
 		{
-			return PackKeys(subspace, items, selector, (fn, item) => fn(item).ToSTuple());
+			foreach (var item in items)
+			{
+				yield return new(subspace, selector(item));
+			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbKey<(TSubspace Subspace, STuple<T1, T2, T3> Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, STuple<T1, T2, T3>>>> PackKeys<TSubspace, TItem, T1, T2, T3>(this TSubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3>> selector)
-			where TSubspace : IDynamicKeySubspace
+		public static IEnumerable<FdbTupleKey<T1, T2, T3>> PackKeys<TItem, T1, T2, T3>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3>> selector)
 		{
-			return PackKeys(subspace, items, selector, (fn, item) => fn(item).ToSTuple());
+			foreach (var item in items)
+			{
+				yield return new(subspace, selector(item));
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4>> PackKeys<TItem, T1, T2, T3, T4>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4>> selector)
+		{
+			foreach (var item in items)
+			{
+				yield return new(subspace, selector(item));
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4, T5>> PackKeys<TItem, T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4, T5>> selector)
+		{
+			foreach (var item in items)
+			{
+				yield return new(subspace, selector(item));
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4, T5, T6>> PackKeys<TItem, T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4, T5, T6>> selector)
+		{
+			foreach (var item in items)
+			{
+				yield return new(subspace, selector(item));
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>> PackKeys<TItem, T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4, T5, T6, T7>> selector)
+		{
+			foreach (var item in items)
+			{
+				yield return new(subspace, selector(item));
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>> PackKeys<TItem, T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>> selector)
+		{
+			foreach (var item in items)
+			{
+				yield return new(subspace, selector(item));
+			}
 		}
 
 		#endregion
