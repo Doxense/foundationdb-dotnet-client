@@ -1388,11 +1388,11 @@ namespace FoundationDB.Client
 					var value = valueSelector(items[i]);
 					if (!key.TryGetSpan(out var keySpan))
 					{
-						FdbKeyExtensions.Encode(in key, ref keyBuffer, pool);
+						keySpan = FdbKeyExtensions.Encode(in key, ref keyBuffer, pool);
 					}
 					if (!value.TryGetSpan(out var valueSpan))
 					{
-						FdbValueExtensions.Encode(in value, ref valueBuffer, pool);
+						valueSpan = FdbValueExtensions.Encode(in value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1433,11 +1433,11 @@ namespace FoundationDB.Client
 					var value = valueSelector(item);
 					if (!key.TryGetSpan(out var keySpan))
 					{
-						FdbKeyExtensions.Encode(in key, ref keyBuffer, pool);
+						keySpan = FdbKeyExtensions.Encode(in key, ref keyBuffer, pool);
 					}
 					if (!value.TryGetSpan(out var valueSpan))
 					{
-						FdbValueExtensions.Encode(in value, ref valueBuffer, pool);
+						valueSpan = FdbValueExtensions.Encode(in value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1480,11 +1480,11 @@ namespace FoundationDB.Client
 				{
 					if (!items[i].Key.TryGetSpan(out var keySpan))
 					{
-						FdbKeyExtensions.Encode(in items[i].Key, ref keyBuffer, pool);
+						keySpan = FdbKeyExtensions.Encode(in items[i].Key, ref keyBuffer, pool);
 					}
 					if (!items[i].Value.TryGetSpan(out var valueSpan))
 					{
-						FdbValueExtensions.Encode(in items[i].Value, ref valueBuffer, pool);
+						valueSpan = FdbValueExtensions.Encode(in items[i].Value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1579,11 +1579,11 @@ namespace FoundationDB.Client
 				{
 					if (!items[i].Key.TryGetSpan(out var keySpan))
 					{
-						FdbKeyExtensions.Encode(items[i].Key, ref keyBuffer, pool);
+						keySpan = FdbKeyExtensions.Encode(items[i].Key, ref keyBuffer, pool);
 					}
 					if (!items[i].Value.TryGetSpan(out var valueSpan))
 					{
-						FdbValueExtensions.Encode(items[i].Value, ref valueBuffer, pool);
+						valueSpan = FdbValueExtensions.Encode(items[i].Value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1631,11 +1631,11 @@ namespace FoundationDB.Client
 				{
 					if (!kv.Key.TryGetSpan(out var keySpan))
 					{
-						FdbKeyExtensions.Encode(kv.Key, ref keyBuffer, pool);
+						keySpan = FdbKeyExtensions.Encode(kv.Key, ref keyBuffer, pool);
 					}
 					if (!kv.Value.TryGetSpan(out var valueSpan))
 					{
-						FdbValueExtensions.Encode(kv.Value, ref valueBuffer, pool);
+						valueSpan = FdbValueExtensions.Encode(kv.Value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
