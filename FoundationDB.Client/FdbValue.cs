@@ -323,13 +323,22 @@ namespace FoundationDB.Client
 				: Encode(in value, pool);
 		}
 
-		internal static SliceOwner Encode<TValue>(in TValue value, ArrayPool<byte> pool)
+		internal static SliceOwner Encode<TValue>(in TValue value, ArrayPool<byte> pool, int? sizeHint = null)
 			where TValue : struct, IFdbValue
 		{
 			Contract.Debug.Requires(pool is not null);
 
-			if (!value.TryGetSizeHint(out var capacity))
-			{ // we will hope for the best, and pre-allocate the slice
+			int capacity;
+			if (sizeHint is not null)
+			{
+				capacity = sizeHint.Value;
+			}
+			else if (!value.TryGetSizeHint(out capacity))
+			{
+				capacity = 128;
+			}
+			if (capacity <= 0)
+			{
 				capacity = 256;
 			}
 
@@ -372,6 +381,46 @@ namespace FoundationDB.Client
 			}
 		}
 
+		[MustUseReturnValue]
+		internal static ReadOnlySpan<byte> Encode<TValue>(scoped in TValue value, scoped ref byte[]? buffer, ArrayPool<byte> pool)
+			where TValue : struct, IFdbValue
+		{
+			Contract.Debug.Requires(pool is not null);
+
+			if (!value.TryGetSizeHint(out int capacity))
+			{
+				capacity = 0;
+			}
+			if (capacity <= 0)
+			{
+				capacity = 256;
+			}
+
+			while (true)
+			{
+				if (buffer is null)
+				{
+					buffer = pool.Rent(capacity);
+				}
+				else if (buffer.Length < capacity)
+				{
+					pool.Return(buffer);
+					buffer = pool.Rent(capacity);
+				}
+
+				if (value.TryEncode(buffer, out int bytesWritten))
+				{
+					return bytesWritten > 0 ? buffer.AsSpan(0, bytesWritten) : default;
+				}
+
+				if (capacity >= FdbKey.MaxSize)
+				{
+					// it would be too large anyway!
+					throw new ArgumentException("Cannot encode value because it would exceed the maximum allowed length.");
+				}
+				capacity *= 2;
+			}
+		}
 	}
 
 	/// <summary>Value that can be encoded into bytes</summary>

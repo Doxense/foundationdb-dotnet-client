@@ -120,7 +120,7 @@ namespace FoundationDB.Client
 
 		key_too_long:
 			// it would be too large anyway!
-			throw new ArgumentException("Cannot format key because it would exceed the maximum allowed length.");
+			throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
 		}
 
 		/// <summary>Encodes this key into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
@@ -143,13 +143,22 @@ namespace FoundationDB.Client
 				: Encode(in key, pool);
 		}
 
-		internal static SliceOwner Encode<TKey>(in TKey key, ArrayPool<byte>? pool)
+		internal static SliceOwner Encode<TKey>(in TKey key, ArrayPool<byte>? pool, int? sizeHint = null)
 			where TKey : struct, IFdbKey
 		{
 			Contract.Debug.Requires(pool != null);
 
-			if (!key.TryGetSizeHint(out var capacity))
-			{ // we will hope for the best, and pre-allocate the slice
+			int capacity;
+			if (sizeHint is not null)
+			{
+				capacity = sizeHint.Value;
+			}
+			else if (!key.TryGetSizeHint(out capacity))
+			{
+				capacity = 0;
+			}
+			if (capacity <= 0)
+			{
 				capacity = 128;
 			}
 
@@ -177,7 +186,7 @@ namespace FoundationDB.Client
 					if (capacity >= FdbKey.MaxSize)
 					{
 						// it would be too large anyway!
-						throw new ArgumentException("Cannot format key because it would exceed the maximum allowed length.");
+						throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
 					}
 					capacity *= 2;
 				}
@@ -189,6 +198,43 @@ namespace FoundationDB.Client
 					pool.Return(tmp);
 				}
 				throw;
+			}
+		}
+
+		[MustUseReturnValue]
+		internal static ReadOnlySpan<byte> Encode<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool)
+			where TKey : struct, IFdbKey
+		{
+			Contract.Debug.Requires(pool != null);
+
+			if (!key.TryGetSizeHint(out int capacity) || capacity <= 0)
+			{
+				capacity = 128;
+			}
+
+			while (true)
+			{
+				if (buffer is null)
+				{
+					buffer = pool.Rent(capacity);
+				}
+				else if (buffer.Length < capacity)
+				{
+					pool.Return(buffer);
+					buffer = pool.Rent(capacity);
+				}
+
+				if (key.TryEncode(buffer, out int bytesWritten))
+				{
+					return bytesWritten > 0 ? buffer.AsSpan(0, bytesWritten) : default;
+				}
+
+				if (capacity >= FdbKey.MaxSize)
+				{
+					// it would be too large anyway!
+					throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+				}
+				capacity *= 2;
 			}
 		}
 

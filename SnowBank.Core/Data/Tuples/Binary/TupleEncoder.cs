@@ -171,7 +171,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Packs a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
-		/// <param name="pool">Pool used to rented the buffers</param>
+		/// <param name="pool">Pool used to rent the buffers</param>
 		[Pure]
 		public static SliceOwner Pack<TTuple>(in TTuple? tuple, ArrayPool<byte> pool)
 			where TTuple : IVarTuple?
@@ -217,6 +217,21 @@ namespace SnowBank.Data.Tuples.Binary
 			var tw = new TupleWriter(ref sw);
 			WriteTo(tw, tuple);
 			return sw.ToSlice();
+		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of a tuple</summary>
+		public static bool TryPackTo<TTuple>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, TTuple? tuple)
+			where TTuple : IVarTuple?
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix) || !TryWriteTo(ref tw, in tuple))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
 		}
 
 		/// <summary>Packs an array of N-tuples, all sharing the same buffer</summary>

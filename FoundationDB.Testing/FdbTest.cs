@@ -208,20 +208,22 @@ namespace FoundationDB.Client.Tests
 		//[DebuggerStepThrough]
 		protected async Task<IFdbDatabase> OpenTestPartitionAsync([CallerMemberName] string? testMethod = null)
 		{
-			var testSuite = GetType().GetFriendlyName();
-			if (testSuite.EndsWith("Facts")) testSuite = testSuite[..^("Facts".Length)];
-
-			testMethod ??= "";
-			if (testMethod.StartsWith("Test_")) testMethod = testMethod["Test_".Length..];
-
 			// We already use a dedicated fdbserver docker image for each .NET runtime version, so we are isolated
 			// from other processes that would be spawn by test runners that execute the same test suites for 
 			// multiple .NET framework concurrently (ex: ReSharper when using "In all target frameworks" option).
 			// 
-			// We only have to protect against concurrent executions of multiple test methods interfering with
-			// each other by using the caller's name has a subdirectory name.
+			// We only have to protect against concurrent executions of other test classes interfering with each other by using the caller's name has a subdirectory name.
 
-			var path = FdbPath.Root[FdbPathSegment.Partition("Tests")][testSuite][testMethod, "test"];
+			var testSuite = GetType().GetFriendlyName();
+			if (testSuite.EndsWith("Facts")) testSuite = testSuite[..^("Facts".Length)];
+
+			var path = FdbPath.Root[FdbPathSegment.Partition("Tests")][testSuite];
+
+			if (!string.IsNullOrEmpty(testMethod))
+			{
+				if (testMethod.StartsWith("Test_")) testMethod = testMethod["Test_".Length..];
+				path = path[testMethod];
+			}
 
 			var container = await WaitForTestServerToBecomeReady().ConfigureAwait(false);
 

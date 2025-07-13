@@ -436,6 +436,78 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Write_Multiple_Simple_Values()
+		{
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsDynamic();
+			await CleanLocation(db, location);
+
+			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+			const int N = 50;
+
+			var items = Enumerable.Range(0, N).Select(i => (Key: i, Value: $"Value of #{i}")).ToArray();
+
+			Log($"# Write {N} values...");
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				tr.SetValues(items.Select(item => (subspace.Encode(item.Key), Slice.FromStringUtf8(item.Value))));
+				await tr.CommitAsync();
+			}
+
+			Log("# Read them back...");
+			using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				foreach (var item in items)
+				{
+					var value = await tr.GetAsync(subspace.Encode(item.Key));
+					Assert.That(value.ToStringUtf8(), Is.EqualTo(item.Value));
+				}
+			}
+
+		}
+
+		[Test]
+		public async Task Test_Write_Multiple_Encoded_Values()
+		{
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsDynamic();
+			await CleanLocation(db, location);
+
+			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+			const int N = 50;
+
+			var items = Enumerable.Range(0, N).Select(i => (Key: i, Value: $"Value of #{i}")).ToArray();
+
+			Log($"# Write {N} values...");
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				tr.SetValues(items.Select(item => (subspace.GetKey(item.Key), FdbValue.Text.FromUtf8(item.Value))));
+				await tr.CommitAsync();
+			}
+
+			Log("# Read them back...");
+			using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				foreach (var item in items)
+				{
+					var value = await tr.GetAsync(subspace.Encode(item.Key));
+					Assert.That(value.ToStringUtf8(), Is.EqualTo(item.Value));
+				}
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Can_Resolve_Key_Selector()
 		{
 			using var db = await OpenTestPartitionAsync();
@@ -1073,13 +1145,13 @@ namespace FoundationDB.Client.Tests
 				Log("resolving...");
 				var subspace = await location.Resolve(tr);
 				Log(subspace);
-				tr.SetValueInt32(subspace["AAA"], 0);
-				tr.SetValueInt32(subspace["BBB"], 1);
-				tr.SetValueInt32(subspace["CCC"], 43);
-				tr.SetValueInt32(subspace["DDD"], 255);
+				tr.SetValueInt32(subspace.GetKey("AAA"), 0);
+				tr.SetValueInt32(subspace.GetKey("BBB"), 1);
+				tr.SetValueInt32(subspace.GetKey("CCC"), 43);
+				tr.SetValueInt32(subspace.GetKey("DDD"), 255);
 				//EEE does not exist
-				tr.SetValueInt32(subspace["FFF"], 0x5A5A5A5A);
-				tr.SetValueInt32(subspace["GGG"], -1);
+				tr.SetValueInt32(subspace.GetKey("FFF"), 0x5A5A5A5A);
+				tr.SetValueInt32(subspace.GetKey("GGG"), -1);
 				//HHH does not exist
 			}, this.Cancellation);
 
@@ -1087,14 +1159,14 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.AtomicAdd32(subspace["AAA"], 1);
-				tr.AtomicAdd32(subspace["BBB"], 42);
-				tr.AtomicAdd32(subspace["CCC"], -1);
-				tr.AtomicAdd32(subspace["DDD"], 42);
-				tr.AtomicAdd32(subspace["EEE"], 42);
-				tr.AtomicAdd32(subspace["FFF"], 0xA5A5A5A5);
-				tr.AtomicAdd32(subspace["GGG"], 1);
-				tr.AtomicAdd32(subspace["HHH"], uint.MaxValue);
+				tr.AtomicAdd32(subspace.GetKey("AAA"), 1);
+				tr.AtomicAdd32(subspace.GetKey("BBB"), 42);
+				tr.AtomicAdd32(subspace.GetKey("CCC"), -1);
+				tr.AtomicAdd32(subspace.GetKey("DDD"), 42);
+				tr.AtomicAdd32(subspace.GetKey("EEE"), 42);
+				tr.AtomicAdd32(subspace.GetKey("FFF"), 0xA5A5A5A5);
+				tr.AtomicAdd32(subspace.GetKey("GGG"), 1);
+				tr.AtomicAdd32(subspace.GetKey("HHH"), uint.MaxValue);
 			}, this.Cancellation);
 
 			// check

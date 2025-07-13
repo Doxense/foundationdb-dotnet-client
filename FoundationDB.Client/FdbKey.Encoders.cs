@@ -360,7 +360,7 @@ namespace FoundationDB.Client
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
-		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TuPack.TryPackTo(destination, out bytesWritten, in this.Items);
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, this.Items);
 
 	}
 

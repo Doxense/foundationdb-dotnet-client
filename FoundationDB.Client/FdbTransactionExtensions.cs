@@ -608,12 +608,21 @@ namespace FoundationDB.Client
 			if (value.TryGetSpan(out var valueSpan))
 			{
 				trans.Set(key, valueSpan);
+				return;
 			}
-			else
+
+			if (value.TryGetSizeHint(out int sizeHint) && (uint) sizeHint <= 128)
 			{
-				using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
-				trans.Set(key, valueBytes.Span);
+				Span<byte> buffer = stackalloc byte[sizeHint];
+				if (value.TryEncode(buffer, out int bytesWritten))
+				{
+					trans.Set(key, buffer[..bytesWritten]);
+					return;
+				}
 			}
+
+			using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+			trans.Set(key, valueBytes.Span);
 		}
 
 		/// <summary>
@@ -752,6 +761,22 @@ namespace FoundationDB.Client
 		public static void SetValueInt32(this IFdbTransaction trans, Slice key, int value) => SetValueInt32(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueInt32<TKey>(this IFdbTransaction trans, in TKey key, int value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueInt32(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueInt32(trans, keyBytes.Span, value);
+			}
+		}
+
+		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		public static void SetValueInt32(this IFdbTransaction trans, ReadOnlySpan<byte> key, int value)
 		{
 			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
@@ -772,6 +797,22 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUInt32(this IFdbTransaction trans, Slice key, uint value) => SetValueUInt32(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueUInt32<TKey>(this IFdbTransaction trans, in TKey key, uint value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueUInt32(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueUInt32(trans, keyBytes.Span, value);
+			}
+		}
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
 		public static void SetValueUInt32(this IFdbTransaction trans, ReadOnlySpan<byte> key, uint value)
@@ -794,6 +835,22 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueInt64(this IFdbTransaction trans, Slice key, long value) => SetValueInt64(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueInt64<TKey>(this IFdbTransaction trans, in TKey key, long value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueInt64(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueInt64(trans, keyBytes.Span, value);
+			}
+		}
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
 		public static void SetValueInt64(this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
@@ -826,6 +883,22 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUInt64(this IFdbTransaction trans, Slice key, ulong value) => SetValueUInt64(trans, ToSpanKey(key), value);
 
+		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueUInt64<TKey>(this IFdbTransaction trans, in TKey key, ulong value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueUInt64(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueUInt64(trans, keyBytes.Span, value);
+			}
+		}
+
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
 		public static void SetValueUInt64(this IFdbTransaction trans, ReadOnlySpan<byte> key, ulong value)
 		{
@@ -855,6 +928,22 @@ namespace FoundationDB.Client
 		public static void SetValueGuid(this IFdbTransaction trans, Slice key, Guid value) => SetValueGuid(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueGuid<TKey>(this IFdbTransaction trans, in TKey key, Guid value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueGuid(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueGuid(trans, keyBytes.Span, value);
+			}
+		}
+
+		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		public static void SetValueGuid(this IFdbTransaction trans, ReadOnlySpan<byte> key, Guid value)
 		{
 			Span<byte> scratch = stackalloc byte[16];
@@ -865,6 +954,22 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUuid128(this IFdbTransaction trans, Slice key, Uuid128 value) => SetValueUuid128(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueUuid128<TKey>(this IFdbTransaction trans, in TKey key, Uuid128 value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueUuid128(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueUuid128(trans, keyBytes.Span, value);
+			}
+		}
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		public static void SetValueUuid128(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid128 value)
@@ -879,6 +984,22 @@ namespace FoundationDB.Client
 		public static void SetValueUuid96(this IFdbTransaction trans, Slice key, Uuid96 value) => SetValueUuid96(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueUuid96<TKey>(this IFdbTransaction trans, in TKey key, Uuid96 value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueUuid96(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueUuid96(trans, keyBytes.Span, value);
+			}
+		}
+
+		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
 		public static void SetValueUuid96(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid96 value)
 		{
 			Span<byte> scratch = stackalloc byte[Uuid96.SizeOf];
@@ -890,6 +1011,22 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUuid80(this IFdbTransaction trans, Slice key, Uuid80 value) => SetValueUuid80(trans, ToSpanKey(key), value);
 
+
+		/// <summary>Sets the value of a key in the database as an 80-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueUuid80<TKey>(this IFdbTransaction trans, in TKey key, Uuid80 value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueUuid80(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueUuid80(trans, keyBytes.Span, value);
+			}
+		}
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
 		public static void SetValueUuid80(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid80 value)
 		{
@@ -903,6 +1040,22 @@ namespace FoundationDB.Client
 		public static void SetValueUuid64(this IFdbTransaction trans, Slice key, Uuid64 value) => SetValueUuid64(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueUuid64<TKey>(this IFdbTransaction trans, in TKey key, Uuid64 value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueUuid64(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueUuid64(trans, keyBytes.Span, value);
+			}
+		}
+
+		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
 		public static void SetValueUuid64(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid64 value)
 		{
 			Span<byte> scratch = stackalloc byte[Uuid64.SizeOf];
@@ -913,6 +1066,22 @@ namespace FoundationDB.Client
 		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetValueUuid48(this IFdbTransaction trans, Slice key, Uuid48 value) => SetValueUuid48(trans, ToSpanKey(key), value);
+
+		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void SetValueUuid48<TKey>(this IFdbTransaction trans, in TKey key, Uuid48 value)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetValueUuid48(trans, keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetValueUuid48(trans, keyBytes.Span, value);
+			}
+		}
 
 		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
 		public static void SetValueUuid48(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid48 value)
@@ -977,6 +1146,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
 		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
+		[OverloadResolutionPriority(1)]
 		public static void SetValues(this IFdbTransaction trans, ReadOnlySpan<KeyValuePair<Slice, Slice>> keyValuePairs)
 		{
 			Contract.NotNull(trans);
@@ -996,6 +1166,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
 		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
+		[OverloadResolutionPriority(1)]
 		public static void SetValues(this IFdbTransaction trans, params ReadOnlySpan<(Slice Key, Slice Value)> keyValuePairs)
 		{
 			Contract.NotNull(trans);
@@ -1197,6 +1368,289 @@ namespace FoundationDB.Client
 				}
 			}
 
+		}
+
+		[OverloadResolutionPriority(1)]
+		public static void SetValues<TElement, TKey, TValue>(this IFdbTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, TKey> keySelector, Func<TElement, TValue> valueSelector)
+			where TKey : struct, IFdbKey
+			where TValue : struct, IFdbValue
+		{
+			// we will reuse the same pooled buffer for encoding keys, and another one for encoding values
+			byte[]? keyBuffer = null;
+			byte[]? valueBuffer = null;
+			var pool = ArrayPool<byte>.Shared;
+
+			try
+			{
+				for (int i = 0; i < items.Length; i++)
+				{
+					var key = keySelector(items[i]);
+					var value = valueSelector(items[i]);
+					if (!key.TryGetSpan(out var keySpan))
+					{
+						FdbKeyExtensions.Encode(in key, ref keyBuffer, pool);
+					}
+					if (!value.TryGetSpan(out var valueSpan))
+					{
+						FdbValueExtensions.Encode(in value, ref valueBuffer, pool);
+					}
+					trans.Set(keySpan, valueSpan);
+				}
+			}
+			finally
+			{
+				if (valueBuffer is not null)
+				{
+					pool.Return(valueBuffer);
+				}
+				if (keyBuffer is not null)
+				{
+					pool.Return(keyBuffer);
+				}
+			}
+		}
+
+		public static void SetValues<TElement, TKey, TValue>(this IFdbTransaction trans, IEnumerable<TElement> items, Func<TElement, TKey> keySelector, Func<TElement, TValue> valueSelector)
+			where TKey : struct, IFdbKey
+			where TValue : struct, IFdbValue
+		{
+			if (items.TryGetSpan(out var span))
+			{
+				trans.SetValues<TElement, TKey, TValue>(span, keySelector, valueSelector);
+				return;
+			}
+
+			// we will reuse the same pooled buffer for encoding keys, and another one for encoding values
+			byte[]? keyBuffer = null;
+			byte[]? valueBuffer = null;
+			var pool = ArrayPool<byte>.Shared;
+
+			try
+			{
+				foreach(var item in items)
+				{
+					var key = keySelector(item);
+					var value = valueSelector(item);
+					if (!key.TryGetSpan(out var keySpan))
+					{
+						FdbKeyExtensions.Encode(in key, ref keyBuffer, pool);
+					}
+					if (!value.TryGetSpan(out var valueSpan))
+					{
+						FdbValueExtensions.Encode(in value, ref valueBuffer, pool);
+					}
+					trans.Set(keySpan, valueSpan);
+				}
+			}
+			finally
+			{
+				if (valueBuffer is not null)
+				{
+					pool.Return(valueBuffer);
+				}
+				if (keyBuffer is not null)
+				{
+					pool.Return(keyBuffer);
+				}
+			}
+		}
+
+		/// <summary>Set the values of a list of keys in the database.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Span of key and value pairs</param>
+		/// <remarks>
+		/// Only use this method if you know that the approximate size of count of keys and values will not exceed the maximum size allowed per transaction.
+		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">If <paramref name="trans"/> is null.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
+		[OverloadResolutionPriority(1)]
+		public static void SetValues<TKey, TValue>(this IFdbTransaction trans, ReadOnlySpan<(TKey Key, TValue Value)> items)
+			where TKey : struct, IFdbKey
+			where TValue : struct, IFdbValue
+		{
+			// we will reuse the same pooled buffer for encoding keys, and another one for encoding values
+			byte[]? keyBuffer = null;
+			byte[]? valueBuffer = null;
+			var pool = ArrayPool<byte>.Shared;
+
+			try
+			{
+				for (int i = 0; i < items.Length; i++)
+				{
+					if (!items[i].Key.TryGetSpan(out var keySpan))
+					{
+						FdbKeyExtensions.Encode(in items[i].Key, ref keyBuffer, pool);
+					}
+					if (!items[i].Value.TryGetSpan(out var valueSpan))
+					{
+						FdbValueExtensions.Encode(in items[i].Value, ref valueBuffer, pool);
+					}
+					trans.Set(keySpan, valueSpan);
+				}
+			}
+			finally
+			{
+				if (valueBuffer is not null)
+				{
+					pool.Return(valueBuffer);
+				}
+				if (keyBuffer is not null)
+				{
+					pool.Return(keyBuffer);
+				}
+			}
+		}
+
+		/// <summary>Set the values of a list of keys in the database.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of key and value pairs</param>
+		/// <remarks>
+		/// Only use this method if you know that the approximate size of count of keys and values will not exceed the maximum size allowed per transaction.
+		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="items"/> is null.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
+		public static void SetValues<TKey, TValue>(this IFdbTransaction trans, IEnumerable<(TKey Key, TValue Value)> items)
+			where TKey : struct, IFdbKey
+			where TValue : struct, IFdbValue
+		{
+			if (items.TryGetSpan(out var span))
+			{
+				trans.SetValues<TKey, TValue>(span);
+				return;
+			}
+
+			// we will reuse the same pooled buffer for encoding keys, and another one for encoding values
+			byte[]? keyBuffer = null;
+			byte[]? valueBuffer = null;
+			var pool = ArrayPool<byte>.Shared;
+
+			try
+			{
+				foreach(var kv in items)
+				{
+					if (!kv.Key.TryGetSpan(out var keySpan))
+					{
+						keySpan = FdbKeyExtensions.Encode(in kv.Key, ref keyBuffer, pool);
+					}
+					if (!kv.Value.TryGetSpan(out var valueSpan))
+					{
+						valueSpan = FdbValueExtensions.Encode(in kv.Value, ref valueBuffer, pool);
+					}
+					trans.Set(keySpan, valueSpan);
+				}
+			}
+			finally
+			{
+				if (valueBuffer is not null)
+				{
+					pool.Return(valueBuffer);
+				}
+				if (keyBuffer is not null)
+				{
+					pool.Return(keyBuffer);
+				}
+			}
+		}
+
+		/// <summary>Set the values of a list of keys in the database.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Span of key and value pairs</param>
+		/// <remarks>
+		/// Only use this method if you know that the approximate size of count of keys and values will not exceed the maximum size allowed per transaction.
+		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">If <paramref name="trans"/> is null.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
+		[OverloadResolutionPriority(1)]
+		public static void SetValues<TKey, TValue>(this IFdbTransaction trans, ReadOnlySpan<KeyValuePair<TKey, TValue>> items)
+			where TKey : struct, IFdbKey
+			where TValue : struct, IFdbValue
+		{
+			// we will reuse the same pooled buffer for encoding keys, and another one for encoding values
+			byte[]? keyBuffer = null;
+			byte[]? valueBuffer = null;
+			var pool = ArrayPool<byte>.Shared;
+
+			try
+			{
+				for (int i = 0; i < items.Length; i++)
+				{
+					if (!items[i].Key.TryGetSpan(out var keySpan))
+					{
+						FdbKeyExtensions.Encode(items[i].Key, ref keyBuffer, pool);
+					}
+					if (!items[i].Value.TryGetSpan(out var valueSpan))
+					{
+						FdbValueExtensions.Encode(items[i].Value, ref valueBuffer, pool);
+					}
+					trans.Set(keySpan, valueSpan);
+				}
+			}
+			finally
+			{
+				if (valueBuffer is not null)
+				{
+					pool.Return(valueBuffer);
+				}
+				if (keyBuffer is not null)
+				{
+					pool.Return(keyBuffer);
+				}
+			}
+		}
+
+		/// <summary>Set the values of a list of keys in the database.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of key and value pairs</param>
+		/// <remarks>
+		/// Only use this method if you know that the approximate size of count of keys and values will not exceed the maximum size allowed per transaction.
+		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="items"/> is null.</exception>
+		/// <exception cref="FdbException">If this operation exceeded the maximum allowed size for a transaction.</exception>
+		public static void SetValues<TKey, TValue>(this IFdbTransaction trans, IEnumerable<KeyValuePair<TKey, TValue>> items)
+			where TKey : struct, IFdbKey
+			where TValue : struct, IFdbValue
+		{
+			if (items.TryGetSpan(out var span))
+			{
+				trans.SetValues<TKey, TValue>(span);
+				return;
+			}
+
+			// we will reuse the same pooled buffer for encoding keys, and another one for encoding values
+			byte[]? keyBuffer = null;
+			byte[]? valueBuffer = null;
+			var pool = ArrayPool<byte>.Shared;
+
+			try
+			{
+				foreach(var kv in items)
+				{
+					if (!kv.Key.TryGetSpan(out var keySpan))
+					{
+						FdbKeyExtensions.Encode(kv.Key, ref keyBuffer, pool);
+					}
+					if (!kv.Value.TryGetSpan(out var valueSpan))
+					{
+						FdbValueExtensions.Encode(kv.Value, ref valueBuffer, pool);
+					}
+					trans.Set(keySpan, valueSpan);
+				}
+			}
+			finally
+			{
+				if (valueBuffer is not null)
+				{
+					pool.Return(valueBuffer);
+				}
+				if (keyBuffer is not null)
+				{
+					pool.Return(keyBuffer);
+				}
+			}
 		}
 
 		#endregion
@@ -1787,12 +2241,21 @@ namespace FoundationDB.Client
 			if (value.TryGetSpan(out var valueSpan))
 			{
 				trans.SetVersionStampedKey(key, valueSpan);
+				return;
 			}
-			else
+
+			if (value.TryGetSizeHint(out int sizeHint) && (uint) sizeHint <= 128)
 			{
-				using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
-				trans.SetVersionStampedKey(key, valueBytes.Span);
+				Span<byte> buffer = stackalloc byte[sizeHint];
+				if (value.TryEncode(buffer, out int bytesWritten))
+				{
+					trans.SetVersionStampedKey(key, buffer[..bytesWritten]);
+					return;
+				}
 			}
+
+			using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+			trans.SetVersionStampedKey(key, valueBytes.Span);
 		}
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
@@ -1908,12 +2371,21 @@ namespace FoundationDB.Client
 			if (value.TryGetSpan(out var valueSpan))
 			{
 				trans.SetVersionStampedValue(key, valueSpan);
+				return;
 			}
-			else
+
+			if (value.TryGetSizeHint(out int sizeHint) && (uint) sizeHint <= 128)
 			{
-				using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
-				trans.SetVersionStampedValue(key, valueBytes.Span);
+				Span<byte> buffer = stackalloc byte[sizeHint];
+				if (value.TryEncode(buffer, out int bytesWritten))
+				{
+					trans.SetVersionStampedValue(key, buffer[..bytesWritten]);
+					return;
+				}
 			}
+
+			using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+			trans.SetVersionStampedValue(key, valueBytes.Span);
 		}
 
 		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
