@@ -169,6 +169,21 @@ namespace SnowBank.Data.Tuples.Binary
 			return sw.ToSlice();
 		}
 
+		/// <summary>Packs a tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <param name="pool">Pool used to rented the buffers</param>
+		[Pure]
+		public static SliceOwner Pack<TTuple>(in TTuple? tuple, ArrayPool<byte> pool)
+			where TTuple : IVarTuple?
+		{
+			if (tuple is null) return SliceOwner.Nil;
+
+			var sw = new SliceWriter(pool);
+			var tw = new TupleWriter(ref sw);
+			WriteTo(tw, in tuple);
+			return sw.ToSliceOwner();
+		}
+
 		/// <summary>Packs an array of N-tuples, all sharing the same buffer</summary>
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>

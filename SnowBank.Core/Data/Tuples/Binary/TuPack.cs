@@ -28,6 +28,7 @@
 
 namespace SnowBank.Data.Tuples
 {
+	using System.Buffers;
 	using System.ComponentModel;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Data.Binary;
@@ -77,6 +78,16 @@ namespace SnowBank.Data.Tuples
 			where TTuple : IVarTuple?
 		{
 			return TupleEncoder.Pack(in tuple);
+		}
+
+		/// <summary>Packs a tuple into a <see cref="SliceOwner"/></summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <param name="pool">Pool used to allocate the buffers</param>
+		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SliceOwner Pack<TTuple>(in TTuple? tuple, ArrayPool<byte>? pool)
+			where TTuple : IVarTuple?
+		{
+			return TupleEncoder.Pack(in tuple, pool ?? ArrayPool<byte>.Shared);
 		}
 
 		/// <summary>Pack a tuple into a slice</summary>
