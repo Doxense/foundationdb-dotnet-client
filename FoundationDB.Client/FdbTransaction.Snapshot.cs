@@ -121,21 +121,6 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetOperation(key, snapshot: true);
 			}
 
-			public Task<Slice> GetAsync<TKey>(in TKey key)
-				where TKey : struct, IFdbKey
-			{
-				using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-				return GetAsync(keyBytes.Span);
-			}
-
-			/// <inheritdoc />
-			public Task<TResult> GetAsync<TKey, TResult>(in TKey key, FdbValueDecoder<TResult> decoder)
-				where TKey : struct, IFdbKey
-			{
-				using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-				return GetAsync(keyBytes.Span, decoder);
-			}
-
 			/// <inheritdoc />
 			public Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, FdbValueDecoder<TResult> decoder)
 			{
@@ -150,14 +135,6 @@ namespace FoundationDB.Client
 				return m_parent.PerformGetOperation(key, snapshot: true, decoder);
 			}
 
-
-			/// <inheritdoc />
-			public Task<TResult> GetAsync<TKey, TState, TResult>(in TKey key, TState state, FdbValueDecoder<TState, TResult> decoder)
-				where TKey : struct, IFdbKey
-			{
-				using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-				return GetAsync(keyBytes.Span, state, decoder);
-			}
 
 			/// <inheritdoc />
 			public Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, TState state, FdbValueDecoder<TState, TResult> decoder)

@@ -71,6 +71,51 @@ namespace FoundationDB.Client
 		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, Slice key)
 			=> trans.GetAsync(ToSpanKey(key));
 
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetAsync(ReadOnlySpan{byte})"/>
+		public static Task<Slice> GetAsync<TKey>(this IFdbReadOnlyTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return trans.GetAsync(keySpan);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				return trans.GetAsync(keyBytes.Span);
+			}
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetAsync{TResult}"/>
+		public static Task<TResult> GetAsync<TKey, TResult>(this IFdbReadOnlyTransaction trans, in TKey key, FdbValueDecoder<TResult> decoder)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return trans.GetAsync(keySpan, decoder);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				return trans.GetAsync(keyBytes.Span, decoder);
+			}
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetAsync{TState,TResult}"/>
+		public static Task<TResult> GetAsync<TKey, TState, TResult>(this IFdbReadOnlyTransaction trans, in TKey key, TState state, FdbValueDecoder<TState, TResult> decoder)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return trans.GetAsync(keySpan, state, decoder);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				return trans.GetAsync(keyBytes.Span, state, decoder);
+			}
+		}
+
 		/// <summary>Reads a value from the database snapshot represented by the current transaction.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -216,8 +261,15 @@ namespace FoundationDB.Client
 		public static Task<int> GetValueInt32Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key, int missingValue)
 			where TKey : struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			return GetValueInt32Async(trans, keyBytes.Span, missingValue);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return trans.GetValueInt32Async(keySpan, missingValue);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				return trans.GetValueInt32Async(keyBytes.Span, missingValue);
+			}
 		}
 
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 32-bit unsigned integer</summary>
@@ -526,9 +578,15 @@ namespace FoundationDB.Client
 		public static void Set<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
 			where TKey : struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-
-			trans.Set(keyBytes.Span, value);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.Set(keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.Set(keyBytes.Span, value);
+			}
 		}
 
 		/// <inheritdoc cref="Set{TValue}(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},in TValue)"/>
@@ -547,9 +605,15 @@ namespace FoundationDB.Client
 		public static void Set<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
 			where TValue : struct, IFdbValue
 		{
-			using var valueBytes = value.ToSlice(ArrayPool<byte>.Shared);
-
-			trans.Set(key, valueBytes.Span);
+			if (value.TryGetSpan(out var valueSpan))
+			{
+				trans.Set(key, valueSpan);
+			}
+			else
+			{
+				using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+				trans.Set(key, valueBytes.Span);
+			}
 		}
 
 		/// <summary>
@@ -563,12 +627,15 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 			where TValue : struct, IFdbValue
 		{
-			var pool = ArrayPool<byte>.Shared;
-
-			using var keyBytes = key.ToSlice(pool);
-			using var valueBytes = value.ToSlice(pool);
-
-			trans.Set(keyBytes.Span, valueBytes.Span);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.Set(keySpan, in value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.Set(keyBytes.Span, in value);
+			}
 		}
 
 		/// <summary>Set the value of a key in the database, using a custom value encoder.</summary>
@@ -1335,8 +1402,15 @@ namespace FoundationDB.Client
 		public static void AtomicAdd32<TKey>(this IFdbTransaction trans, in TKey key, int value)
 			where TKey : struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			trans.AtomicAdd32(keyBytes.Span, value);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.AtomicAdd32(keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.AtomicAdd32(keyBytes.Span, value);
+			}
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
@@ -1366,8 +1440,15 @@ namespace FoundationDB.Client
 		public static void AtomicAdd32<TKey>(this IFdbTransaction trans, in TKey key, uint value)
 			where TKey : struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			trans.AtomicAdd32(keyBytes.Span, value);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.AtomicAdd32(keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.AtomicAdd32(keyBytes.Span, value);
+			}
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 32-bit value stored by the given <paramref name="key"/>.</summary>
@@ -1397,8 +1478,15 @@ namespace FoundationDB.Client
 		public static void AtomicAdd64<TKey>(this IFdbTransaction trans, in TKey key, long value)
 			where TKey : struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			trans.AtomicAdd64(keyBytes.Span, value);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.AtomicAdd64(keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.AtomicAdd64(keyBytes.Span, value);
+			}
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add a signed integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
@@ -1428,8 +1516,15 @@ namespace FoundationDB.Client
 		public static void AtomicAdd64<TKey>(this IFdbTransaction trans, in TKey key, ulong value)
 			where TKey : struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			trans.AtomicAdd64(keyBytes.Span, value);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.AtomicAdd64(keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.AtomicAdd64(keyBytes.Span, value);
+			}
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add an unsigned integer to the 64-bit value stored by the given <paramref name="key"/>.</summary>
@@ -1656,8 +1751,15 @@ namespace FoundationDB.Client
 		public static void SetVersionStampedKey<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
 			where TKey: struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			trans.SetVersionStampedKey(keyBytes.Span, value);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.SetVersionStampedKey(keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.SetVersionStampedKey(keyBytes.Span, value);
+			}
 		}
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
@@ -1670,6 +1772,29 @@ namespace FoundationDB.Client
 			trans.SetVersionStampedKey(key, ToSpanValue(value));
 		}
 
+		/// <inheritdoc cref="SetVersionStampedKey{TValue}(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},in TValue)"/>
+		public static void SetVersionStampedKey<TValue>(this IFdbTransaction trans, Slice key, in TValue value)
+			where TValue : struct, IFdbValue
+			=> SetVersionStampedKey<TValue>(trans, ToSpanKey(key), in value);
+
+		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
+		/// <param name="value">New value for this key.</param>
+		public static void SetVersionStampedKey<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
+			where TValue: struct, IFdbValue
+		{
+			if (value.TryGetSpan(out var valueSpan))
+			{
+				trans.SetVersionStampedKey(key, valueSpan);
+			}
+			else
+			{
+				using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+				trans.SetVersionStampedKey(key, valueBytes.Span);
+			}
+		}
+
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
@@ -1678,12 +1803,15 @@ namespace FoundationDB.Client
 			where TKey: struct, IFdbKey
 			where TValue: struct, IFdbValue
 		{
-			var pool = ArrayPool<byte>.Shared;
-
-			using var keyBytes = key.ToSlice(pool);
-			using var valueBytes = value.ToSlice(pool);
-
-			trans.SetVersionStampedKey(keyBytes.Span, valueBytes.Span);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.SetVersionStampedKey<TValue>(keySpan, in value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.SetVersionStampedKey<TValue>(keyBytes.Span, in value);
+			}
 		}
 
 		/// <inheritdoc cref="SetVersionStampedValue(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},System.ReadOnlySpan{byte})"/>
@@ -1750,8 +1878,15 @@ namespace FoundationDB.Client
 		public static void SetVersionStampedValue<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
 			where TKey: struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			trans.SetVersionStampedValue(keyBytes.Span, value);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.SetVersionStampedValue(keySpan, value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.SetVersionStampedValue(keyBytes.Span, value);
+			}
 		}
 
 		/// <inheritdoc cref="SetVersionStampedValue{TValue}(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},in TValue)"/>
@@ -1770,9 +1905,15 @@ namespace FoundationDB.Client
 		public static void SetVersionStampedValue<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
 			where TValue: struct, IFdbValue
 		{
-			using var valueBytes = value.ToSlice(ArrayPool<byte>.Shared);
-
-			trans.SetVersionStampedValue(key, valueBytes.Span);
+			if (value.TryGetSpan(out var valueSpan))
+			{
+				trans.SetVersionStampedValue(key, valueSpan);
+			}
+			else
+			{
+				using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+				trans.SetVersionStampedValue(key, valueBytes.Span);
+			}
 		}
 
 		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
@@ -1787,12 +1928,15 @@ namespace FoundationDB.Client
 			where TKey: struct, IFdbKey
 			where TValue: struct, IFdbValue
 		{
-			var pool = ArrayPool<byte>.Shared;
-
-			using var keyBytes = key.ToSlice(pool);
-			using var valueBytes = value.ToSlice(pool);
-
-			trans.SetVersionStampedValue(keyBytes.Span, valueBytes.Span);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.SetVersionStampedValue<TValue>(keySpan, in value);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.SetVersionStampedValue<TValue>(keyBytes.Span, in value);
+			}
 		}
 
 		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> at the given offset in the value with the resolved VersionStamp at commit time.</summary>
@@ -2246,9 +2390,15 @@ namespace FoundationDB.Client
 		public static void Clear<TKey>(this IFdbTransaction trans, in TKey key)
 			where TKey: struct, IFdbKey
 		{
-			using var keyBytes = key.ToSlice(ArrayPool<byte>.Shared);
-			
-			trans.Clear(keyBytes.Span);
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.Clear(keySpan);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.Clear(keyBytes.Span);
+			}
 		}
 
 		#endregion

@@ -138,10 +138,15 @@ namespace FoundationDB.Client
 				return SliceOwner.Wrap(((FdbRawKey) (object) key).Data);
 			}
 
-			if (key.TryGetSpan(out var span))
-			{
-				return SliceOwner.Copy(span, pool);
-			}
+			return key.TryGetSpan(out var span)
+				? SliceOwner.Copy(span, pool)
+				: Encode(in key, pool);
+		}
+
+		internal static SliceOwner Encode<TKey>(in TKey key, ArrayPool<byte>? pool)
+			where TKey : struct, IFdbKey
+		{
+			Contract.Debug.Requires(pool != null);
 
 			if (!key.TryGetSizeHint(out var capacity))
 			{ // we will hope for the best, and pre-allocate the slice
