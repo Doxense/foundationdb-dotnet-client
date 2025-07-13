@@ -9,6 +9,8 @@
 namespace FoundationDB.Client
 {
 
+	/// <summary>Factory class for values</summary>
+	[PublicAPI]
 	public static class FdbValue
 	{
 
@@ -219,7 +221,7 @@ namespace FoundationDB.Client
 		/// <param name="value">value to pre-encoded</param>
 		/// <returns>Value with a cached version of the encoded original</returns>
 		/// <remarks>This value can be used multiple times without re-encoding the original</remarks>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbRawValue Memoize<TValue>(this TValue value)
 			where TValue : struct, IFdbValue
 		{
@@ -234,7 +236,7 @@ namespace FoundationDB.Client
 		/// <summary>Encodes this value into <see cref="Slice"/></summary>
 		/// <param name="value">Value to encode</param>
 		/// <returns><see cref="Slice"/> that contains the binary representation of this value</returns>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToSlice<TValue>(this TValue value)
 			where TValue : struct, IFdbValue
 		{
@@ -248,66 +250,77 @@ namespace FoundationDB.Client
 				return Slice.FromBytes(span);
 			}
 
-			byte[]? tmp = null;
-			if (value.TryGetSizeHint(out var capacity))
-			{ // we will hope for the best, and pre-allocate the slice
+			return ToSliceSlow(in value);
 
-				tmp = new byte[capacity];
-				if (value.TryEncode(tmp, out var bytesWritten))
-				{
-					return tmp.AsSlice(0, bytesWritten);
-				}
-				if (capacity >= FdbValue.MaxSize)
-				{
-					goto key_too_long;
-				}
-				capacity *= 2;
-			}
-			else
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static Slice ToSliceSlow(in TValue value)
 			{
-				capacity = 256;
-			}
+				byte[]? tmp = null;
+				if (value.TryGetSizeHint(out var capacity))
+				{
+					// we will hope for the best, and pre-allocate the slice
 
-			var pool = ArrayPool<byte>.Shared;
-			try
-			{
-				while (true)
-				{
-					tmp = pool.Rent(capacity);
-					if (value.TryEncode(tmp, out int bytesWritten))
+					tmp = new byte[capacity];
+					if (value.TryEncode(tmp, out var bytesWritten))
 					{
-						return tmp.AsSlice(0, bytesWritten).Copy();
+						return tmp.AsSlice(0, bytesWritten);
 					}
-
-					pool.Return(tmp);
-					tmp = null;
 
 					if (capacity >= FdbValue.MaxSize)
 					{
 						goto key_too_long;
 					}
+
 					capacity *= 2;
 				}
-			}
-			catch(Exception)
-			{
-				if (tmp is not null)
+				else
 				{
-					pool.Return(tmp);
+					capacity = 256;
 				}
-				throw;
-			}
 
-		key_too_long:
-			// it would be too large anyway!
-			throw new ArgumentException("Cannot encode value because it would exceed the maximum allowed length.");
+				var pool = ArrayPool<byte>.Shared;
+				try
+				{
+					while (true)
+					{
+						tmp = pool.Rent(capacity);
+						if (value.TryEncode(tmp, out int bytesWritten))
+						{
+							return tmp.AsSlice(0, bytesWritten).Copy();
+						}
+
+						pool.Return(tmp);
+						tmp = null;
+
+						if (capacity >= FdbValue.MaxSize)
+						{
+							goto key_too_long;
+						}
+
+						capacity *= 2;
+					}
+				}
+				catch (Exception)
+				{
+					if (tmp is not null)
+					{
+						pool.Return(tmp);
+					}
+
+					throw;
+				}
+
+			key_too_long:
+				// it would be too large anyway!
+				throw new ArgumentException("Cannot encode value because it would exceed the maximum allowed length.");
+			}
 		}
 
 		/// <summary>Encodes this value into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
 		/// <param name="value">Value to encode</param>
 		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
 		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this value</returns>
-		[Pure, MustDisposeResource]
+		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceOwner ToSlice<TValue>(this TValue value, ArrayPool<byte>? pool)
 			where TValue : struct, IFdbValue
 		{
@@ -323,6 +336,7 @@ namespace FoundationDB.Client
 				: Encode(in value, pool);
 		}
 
+		[MethodImpl(MethodImplOptions.NoInlining)]
 		internal static SliceOwner Encode<TValue>(in TValue value, ArrayPool<byte> pool, int? sizeHint = null)
 			where TValue : struct, IFdbValue
 		{
@@ -381,7 +395,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[MustUseReturnValue]
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static ReadOnlySpan<byte> Encode<TValue>(scoped in TValue value, scoped ref byte[]? buffer, ArrayPool<byte> pool)
 			where TValue : struct, IFdbValue
 		{
@@ -659,6 +673,7 @@ namespace FoundationDB.Client
 		/// <summary>Wrapped span</summary>
 		public readonly ReadOnlySpan<TElement> Data;
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private ReadOnlySpan<byte> GetAsBytes()
 		{
 			if (typeof(TElement) != typeof(byte))
@@ -671,6 +686,7 @@ namespace FoundationDB.Client
 
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		private ReadOnlySpan<char> GetAsChars()
 		{
 			if (typeof(TElement) != typeof(char))
@@ -733,6 +749,7 @@ namespace FoundationDB.Client
 			throw new NotSupportedException();
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public Slice ToSlice()
 		{
 			if (typeof(TElement) == typeof(byte))
@@ -748,6 +765,7 @@ namespace FoundationDB.Client
 			throw new NotSupportedException();
 		}
 
+		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public SliceOwner ToSlice(ArrayPool<byte>? pool)
 		{
 			if (typeof(TElement) == typeof(byte))
@@ -898,12 +916,15 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, this.Item1);
 
 	}
@@ -957,12 +978,15 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null, null);
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
 	}
@@ -1016,12 +1040,15 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null, null);
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
 	}
@@ -1072,12 +1099,15 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null, null);
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
 	}
@@ -1125,12 +1155,15 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null, null);
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
 	}
@@ -1175,12 +1208,15 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null, null);
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
 	}
@@ -1223,12 +1259,15 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null, null);
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
 	}
@@ -1267,12 +1306,15 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null, null);
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this.Items);
 
 	}

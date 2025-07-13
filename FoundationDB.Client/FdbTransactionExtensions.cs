@@ -575,6 +575,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
 			where TKey : struct, IFdbKey
 		{
@@ -602,6 +603,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
 			where TValue : struct, IFdbValue
 		{
@@ -632,6 +634,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TKey, TValue>(this IFdbTransaction trans, in TKey key, in TValue value)
 			where TKey : struct, IFdbKey
 			where TValue : struct, IFdbValue

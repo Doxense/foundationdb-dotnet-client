@@ -39,7 +39,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to pre-encoded</param>
 		/// <returns>Key with a cached version of the encoded original</returns>
 		/// <remarks>This key can be used multiple times without re-encoding the original</remarks>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbRawKey Memoize<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
 		{
@@ -54,7 +54,7 @@ namespace FoundationDB.Client
 		/// <summary>Encodes this key into <see cref="Slice"/></summary>
 		/// <param name="key">Key to encode</param>
 		/// <returns><see cref="Slice"/> that contains the binary representation of this key</returns>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice ToSlice<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
 		{
@@ -68,81 +68,92 @@ namespace FoundationDB.Client
 				return Slice.FromBytes(span);
 			}
 
-			byte[]? tmp = null;
-			if (key.TryGetSizeHint(out var capacity))
-			{ // we will hope for the best, and pre-allocate the slice
+			return ToSliceSlow(in key);
 
-				tmp = new byte[capacity];
-				if (key.TryEncode(tmp, out var bytesWritten))
-				{
-					return tmp.AsSlice(0, bytesWritten);
-				}
-				if (capacity >= FdbKey.MaxSize)
-				{
-					goto key_too_long;
-				}
-				capacity *= 2;
-			}
-			else
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static Slice ToSliceSlow(in TKey key)
 			{
-				capacity = 128;
-			}
+				byte[]? tmp = null;
+				if (key.TryGetSizeHint(out var capacity))
+				{
+					// we will hope for the best, and pre-allocate the slice
 
-			var pool = ArrayPool<byte>.Shared;
-			try
-			{
-				while (true)
-				{
-					tmp = pool.Rent(capacity);
-					if (key.TryEncode(tmp, out int bytesWritten))
+					tmp = new byte[capacity];
+					if (key.TryEncode(tmp, out var bytesWritten))
 					{
-						return tmp.AsSlice(0, bytesWritten).Copy();
+						return tmp.AsSlice(0, bytesWritten);
 					}
-
-					pool.Return(tmp);
-					tmp = null;
 
 					if (capacity >= FdbKey.MaxSize)
 					{
 						goto key_too_long;
 					}
+
 					capacity *= 2;
 				}
-			}
-			catch(Exception)
-			{
-				if (tmp is not null)
+				else
 				{
-					pool.Return(tmp);
+					capacity = 128;
 				}
-				throw;
-			}
 
-		key_too_long:
-			// it would be too large anyway!
-			throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+				var pool = ArrayPool<byte>.Shared;
+				try
+				{
+					while (true)
+					{
+						tmp = pool.Rent(capacity);
+						if (key.TryEncode(tmp, out int bytesWritten))
+						{
+							return tmp.AsSlice(0, bytesWritten).Copy();
+						}
+
+						pool.Return(tmp);
+						tmp = null;
+
+						if (capacity >= FdbKey.MaxSize)
+						{
+							goto key_too_long;
+						}
+
+						capacity *= 2;
+					}
+				}
+				catch (Exception)
+				{
+					if (tmp is not null)
+					{
+						pool.Return(tmp);
+					}
+
+					throw;
+				}
+
+			key_too_long:
+				// it would be too large anyway!
+				throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+			}
 		}
 
 		/// <summary>Encodes this key into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
 		/// <param name="key">Key to encode</param>
 		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
 		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this key</returns>
-		[Pure, MustDisposeResource]
+		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static SliceOwner ToSlice<TKey>(this TKey key, ArrayPool<byte>? pool)
 			where TKey : struct, IFdbKey
 		{
-			pool ??= ArrayPool<byte>.Shared;
-
 			if (typeof(TKey) == typeof(FdbRawKey))
 			{
 				return SliceOwner.Wrap(((FdbRawKey) (object) key).Data);
 			}
 
+			pool ??= ArrayPool<byte>.Shared;
 			return key.TryGetSpan(out var span)
 				? SliceOwner.Copy(span, pool)
 				: Encode(in key, pool);
 		}
 
+		[MustDisposeResource, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static SliceOwner Encode<TKey>(in TKey key, ArrayPool<byte>? pool, int? sizeHint = null)
 			where TKey : struct, IFdbKey
 		{
@@ -201,7 +212,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[MustUseReturnValue]
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static ReadOnlySpan<byte> Encode<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool)
 			where TKey : struct, IFdbKey
 		{
@@ -242,11 +253,7 @@ namespace FoundationDB.Client
 
 		#region TSubspace Keys...
 
-		/// <summary>Returns a key that packs the given items under this subspace</summary>
-		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="items">elements of the key</param>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbVarTupleKey PackKey(this IDynamicKeySubspace subspace, IVarTuple items) => new(subspace, items);
+		#region IDynamicKeySubspace.GetKey(...)...
 
 		/// <summary>Returns a key under this subspace</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
@@ -324,18 +331,142 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> GetKey<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(subspace, item1, item2, item3, item4, item5, item6, item7, item8);
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKey<(ITypedKeySubspace<T1> Subspace, T1 Key), FdbKey.TypedSubspaceEncoder<T1>> GetKey<T1>(this ITypedKeySubspace<T1> subspace, T1 key1)
-		{
-			return new((subspace, key1), subspace);
-		}
+		#endregion
+
+		#region IDynamicKeySubspace.PackKey(ValueTuple<...>)...
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKey<(TSubspace Subspace, STuple<T1, T2> Items), FdbKey.DynamicSubspaceTupleEncoder<TSubspace, STuple<T1, T2>>> PackKey<TSubspace, T1, T2>(this TSubspace subspace, ValueTuple<T1, T2> key)
-			where TSubspace : IDynamicKeySubspace
+		public static FdbTupleKey<T1> PackKey<T1>(this IDynamicKeySubspace subspace, ValueTuple<T1> key) => new(subspace, key.Item1);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> PackKey<T1, T2>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> PackKey<T1, T2, T3>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> PackKey<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5> PackKey<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> PackKey<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> PackKey<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> PackKey<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> key) => new(subspace, in key);
+
+		#endregion
+
+		#region IDynamicKeySubspace.PackKey(STuple<...>)...
+
+		/// <summary>Returns a key that packs the given items under this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="items">elements of the key</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbVarTupleKey PackKey(this IDynamicKeySubspace subspace, IVarTuple items) => new(subspace, items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1> PackKey<T1>(this IDynamicKeySubspace subspace, STuple<T1> key) => new(subspace, key.Item1);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> PackKey<T1, T2>(this IDynamicKeySubspace subspace, in STuple<T1, T2> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> PackKey<T1, T2, T3>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> PackKey<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5> PackKey<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> PackKey<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> PackKey<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> PackKey<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> key) => new(subspace, in key);
+
+		#endregion
+
+		#region ITypedKeySubspace<...>.GetKey(...)
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1> GetKey<T1>(this ITypedKeySubspace<T1> subspace, T1 item1) => new(subspace, item1);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> GetKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> GetKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2, T3 item3) => new(subspace, item1, item2, item3);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> GetKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3, T4 item4) => new(subspace, item1, item2, item3, item4);
+
+		#endregion
+
+		#region ITypedKeySubspace<...>.PackKey(ValueTuple<...>)
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1> PackKey<T1>(this ITypedKeySubspace<T1> subspace, ValueTuple<T1> items) => new(subspace, items.Item1);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> PackKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, in ValueTuple<T1, T2> items) => new(subspace, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> PackKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, in ValueTuple<T1, T2, T3> items) => new(subspace, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> PackKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, in ValueTuple<T1, T2, T3, T4> items) => new(subspace, in items);
+
+		#endregion
+
+		#region ITypedKeySubspace<...>.PackKey(STuple<...>)
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1> PackKey<T1>(this ITypedKeySubspace<T1> subspace, STuple<T1> items) => new(subspace, items.Item1);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> PackKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, in STuple<T1, T2> items) => new(subspace, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> PackKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, in STuple<T1, T2, T3> items) => new(subspace, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> PackKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, in STuple<T1, T2, T3, T4> items) => new(subspace, in items);
+
+		#endregion
+
+		#region IBinaryKeySubspace.GetKey(...)
+
+		[Pure]
+		public static FdbBinaryKey GetKey(this IBinaryKeySubspace subspace, Slice relativeKey)
 		{
-			return new((subspace, key), subspace);
+			Contract.NotNull(subspace);
+			return new(subspace, relativeKey);
 		}
+
+		[Pure]
+		public static FdbBinaryKey GetKey(this IBinaryKeySubspace subspace, byte[]? relativeKey)
+		{
+			Contract.NotNull(subspace);
+			return new(subspace, relativeKey.AsSlice());
+		}
+
+		[Pure]
+		public static FdbVarTupleKey PackKey(this IBinaryKeySubspace subspace, IVarTuple items)
+		{
+			Contract.NotNull(subspace);
+			return new(subspace, items);
+		}
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbVarTupleKey[] PackKeys(this IDynamicKeySubspace subspace, ReadOnlySpan<IVarTuple> keys)

@@ -43,7 +43,7 @@ namespace FoundationDB.Client.Tests
 			{ // Slice
 				var rawKey = Slice.FromBytes("Hello, World!"u8);
 
-				var key = FdbKey.Create(rawKey);
+				var key = FdbKey.Binary.FromBytes(rawKey);
 				Assert.That(key.ToSlice(), Is.EqualTo(rawKey));
 				Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToSlice()).EqualTo(rawKey));
 				Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Count));
@@ -51,7 +51,7 @@ namespace FoundationDB.Client.Tests
 			{ // byte[]
 				var rawKey = "Hello, World!"u8.ToArray();
 
-				var key = FdbKey.Create(rawKey);
+				var key = FdbKey.Binary.FromBytes(rawKey);
 				Assert.That(key.ToSlice().ToArray(), Is.EqualTo(rawKey));
 				Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(rawKey));
 				Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Length));

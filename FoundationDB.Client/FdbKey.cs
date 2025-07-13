@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public static partial class FdbKey
 	{
+
 		#region Well Known Keys...
 
 		/// <summary>Smallest possible key (<c>0x00</c>)</summary>
