@@ -69,7 +69,7 @@ namespace FoundationDB.Client.Tests
 				Log($"# {prefix:x} + {items}: -> {packed:x}");
 				if (!packed.StartsWith(prefix)) throw new InvalidOperationException();
 
-				var key = FdbKey.Create(subspace, in items);
+				var key = subspace.PackKey(items);
 
 				Assert.That(key.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero, "");
 				Assert.That(key.TryGetSizeHint(out int size), Is.False.WithOutput(size).Zero);
