@@ -27,6 +27,11 @@
 namespace SnowBank.Data.Binary
 {
 
+	/// <summary>Defines methods to encode the binary representation of instances of type <typeparamref name="TValue"/> into a span</summary>
+	/// <typeparam name="TValue">Type of the encoded values</typeparam>
+	/// <remarks>
+	/// <para>This type is expected to be implemented on structs <b>ONLY</b>, in order to achieve the best performance by using JIT inlining and other optimizations as much as possible.</para>
+	/// </remarks>
 	public interface ISpanEncoder<TValue>
 #if NET9_0_OR_GREATER
 		where TValue : allows ref struct
