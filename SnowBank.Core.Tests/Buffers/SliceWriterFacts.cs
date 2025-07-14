@@ -26,6 +26,8 @@
 
 namespace SnowBank.Buffers.Tests
 {
+	using SnowBank.Data.Binary;
+
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]
@@ -1036,6 +1038,48 @@ namespace SnowBank.Buffers.Tests
 			Log();
 
 			pool.AssertAllReturned();
+		}
+
+		[Test]
+		public void Test_SliceWriter_SpanEncodable()
+		{
+
+			var sw = new SliceWriter();
+
+			Assert.That(((ISpanEncodable) sw).TryGetSpan(out var span), Is.True);
+			Assert.That(span.Length, Is.Zero);
+
+			Assert.That(((ISpanEncodable) sw).TryGetSizeHint(out var size), Is.True.WithOutput(size).Zero);
+
+			var buf = new byte[32];
+			buf.AsSpan().Fill(0xAA);
+			Assert.That(((ISpanEncodable) sw).TryEncode(buf, out var written), Is.True.WithOutput(written).Zero);
+			Assert.That(buf.AsSpan().ContainsAnyExcept((byte)0xAA), Is.False);
+
+			sw.WriteStringUtf8("Hello");
+
+			Assert.That(((ISpanEncodable) sw).TryGetSpan(out span), Is.True);
+			Assert.That(span.Length, Is.EqualTo(sw.Position));
+			Assert.That(span.ToArray(), Is.EqualTo("Hello"u8.ToArray()));
+
+			Assert.That(((ISpanEncodable) sw).TryGetSizeHint(out size), Is.True.WithOutput(size).EqualTo(sw.Position));
+
+			// large buffer
+			buf.AsSpan().Fill(0xAA);
+			Assert.That(((ISpanEncodable) sw).TryEncode(buf, out written), Is.True);
+			Assert.That(buf[..written], Is.EqualTo(sw.ToSpan().ToArray()));
+			Assert.That(buf.AsSpan(written).ContainsAnyExcept((byte) 0xAA), Is.False);
+
+			// exact buffer size
+			buf.AsSpan().Fill(0xAA);
+			Assert.That(((ISpanEncodable) sw).TryEncode(buf.AsSpan(0, sw.Position), out written), Is.True);
+			Assert.That(buf[..written], Is.EqualTo(sw.ToSpan().ToArray()));
+			Assert.That(buf.AsSpan(written).ContainsAnyExcept((byte) 0xAA), Is.False);
+
+			// buffer too small
+			buf.AsSpan().Fill(0xAA);
+			Assert.That(((ISpanEncodable) sw).TryEncode(buf.AsSpan(0, sw.Position - 1), out written), Is.False.WithOutput(written).Zero);
+			Assert.That(buf.AsSpan().ContainsAnyExcept((byte) 0xAA), Is.False);
 		}
 
 	}

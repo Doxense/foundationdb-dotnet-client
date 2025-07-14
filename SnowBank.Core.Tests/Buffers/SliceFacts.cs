@@ -42,6 +42,7 @@ namespace SnowBank.Buffers.Tests
 	using System.Buffers;
 	using System.Diagnostics.CodeAnalysis;
 	using System.Runtime.InteropServices;
+	using SnowBank.Data.Binary;
 	using static SnowBank.Testing.TestVariables;
 
 	[TestFixture]
@@ -3291,6 +3292,63 @@ namespace SnowBank.Buffers.Tests
 		}
 
 #endif
+
+		[Test]
+		public void Test_Slice_SpanEncodable()
+		{
+			{ // Nil
+				Assert.That(((ISpanEncodable) Slice.Nil).TryGetSpan(out var span), Is.True);
+				Assert.That(span.Length, Is.Zero);
+
+				Assert.That(((ISpanEncodable) Slice.Nil).TryGetSizeHint(out var size), Is.True.WithOutput(size).Zero);
+
+				var buf = new byte[32];
+				buf.AsSpan().Fill(0xAA);
+				Assert.That(((ISpanEncodable) Slice.Nil).TryEncode(buf, out var written), Is.True.WithOutput(written).Zero);
+				Assert.That(buf.AsSpan().ContainsAnyExcept((byte) 0xAA), Is.False);
+
+			}
+			{ // Empty
+				Assert.That(((ISpanEncodable) Slice.Empty).TryGetSpan(out var span), Is.True);
+				Assert.That(span.Length, Is.Zero);
+
+				Assert.That(((ISpanEncodable) Slice.Empty).TryGetSizeHint(out var size), Is.True.WithOutput(size).Zero);
+
+				var buf = new byte[32];
+				buf.AsSpan().Fill(0xAA);
+				Assert.That(((ISpanEncodable) Slice.Empty).TryEncode(buf, out var written), Is.True.WithOutput(written).Zero);
+				Assert.That(buf.AsSpan().ContainsAnyExcept((byte) 0xAA), Is.False);
+			}
+			{ // Non Empty
+
+				var slice = Slice.FromStringUtf8("Hello");
+
+				Assert.That(((ISpanEncodable) slice).TryGetSpan(out var span), Is.True);
+				Assert.That(span.Length, Is.EqualTo(slice.Count));
+				Assert.That(span.ToArray(), Is.EqualTo("Hello"u8.ToArray()));
+
+				Assert.That(((ISpanEncodable) slice).TryGetSizeHint(out var size), Is.True.WithOutput(size).EqualTo(slice.Count));
+
+				var buf = new byte[32];
+
+				// large buffer
+				buf.AsSpan().Fill(0xAA);
+				Assert.That(((ISpanEncodable) slice).TryEncode(buf, out var written), Is.True);
+				Assert.That(buf[..written], Is.EqualTo(slice.ToArray()));
+				Assert.That(buf.AsSpan(written).ContainsAnyExcept((byte) 0xAA), Is.False);
+
+				// exact buffer size
+				buf.AsSpan().Fill(0xAA);
+				Assert.That(((ISpanEncodable) slice).TryEncode(buf.AsSpan(0, slice.Count), out written), Is.True);
+				Assert.That(buf[..written], Is.EqualTo(slice.ToArray()));
+				Assert.That(buf.AsSpan(written).ContainsAnyExcept((byte) 0xAA), Is.False);
+
+				// buffer too small
+				buf.AsSpan().Fill(0xAA);
+				Assert.That(((ISpanEncodable) slice).TryEncode(buf.AsSpan(0, slice.Count - 1), out written), Is.False.WithOutput(written).Zero);
+				Assert.That(buf.AsSpan().ContainsAnyExcept((byte) 0xAA), Is.False);
+			}
+		}
 
 		[Test]
 		public void Test_Slice_ReadExactly_MemoryStream()

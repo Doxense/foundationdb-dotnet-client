@@ -28,10 +28,14 @@ namespace SnowBank.Buffers
 {
 	using System.Text;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Data.Binary;
 
 	/// <summary>Helper type for writing binary data into a <see cref="Span{T}"/> of bytes</summary>
 	[PublicAPI]
 	public ref struct SpanWriter
+#if NET9_0_OR_GREATER
+		: ISpanEncodable
+#endif
 	{
 
 		/// <summary>Buffer where to write bytes</summary>
@@ -71,17 +75,65 @@ namespace SnowBank.Buffers
 			return this.Buffer[..this.Position];
 		}
 
-		/// <summary>Copy everything that was written so far into a destination span</summary>
+		/// <summary>Copies everything that was written so far into a destination span</summary>
 		public void CopyTo(Span<byte> destination)
 		{
 			this.Buffer[..this.Position].CopyTo(destination);
 		}
 
-		/// <summary>Copy everything that was written so far into a destination span, if it is large enough</summary>
+		/// <summary>Copies everything that was written so far into a destination span, if it is large enough</summary>
 		public bool TryCopyTo(Span<byte> destination)
 		{
 			return this.Buffer[..this.Position].TryCopyTo(destination);
 		}
+
+		/// <summary>Copies everything that was written so far into a destination span, if it is large enough</summary>
+		public bool TryCopyTo(Span<byte> destination, out int bytesWritten)
+		{
+			var pos = this.Position;
+			if (!this.Buffer[..pos].TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			bytesWritten = pos;
+			return true;
+		}
+
+		#region ISpanEncodable...
+
+#if NET9_0_OR_GREATER
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			span = ToSpan();
+			return true;
+		}
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
+		{
+			sizeHint = this.Position;
+			return true;
+		}
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			var pos = this.Position;
+			if (!this.Buffer[..pos].TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			bytesWritten = pos;
+			return true;
+		}
+
+#endif
+
+		#endregion
 
 		/// <summary>Ensures that the buffer can store <paramref name="count"/> additional bytes</summary>
 		/// <param name="count">Number of bytes expected to be written soon.</param>

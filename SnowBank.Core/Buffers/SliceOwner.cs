@@ -31,7 +31,7 @@
 
 namespace System
 {
-	using System.Buffers;
+	using System.Buffers;using SnowBank.Buffers;using SnowBank.Data.Binary;
 
 	/// <summary>A container for rented <see cref="Slice"/> that can be returned into a <see cref="ArrayPool{T}"/> after it is not needed anymore.</summary>
 	/// <remarks>
@@ -40,7 +40,7 @@ namespace System
 	/// <para>This type mirrors <see cref="IMemoryOwner{T}"/> but without allocations and with further optimizations.</para>
 	/// </remarks>
 	[PublicAPI]
-	public struct SliceOwner : IDisposable
+	public struct SliceOwner : ISliceSerializable, ISpanEncodable, IDisposable
 	{
 
 		/// <summary>Rented buffer that is equivalent to the <see cref="Slice.Nil"/> slice</summary>
@@ -259,6 +259,8 @@ namespace System
 			return true;
 		}
 
+		#region ISpanEncodable...
+
 		/// <summary>Returns the content as a <see cref="T:System.ReadOnlySpan`1"/>, unless the container has been disposed.</summary>
 		public readonly bool TryGetSpan(out ReadOnlySpan<byte> data)
 		{
@@ -275,6 +277,42 @@ namespace System
 			data = m_data.Span;
 			return true;
 		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		readonly bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
+		{
+#if USE_BOOLEAN_DISPOSE_FLAG
+			if (m_disposed)
+#else
+			if (m_disposed != 0)
+#endif
+			{
+				sizeHint = 0;
+				return false;
+			}
+			sizeHint = m_data.Count;
+			return true;
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		readonly bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			return this.Span.TryCopyTo(destination, out bytesWritten);
+		}
+
+		#endregion
+
+		#region ISliceSerializable...
+
+		/// <inheritdoc />
+		void ISliceSerializable.WriteTo(ref SliceWriter writer)
+		{
+			writer.WriteBytes(this.Span);
+		}
+
+		#endregion
 
 		/// <summary>Returns the content as a <see cref="T:System.ReadOnlySpan`1"/></summary>
 		/// <exception cref="T:System.ObjectDisposedException">If the container has already been disposed</exception>

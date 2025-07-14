@@ -27,6 +27,7 @@
 namespace SnowBank.Buffers
 {
 	using System.Buffers;
+	using SnowBank.Data.Binary;
 
 	/// <summary>Buffer writer that writes all data into a slabs allocated from a pool (or the heap)</summary>
 	/// <remarks>This buffer will allocate new slabs of memory as needed, and keep them alive until it is disposed or cleared.</remarks>
@@ -34,7 +35,7 @@ namespace SnowBank.Buffers
 	/// <remarks>If you require all data to be consecutive in memory, use <see cref="ArraySliceWriter"/> instead.</remarks>
 	/// <remarks>If all data allocated from this writer is guaranteed to not be used outside its lifetime, consider using <see cref="PooledSliceAllocator"/> for performance reasons.</remarks>
 	[PublicAPI]
-	public sealed class SlabSliceWriter : IBufferWriter<byte>, ISliceBufferWriter
+	public sealed class SlabSliceWriter : IBufferWriter<byte>, ISliceBufferWriter, ISpanEncodable
 	{
 
 		/// <summary>The current slab</summary>
@@ -259,6 +260,87 @@ namespace SnowBank.Buffers
 			m_index = 0;
 			return (newBuffer, true);
 		}
+
+		#region ISpanEncodable...
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			if (m_slabs is not null)
+			{ // split into multiple slabs!
+				span = default;
+				return false;
+			}
+
+			span = m_current;
+			return true;
+		}
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
+		{
+			long size = m_index;
+			var slabs = m_slabs;
+			if (slabs is not null)
+			{
+				foreach (var slab in slabs)
+				{
+					size += slab.Length;
+				}
+			}
+
+			if (size > int.MaxValue)
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = unchecked((int) size);
+			return true;
+		}
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			var current = m_current;
+			if (current is null) throw ThrowObjectDisposedException();
+
+			var index = m_index;
+			var slabs = m_slabs;
+
+			var buffer = destination;
+
+			if (slabs is not null)
+			{
+				foreach (var slab in slabs)
+				{
+					if (!slab.AsSpan().TryCopyTo(buffer))
+					{
+						goto too_small;
+					}
+					buffer = buffer[slab.Length..];
+				}
+			}
+
+			if (index > 0)
+			{
+				if (!current.AsSpan(0, index).TryCopyTo(buffer))
+				{
+					goto too_small;
+				}
+				buffer = buffer[index..];
+			}
+
+			bytesWritten = destination.Length - buffer.Length;
+			return true;
+
+		too_small:
+			bytesWritten = 0;
+			return false;
+
+		}
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		private static InvalidOperationException ThrowInvalidOperationException_AdvancedTooFar()

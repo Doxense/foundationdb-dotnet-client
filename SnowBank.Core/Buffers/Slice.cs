@@ -38,6 +38,7 @@ namespace System
 	using System.Text;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Data.Binary;
 
 	/// <summary>Delimits a read-only section of a byte array</summary>
 	/// <remarks>
@@ -50,7 +51,7 @@ namespace System
 #if NET8_0_OR_GREATER
 	[CollectionBuilder(typeof(Slice), nameof(Slice.FromBytes))]
 #endif
-	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, ISliceSerializable, ISpanFormattable
+	public readonly partial struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>, ISliceSerializable, ISpanFormattable, ISpanEncodable
 #if NET8_0_OR_GREATER
 		, IComparisonOperators<Slice, Slice, bool>
 #endif
@@ -2408,12 +2409,43 @@ namespace System
 
 		#endregion
 
-		#region ISliceSerializable
+		#region ISliceSerializable...
 
 		/// <inheritdoc />
 		public void WriteTo(ref SliceWriter writer)
 		{
 			writer.WriteBytes(this.Span);
+		}
+
+		#endregion
+
+		#region ISpanEncodable...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			span = new(this.Array, this.Offset, this.Count);
+			return true;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
+		{
+			sizeHint = this.Count;
+			return true;
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			if (!new ReadOnlySpan<byte>(this.Array, this.Offset, this.Count).TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = this.Count;
+			return true;
 		}
 
 		#endregion

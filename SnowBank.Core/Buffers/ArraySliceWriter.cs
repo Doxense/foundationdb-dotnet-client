@@ -26,13 +26,16 @@
 
 namespace SnowBank.Buffers
 {
+	using SnowBank.Data.Binary;
+	using SnowBank.Data.Tuples.Binary;
+
 	/// <summary>Buffer writer that writes all data into a single consecutive buffer allocated from the heap</summary>
 	/// <remarks>
 	/// <para>This buffer will grow and copy the underlying array as needed. For performance reason, prefer using <see cref="SlabSliceWriter"/> if you don't require the final output to be consecutive in memory</para>
 	/// <para>If all data allocated from this writer is guaranteed to not be used outside its lifetime, consider using <see cref="PooledSliceWriter"/> for performance reasons.</para>
 	/// </remarks>
 	[PublicAPI]
-	public sealed class ArraySliceWriter : ISliceBufferWriter
+	public sealed class ArraySliceWriter : ISliceBufferWriter, ISpanEncodable
 	{
 		private byte[]? m_buffer;
 		private int m_index;
@@ -243,6 +246,54 @@ namespace SnowBank.Buffers
 			written = buffer.Length;
 			return buffer.AsSpan(m_index).TryCopyTo(output);
 		}
+
+		#region ISpanEncodable...
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			var buffer = m_buffer;
+			if (buffer is null)
+			{
+				span = default;
+				return false;
+			}
+
+			var pos = m_index;
+			span = pos == 0 ? default : new(buffer, 0, pos);
+			return true;
+		}
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
+		{
+			if (m_buffer is null)
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = m_index;
+			return true;
+		}
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			var buffer = m_buffer ?? ThrowObjectDisposedException();
+
+			var chunk = buffer.AsSpan(0, m_index);
+			if (!chunk.TryCopyTo(destination))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = chunk.Length;
+			return true;
+		}
+
+		#endregion
 
 		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)][StackTraceHidden]
 		private static void ThrowInvalidOperationException_AdvancedTooFar()

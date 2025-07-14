@@ -34,13 +34,14 @@ namespace SnowBank.Buffers
 	using System.Text;
 	using SnowBank.Buffers.Binary;
 	using SnowBank.Buffers.Text;
+	using SnowBank.Data.Binary;
 	using SnowBank.Text;
 
 	/// <summary>Slice buffer that emulates a pseudo-stream using a byte array that will automatically grow in size, if necessary</summary>
 	/// <remarks>This struct MUST be passed by reference!</remarks>
 	[PublicAPI, DebuggerDisplay("Position={Position}, Capacity={Capacity}"), DebuggerTypeProxy(typeof(SliceWriter.DebugView))]
 	[DebuggerNonUserCode] //remove this when you need to troubleshoot this class!
-	public struct SliceWriter : IBufferWriter<byte>, ISliceSerializable, IDisposable
+	public struct SliceWriter : IBufferWriter<byte>, ISliceSerializable, ISpanEncodable, IDisposable
 	{
 		// Invariant
 		// * Valid data always start at offset 0
@@ -2800,13 +2801,54 @@ namespace SnowBank.Buffers
 			return new OutOfMemoryException("Buffer cannot be resized, because it would exceed the maximum allowed size");
 		}
 
-		#region ISliceSerializable
+		#region ISliceSerializable...
 
 		/// <summary>Appends the content of this writer to end of another writer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteTo(ref SliceWriter writer)
 		{
 			writer.WriteBytes(ToSpan());
+		}
+
+		#endregion
+
+		#region ISpanEncodable...
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			var buffer = this.Buffer;
+			var pos = this.Position;
+			if (buffer is null || pos == 0)
+			{ // empty buffer
+				span = default;
+			}
+			else
+			{
+				span = new(buffer, 0, pos);
+			}
+			return true;
+		}
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
+		{
+			sizeHint = this.Position;
+			return true;
+		}
+
+		/// <inheritdoc />
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			var pos = this.Position;
+			if (destination.Length < pos)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			this.Buffer.AsSpan(0, pos).CopyTo(destination);
+			bytesWritten = pos;
+			return true;
 		}
 
 		#endregion
