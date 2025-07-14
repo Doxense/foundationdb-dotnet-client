@@ -593,7 +593,11 @@ namespace FoundationDB.Client
 		/// <inheritdoc cref="Set{TValue}(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},in TValue)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TValue>(this IFdbTransaction trans, Slice key, in TValue value)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
 			where TValue : struct, IFdbValue
+#endif
 			=> Set<TValue>(trans, ToSpanKey(key), in value);
 
 		/// <summary>
@@ -605,7 +609,11 @@ namespace FoundationDB.Client
 		/// <param name="value">Value to be inserted into the database.</param>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
 			where TValue : struct, IFdbValue
+#endif
 		{
 			if (value.TryGetSpan(out var valueSpan))
 			{
@@ -637,7 +645,11 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TKey, TValue>(this IFdbTransaction trans, in TKey key, in TValue value)
 			where TKey : struct, IFdbKey
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
 			where TValue : struct, IFdbValue
+#endif
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{
@@ -1376,7 +1388,11 @@ namespace FoundationDB.Client
 		[OverloadResolutionPriority(1)]
 		public static void SetValues<TElement, TKey, TValue>(this IFdbTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, TKey> keySelector, Func<TElement, TValue> valueSelector)
 			where TKey : struct, IFdbKey
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
 			where TValue : struct, IFdbValue
+#endif
 		{
 			// we will reuse the same pooled buffer for encoding keys, and another one for encoding values
 			byte[]? keyBuffer = null;
@@ -1415,7 +1431,11 @@ namespace FoundationDB.Client
 
 		public static void SetValues<TElement, TKey, TValue>(this IFdbTransaction trans, IEnumerable<TElement> items, Func<TElement, TKey> keySelector, Func<TElement, TValue> valueSelector)
 			where TKey : struct, IFdbKey
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
 			where TValue : struct, IFdbValue
+#endif
 		{
 			if (items.TryGetSpan(out var span))
 			{
@@ -2206,7 +2226,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
 		/// <param name="value">New value for this key.</param>
 		public static void SetVersionStampedKey<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
-			where TKey: struct, IFdbKey
+			where TKey : struct, IFdbKey
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{
@@ -2224,14 +2244,18 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
 		/// <param name="value">New value for this key.</param>
 		public static void SetVersionStampedKey<TKey>(this IFdbTransaction trans, in TKey key, Slice value)
-			where TKey: struct, IFdbKey
+			where TKey : struct, IFdbKey
 		{
 			trans.SetVersionStampedKey(key, ToSpanValue(value));
 		}
 
 		/// <inheritdoc cref="SetVersionStampedKey{TValue}(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},in TValue)"/>
 		public static void SetVersionStampedKey<TValue>(this IFdbTransaction trans, Slice key, in TValue value)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
 			where TValue : struct, IFdbValue
+#endif
 			=> SetVersionStampedKey<TValue>(trans, ToSpanKey(key), in value);
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
@@ -2239,7 +2263,11 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
 		/// <param name="value">New value for this key.</param>
 		public static void SetVersionStampedKey<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
-			where TValue: struct, IFdbValue
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+#endif
 		{
 			if (value.TryGetSpan(out var valueSpan))
 			{
@@ -2266,8 +2294,12 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated. This key must contain a single <see cref="VersionStamp"/>, whose position will be automatically detected.</param>
 		/// <param name="value">New value for this key.</param>
 		public static void SetVersionStampedKey<TKey, TValue>(this IFdbTransaction trans, in TKey key, in TValue value)
-			where TKey: struct, IFdbKey
-			where TValue: struct, IFdbValue
+			where TKey : struct, IFdbKey
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+#endif
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{
@@ -2330,7 +2362,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="SetVersionStampedValue{TKey}(FoundationDB.Client.IFdbTransaction,in TKey,System.ReadOnlySpan{byte})"/>
 		public static void SetVersionStampedValue<TKey>(this IFdbTransaction trans, in TKey key, Slice value)
-			where TKey: struct, IFdbKey
+			where TKey : struct, IFdbKey
 			=> SetVersionStampedValue<TKey>(trans, in key, ToSpanValue(value));
 
 		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
@@ -2342,7 +2374,7 @@ namespace FoundationDB.Client
 		/// <para>There must be only one incomplete version stamp per value, which must be equal to the value returned by <see cref="IFdbTransaction.CreateVersionStamp()"/> (or similar methods).</para>
 		/// </remarks>
 		public static void SetVersionStampedValue<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> value)
-			where TKey: struct, IFdbKey
+			where TKey : struct, IFdbKey
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{
@@ -2357,7 +2389,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="SetVersionStampedValue{TValue}(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},in TValue)"/>
 		public static void SetVersionStampedValue<TValue>(this IFdbTransaction trans, Slice key, in TValue value)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
 			where TValue : struct, IFdbValue
+#endif
 			=> SetVersionStampedValue<TValue>(trans, ToSpanKey(key), in value);
 
 		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
@@ -2369,7 +2405,11 @@ namespace FoundationDB.Client
 		/// <para>There must be only one incomplete version stamp per value, which must be equal to the value returned by <see cref="IFdbTransaction.CreateVersionStamp()"/> (or similar methods).</para>
 		/// </remarks>
 		public static void SetVersionStampedValue<TValue>(this IFdbTransaction trans, ReadOnlySpan<byte> key, in TValue value)
-			where TValue: struct, IFdbValue
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+#endif
 		{
 			if (value.TryGetSpan(out var valueSpan))
 			{
@@ -2400,8 +2440,12 @@ namespace FoundationDB.Client
 		/// <para>There must be only one incomplete version stamp per value, which must be equal to the value returned by <see cref="IFdbTransaction.CreateVersionStamp()"/> (or similar methods).</para>
 		/// </remarks>
 		public static void SetVersionStampedValue<TKey, TValue>(this IFdbTransaction trans, in TKey key, in TValue value)
-			where TKey: struct, IFdbKey
-			where TValue: struct, IFdbValue
+			where TKey : struct, IFdbKey
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+#endif
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{
@@ -2863,7 +2907,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbTransaction.Clear"/>
 		public static void Clear<TKey>(this IFdbTransaction trans, in TKey key)
-			where TKey: struct, IFdbKey
+			where TKey : struct, IFdbKey
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{

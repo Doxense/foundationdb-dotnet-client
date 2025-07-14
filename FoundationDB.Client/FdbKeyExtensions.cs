@@ -255,6 +255,11 @@ namespace FoundationDB.Client
 
 		#region IDynamicKeySubspace.GetKey(...)...
 
+		/// <summary>Returns the key for this subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbBinaryKey GetKey(this IDynamicKeySubspace subspace) => new(subspace, Slice.Empty);
+
 		/// <summary>Returns a key under this subspace</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="item1">value of the single element in the key</param>

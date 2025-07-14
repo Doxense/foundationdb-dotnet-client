@@ -28,7 +28,6 @@
 namespace FoundationDB.Client.Tests
 {
 	using System.Text;
-
 	using SnowBank.Data.Tuples.Binary;
 
 	[TestFixture]
@@ -40,29 +39,38 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbKey_Raw_Encoding()
 		{
-			{ // Slice
-				var rawKey = Slice.FromBytes("Hello, World!"u8);
+			static void Verify(Slice value)
+			{
+				{ // Slice
+					var rawKey = value;
 
-				var key = FdbKey.Binary.FromBytes(rawKey);
-				Assert.That(key.ToSlice(), Is.EqualTo(rawKey));
-				Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToSlice()).EqualTo(rawKey));
-				Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Count));
-			}
-			{ // byte[]
-				var rawKey = "Hello, World!"u8.ToArray();
+					var key = FdbKey.ToBytes(rawKey);
+					Assert.That(key.ToSlice(), Is.EqualTo(rawKey));
+					Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToSlice()).EqualTo(rawKey));
+					Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Count));
 
-				var key = FdbKey.Binary.FromBytes(rawKey);
-				Assert.That(key.ToSlice().ToArray(), Is.EqualTo(rawKey));
-				Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(rawKey));
-				Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Length));
+					Assert.That(key.IsNull, Is.False);
+					Assert.That(((IFdbKey) key).GetSubspace(), Is.Null);
+				}
+				{ // byte[]
+					var rawKey = value.ToArray();
+
+					var key = FdbKey.ToBytes(rawKey);
+					Assert.That(key.ToSlice().ToArray(), Is.EqualTo(rawKey));
+					Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(rawKey));
+					Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Length));
+					Assert.That(key.IsNull, Is.False);
+					Assert.That(((IFdbKey) key).GetSubspace(), Is.Null);
+				}
 			}
+
+			Verify(Slice.FromBytes("Hello, World!"u8));
 		}
 
 		[Test]
-		public void Test_FdbKey_Tuple_Encoding()
+		public void Test_FdbKey_VarTuple_Encoding()
 		{
-			static void Verify<TTuple>(Slice prefix, TTuple items)
-				where TTuple : IVarTuple
+			static void Verify(Slice prefix, IVarTuple items)
 			{
 				var subspace = new DynamicKeySubspace(prefix, TuPack.Encoding.GetDynamicKeyEncoder(), SubspaceContext.Default);
 				var packed = subspace.Pack(items);
@@ -133,12 +141,105 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public void Test_FdbKey_STuple_Encoding()
+		{
+			static void Verify<TKey, TTuple>(IKeySubspace subspace, TKey key, TTuple items)
+				where TKey : struct, IFdbKey
+				where TTuple : IVarTuple
+			{
+				var prefix = subspace.GetPrefix();
+				Log($"# {prefix:x} + {items}");
+
+				var packedTuple = TuPack.Pack(items);
+				var expected = prefix + packedTuple;
+				Log($"  - expected: [{expected.Count:N0}] {expected:x}");
+
+				Assert.That(key.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero, "");
+
+				var buffer = new byte[expected.Count + 32];
+
+				// buffer large enough
+				var chunk = buffer.AsSpan();
+				chunk.Fill(0x55);
+				Assert.That(key.TryEncode(chunk, out int bytesWritten), Is.True, $"Failed to encode key: {items}");
+				Log($"  - actual  : [{bytesWritten:N0}] {Slice.FromBytes(chunk[..bytesWritten]):x}");
+				if (!chunk[..bytesWritten].SequenceEqual(expected.Span))
+				{
+					DumpVersus(chunk[..bytesWritten], expected.Span);
+					Assert.That(bytesWritten, Is.EqualTo(expected.Count), $"Encoded length mismatch: {items}");
+					Assert.That(chunk[..prefix.Count].ToArray(), Is.EqualTo(prefix.ToArray()), $"Encoded key does not contains the prefix! {items}");
+					Assert.That(chunk[..bytesWritten].ToArray(), Is.EqualTo(expected.ToArray()), $"Encoded key mismatch: {items}");
+				}
+
+				// check if the size hint was correct
+				if (key.TryGetSizeHint(out int size))
+				{
+					Log($"  - sizeHint: true, {size}");
+					Assert.That(size, Is.GreaterThanOrEqualTo(packedTuple.Count));
+				}
+				else
+				{
+					Log("  - sizeHint: false, 0");
+					Assert.That(size, Is.Zero);
+				}
+
+				// buffer with exact size
+				chunk = buffer.AsSpan(0, expected.Count);
+				chunk.Fill(0x55);
+				buffer.AsSpan(chunk.Length).Fill(0xAA);
+				Assert.That(key.TryEncode(chunk, out bytesWritten), Is.True, $"Failed to encode key: {items}");
+				if (!chunk[..bytesWritten].SequenceEqual(expected.Span))
+				{
+					DumpVersus(chunk[..bytesWritten], expected.Span);
+					Assert.That(bytesWritten, Is.EqualTo(expected.Count), $"Encoded length mismatch: {items}");
+					Assert.That(chunk[..prefix.Count].ToArray(), Is.EqualTo(prefix.ToArray()), $"Encoded key does not contains the prefix! {items}");
+					Assert.That(chunk[..bytesWritten].ToArray(), Is.EqualTo(expected.ToArray()), $"Encoded key mismatch: {items}");
+				}
+				Assert.That(buffer.AsSpan(chunk.Length).ContainsAnyExcept((byte) 0xAA), Is.False);
+
+				// test all possible sizes that are not large enough
+				for(int i = expected.Count - 1; i >= 0; i--)
+				{
+					chunk = buffer.AsSpan(0, i);
+					chunk.Fill(0x55);
+					buffer.AsSpan(chunk.Length).Fill(0xAA);
+					Assert.That(key.TryEncode(chunk, out bytesWritten), Is.False.WithOutput(bytesWritten).Zero);
+					Assert.That(buffer.AsSpan(chunk.Length).ContainsAnyExcept((byte) 0xAA), Is.False);
+				}
+
+				// ToSlice()
+				Assert.That(key.ToSlice(), Is.EqualTo(expected));
+
+				// ToSliceOwner()
+				var so = key.ToSlice(ArrayPool<byte>.Shared);
+				Assert.That(so.Data, Is.EqualTo(expected));
+				so.Dispose();
+			}
+
+			var subspace = new DynamicKeySubspace(TuPack.EncodeKey(42), TuPack.Encoding.GetDynamicKeyEncoder(), SubspaceContext.Default);
+
+			var now = DateTime.Now;
+			var vs = VersionStamp.Incomplete(0x1234);
+			var uuid128 = Uuid128.NewUuid();
+			Verify(subspace, subspace.GetKey(), STuple.Create());
+			Verify(subspace, subspace.GetKey("Hello"), STuple.Create("Hello"));
+			Verify(subspace, subspace.GetKey("Héllo", "Wörld!"), STuple.Create("Héllo", "Wörld!"));
+			Verify(subspace, subspace.GetKey("Hello", true, "Wörld"), STuple.Create("Hello", true, "Wörld"));
+			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123), STuple.Create("Hello", true, "Wörld", 123));
+			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI), STuple.Create("Hello", true, "Wörld", 123, Math.PI));
+			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI, vs), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs));
+			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI, vs, now), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs, now));
+			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI, vs, now, uuid128), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs, now, uuid128));
+			Verify(subspace, subspace.GetKey("Hello", true, STuple.Create("Wörld", STuple.Create(123, Math.PI), vs), now, uuid128), STuple.Create("Hello", true, STuple.Create("Wörld", STuple.Create(123, Math.PI), vs), now, uuid128));
+		}
+
+		[Test]
 		public void Test_FdbValue_Raw_Encoding()
 		{
 			{ // Slice
 				var rawValue = Slice.FromBytes("Hello, World!"u8);
 
-				var value = FdbValue.Binary.FromBytes(rawValue);
+				var value = FdbValue.ToBytes(rawValue);
 				Assert.That(value.ToSlice(), Is.EqualTo(rawValue));
 				Assert.That(value.TryGetSpan(out var span), Is.True.WithOutput(span.ToSlice()).EqualTo(rawValue));
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawValue.Count));
@@ -146,16 +247,16 @@ namespace FoundationDB.Client.Tests
 			{ // byte[]
 				var rawValue = "Hello, World!"u8.ToArray();
 
-				var value = FdbValue.Binary.FromBytes(rawValue);
+				var value = FdbValue.ToBytes(rawValue);
 				Assert.That(value.ToSlice().ToArray(), Is.EqualTo(rawValue));
 				Assert.That(value.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(rawValue));
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawValue.Length));
 			}
-			{ // byte[]
+			{ // MemoryStream
 				var ms = new MemoryStream();
 				ms.Write("Hello, World!"u8);
 
-				var value = FdbValue.Binary.FromStream(ms);
+				var value = FdbValue.ToBytes(ms);
 				Assert.That(value.ToSlice().ToArray(), Is.EqualTo(ms.ToArray()));
 				Assert.That(value.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(ms.ToArray()));
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(ms.Length));
@@ -172,7 +273,7 @@ namespace FoundationDB.Client.Tests
 				Log($"> expected: [{expected.Count:N0}] `{expected}`");
 
 				{ // string
-					var value = FdbValue.Text.FromUtf8(literal);
+					var value = FdbValue.ToTextUtf8(literal);
 					var slice = value.ToSlice();
 					Log($"> actual  : [{slice.Count:N0}] `{slice}`");
 					Assert.That(slice, Is.EqualTo(expected));
@@ -180,26 +281,26 @@ namespace FoundationDB.Client.Tests
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
 				}
 				{ // ReadOnlyMemory<char>
-					var value = FdbValue.Text.FromUtf8(literal.ToArray().AsMemory());
+					var value = FdbValue.ToTextUtf8(literal.ToArray().AsMemory());
 					Assert.That(value.ToSlice(), Is.EqualTo(expected));
 					Assert.That(value.TryGetSpan(out var span), Is.EqualTo(expectedUtf8.Length == 0).WithOutput(span.Length).Zero);
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
 				}
 				{ // char[]
-					var value = FdbValue.Text.FromUtf8(literal.ToArray());
+					var value = FdbValue.ToTextUtf8(literal.ToArray());
 					Assert.That(value.ToSlice(), Is.EqualTo(expected));
 					Assert.That(value.TryGetSpan(out var span), Is.EqualTo(expectedUtf8.Length == 0).WithOutput(span.Length).Zero);
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
 				}
 				{ // StringBuilder
 					var sb = new StringBuilder().Append(literal);
-					var value = FdbValue.Text.FromUtf8(sb);
+					var value = FdbValue.ToTextUtf8(sb);
 					Assert.That(value.ToSlice(), Is.EqualTo(expected));
 					Assert.That(value.TryGetSpan(out var span), Is.EqualTo(expectedUtf8.Length == 0).WithOutput(span.Length).Zero);
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count)); // GetMaxByteCount() always add 3 bytes to the length (for the BOM??)
 				}
 				{ // ReadOnlySpan<char>
-					var value = FdbValue.Text.FromUtf8(literal.AsSpan());
+					var value = FdbValue.ToTextUtf8(literal.AsSpan());
 					Assert.That(value.ToSlice(), Is.EqualTo(expected));
 					Assert.That(value.TryGetSpan(out var span), Is.EqualTo(expectedUtf8.Length == 0).WithOutput(span.Length).Zero);
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
@@ -213,7 +314,7 @@ namespace FoundationDB.Client.Tests
 					var span = buffer[..i];
 					span.Fill(0xAA);
 
-					var value = FdbValue.Text.FromUtf8(literal);
+					var value = FdbValue.ToTextUtf8(literal);
 					if (i >= expectedUtf8.Length)
 					{
 						Assert.That(value.TryEncode(span, out var bytesWritten), Is.True.WithOutput(bytesWritten).EqualTo(expectedUtf8.Length));
@@ -253,7 +354,7 @@ namespace FoundationDB.Client.Tests
 				var expectedUnpacked = TuPack.Unpack(expectedPacked);
 				Log($"# ({tuple.GetType().GetFriendlyName()}) {tuple}: -> [{expectedPacked.Count:N0}] {expectedPacked:x} -> {expectedUnpacked}");
 
-				var value = FdbValue.Tuples.Pack(tuple);
+				var value = FdbValue.PackTuple(tuple);
 				var slice = value.ToSlice();
 				Assert.That(slice, Is.EqualTo(expectedPacked));
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
@@ -303,47 +404,47 @@ namespace FoundationDB.Client.Tests
 			Assert.Multiple(() =>
 			{
 				// Int32
-				Verify(FdbValue.FixedSize.FromInt32LittleEndian(0x12), Slice.FromFixed32(0x12));
-				Verify(FdbValue.FixedSize.FromInt32LittleEndian(0x1234), Slice.FromFixed32(0x1234));
-				Verify(FdbValue.FixedSize.FromInt32LittleEndian(0x123456), Slice.FromFixed32(0x123456));
-				Verify(FdbValue.FixedSize.FromInt32LittleEndian(0x12345678), Slice.FromFixed32(0x12345678));
-				Verify(FdbValue.FixedSize.FromInt32LittleEndian(-1), Slice.FromFixed32(-1));
-				Verify(FdbValue.FixedSize.FromInt32LittleEndian(-123456), Slice.FromFixed32(-123456));
-				Verify(FdbValue.FixedSize.FromInt32LittleEndian(int.MinValue), Slice.FromFixed32(int.MinValue));
+				Verify(FdbValue.ToFixed32LittleEndian(0x12), Slice.FromFixed32(0x12));
+				Verify(FdbValue.ToFixed32LittleEndian(0x1234), Slice.FromFixed32(0x1234));
+				Verify(FdbValue.ToFixed32LittleEndian(0x123456), Slice.FromFixed32(0x123456));
+				Verify(FdbValue.ToFixed32LittleEndian(0x12345678), Slice.FromFixed32(0x12345678));
+				Verify(FdbValue.ToFixed32LittleEndian(-1), Slice.FromFixed32(-1));
+				Verify(FdbValue.ToFixed32LittleEndian(-123456), Slice.FromFixed32(-123456));
+				Verify(FdbValue.ToFixed32LittleEndian(int.MinValue), Slice.FromFixed32(int.MinValue));
 
 				// UInt32
-				Verify(FdbValue.FixedSize.FromUInt32LittleEndian(0), Slice.FromFixedU32(0));
-				Verify(FdbValue.FixedSize.FromUInt32LittleEndian(0x12), Slice.FromFixedU32(0x12));
-				Verify(FdbValue.FixedSize.FromUInt32LittleEndian(0x1234), Slice.FromFixedU32(0x1234));
-				Verify(FdbValue.FixedSize.FromUInt32LittleEndian(0x123456), Slice.FromFixedU32(0x123456));
-				Verify(FdbValue.FixedSize.FromUInt32LittleEndian(0x12345678), Slice.FromFixedU32(0x12345678));
+				Verify(FdbValue.ToFixed32LittleEndian((uint)0), Slice.FromFixedU32(0));
+				Verify(FdbValue.ToFixed32LittleEndian((uint)0x12), Slice.FromFixedU32(0x12));
+				Verify(FdbValue.ToFixed32LittleEndian((uint)0x1234), Slice.FromFixedU32(0x1234));
+				Verify(FdbValue.ToFixed32LittleEndian((uint)0x123456), Slice.FromFixedU32(0x123456));
+				Verify(FdbValue.ToFixed32LittleEndian((uint)0x12345678), Slice.FromFixedU32(0x12345678));
 
 				// Int64
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0), Slice.FromFixed64(0));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0x12), Slice.FromFixed64(0x12));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0x1234), Slice.FromFixed64(0x1234));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0x123456), Slice.FromFixed64(0x123456));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0x12345678), Slice.FromFixed64(0x12345678));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0x123456789A), Slice.FromFixed64(0x123456789A));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0x123456789ABC), Slice.FromFixed64(0x123456789ABC));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0x123456789ABCDE), Slice.FromFixed64(0x123456789ABCDE));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(0x123456789ABCDEF0), Slice.FromFixed64(0x123456789ABCDEF0));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(-1), Slice.FromFixed64(-1));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(-123456), Slice.FromFixed64(-123456));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(int.MinValue), Slice.FromFixed64(int.MinValue));
-				Verify(FdbValue.FixedSize.FromInt64LittleEndian(long.MinValue), Slice.FromFixed64(long.MinValue));
+				Verify(FdbValue.ToFixed64LittleEndian(0), Slice.FromFixed64(0));
+				Verify(FdbValue.ToFixed64LittleEndian(0x12), Slice.FromFixed64(0x12));
+				Verify(FdbValue.ToFixed64LittleEndian(0x1234), Slice.FromFixed64(0x1234));
+				Verify(FdbValue.ToFixed64LittleEndian(0x123456), Slice.FromFixed64(0x123456));
+				Verify(FdbValue.ToFixed64LittleEndian(0x12345678), Slice.FromFixed64(0x12345678));
+				Verify(FdbValue.ToFixed64LittleEndian(0x123456789A), Slice.FromFixed64(0x123456789A));
+				Verify(FdbValue.ToFixed64LittleEndian(0x123456789ABC), Slice.FromFixed64(0x123456789ABC));
+				Verify(FdbValue.ToFixed64LittleEndian(0x123456789ABCDE), Slice.FromFixed64(0x123456789ABCDE));
+				Verify(FdbValue.ToFixed64LittleEndian(0x123456789ABCDEF0), Slice.FromFixed64(0x123456789ABCDEF0));
+				Verify(FdbValue.ToFixed64LittleEndian(-1), Slice.FromFixed64(-1));
+				Verify(FdbValue.ToFixed64LittleEndian(-123456), Slice.FromFixed64(-123456));
+				Verify(FdbValue.ToFixed64LittleEndian(int.MinValue), Slice.FromFixed64(int.MinValue));
+				Verify(FdbValue.ToFixed64LittleEndian(long.MinValue), Slice.FromFixed64(long.MinValue));
 
 				// UInt64
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0), Slice.FromFixedU64(0));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0x12), Slice.FromFixedU64(0x12));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0x1234), Slice.FromFixedU64(0x1234));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0x123456), Slice.FromFixedU64(0x123456));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0x12345678), Slice.FromFixedU64(0x12345678));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0x123456789A), Slice.FromFixedU64(0x123456789A));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0x123456789ABC), Slice.FromFixedU64(0x123456789ABC));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0x123456789ABCDE), Slice.FromFixedU64(0x123456789ABCDE));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(0x123456789ABCDEF0), Slice.FromFixedU64(0x123456789ABCDEF0));
-				Verify(FdbValue.FixedSize.FromUInt64LittleEndian(ulong.MaxValue), Slice.FromFixedU64(ulong.MaxValue));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0), Slice.FromFixedU64(0));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x12), Slice.FromFixedU64(0x12));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x1234), Slice.FromFixedU64(0x1234));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456), Slice.FromFixedU64(0x123456));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x12345678), Slice.FromFixedU64(0x12345678));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456789A), Slice.FromFixedU64(0x123456789A));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456789ABC), Slice.FromFixedU64(0x123456789ABC));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456789ABCDE), Slice.FromFixedU64(0x123456789ABCDE));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456789ABCDEF0), Slice.FromFixedU64(0x123456789ABCDEF0));
+				Verify(FdbValue.ToFixed64LittleEndian(ulong.MaxValue), Slice.FromFixedU64(ulong.MaxValue));
 			});
 
 		}
@@ -367,47 +468,47 @@ namespace FoundationDB.Client.Tests
 			Assert.Multiple(() =>
 			{
 				// Int32
-				Verify(FdbValue.FixedSize.FromInt32BigEndian(0x12), Slice.FromFixed32BE(0x12));
-				Verify(FdbValue.FixedSize.FromInt32BigEndian(0x1234), Slice.FromFixed32BE(0x1234));
-				Verify(FdbValue.FixedSize.FromInt32BigEndian(0x123456), Slice.FromFixed32BE(0x123456));
-				Verify(FdbValue.FixedSize.FromInt32BigEndian(0x12345678), Slice.FromFixed32BE(0x12345678));
-				Verify(FdbValue.FixedSize.FromInt32BigEndian(-1), Slice.FromFixed32BE(-1));
-				Verify(FdbValue.FixedSize.FromInt32BigEndian(-123456), Slice.FromFixed32BE(-123456));
-				Verify(FdbValue.FixedSize.FromInt32BigEndian(int.MinValue), Slice.FromFixed32BE(int.MinValue));
+				Verify(FdbValue.ToFixed32BigEndian(0x12), Slice.FromFixed32BE(0x12));
+				Verify(FdbValue.ToFixed32BigEndian(0x1234), Slice.FromFixed32BE(0x1234));
+				Verify(FdbValue.ToFixed32BigEndian(0x123456), Slice.FromFixed32BE(0x123456));
+				Verify(FdbValue.ToFixed32BigEndian(0x12345678), Slice.FromFixed32BE(0x12345678));
+				Verify(FdbValue.ToFixed32BigEndian(-1), Slice.FromFixed32BE(-1));
+				Verify(FdbValue.ToFixed32BigEndian(-123456), Slice.FromFixed32BE(-123456));
+				Verify(FdbValue.ToFixed32BigEndian(int.MinValue), Slice.FromFixed32BE(int.MinValue));
 
 				// UInt32
-				Verify(FdbValue.FixedSize.FromUInt32BigEndian(0), Slice.FromFixedU32BE(0));
-				Verify(FdbValue.FixedSize.FromUInt32BigEndian(0x12), Slice.FromFixedU32BE(0x12));
-				Verify(FdbValue.FixedSize.FromUInt32BigEndian(0x1234), Slice.FromFixedU32BE(0x1234));
-				Verify(FdbValue.FixedSize.FromUInt32BigEndian(0x123456), Slice.FromFixedU32BE(0x123456));
-				Verify(FdbValue.FixedSize.FromUInt32BigEndian(0x12345678), Slice.FromFixedU32BE(0x12345678));
+				Verify(FdbValue.ToFixed32BigEndian((uint)0), Slice.FromFixedU32BE(0));
+				Verify(FdbValue.ToFixed32BigEndian((uint)0x12), Slice.FromFixedU32BE(0x12));
+				Verify(FdbValue.ToFixed32BigEndian((uint)0x1234), Slice.FromFixedU32BE(0x1234));
+				Verify(FdbValue.ToFixed32BigEndian((uint)0x123456), Slice.FromFixedU32BE(0x123456));
+				Verify(FdbValue.ToFixed32BigEndian((uint)0x12345678), Slice.FromFixedU32BE(0x12345678));
 
 				// Int64
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0), Slice.FromFixed64BE(0));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0x12), Slice.FromFixed64BE(0x12));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0x1234), Slice.FromFixed64BE(0x1234));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0x123456), Slice.FromFixed64BE(0x123456));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0x12345678), Slice.FromFixed64BE(0x12345678));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0x123456789A), Slice.FromFixed64BE(0x123456789A));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0x123456789ABC), Slice.FromFixed64BE(0x123456789ABC));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0x123456789ABCDE), Slice.FromFixed64BE(0x123456789ABCDE));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(0x123456789ABCDEF0), Slice.FromFixed64BE(0x123456789ABCDEF0));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(-1), Slice.FromFixed64BE(-1));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(-123456), Slice.FromFixed64BE(-123456));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(int.MinValue), Slice.FromFixed64BE(int.MinValue));
-				Verify(FdbValue.FixedSize.FromInt64BigEndian(long.MinValue), Slice.FromFixed64BE(long.MinValue));
+				Verify(FdbValue.ToFixed64BigEndian(0), Slice.FromFixed64BE(0));
+				Verify(FdbValue.ToFixed64BigEndian(0x12), Slice.FromFixed64BE(0x12));
+				Verify(FdbValue.ToFixed64BigEndian(0x1234), Slice.FromFixed64BE(0x1234));
+				Verify(FdbValue.ToFixed64BigEndian(0x123456), Slice.FromFixed64BE(0x123456));
+				Verify(FdbValue.ToFixed64BigEndian(0x12345678), Slice.FromFixed64BE(0x12345678));
+				Verify(FdbValue.ToFixed64BigEndian(0x123456789A), Slice.FromFixed64BE(0x123456789A));
+				Verify(FdbValue.ToFixed64BigEndian(0x123456789ABC), Slice.FromFixed64BE(0x123456789ABC));
+				Verify(FdbValue.ToFixed64BigEndian(0x123456789ABCDE), Slice.FromFixed64BE(0x123456789ABCDE));
+				Verify(FdbValue.ToFixed64BigEndian(0x123456789ABCDEF0), Slice.FromFixed64BE(0x123456789ABCDEF0));
+				Verify(FdbValue.ToFixed64BigEndian(-1), Slice.FromFixed64BE(-1));
+				Verify(FdbValue.ToFixed64BigEndian(-123456), Slice.FromFixed64BE(-123456));
+				Verify(FdbValue.ToFixed64BigEndian(int.MinValue), Slice.FromFixed64BE(int.MinValue));
+				Verify(FdbValue.ToFixed64BigEndian(long.MinValue), Slice.FromFixed64BE(long.MinValue));
 
 				// UInt64
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0), Slice.FromFixedU64BE(0));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0x12), Slice.FromFixedU64BE(0x12));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0x1234), Slice.FromFixedU64BE(0x1234));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0x123456), Slice.FromFixedU64BE(0x123456));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0x12345678), Slice.FromFixedU64BE(0x12345678));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0x123456789A), Slice.FromFixedU64BE(0x123456789A));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0x123456789ABC), Slice.FromFixedU64BE(0x123456789ABC));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0x123456789ABCDE), Slice.FromFixedU64BE(0x123456789ABCDE));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(0x123456789ABCDEF0), Slice.FromFixedU64BE(0x123456789ABCDEF0));
-				Verify(FdbValue.FixedSize.FromUInt64BigEndian(ulong.MaxValue), Slice.FromFixedU64BE(ulong.MaxValue));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0), Slice.FromFixedU64BE(0));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0x12), Slice.FromFixedU64BE(0x12));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0x1234), Slice.FromFixedU64BE(0x1234));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456), Slice.FromFixedU64BE(0x123456));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0x12345678), Slice.FromFixedU64BE(0x12345678));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456789A), Slice.FromFixedU64BE(0x123456789A));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456789ABC), Slice.FromFixedU64BE(0x123456789ABC));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456789ABCDE), Slice.FromFixedU64BE(0x123456789ABCDE));
+				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456789ABCDEF0), Slice.FromFixedU64BE(0x123456789ABCDEF0));
+				Verify(FdbValue.ToFixed64BigEndian(ulong.MaxValue), Slice.FromFixedU64BE(ulong.MaxValue));
 			});
 
 		}

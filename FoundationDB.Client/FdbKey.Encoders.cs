@@ -31,75 +31,145 @@ namespace FoundationDB.Client
 	public static partial class FdbKey
 	{
 
+		/// <summary>Maximum allowed size for a key in the database (10,000 bytes)</summary>
 		public const int MaxSize = Fdb.MaxKeySize;
 
+		/// <summary>Represents the <c>null</c> key, or the absence of key</summary>
 		public static readonly FdbRawKey Nil;
 
-		public static class Binary
+		#region Generic...
+
+		/// <summary>Returns a key that wraps a value that will be encoded into bytes using a given encoder</summary>
+		/// <typeparam name="TKey">Type of the key that is encoded</typeparam>
+		/// <typeparam name="TEncoder">Type of the encoder for this key</typeparam>
+		/// <param name="subspace">Subspace that contains the key in the database</param>
+		/// <param name="key">Value of the key</param>
+		public static FdbKey<TKey, TEncoder> Create<TKey, TEncoder>(IKeySubspace subspace, TKey key)
+			where TEncoder : struct, ISpanEncoder<TKey>
 		{
-
-			/// <summary>Returns a key that wraps a <see cref="Slice"/></summary>
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbRawKey FromBytes(Slice key) => new(key);
-
-			/// <summary>Returns a key that wraps a byte array</summary>
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbRawKey FromBytes(byte[] key) => new(key.AsSlice());
-
-			/// <summary>Returns a key that wraps a byte array</summary>
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbRawKey FromBytes(byte[] key, int start, int length) => new(key.AsSlice(start, length));
-
+			return new(subspace, key);
 		}
 
-		public static class Tuples
-		{
+		#endregion
 
-			/// <summary>Returns a key that wraps a tuple inside a <see cref="IDynamicKeySubspace"/></summary>
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbVarTupleKey Create(IKeySubspace subspace, IVarTuple items)
-				=> new(subspace, items);
+		#region Binary
 
-			/// <summary>Returns a key that wraps a relative key inside a <see cref="IBinaryKeySubspace"/></summary>
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static FdbKey<(TSubspace Subspace, Slice Suffix), BinarySubspaceEncoder<TSubspace>> Create<TSubspace, TTuple>(TSubspace subspace, Slice relativeKey)
-				where TSubspace : IBinaryKeySubspace
-				=> new((subspace, relativeKey), subspace);
+		#region No Subspace...
 
-		}
+		/// <summary>Returns a key that wraps a <see cref="Slice"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbRawKey ToBytes(Slice key) => new(key);
 
-		public readonly struct BinarySubspaceEncoder<TSubspace> : ISpanEncoder<(TSubspace Subspace, Slice Suffix)>
-			where TSubspace : IBinaryKeySubspace
-		{
-			/// <inheritdoc />
-			public static bool TryGetSpan(scoped in (TSubspace Subspace, Slice Suffix) value, out ReadOnlySpan<byte> span)
-			{
-				span = default;
-				return false;
-			}
+		/// <summary>Returns a key that wraps a byte array</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbRawKey ToBytes(byte[] key) => new(key.AsSlice());
 
-			/// <inheritdoc />
-			public static bool TryGetSizeHint(scoped in (TSubspace Subspace, Slice Suffix) value, out int sizeHint)
-			{
-				sizeHint = 0;
-				return false;
-			}
+		/// <summary>Returns a key that wraps a byte array</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbRawKey ToBytes(byte[] key, int start, int length) => new(key.AsSlice(start, length));
 
-			/// <inheritdoc />
-			public static bool TryEncode(Span<byte> destination, out int bytesWritten, scoped in (TSubspace Subspace, Slice Suffix) value)
-			{
-				return value.Subspace.TryEncode(destination, out bytesWritten, value.Suffix.Span);
-			}
+		#endregion
 
-		}
+		#region With Subspace...
+
+		/// <summary>Returns a key that wraps suffix inside a <see cref="IBinaryKeySubspace"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbBinaryKey ToBytes(IKeySubspace subspace, Slice relativeKey)
+			=> new(subspace, relativeKey);
+
+		/// <summary>Returns a key that wraps a suffix inside a <see cref="IBinaryKeySubspace"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbBinaryKey ToBytes(IKeySubspace subspace, byte[] relativeKey)
+			=> new(subspace, relativeKey.AsSlice());
+
+		/// <summary>Returns a key that wraps a suffix inside a <see cref="IBinaryKeySubspace"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbBinaryKey ToBytes(IKeySubspace subspace, byte[] relativeKey, int start, int length)
+			=> new(subspace, relativeKey.AsSlice(start, length));
+
+		#endregion
+
+		#endregion
+
+		#region Tuples...
+
+		#region ToTuple(IKeySubspace, ValueTuple<...>)...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1> ToTuple<T1>(IKeySubspace subspace, ValueTuple<T1> key) => new(subspace, key.Item1);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> ToTuple<T1, T2>(IKeySubspace subspace, in ValueTuple<T1, T2> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> ToTuple<T1, T2, T3>(IKeySubspace subspace, in ValueTuple<T1, T2, T3> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> ToTuple<T1, T2, T3, T4>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5> ToTuple<T1, T2, T3, T4, T5>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> ToTuple<T1, T2, T3, T4, T5, T6>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> ToTuple<T1, T2, T3, T4, T5, T6, T7>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> ToTuple<T1, T2, T3, T4, T5, T6, T7, T8>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> key) => new(subspace, in key);
+
+		#endregion
+
+		#region ToTuple(IKeySubspace, STuple<...>)...
+
+		/// <summary>Returns a key that packs the given items inside a subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="items">Elements of the key</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbVarTupleKey ToTuple(IKeySubspace subspace, IVarTuple items) => new(subspace, items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1> ToTuple<T1>(IKeySubspace subspace, STuple<T1> key) => new(subspace, key.Item1);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> ToTuple<T1, T2>(IKeySubspace subspace, in STuple<T1, T2> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> ToTuple<T1, T2, T3>(IKeySubspace subspace, in STuple<T1, T2, T3> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> ToTuple<T1, T2, T3, T4>(IKeySubspace subspace, in STuple<T1, T2, T3, T4> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5> ToTuple<T1, T2, T3, T4, T5>(IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> ToTuple<T1, T2, T3, T4, T5, T6>(IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> ToTuple<T1, T2, T3, T4, T5, T6, T7>(IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> ToTuple<T1, T2, T3, T4, T5, T6, T7, T8>(IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> key) => new(subspace, in key);
+
+		#endregion
+
+		#endregion
 
 	}
 
-	/// <summary>Represents a key in the database</summary>
+	/// <summary>Represents a key in the database, that can be serialized into bytes</summary>
+	/// <remarks>
+	/// <para>Types that implement this interface usually wrap a parent subspace, as well as the elements that make up a key inside this subspace.</para>
+	/// <para>For example, a <see cref="FdbTupleKey{string,int}"/> will wrap the items <c>("hello", 123)</c>, which will be later converted into bytes using the Tuple Encoding</para>
+	/// <para>Keys that are reused multiple times can be converted into a <see cref="FdbRawKey"/> using the <see cref="FdbKeyExtensions.Memoize{TKey}"/> method, which wraps the complete key in a <see cref="Slice"/>.</para>
+	/// </remarks>
 	public interface IFdbKey : ISpanFormattable
 	{
 
 		/// <summary>Optional subspace that contains this key</summary>
+		/// <remarks>If <c>null</c>, this is most probably a key that as already been encoded.</remarks>
 		IKeySubspace? GetSubspace();
 
 		/// <summary>Returns the already encoded binary representation of the key, if available.</summary>
@@ -122,10 +192,13 @@ namespace FoundationDB.Client
 		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
 		/// <returns><c>true</c> if the operation was successful and the buffer was large enough, or <c>false</c> if it was too small</returns>
 		[Pure, MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool TryEncode(Span<byte> destination, out int bytesWritten);
+		bool TryEncode(scoped Span<byte> destination, out int bytesWritten);
 
 	}
 
+	#region Binary Keys...
+
+	/// <summary>Wraps a <see cref="Slice"/> that contains a pre-encoded key in the database</summary>
 	public readonly struct FdbRawKey : IFdbKey
 	{
 
@@ -187,6 +260,7 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Wraps a <see cref="Slice"/> that contains a pre-encoded key, relative to a subspace</summary>
 	public readonly struct FdbBinaryKey : IFdbKey
 	{
 
@@ -248,7 +322,11 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Represents a typed key in the database</summary>
+	#endregion
+
+	#region Encoded Keys...
+
+	/// <summary>Wraps a value that will be encoded to get the corresponding key, relative to a subspace</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
 	/// <typeparam name="TEncoder">Type of the <see cref="ISpanEncoder{TValue}"/> that can convert this key into a binary representation</typeparam>
 	[DebuggerDisplay("Data={Data}")]
@@ -256,7 +334,7 @@ namespace FoundationDB.Client
 		where TEncoder: struct, ISpanEncoder<TKey>
 	{
 
-		public FdbKey(TKey data, IKeySubspace? subspace = null)
+		public FdbKey(IKeySubspace subspace, TKey data)
 		{
 			this.Data = data;
 			this.Subspace = subspace;
@@ -266,7 +344,7 @@ namespace FoundationDB.Client
 		public readonly TKey Data;
 
 		/// <summary>Optional subspace that contains this key</summary>
-		public readonly IKeySubspace? Subspace;
+		public readonly IKeySubspace Subspace;
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -274,15 +352,43 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSpan(out ReadOnlySpan<byte> span) => TEncoder.TryGetSpan(this.Data, out span);
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			//note: we could if the parent subspace did not have any prefix, which is not allowed
+			span = default;
+			return false;
+		}
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) => TEncoder.TryGetSizeHint(this.Data, out sizeHint);
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TEncoder.TryGetSizeHint(this.Data, out var dataSize))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(dataSize + this.Subspace.GetPrefix().Count);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TEncoder.TryEncode(destination, out bytesWritten, in this.Data);
+		public bool TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			{
+				if (this.Subspace.GetPrefix().TryCopyTo(destination, out var prefixLen)
+				 && TEncoder.TryEncode(destination, out var dataLen, in this.Data))
+				{
+					bytesWritten = prefixLen + dataLen;
+					return true;
+				}
+
+				bytesWritten = 0;
+				return false;
+			}
+		}
 
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
@@ -290,20 +396,20 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? provider = null)
 		{
-			return this.Subspace is null
-				? string.Create(CultureInfo.InvariantCulture, $"{this.Data}")
-				: string.Create(CultureInfo.InvariantCulture, $"{this.Subspace}:{this.Data}");
+			return string.Create(CultureInfo.InvariantCulture, $"{this.Subspace}:{this.Data}");
 		}
 
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			return this.Subspace is null
-				? destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Data}", out charsWritten)
-				: destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Subspace}:{this.Data}", out charsWritten);
+			return destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Subspace}:{this.Data}", out charsWritten);
 		}
 
 	}
+
+	#endregion
+
+	#region Tuple Keys...
 
 	public readonly struct FdbVarTupleKey : IFdbKey
 	{
@@ -988,5 +1094,7 @@ namespace FoundationDB.Client
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace.GetPrefix().Span, in this.Items);
 
 	}
+
+	#endregion
 
 }

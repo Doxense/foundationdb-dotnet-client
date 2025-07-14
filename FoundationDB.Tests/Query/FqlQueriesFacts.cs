@@ -134,8 +134,8 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await db.Root[FdbPath.Parse($"users/{user}/documents/music")].Resolve(tr).ConfigureAwait(false);
 					
-					tr.Set(subspace.GetKey("name"), FdbValue.Text.FromUtf8("Albums"));
-					tr.Set(subspace.GetKey("count"), FdbValue.FixedSize.FromInt32LittleEndian(count));
+					tr.Set(subspace.GetKey("name"), FdbValue.ToTextUtf8("Albums"));
+					tr.Set(subspace.GetKey("count"), FdbValue.ToFixed32LittleEndian(count));
 					
 					for (int i = 0; i < albums.Count; i++)
 					{
@@ -144,7 +144,7 @@ namespace FoundationDB.Client.Tests
 						set.Add((rid, album));
 						var json = CrystalJson.ToSlice(album, ArrayPool<byte>.Shared);
 						tr.Set(subspace.GetKey(0, rid), json.Data);
-						tr.Set(subspace.GetKey(1, album.Id), FdbValue.FixedSize.FromInt32LittleEndian(rid));
+						tr.Set(subspace.GetKey(1, album.Id), FdbValue.ToFixed32LittleEndian(rid));
 						tr.Set(subspace.GetKey(2, album.Genre, rid ), FdbValue.Empty);
 						tr.Set(subspace.GetKey(3, album.Artist, rid), FdbValue.Empty);
 						tr.Set(subspace.GetKey(4, album.ReleaseDate.Year, rid), FdbValue.Empty);

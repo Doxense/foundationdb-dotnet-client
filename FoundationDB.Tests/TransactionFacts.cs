@@ -393,16 +393,18 @@ namespace FoundationDB.Client.Tests
 			long writeVersion;
 			long readVersion;
 
-			// write a bunch of keys
+			var uuid = Uuid128.NewUuid();
+
+			Log("# Write encoded keys and values...");
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				var subspace = await location.Resolve(tr);
 
-				tr.Set(subspace.GetKey("hello"), FdbValue.Text.FromUtf8("World!"));
-				tr.Set(subspace.GetKey("timestamp"), FdbValue.Compact.FromInt64LittleEndian(ticks));
-
-				Span<byte> blobData = [ 42, 123, 7 ];
-				tr.Set(subspace.GetKey("blob"), blobData);
+				tr.Set(subspace.GetKey("hello"), FdbValue.ToTextUtf8("World!"));
+				tr.Set(subspace.GetKey("timestamp"), FdbValue.ToCompactLittleEndian(ticks));
+				tr.Set(subspace.GetKey("uuid"), FdbValue.ToUuid128(uuid));
+				tr.Set(subspace.GetKey("tuple"), FdbValue.ToTuple("hello", 123, true, "world"));
+				tr.Set(subspace.GetKey("blob"), FdbValue.ToBytes([ 42, 123, 7 ]));
 
 				await tr.CommitAsync();
 
@@ -410,7 +412,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(writeVersion, Is.GreaterThan(0), "Committed version of non-empty transaction should be > 0");
 			}
 
-			// read them back
+			Log("# Read them back...");
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				var subspace = await location.Resolve(tr);
@@ -420,14 +422,27 @@ namespace FoundationDB.Client.Tests
 
 				{
 					var bytes = await tr.GetAsync(subspace.Encode("hello"));
+					Log($"> `hello`: {bytes:X}");
 					Assert.That(bytes.ToStringUtf8(), Is.EqualTo("World!"));
 				}
 				{
 					var bytes = await tr.GetAsync(subspace.Encode("timestamp"));
+					Log($"> `timestamp`: {bytes:X}");
 					Assert.That(bytes.ToInt64(), Is.EqualTo(ticks));
 				}
 				{
+					var bytes = await tr.GetAsync(subspace.Encode("uuid"));
+					Log($"> `uuid`: {bytes:X}");
+					Assert.That(bytes.ToUuid128(), Is.EqualTo(uuid));
+				}
+				{
+					var bytes = await tr.GetAsync(subspace.Encode("tuple"));
+					Log($"> `tuple`: {bytes:X}");
+					Assert.That(TuPack.Unpack(bytes), Is.EqualTo(("hello", 123, true, "world")));
+				}
+				{
 					var bytes = await tr.GetAsync(subspace.Encode("blob"));
+					Log($"> `blob`: {bytes:X}");
 					Assert.That(bytes.ToArray(), Is.EqualTo(new byte[] { 42, 123, 7 }));
 				}
 			}
@@ -489,7 +504,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				tr.SetValues(items.Select(item => (subspace.GetKey(item.Key), FdbValue.Text.FromUtf8(item.Value))));
+				tr.SetValues(items.Select(item => (subspace.GetKey(item.Key), FdbValue.ToTextUtf8(item.Value))));
 				await tr.CommitAsync();
 			}
 
