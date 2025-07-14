@@ -32,6 +32,7 @@ namespace SnowBank.Data.Tuples.Binary
 {
 	using System.Buffers;
 	using System.Runtime.InteropServices;
+	using System.Text;
 	using SnowBank.Data.Tuples;
 	using SnowBank.Data.Binary;
 	using SnowBank.Buffers;
@@ -2611,6 +2612,121 @@ namespace SnowBank.Data.Tuples.Binary
 		#endregion
 
 		#region Encoders...
+
+		[Pure]
+		private static int GetSizeHint(int item)
+			=> item == 0 ? 1
+			: item >= 0 ? item switch
+			{
+				<= 0xFF => 2,
+				<= 0xFFFF => 3,
+				<= 0xFFFFFF => 4,
+				_ => 5,
+			} : item switch
+			{
+				>= -256 => 2,
+				>= -65536 => 3,
+				>= -16777216 => 4,
+				_ => 5,
+			};
+
+		[Pure]
+		private static int GetSizeHint(long item)
+			=> item == 0 ? 1
+			: item >= 0 ? item switch
+			{
+				<= 0xFF => 2,
+				<= 0xFFFF => 3,
+				<= 0xFFFFFF => 4,
+				<= 0xFFFFFFFF => 5,
+				<= 0xFFFFFFFFFF => 6,
+				<= 0xFFFFFFFFFFFF => 7,
+				<= 0xFFFFFFFFFFFFFF => 8,
+				_ => 9,
+			} : item switch
+			{
+				>= -256L => 2,
+				>= -65536L => 3,
+				>= -16777216L => 4,
+				>= -4294967296L => 5,
+				>= -1099511627776L => 6,
+				>= -281474976710656L => 7,
+				>= -72057594037927936 => 8,
+				_ => 9,
+			};
+
+		[Pure]
+		private static int GetSizeHint(uint item) => item switch
+		{
+			0 => 1,
+			<= 0xFF => 2,
+			<= 0xFFFF => 3,
+			<= 0xFFFFFF => 4,
+			_ => 5
+		};
+
+		[Pure]
+		private static int GetSizeHint(ulong item) => item switch
+		{
+			0 => 1,
+			<= 0xFF => 2,
+			<= 0xFFFF => 3,
+			<= 0xFFFFFF => 4,
+			<= 0xFFFFFFFF => 5,
+			<= 0xFFFFFFFFFF => 6,
+			<= 0xFFFFFFFFFFFF => 7,
+			_ => 8
+		};
+
+		[Pure]
+		private static int GetSizeHint(string s)
+		{
+			// we have 2 bytes for prefix/suffix `02....00`
+			// then for each 0x00 byte in the utf-8 encoded string, we have to replace them into `00 FF`
+
+			int utf8Len = Encoding.UTF8.GetByteCount(s);
+			// note: we use the fact that only `\0` produces 0x00 when encoded in UTF-8, so we can safely count the chars without encoding first
+			int zeroes = s.AsSpan().Count('\0');
+			return checked(2 + utf8Len + zeroes);
+		}
+
+		[Pure]
+		private static int GetSizeHint(Slice s)
+		{
+			// we have 2 bytes for prefix/suffix `01....00`
+			// then for each 0x00 byte in the slice, we have to replace them into `00 FF`
+
+			int zeroes = s.Span.Count((byte) 0);
+			return checked(2 + s.Count + zeroes);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryGetSizeHint<T>(T item, out int sizeHint)
+		{
+			if (typeof(T) == typeof(int)) { sizeHint = GetSizeHint((int) (object) item!); return true; }
+			if (typeof(T) == typeof(uint)) { sizeHint = GetSizeHint((uint) (object) item!); return true; }
+			if (typeof(T) == typeof(long)) { sizeHint = GetSizeHint((long) (object) item!); return true; }
+			if (typeof(T) == typeof(ulong)) { sizeHint = GetSizeHint((ulong) (object) item!); return true; }
+			if (typeof(T) == typeof(bool)) { sizeHint = 1; return true; }
+			if (typeof(T) == typeof(VersionStamp)) { sizeHint = ((VersionStamp) (object) item!).HasUserVersion ? 13 : 11; return true; }
+			if (typeof(T) == typeof(Guid) || typeof(T) == typeof(Uuid128)) { sizeHint = 17; return true; }
+			if (typeof(T) == typeof(Uuid96)) { sizeHint = 13; return true; }
+			if (typeof(T) == typeof(Uuid80)) { sizeHint = 11; return true; }
+			if (typeof(T) == typeof(Uuid64)) { sizeHint = 9; return true; }
+			if (typeof(T) == typeof(Uuid48)) { sizeHint = 7; return true; }
+			if (typeof(T) == typeof(float)) { sizeHint = 5; return true; }
+			if (typeof(T) == typeof(double)) { sizeHint = 9; return true; }
+
+			if (typeof(T) == typeof(Slice)) { sizeHint = GetSizeHint((Slice) (object) item!); return true; }
+			if (typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(NodaTime.Instant)) { sizeHint = 9; return true; }
+
+			if (item is null) { sizeHint = 1; return true; }
+
+			if (item is string s) { sizeHint = GetSizeHint(s); return true; }
+
+			sizeHint = 0;
+			return false;
+		}
 
 		internal class Encoder<T> : IKeyEncoder<T>, IValueEncoder<T>
 		{

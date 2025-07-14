@@ -435,7 +435,17 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint<T1>(this.Item1, out var size))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(this.Subspace.GetPrefix().Count + size);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -504,7 +514,18 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Items.Item1, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item2, out var size2))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(this.Subspace.GetPrefix().Count + size1 + size2);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -573,7 +594,19 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Items.Item1, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item2, out var size2)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item3, out var size3))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(this.Subspace.GetPrefix().Count + size1 + size2 + size3);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -639,7 +672,20 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Items.Item1, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item2, out var size2)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item3, out var size3)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item4, out var size4))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(this.Subspace.GetPrefix().Count + size1 + size2 + size3 + size4);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -702,7 +748,21 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Items.Item1, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item2, out var size2)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item3, out var size3)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item4, out var size4)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item5, out var size5))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(this.Subspace.GetPrefix().Count + size1 + size2 + size3 + size4 + size5);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -762,7 +822,22 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Items.Item1, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item2, out var size2)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item3, out var size3)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item4, out var size4)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item5, out var size5)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item6, out var size6))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(this.Subspace.GetPrefix().Count + size1 + size2 + size3 + size4 + size5 + size6);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -819,7 +894,23 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Items.Item1, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item2, out var size2)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item3, out var size3)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item4, out var size4)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item5, out var size5)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item6, out var size6)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item7, out var size7))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(this.Subspace.GetPrefix().Count + size1 + size2 + size3 + size4 + size5 + size6 + size7);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -873,7 +964,24 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) { sizeHint = 0; return false; }
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Items.Item1, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item2, out var size2)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item3, out var size3)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item4, out var size4)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item5, out var size5)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item6, out var size6)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item7, out var size7)
+			 || !TupleEncoder.TryGetSizeHint(this.Items.Item8, out var size8))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(this.Subspace.GetPrefix().Count + size1 + size2 + size3 + size4 + size5 + size6 + size7 + size8);
+			return true;
+		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
