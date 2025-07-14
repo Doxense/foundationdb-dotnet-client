@@ -8,6 +8,7 @@
 
 namespace FoundationDB.Client
 {
+	using System;
 
 	/// <summary>Factory class for values</summary>
 	[PublicAPI]
@@ -17,6 +18,32 @@ namespace FoundationDB.Client
 		public const int MaxSize = Fdb.MaxValueSize;
 
 		public static readonly FdbRawValue Empty = new(Slice.Empty);
+
+		#region Generic...
+
+		/// <summary>Returns a value that can encode itself</summary>
+		/// <typeparam name="TValue">Type of the encoded value, that implements <see cref="ISpanEncodable"/></typeparam>
+		/// <param name="value">Value to encode</param>
+		/// <returns></returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbValue<TValue> Create<TValue>(TValue value)
+			where TValue : struct, ISpanEncodable
+		{
+			return new(value);
+		}
+
+		/// <summary>Returns a value that encodes an instance of <typeparamref name="TValue"/> with the given encoder</summary>
+		/// <typeparam name="TValue">Type of the encoded value</typeparam>
+		/// <typeparam name="TEncoder">Type of the encoder, that implements <see cref="ISpanEncoder{TValue}"/></typeparam>
+		/// <param name="value">Value to encode</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbValue<TValue, TEncoder> Create<TValue, TEncoder>(TValue value)
+			where TEncoder : struct, ISpanEncoder<TValue>
+		{
+			return new(value);
+		}
+
+		#endregion
 
 		#region Binary...
 
@@ -564,20 +591,54 @@ namespace FoundationDB.Client
 
 	}
 
+	public readonly struct FdbValue<TValue> : IFdbValue
+		where TValue : struct, ISpanEncodable
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValue(TValue data)
+		{
+			this.Data = data;
+		}
+
+		public readonly TValue Data;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) => this.Data.TryGetSpan(out span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint) => this.Data.TryGetSizeHint(out sizeHint);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten) => Data.TryEncode(destination, out bytesWritten);
+
+		/// <inheritdoc />
+		public override string ToString()
+			=> ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? provider = null)
+			=> STuple.Formatter.Stringify(this.Data);
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+			=> STuple.Formatter.TryStringifyTo(destination, out charsWritten, this.Data);
+
+	}
+
 	/// <summary>Value that will be converted into bytes by a <see cref="ISpanEncoder{TValue}"/></summary>
 	/// <typeparam name="TValue">Type of the value</typeparam>
 	/// <typeparam name="TEncoder">Type of the encoder for this value</typeparam>
 	[DebuggerDisplay("Data={Data}")]
 	public readonly struct FdbValue<TValue, TEncoder> : IFdbValue
-		where TEncoder: struct, ISpanEncoder<TValue>
+		where TEncoder : struct, ISpanEncoder<TValue>
 	{
 
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbValue(TValue? data)
-		{
-			this.Data = data;
-		}
-
-		public FdbValue(in TValue data)
 		{
 			this.Data = data;
 		}
@@ -593,108 +654,17 @@ namespace FoundationDB.Client
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TEncoder.TryEncode(destination, out bytesWritten, in this.Data);
 
-		public void Encode(ArrayPool<byte> pool, out byte[]? buffer, out ReadOnlySpan<byte> span, out Range range)
-		{
-			// maybe this is already encoded?
-			if (TEncoder.TryGetSpan(this.Data, out span))
-			{
-				buffer = null;
-				range = default;
-				return;
-			}
-
-			if (!TEncoder.TryGetSizeHint(this.Data, out var capacity))
-			{
-				capacity = 256;
-			}
-
-			byte[]? tmp = null;
-			try
-			{
-				while (true)
-				{
-					tmp = pool.Rent(capacity);
-					if (TEncoder.TryEncode(tmp, out int valueSize, in this.Data))
-					{
-						if (valueSize == 0)
-						{
-							buffer = null;
-							span = default;
-							range = default;
-							tmp = null;
-							return;
-						}
-
-						buffer = tmp;
-						span = tmp.AsSpan(0, valueSize);
-						range = new(0, valueSize);
-						tmp = null;
-						break;
-					}
-
-					// double the buffer capacity, if possible
-					pool.Return(tmp);
-					tmp = null;
-
-					if (capacity >= Fdb.MaxValueSize)
-					{
-						// it would be too large anyway!
-						throw new ArgumentException("Cannot format value because it would exceed the maximum allowed length");
-					}
-
-					capacity *= 2;
-				}
-			}
-			finally
-			{
-				if (tmp is not null)
-				{
-					buffer = null;
-					span = default;
-					range = default;
-					pool.Return(tmp);
-				}
-			}
-		}
-
-		public Slice ToSlice()
-		{
-			var pool = ArrayPool<byte>.Shared;
-			Encode(pool, out var buffer, out var span, out _);
-			var slice = span.ToSlice();
-			if (buffer is not null)
-			{
-				pool.Return(buffer);
-			}
-			return slice;
-		}
-
-		public SliceOwner ToSlice(ArrayPool<byte>? pool)
-		{
-			pool ??= ArrayPool<byte>.Shared;
-
-			Encode(pool, out var buffer, out var span, out var range);
-
-			return buffer is null
-				? SliceOwner.Copy(span, pool)
-				: SliceOwner.Create(buffer.AsSlice(range));
-		}
-
-
 		/// <inheritdoc />
-		public override string ToString() => ToString(null);
+		public override string ToString()
+			=> ToString(null);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? provider = null)
-		{
-			return string.Create(CultureInfo.InvariantCulture, $"{this.Data}");
-		}
+			=> STuple.Formatter.Stringify(this.Data);
 
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-		{
-			return destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Data}", out charsWritten);
-		}
+			=> STuple.Formatter.TryStringifyTo(destination, out charsWritten, this.Data);
 
 	}
 
