@@ -253,9 +253,11 @@ namespace FoundationDB.Client.Tests
 		{
 			//TODO: move this into a dedicated test class for partitions
 
+			Log("# Open Test Partition...");
 			using var db = await OpenTestPartitionAsync();
 
 			Assert.That(db.Root, Is.Not.Null);
+			Log($"> Path: {db.Root.Path}");
 			Assert.That(db.Root.Path, Is.Not.EqualTo(FdbPath.Root));
 
 			var dl = db.DirectoryLayer;
@@ -263,10 +265,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(dl.Content, Is.Not.Null);
 			Assert.That(dl.Content, Is.EqualTo(SubspaceLocation.Root), "Root DL should be located at the top");
 
+			Log("# Resolve root subspace...");
 			using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 			{
 				var root = await db.Root.TryResolve(tr);
 				Assert.That(root, Is.Not.Null);
+				Log($"> Path: {root!.Path}");
 				Assert.That(root!.Path, Is.EqualTo(db.Root.Path));
 				Assert.That(root.DirectoryLayer, Is.SameAs(dl));
 			}

@@ -222,7 +222,7 @@ namespace FoundationDB.Client.Tests
 			if (!string.IsNullOrEmpty(testMethod))
 			{
 				if (testMethod.StartsWith("Test_")) testMethod = testMethod["Test_".Length..];
-				path = path[testMethod];
+				path = path[testMethod, "test"];
 			}
 
 			var container = await WaitForTestServerToBecomeReady().ConfigureAwait(false);
