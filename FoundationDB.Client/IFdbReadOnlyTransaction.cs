@@ -126,6 +126,11 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
 		Task<Slice> GetKeyAsync(KeySelector selector);
 
+		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
+		/// <param name="selector">Key selector to resolve</param>
+		/// <returns>Task that will return the key matching the selector, or an exception</returns>
+		Task<Slice> GetKeyAsync(KeySpanSelector selector);
+
 		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
@@ -155,6 +160,23 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
 		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="iteration">If <see cref="FdbRangeOptions.Streaming">streaming mode</see> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <returns>Chunk of results</returns>
+		Task<FdbRangeChunk> GetRangeAsync(
+			KeySpanSelector beginInclusive,
+			KeySpanSelector endExclusive,
+			FdbRangeOptions? options = null,
+			int iteration = 0
+		);
+
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the beginning key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
 		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
@@ -163,6 +185,27 @@ namespace FoundationDB.Client
 		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(
 			KeySelector beginInclusive,
 			KeySelector endExclusive,
+			TState state,
+			FdbKeyValueDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options = null,
+			int iteration = 0
+		);
+
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the beginning key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
+		/// <param name="state">State that will be forwarded to the <paramref name="decoder"/></param>
+		/// <param name="decoder">Decoder that will extract the result from the value found in the database</param>
+		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="iteration">If <see cref="FdbRangeOptions.Streaming">streaming mode</see> is <see cref="FdbStreamingMode.Iterator"/>, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <returns>Chunk of results</returns>
+		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(
+			KeySpanSelector beginInclusive,
+			KeySpanSelector endExclusive,
 			TState state,
 			FdbKeyValueDecoder<TState, TResult> decoder,
 			FdbRangeOptions? options = null,

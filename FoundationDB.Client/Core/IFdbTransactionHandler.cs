@@ -130,7 +130,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		Task<Slice> GetKeyAsync(KeySelector selector, bool snapshot, CancellationToken ct);
+		Task<Slice> GetKeyAsync(KeySpanSelector selector, bool snapshot, CancellationToken ct);
 
 		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selectors">Key selectors to resolve</param>
@@ -147,7 +147,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct);
+		Task<FdbRangeChunk> GetRangeAsync(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct);
 
 		/// <summary>Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the Begin key selector and lexicographically less than the key resolved by the End key selector.</summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
@@ -159,7 +159,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="iteration">If the <see cref="FdbRangeOptions.Streaming">streaming mode</see> is set to <see cref="FdbStreamingMode.Iterator"/> (default), this parameter should start at <see langword="1"/> and be incremented by <see langword="1"/> for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration, CancellationToken ct);
+		Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration, CancellationToken ct);
 
 		/// <summary>Visit all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the Begin key selector and lexicographically less than the key resolved by the End key selector.</summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
@@ -171,7 +171,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="iteration">If the <see cref="FdbRangeOptions.Streaming">streaming mode</see> is set to <see cref="FdbStreamingMode.Iterator"/> (default), this parameter should start at <see langword="1"/> and be incremented by <see langword="1"/> for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <param name="ct">Token used to cancel the operation from the outside</param>
 		/// <returns><c>true</c> if the range </returns>
-		Task<FdbRangeResult> VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration, CancellationToken ct);
+		Task<FdbRangeResult> VisitRangeAsync<TState>(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration, CancellationToken ct);
 
 		/// <summary>Checks the value of a key in the database snapshot is equal to the expected value.</summary>
 		/// <param name="key">Key to check</param>
