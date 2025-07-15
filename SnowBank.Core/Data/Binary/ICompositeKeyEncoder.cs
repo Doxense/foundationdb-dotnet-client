@@ -30,88 +30,88 @@ namespace SnowBank.Data.Binary
 	
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
-	public interface ICompositeKeyEncoder<T1, T2> : IKeyEncoder<(T1?, T2?)>
+	public interface ICompositeKeyEncoder<T1, T2> : IKeyEncoder<(T1, T2)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
-		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?) key);
+		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2) key);
 
 		/// <summary>Write some or all parts of a composite key</summary>
-		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?) key);
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
 	}
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
-	public interface ICompositeKeyEncoder<T1, T2, T3> : IKeyEncoder<(T1?, T2?, T3?)>
+	public interface ICompositeKeyEncoder<T1, T2, T3> : IKeyEncoder<(T1, T2, T3)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
-		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?) key);
+		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3) key);
 
 		/// <summary>Write some or all parts of a composite key</summary>
-		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?) key);
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
 	}
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
-	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : IKeyEncoder<(T1?, T2?, T3?, T4?)>
+	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : IKeyEncoder<(T1, T2, T3, T4)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
-		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?) key);
+		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4) key);
 
 		/// <summary>Write some or all parts of a composite key</summary>
-		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?) key);
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
 
 	}
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
-	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5> : IKeyEncoder<(T1?, T2?, T3?, T4?, T5?)>
+	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5> : IKeyEncoder<(T1, T2, T3, T4, T5)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
-		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?, T5?) key);
+		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4, T5) key);
 
 		/// <summary>Write some or all parts of a composite key</summary>
-		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?, T5?) key);
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4, T5) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
 	}
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
-	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : IKeyEncoder<(T1?, T2?, T3?, T4?, T5?, T6?)>
+	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : IKeyEncoder<(T1, T2, T3, T4, T5, T6)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
-		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?, T5?, T6?) key);
+		void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4, T5, T6) key);
 
 		/// <summary>Write some or all parts of a composite key</summary>
-		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?, T5?, T6?) key);
+		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4, T5, T6) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6?) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6?) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
 	}
 
 	/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
@@ -123,39 +123,39 @@ namespace SnowBank.Data.Binary
 		public abstract IKeyEncoding Encoding { get; }
 
 		/// <inheritdoc />
-		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?) items);
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2) items);
 
 		/// <inheritdoc />
-		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?) items);
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?) items)
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2) items)
 		{
 			WriteKeyPartsTo(ref writer, 2, in items);
 		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?) items)
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1, T2) items)
 		{
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 2, in items);
 		}
 
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2) items)
 		{
 			ReadKeyPartsFrom(ref reader, 2, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 2, out items);
 		}
@@ -171,38 +171,38 @@ namespace SnowBank.Data.Binary
 		public abstract IKeyEncoding Encoding { get; }
 
 		/// <inheritdoc />
-		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?) items);
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3) items);
 
 		/// <inheritdoc />
-		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?) items);
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
 
 		/// <inheritdoc />
-		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?, T3?) items)
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3) items)
 		{
 			WriteKeyPartsTo(ref writer, 3, in items);
 		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?, T3?) items)
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1, T2, T3) items)
 		{
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 3, in items);
 		}
 
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3) items)
 		{
 			ReadKeyPartsFrom(ref reader, 3, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 3, out items);
 		}
@@ -218,38 +218,38 @@ namespace SnowBank.Data.Binary
 		public abstract IKeyEncoding Encoding { get; }
 
 		/// <inheritdoc />
-		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?) items);
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4) items);
 
 		/// <inheritdoc />
-		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?) items);
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
 
 		/// <inheritdoc />
-		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?, T3?, T4?) items)
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4) items)
 		{
 			WriteKeyPartsTo(ref writer, 4, in items);
 		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?, T3?, T4?) items)
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1, T2, T3, T4) items)
 		{
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 4, in items);
 		}
 
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4) items)
 		{
 			ReadKeyPartsFrom(ref reader, 4, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 4, out items);
 		}
@@ -265,38 +265,38 @@ namespace SnowBank.Data.Binary
 		public abstract IKeyEncoding Encoding { get; }
 
 		/// <inheritdoc />
-		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?, T5?) items);
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4, T5) items);
 
 		/// <inheritdoc />
-		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?, T5?) items);
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4, T5) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
 
 		/// <inheritdoc />
-		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?, T3?, T4?, T5?) items)
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4, T5) items)
 		{
 			WriteKeyPartsTo(ref writer, 5, in items);
 		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?, T3?, T4?, T5?) items)
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1, T2, T3, T4, T5) items)
 		{
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 5, in items);
 		}
 
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?, T5?) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5) items)
 		{
 			ReadKeyPartsFrom(ref reader, 5, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?, T5?) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 5, out items);
 		}
@@ -312,38 +312,38 @@ namespace SnowBank.Data.Binary
 		public abstract IKeyEncoding Encoding { get; }
 
 		/// <inheritdoc />
-		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1?, T2?, T3?, T4?, T5?, T6?) items);
+		public abstract void WriteKeyPartsTo(ref SliceWriter writer, int count, in (T1, T2, T3, T4, T5, T6) items);
 
 		/// <inheritdoc />
-		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1?, T2?, T3?, T4?, T5?, T6?) items);
+		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4, T5, T6) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6?) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6?) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
 
 		/// <inheritdoc />
-		public void WriteKeyTo(ref SliceWriter writer, (T1?, T2?, T3?, T4?, T5?, T6?) items)
+		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4, T5, T6) items)
 		{
 			WriteKeyPartsTo(ref writer, 6, in items);
 		}
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1?, T2?, T3?, T4?, T5?, T6?) items)
+		public bool TryWriteKeyTo(Span<byte> destination, out int bytesWritten, (T1, T2, T3, T4, T5, T6) items)
 		{
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 6, in items);
 		}
 
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5, T6) items)
 		{
 			ReadKeyPartsFrom(ref reader, 6, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5, T6) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 6, out items);
 		}

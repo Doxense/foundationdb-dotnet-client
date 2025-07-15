@@ -421,11 +421,11 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Converts an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
-		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, params T?[] values)
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, Slice prefix, params T[] values)
 			=> EncodeKeys<T>(encoder, prefix.Span, values);
 
 		/// <summary>Converts an array of <typeparamref name="T"/>s into an array of prefixed slices, using the specified serializer</summary>
-		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, ReadOnlySpan<byte> prefix, params T?[] values)
+		public static Slice[] EncodeKeys<T>(this IKeyEncoder<T> encoder, ReadOnlySpan<byte> prefix, params T[] values)
 		{
 			Contract.NotNull(encoder);
 			Contract.NotNull(values);

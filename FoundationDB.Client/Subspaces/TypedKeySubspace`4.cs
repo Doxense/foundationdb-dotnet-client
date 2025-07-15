@@ -38,30 +38,30 @@ namespace FoundationDB.Client
 		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
 		ICompositeKeyEncoder<T1, T2, T3, T4> KeyEncoder { get; }
 
-		Slice this[T1? item1, T2? item2, T3? item3, T4? item4] { get; }
+		Slice this[T1 item1, T2 item2, T3 item3, T4 item4] { get; }
 
-		Slice this[in (T1?, T2?, T3?, T4?) items] { get; }
+		Slice this[in (T1, T2, T3, T4) items] { get; }
 
 		[Pure]
-		Slice Encode(T1? item1, T2? item2, T3? item3, T4? item4);
+		Slice Encode(T1 item1, T2 item2, T3 item3, T4 item4);
 
 		/// <summary>Encode only the first element into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
 		/// <returns>Partial key that can be used to create custom <see cref="KeyRange">key ranges</see></returns>
-		Slice EncodePartial(T1? item1);
+		Slice EncodePartial(T1 item1);
 
 		/// <summary>Encode only the first and second elements into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
 		/// <returns>Partial key that can be used to create custom <see cref="KeyRange">key ranges</see></returns>
-		Slice EncodePartial(T1? item1, T2? item2);
+		Slice EncodePartial(T1 item1, T2 item2);
 
 		/// <summary>Encode only the first, second and third elements into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
 		/// <param name="item3">Third part of the key</param>
 		/// <returns>Partial key that can be used to create custom <see cref="KeyRange">key ranges</see></returns>
-		Slice EncodePartial(T1? item1, T2? item2, T3? item3);
+		Slice EncodePartial(T1 item1, T2 item2, T3 item3);
 
 		(T1?, T2?, T3?, T4?) Decode(Slice packedKey);
 
@@ -89,20 +89,20 @@ namespace FoundationDB.Client
 			this.KeyEncoder = encoder;
 		}
 
-		public Slice this[T1? item1, T2? item2, T3? item3, T4? item4]
+		public Slice this[T1 item1, T2 item2, T3 item3, T4 item4]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Encode(item1, item2, item3, item4);
 		}
 
-		public Slice this[in (T1?, T2?, T3?, T4?) items]
+		public Slice this[in (T1, T2, T3, T4) items]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Encode(items.Item1, items.Item2, items.Item3, items.Item4);
 		}
 
 		[Pure]
-		public Slice Encode(T1? item1, T2? item2, T3? item3, T4? item4)
+		public Slice Encode(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var sw = this.OpenWriter(4 * 12);
 			this.KeyEncoder.WriteKeyTo(ref sw, (item1, item2, item3, item4));
@@ -110,28 +110,28 @@ namespace FoundationDB.Client
 		}
 
 		[Pure]
-		public Slice EncodePartial(T1? item1, T2? item2, T3? item3)
+		public Slice EncodePartial(T1 item1, T2 item2, T3 item3)
 		{
 			var sw = this.OpenWriter(24);
-			var tuple = (item1, item2, item3, default(T4));
+			var tuple = (item1, item2, item3, default(T4)!);
 			this.KeyEncoder.WriteKeyPartsTo(ref sw, 3, in tuple);
 			return sw.ToSlice();
 		}
 
 		[Pure]
-		public Slice EncodePartial(T1? item1, T2? item2)
+		public Slice EncodePartial(T1 item1, T2 item2)
 		{
 			var sw = this.OpenWriter(16);
-			var tuple = (item1, item2, default(T3), default(T4));
+			var tuple = (item1, item2, default(T3)!, default(T4)!);
 			this.KeyEncoder.WriteKeyPartsTo(ref sw, 2, in tuple);
 			return sw.ToSlice();
 		}
 
 		[Pure]
-		public Slice EncodePartial(T1? item1)
+		public Slice EncodePartial(T1 item1)
 		{
 			var sw = this.OpenWriter(16);
-			var tuple = (item1, default(T2), default(T3), default(T4));
+			var tuple = (item1, default(T2)!, default(T3)!, default(T4)!);
 			this.KeyEncoder.WriteKeyPartsTo(ref sw, 1, in tuple);
 			return sw.ToSlice();
 		}
@@ -184,7 +184,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static KeyRange PackRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1?, T2?, T3?, T4?) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1, T2, T3, T4) tuple)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4));
@@ -200,7 +200,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified tuple</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		public static KeyRange PackPartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1?, T2?, T3?) tuple)
+		public static KeyRange PackPartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1, T2, T3) tuple)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(tuple.Item1, tuple.Item2, tuple.Item3));
@@ -208,7 +208,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start the specified elements</summary>
 		/// <returns>Range that encompass all keys that start with `(<paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, <paramref name="item4"/>, ...)`</returns>
-		public static KeyRange EncodeRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1? item1, T2? item2, T3? item3, T4? item4)
+		public static KeyRange EncodeRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.Encode(item1, item2, item3, item4));
@@ -216,7 +216,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start the specified elements</summary>
 		/// <returns>Range that encompass all keys that start with `(<paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, ...)`</returns>
-		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1? item1, T2? item2, T3? item3)
+		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1 item1, T2 item2, T3 item3)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(item1, item2, item3));
@@ -224,7 +224,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start the specified elements</summary>
 		/// <returns>Range that encompass all keys that start with `(<paramref name="item1"/>, <paramref name="item2"/>, ...)`</returns>
-		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1? item1, T2? item2)
+		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1 item1, T2 item2)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(item1, item2));
@@ -232,7 +232,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start the specified element</summary>
 		/// <returns>Range that encompass all keys that start with `(<paramref name="item1"/>, ...)`</returns>
-		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1? item1)
+		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1 item1)
 		{
 			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(item1));
@@ -249,7 +249,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1?, T2?, T3?, T4?) tuple)
+		public static Slice Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1, T2, T3, T4) tuple)
 		{
 			return self.Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
@@ -259,26 +259,26 @@ namespace FoundationDB.Client
 			where TTuple : IVarTuple
 		{
 			tuple.OfSize(4);
-			return self.Encode(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
+			return self.Encode(tuple.Get<T1>(0)!, tuple.Get<T2>(1)!, tuple.Get<T3>(2)!, tuple.Get<T4>(3)!);
 		}
 
 		/// <summary>Encodes an array of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, params (T1?, T2?, T3?, T4?)[] items)
+		public static Slice[] Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, params (T1, T2, T3, T4)[] items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
 		}
 
 		/// <summary>Encodes a span of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice[] Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, params ReadOnlySpan<(T1?, T2?, T3?, T4?)> items)
+		public static Slice[] Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, params ReadOnlySpan<(T1, T2, T3, T4)> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
 		}
 
 		/// <summary>Encodes a sequence of items into a sequence of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<Slice> Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, IEnumerable<(T1?, T2?, T3?, T4?)> items)
+		public static IEnumerable<Slice> Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, IEnumerable<(T1, T2, T3, T4)> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
 		}
