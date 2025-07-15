@@ -27,6 +27,7 @@
 namespace SnowBank.Buffers
 {
 	using System.Buffers;
+	using System.ComponentModel;
 	using SnowBank.Buffers.Binary;
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>
@@ -50,7 +51,7 @@ namespace SnowBank.Buffers
 		/// <summary>Number of bytes remaining in the current buffer</summary>
 		private int m_remaining;
 		/// <summary>If non-null, list of previously used buffers (excluding the current buffer)</summary>
-		private List<Slice>? m_chunks;
+		private List<(byte[] Buffer, int Used)>? m_chunks;
 		/// <summary>Running total of the length of all previously used buffers, excluding the size of the current buffer</summary>
 		private int m_allocated;
 		/// <summary>Running total of the number of bytes stored in the previously used buffers, excluding the size of the current buffer</summary>
@@ -87,7 +88,14 @@ namespace SnowBank.Buffers
 		public Slice[] GetPages()
 		{
 			var pages = new Slice[this.PageCount];
-			m_chunks?.CopyTo(pages);
+			int p = 0;
+			if (m_chunks is not null)
+			{
+				foreach (var chunk in m_chunks)
+				{
+					pages[p++] = chunk.Buffer.AsSlice(0, chunk.Used);
+				}
+			}
 			pages[^1] = m_current.AsSlice(0, m_pos);
 			return pages;
 		}
@@ -130,7 +138,7 @@ namespace SnowBank.Buffers
 			if (count > (m_pageSize >> 1))
 			{
 				var array = m_pool?.Rent(count) ?? new byte[count];
-				Keep(array.AsSlice(0, count));
+				Keep(array, count);
 				return array.AsSlice(0, count);
 			}
 
@@ -139,7 +147,7 @@ namespace SnowBank.Buffers
 			// double the page size on each new allocation
 			if (m_current != null)
 			{
-				if (m_pos > 0) Keep(m_current.AsSlice(0, m_pos));
+				if (m_pos > 0) Keep(m_current, m_pos);
 				pageSize <<= 1;
 				if (pageSize > MaxPageSize) pageSize = MaxPageSize;
 				m_pageSize = pageSize;
@@ -152,7 +160,84 @@ namespace SnowBank.Buffers
 
 			return buffer.AsSlice(0, count);
 		}
+
+		public Span<byte> GetSpan(int sizeHint)
+		{
+			if (sizeHint < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", nameof(sizeHint));
+
+			const int ALIGNMENT = 4;
+
+			int p = m_pos;
+			if (sizeHint > m_remaining)
+			{ // does not fit
+				return GetSpanFallback(sizeHint);
+			}
+
+			//note: we rely on the fact that the buffer was pre-filled with zeroes
+			return m_current.AsSpan(p);
+		}
 		
+		private Span<byte> GetSpanFallback(int count)
+		{
+			if (count > MaxPageSize)
+			{
+				throw new InvalidOperationException("Cannot return a span that is larger than the maximum allowed page size");
+			}
+
+			// keys that are too large are best kept in their own chunks
+
+			int pageSize = m_pageSize;
+			if (count > pageSize * 2)
+			{
+				// allocate a larger page just once
+			}
+			else if (count > pageSize)
+			{ // double the page size
+				pageSize *= 2;
+				pageSize = Math.Min(pageSize, MaxPageSize); // already checked for overflow at the start
+				count = pageSize;
+			}
+			else
+			{
+				count = pageSize;
+			}
+
+			if (m_current != null)
+			{
+				if (m_pos > 0)
+				{
+					Keep(m_current, m_pos);
+				}
+				else
+				{ // we did not use the current buffer, return it to the pool
+					m_pool?.Return(m_current);
+				}
+			}
+			m_pageSize = pageSize;
+
+			// switch to the new buffer, but keeps at the start of the buffer
+			var buffer = m_pool?.Rent(count) ?? new byte[count];
+			m_current = buffer;
+			m_pos = 0;
+			m_remaining = buffer.Length;
+
+			return buffer.AsSpan();
+		}
+
+		public Slice Advance(int consumed)
+		{
+			int p = m_pos;
+			int r = m_remaining;
+
+			if (consumed > r)
+			{
+				throw new InvalidOperationException("Cannot advance more than the remaining allocated capacity.");
+			}
+			m_pos = p + consumed;
+			m_remaining = r - consumed;
+			return m_current.AsSlice(p, consumed);
+		}
+
 		/// <summary>Allocate an empty space in the buffer</summary>
 		/// <param name="count">Number of bytes to allocate</param>
 		/// <param name="aligned">If true, align the start of the slice with the default padding size.</param>
@@ -191,7 +276,7 @@ namespace SnowBank.Buffers
 			if (count > (m_pageSize >> 1))
 			{
 				var array = m_pool?.Rent(count) ?? new byte[count];
-				Keep(array.AsSlice(0, count));
+				Keep(array, count);
 				return array.AsSpan(0, count);
 			}
 
@@ -200,7 +285,7 @@ namespace SnowBank.Buffers
 			// double the page size on each new allocation
 			if (m_current != null)
 			{
-				if (m_pos > 0) Keep(m_current.AsSlice(0, m_pos));
+				if (m_pos > 0) Keep(m_current, m_pos);
 				pageSize <<= 1;
 				if (pageSize > MaxPageSize) pageSize = MaxPageSize;
 				m_pageSize = pageSize;
@@ -323,12 +408,11 @@ namespace SnowBank.Buffers
 		}
 
 		/// <summary>Adds a buffer to the list of allocated slices</summary>
-		private void Keep(Slice chunk)
+		private void Keep(byte[] buffer, int used)
 		{
-			m_chunks ??= [ ];
-			m_chunks.Add(chunk);
-			m_allocated += chunk.Array.Length;
-			m_used += chunk.Count;
+			(m_chunks ??= [ ]).Add((buffer, used));
+			m_allocated += buffer.Length;
+			m_used += used;
 		}
 
 		/// <summary>Reset the buffer to its initial state and allow reuse of previously allocated memory</summary>
@@ -336,8 +420,10 @@ namespace SnowBank.Buffers
 		/// If there is a pool attached, all pages are returned to the pool and could be reused later.
 		/// IMPORTANT: all slices allocated from this buffer CANNOT be used after a call to Reset!!!
 		/// </remarks>
-		public void ReleaseMemoryUnsafe()
+		public void ReleaseMemoryUnsafe(bool clear = false)
 		{
+			int p = m_pos;
+
 			m_allocated = 0;
 			m_pos = 0;
 			m_used = 0;
@@ -349,6 +435,10 @@ namespace SnowBank.Buffers
 				var current = m_current;
 				if (current != null)
 				{
+					if (clear)
+					{
+						current.AsSpan(0, p).Clear();
+					}
 					pool.Return(current, clearArray: false);
 					m_current = null;
 				}
@@ -356,7 +446,11 @@ namespace SnowBank.Buffers
 				{
 					foreach (var chunk in chunks)
 					{
-						pool.Return(chunk.Array, clearArray: false);
+						if (clear)
+						{
+							chunk.Buffer.AsSpan(0, chunk.Used).Clear();
+						}
+						pool.Return(chunk.Buffer, clearArray: false);
 					}
 					chunks.Clear();
 				}
@@ -368,12 +462,12 @@ namespace SnowBank.Buffers
 			}
 		}
 
-		/// <summary>Return a lock that will prevent the underlying byte arrays used by this buffer from moving around in memory during the next GC.</summary>
-		/// <returns>Lock instance that MUST be disposed to release the GC lock.</returns>
-		/// <remarks>Any data added to the buffer WHILE the buffer is pinned MAY NOT be pinned itself! For safety, caller should make sure to write everything to the buffer before pinning it</remarks>
+		/// <summary>This method is not supported anymore</summary>
+		[Obsolete("This method is not supported anymore", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public Slice.Pinned Pin()
 		{
-			return new Slice.Pinned(this, m_current!, m_chunks);
+			throw new NotSupportedException();
 		}
 
 	}
