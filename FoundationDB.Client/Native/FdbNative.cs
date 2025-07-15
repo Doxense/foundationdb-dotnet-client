@@ -1777,15 +1777,15 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>fdb_transaction_get_range</summary>
-		public static FutureHandle TransactionGetRange(TransactionHandle transaction, KeySelector begin, KeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
+		public static FutureHandle TransactionGetRange(TransactionHandle transaction, KeySpanSelector begin, KeySpanSelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
 		{
 			fixed (byte* ptrBegin = begin.Key)
 			fixed (byte* ptrEnd = end.Key)
 			{
 				var future = NativeMethods.fdb_transaction_get_range(
 					transaction,
-					ptrBegin, begin.Key.Count, begin.OrEqual, begin.Offset,
-					ptrEnd, end.Key.Count, end.OrEqual, end.Offset,
+					ptrBegin, begin.Key.Length, begin.OrEqual, begin.Offset,
+					ptrEnd, end.Key.Length, end.OrEqual, end.Offset,
 					limit, targetBytes, mode, iteration, snapshot, reverse);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
@@ -1796,16 +1796,14 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>fdb_transaction_get_key</summary>
-		public static FutureHandle TransactionGetKey(TransactionHandle transaction, KeySelector selector, bool snapshot)
+		public static FutureHandle TransactionGetKey(TransactionHandle transaction, KeySpanSelector selector, bool snapshot)
 		{
-			if (selector.Key.IsNull) throw new ArgumentException("Key cannot be null", nameof(selector));
-
 			fixed (byte* ptrKey = selector.Key)
 			{
-				var future = NativeMethods.fdb_transaction_get_key(transaction, ptrKey, selector.Key.Count, selector.OrEqual, selector.Offset, snapshot);
+				var future = NativeMethods.fdb_transaction_get_key(transaction, ptrKey, selector.Key.Length, selector.OrEqual, selector.Offset, snapshot);
 				Contract.Debug.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				LogNative($"fdb_transaction_get_key(tr: 0x{transaction.Handle:x}, {selector}, {snapshot}) => 0x{future.Handle:x}");
+				LogNative($"fdb_transaction_get_key(tr: 0x{transaction.Handle:x}, {selector.ToString()}, {snapshot}) => 0x{future.Handle:x}");
 #endif
 				return future;
 			}

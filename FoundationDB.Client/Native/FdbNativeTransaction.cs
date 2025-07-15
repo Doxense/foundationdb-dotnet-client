@@ -538,7 +538,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct)
 		{
 			Contract.Debug.Requires(options != null);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<FdbRangeChunk>(ct);
@@ -599,7 +599,7 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Asynchronously fetch a new page of results</summary>
-		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration, CancellationToken ct)
+		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration, CancellationToken ct)
 		{
 			Contract.Debug.Requires(decoder != null && options != null);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<FdbRangeChunk<TResult>>(ct);
@@ -635,7 +635,7 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Asynchronously fetch a new page of results and visit all returned key-value pairs</summary>
-		public Task<FdbRangeResult> VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration, CancellationToken ct)
+		public Task<FdbRangeResult> VisitRangeAsync<TState>(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration, CancellationToken ct)
 		{
 			Contract.Debug.Requires(visitor != null && options != null);
 			if (ct.IsCancellationRequested) return Task.FromCanceled<FdbRangeResult>(ct);
@@ -685,7 +685,7 @@ namespace FoundationDB.Client.Native
 			return Slice.FromBytes(result);
 		}
 
-		public Task<Slice> GetKeyAsync(KeySelector selector, bool snapshot, CancellationToken ct)
+		public Task<Slice> GetKeyAsync(KeySpanSelector selector, bool snapshot, CancellationToken ct)
 		{
 			if (ct.IsCancellationRequested) return Task.FromCanceled<Slice>(ct);
 
@@ -723,7 +723,7 @@ namespace FoundationDB.Client.Native
 				//note: if one of the operation triggers an error, the array will be partially filled, but all previous futures will be canceled in the catch block below
 				for (int i = 0; i < selectors.Length; i++)
 				{
-					futures[i] = FdbNative.TransactionGetKey(m_handle, selectors[i], snapshot);
+					futures[i] = FdbNative.TransactionGetKey(m_handle, selectors[i].ToSpan(), snapshot);
 				}
 			}
 			catch

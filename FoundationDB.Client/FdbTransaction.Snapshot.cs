@@ -194,6 +194,10 @@ namespace FoundationDB.Client
 
 			/// <inheritdoc />
 			public Task<Slice> GetKeyAsync(KeySelector selector)
+				=> GetKeyAsync(selector.ToSpan());
+
+			/// <inheritdoc />
+			public Task<Slice> GetKeyAsync(KeySpanSelector selector)
 			{
 				EnsureCanRead();
 
@@ -225,6 +229,10 @@ namespace FoundationDB.Client
 
 			/// <inheritdoc />
 			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
+				=> GetRangeAsync(beginInclusive.ToSpan(), endExclusive.ToSpan(), options, iteration);
+
+			/// <inheritdoc />
+			public Task<FdbRangeChunk> GetRangeAsync(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions? options, int iteration)
 			{
 				EnsureCanRead();
 
@@ -242,6 +250,10 @@ namespace FoundationDB.Client
 
 			/// <inheritdoc />
 			public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration)
+				=> GetRangeAsync(beginInclusive.ToSpan(), endExclusive.ToSpan(), state, decoder, options, iteration);
+
+			/// <inheritdoc />
+			public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration)
 			{
 				EnsureCanRead();
 
@@ -277,7 +289,7 @@ namespace FoundationDB.Client
 					options,
 					snapshot: true,
 					state: (Selector: selector, Pool: new SliceBuffer()),
-					decoder: (s, k, v) => s.Selector(new KeyValuePair<Slice, Slice>(s.Pool.Intern(k), s.Pool.Intern(v)))
+					decoder: (s, k, v) => s.Selector(new(s.Pool.Intern(k), s.Pool.Intern(v)))
 				);
 			}
 
@@ -297,9 +309,13 @@ namespace FoundationDB.Client
 			/// <inheritdoc />
 			public Task VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 			{
+				// we have to memoize the selectors since we have to store them in the query :/
+				var beginSelector = beginInclusive.Memoize();
+				var endSelector = endExclusive.Memoize();
+
 				return m_parent.VisitRangeCore(
-					beginInclusive,
-					endExclusive,
+					beginSelector,
+					endSelector,
 					options,
 					snapshot: true,
 					state: state,

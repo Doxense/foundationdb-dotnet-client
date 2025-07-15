@@ -166,6 +166,8 @@ namespace FoundationDB.Filters.Logging
 
 		internal KeySelector Grab(KeySelector selector) => new(Grab(selector.Key), selector.OrEqual, selector.Offset);
 
+		internal KeySelector Grab(KeySpanSelector selector) => new(Grab(selector.Key), selector.OrEqual, selector.Offset);
+
 		internal KeySelector[] Grab(ReadOnlySpan<KeySelector> selectors)
 		{
 			if (selectors.Length == 0) return [ ];

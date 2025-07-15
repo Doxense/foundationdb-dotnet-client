@@ -811,6 +811,10 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
+			=> GetRangeAsync(beginInclusive.ToSpan(), endExclusive.ToSpan(), options, iteration);
+
+		/// <inheritdoc />
+		public Task<FdbRangeChunk> GetRangeAsync(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions? options, int iteration)
 		{
 			EnsureCanRead();
 
@@ -828,6 +832,10 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration)
+			=> GetRangeAsync(beginInclusive.ToSpan(), endExclusive.ToSpan(), state, decoder, options, iteration);
+
+		/// <inheritdoc />
+		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration)
 		{
 			EnsureCanRead();
 
@@ -844,8 +852,8 @@ namespace FoundationDB.Client
 		}
 
 		private Task<FdbRangeChunk> PerformGetRangeOperation(
-			KeySelector beginInclusive,
-			KeySelector endExclusive,
+			KeySpanSelector beginInclusive,
+			KeySpanSelector endExclusive,
 			bool snapshot,
 			FdbRangeOptions options,
 			int iteration
@@ -857,7 +865,7 @@ namespace FoundationDB.Client
 				? m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot, m_cancellation)
 				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, options, iteration);
 
-			static Task<FdbRangeChunk> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, FdbRangeOptions options, int iteration)
+			static Task<FdbRangeChunk> ExecuteLogged(FdbTransaction self, KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetRangeCommand(
@@ -868,8 +876,8 @@ namespace FoundationDB.Client
 						iteration
 					),
 					(tr, cmd) => tr.m_handler.GetRangeAsync(
-						cmd.Begin,
-						cmd.End,
+						cmd.Begin.ToSpan(),
+						cmd.End.ToSpan(),
 						cmd.Options,
 						cmd.Iteration,
 						cmd.Snapshot,
@@ -879,8 +887,8 @@ namespace FoundationDB.Client
 		}
 
 		private Task<FdbRangeChunk<TResult>> PerformGetRangeOperation<TState, TResult>(
-			KeySelector beginInclusive,
-			KeySelector endExclusive,
+			KeySpanSelector beginInclusive,
+			KeySpanSelector endExclusive,
 			bool snapshot,
 			TState state,
 			FdbKeyValueDecoder<TState, TResult> decoder,
@@ -891,10 +899,10 @@ namespace FoundationDB.Client
 			FdbClientInstrumentation.ReportGetRange(this);
 
 			return m_log == null
-				? m_handler.GetRangeAsync<TState, TResult>(beginInclusive, endExclusive, snapshot, state, decoder, options, iteration, m_cancellation)
+				? m_handler.GetRangeAsync(beginInclusive, endExclusive, snapshot, state, decoder, options, iteration, m_cancellation)
 				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, state, decoder, options, iteration);
 
-			static Task<FdbRangeChunk<TResult>> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration)
+			static Task<FdbRangeChunk<TResult>> ExecuteLogged(FdbTransaction self, KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetRangeCommand<TState, TResult>(
@@ -907,8 +915,8 @@ namespace FoundationDB.Client
 						decoder
 					),
 					(tr, cmd) => tr.m_handler.GetRangeAsync<TState, TResult>(
-						cmd.Begin,
-						cmd.End,
+						cmd.Begin.ToSpan(),
+						cmd.End.ToSpan(),
 						cmd.Snapshot,
 						cmd.State,
 						cmd.Decoder,
@@ -932,7 +940,7 @@ namespace FoundationDB.Client
 			FdbClientInstrumentation.ReportGetRange(this);
 
 			return m_log == null
-				? m_handler.VisitRangeAsync<TState>(beginInclusive, endExclusive, snapshot, state, visitor, options, iteration, m_cancellation)
+				? m_handler.VisitRangeAsync<TState>(beginInclusive.ToSpan(), endExclusive.ToSpan(), snapshot, state, visitor, options, iteration, m_cancellation)
 				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, state, visitor, options, iteration);
 
 			static Task<FdbRangeResult> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration)
@@ -948,8 +956,8 @@ namespace FoundationDB.Client
 						visitor
 					),
 					(tr, cmd) => tr.m_handler.VisitRangeAsync<TState>(
-						cmd.Begin,
-						cmd.End,
+						cmd.Begin.ToSpan(),
+						cmd.End.ToSpan(),
 						cmd.Snapshot,
 						cmd.State,
 						cmd.Visitor,
@@ -965,22 +973,25 @@ namespace FoundationDB.Client
 		#region GetRange...
 
 		[Pure, LinqTunnel]
-		internal FdbRangeQuery<TState, TResult> GetRangeCore<TState, TResult>(KeySelector begin, KeySelector end, FdbRangeOptions? options, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder)
+		internal FdbRangeQuery<TState, TResult> GetRangeCore<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder)
 		{
 			Contract.Debug.Requires(decoder != null);
 
 			EnsureCanRead();
-			FdbKey.EnsureKeyIsValid(begin.Key);
-			FdbKey.EnsureKeyIsValid(end.Key, endExclusive: true);
+			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
+			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(0);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{begin.ToString()} <= x < {end.ToString()}'");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", $"Getting range '{beginInclusive.ToString()} <= x < {endExclusive.ToString()}'");
 #endif
 
-			return new(this, begin, end, state, null, decoder, snapshot, options);
+			//note: we perform a defensive copy of the selector keys, in case they were allocated using a pool.
+			// => it would be catastrophic if the caller keeps a reference on the query after the keys would be released to the pool!
+
+			return new(this, beginInclusive.Memoize(), endExclusive.Memoize(), state, null, decoder, snapshot, options);
 		}
 
 		[Pure, LinqTunnel]
@@ -1001,33 +1012,33 @@ namespace FoundationDB.Client
 			{
 				case FdbFetchMode.KeysOnly:
 				{
-					return new FdbKeyValueRangeQuery(
+					return new(
 						this,
 						beginInclusive,
 						endExclusive,
-						static (s, k, _) => new KeyValuePair<Slice, Slice>(s.Intern(k), default),
+						static (s, k, _) => new(s.Intern(k), default),
 						snapshot,
 						options
 					);
 				}
 				case FdbFetchMode.ValuesOnly:
 				{
-					return new FdbKeyValueRangeQuery(
+					return new(
 						this,
 						beginInclusive,
 						endExclusive,
-						static (s, _, v) => new KeyValuePair<Slice, Slice>(default, s.Intern(v)),
+						static (s, _, v) => new(default, s.Intern(v)),
 						snapshot,
 						options
 					);
 				}
 				default:
 				{
-					return new FdbKeyValueRangeQuery(
+					return new(
 						this,
 						beginInclusive,
 						endExclusive,
-						static (s, k, v) => new KeyValuePair<Slice, Slice>(s.Intern(k), s.Intern(v)),
+						static (s, k, v) => new(s.Intern(k), s.Intern(v)),
 						snapshot,
 						options
 					);
@@ -1112,9 +1123,13 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 		{
+			// we have to memoize the selectors since we have to store them in the query :/
+			var beginSelector = beginInclusive.Memoize();
+			var endSelector = endExclusive.Memoize();
+
 			return VisitRangeCore(
-				beginInclusive,
-				endExclusive,
+				beginSelector,
+				endSelector,
 				options,
 				snapshot: false,
 				state: state,
@@ -1128,6 +1143,10 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public Task<Slice> GetKeyAsync(KeySelector selector)
+			=> GetKeyAsync(selector.ToSpan());
+
+		/// <inheritdoc />
+		public Task<Slice> GetKeyAsync(KeySpanSelector selector)
 		{
 			EnsureCanRead();
 
@@ -1140,17 +1159,17 @@ namespace FoundationDB.Client
 			return PerformGetKeyOperation(selector, snapshot: false);
 		}
 
-		private Task<Slice> PerformGetKeyOperation(KeySelector selector, bool snapshot)
+		private Task<Slice> PerformGetKeyOperation(KeySpanSelector selector, bool snapshot)
 		{
 			FdbClientInstrumentation.ReportGetKey(this);
 
 			return m_log == null ? m_handler.GetKeyAsync(selector, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selector, snapshot);
 
-			static Task<Slice> ExecuteLogged(FdbTransaction self, KeySelector selector, bool snapshot)
+			static Task<Slice> ExecuteLogged(FdbTransaction self, KeySpanSelector selector, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
 					new FdbTransactionLog.GetKeyCommand(self.m_log.Grab(selector)) { Snapshot =  snapshot },
-					(tr, cmd) => tr.m_handler.GetKeyAsync(cmd.Selector, cmd.Snapshot, tr.m_cancellation)
+					(tr, cmd) => tr.m_handler.GetKeyAsync(cmd.Selector.ToSpan(), cmd.Snapshot, tr.m_cancellation)
 				);
 		}
 

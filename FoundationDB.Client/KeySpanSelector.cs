@@ -30,11 +30,14 @@ namespace FoundationDB.Client
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct KeySelector : IEquatable<KeySelector>, IFormattable
+	public readonly ref struct KeySpanSelector
+#if NET9_0_OR_GREATER
+		: IEquatable<KeySpanSelector>, IFormattable
+#endif
 	{
 
 		/// <summary>Key of the selector</summary>
-		public readonly Slice Key;
+		public readonly ReadOnlySpan<byte> Key;
 
 		/// <summary>If true, the selected key can be equal to <see cref="Key"/>.</summary>
 		public readonly bool OrEqual;
@@ -43,7 +46,7 @@ namespace FoundationDB.Client
 		public readonly int Offset;
 
 		/// <summary>Creates a new selector</summary>
-		public KeySelector(Slice key, bool orEqual, int offset)
+		public KeySpanSelector(ReadOnlySpan<byte> key, bool orEqual, int offset)
 		{
 			this.Key = key;
 			this.OrEqual = orEqual;
@@ -51,15 +54,9 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public bool Equals(KeySelector other)
+		public bool Equals(KeySpanSelector other)
 		{
-			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && this.Key.Equals(other.Key);
-		}
-
-		/// <inheritdoc />
-		public override bool Equals([NotNullWhen(true)] object? obj)
-		{
-			return obj is KeySelector selector && Equals(selector);
+			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && this.Key.SequenceEqual(other.Key);
 		}
 
 		/// <inheritdoc />
@@ -73,7 +70,7 @@ namespace FoundationDB.Client
 		/// <param name="key"><see cref="Key"/> field of the selector</param>
 		/// <param name="orEqual"><see cref="OrEqual"/> field of the selector</param>
 		/// <param name="offset"><see cref="Offset"/> field of the selector</param>
-		public void Deconstruct(out Slice key, out bool orEqual, out int offset)
+		public void Deconstruct(out ReadOnlySpan<byte> key, out bool orEqual, out int offset)
 		{
 			key = this.Key;
 			orEqual = this.OrEqual;
@@ -82,15 +79,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static KeySelector LastLessThan(Slice key)
+		public static KeySpanSelector LastLessThan(ReadOnlySpan<byte> key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_THAN(k, l) k, l, 0, 0
-			return new KeySelector(key, false, 0);
+			return new(key, false, 0);
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static KeySelector LastLessOrEqual(Slice key)
+		public static KeySpanSelector LastLessOrEqual(ReadOnlySpan<byte> key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
 			return new(key, true, 0);
@@ -98,14 +95,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static KeySelector FirstGreaterThan(Slice key)
+		public static KeySpanSelector FirstGreaterThan(ReadOnlySpan<byte> key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
 			return new(key, true, 1);
 		}
 
 		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
-		public static KeySelector FirstGreaterOrEqual(Slice key)
+		public static KeySpanSelector FirstGreaterOrEqual(ReadOnlySpan<byte> key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
 			return new(key, false, 1);
@@ -115,7 +112,7 @@ namespace FoundationDB.Client
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <param name="offset">ex: 7</param>
 		/// <returns><c>fGE{'abc'} + 7</c></returns>
-		public static KeySelector operator +(KeySelector selector, int offset)
+		public static KeySpanSelector operator +(KeySpanSelector selector, int offset)
 		{
 			return new(selector.Key, selector.OrEqual, checked(selector.Offset + offset));
 		}
@@ -124,7 +121,7 @@ namespace FoundationDB.Client
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <param name="offset">ex: 7</param>
 		/// <returns><c>fGE{'abc'} - 7</c></returns>
-		public static KeySelector operator -(KeySelector selector, int offset)
+		public static KeySpanSelector operator -(KeySpanSelector selector, int offset)
 		{
 			return new(selector.Key, selector.OrEqual, checked(selector.Offset - offset));
 		}
@@ -132,7 +129,7 @@ namespace FoundationDB.Client
 		/// <summary>Increments the selector's offset</summary>
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <returns><c>fGE{'abc'} + 1</c></returns>
-		public static KeySelector operator ++(KeySelector selector)
+		public static KeySpanSelector operator ++(KeySpanSelector selector)
 		{
 			return new(selector.Key, selector.OrEqual, checked(selector.Offset + 1));
 		}
@@ -140,35 +137,21 @@ namespace FoundationDB.Client
 		/// <summary>Decrement the selector's offset</summary>
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <returns><c>fGE{'abc'} - 1</c></returns>
-		public static KeySelector operator --(KeySelector selector)
+		public static KeySpanSelector operator --(KeySpanSelector selector)
 		{
 			return new(selector.Key, selector.OrEqual, checked(selector.Offset - 1));
 		}
 
-		/// <summary>Tests if two key selectors are equal</summary>
-		public static bool operator ==(KeySelector left, KeySelector right)
-		{
-			return left.Equals(right);
-		}
-
-		/// <summary>Tests if two key selectors are not equal</summary>
-		public static bool operator !=(KeySelector left, KeySelector right)
-		{
-			return !left.Equals(right);
-		}
-
-		/// <summary>Returns the equivalent <see cref="KeySpanSelector"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeySpanSelector ToSpan() => new(this.Key.Span, this.OrEqual, this.Offset);
-
 		/// <summary>Returns a version of this selector with the key allocated on the heap</summary>
 		public KeySelector Memoize()
-			=> new(this.Key.Copy(), this.OrEqual, this.Offset);
+			=> new(Slice.FromBytes(this.Key), this.OrEqual, this.Offset);
 
-		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
+		/// <summary>Converts the value of the current <see cref="KeySpanSelector"/> object into its equivalent string representation</summary>
 		public override string ToString() => PrettyPrint(FdbKey.PrettyPrintMode.Single);
 
+#if NET9_0_OR_GREATER
 		/// <inheritdoc />
+#endif
 		public string ToString(string? format, IFormatProvider? formatProvider) => PrettyPrint(FdbKey.PrettyPrintMode.Single);
 
 		/// <summary>Returns a displayable representation of the key selector</summary>
@@ -187,7 +170,7 @@ namespace FoundationDB.Client
 				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
 			}
 			sb.Append(FdbKey.PrettyPrint(this.Key, mode))
-			  .Append('}');
+				.Append('}');
 
 			if (offset > 0)
 			{
