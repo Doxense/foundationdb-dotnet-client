@@ -326,6 +326,21 @@ namespace FoundationDB.Client
 		public static Task<long> GetValueInt64Async(this IFdbReadOnlyTransaction trans, Slice key, long missingValue)
 			=> GetValueInt64Async(trans, ToSpanKey(key), missingValue);
 
+		/// <inheritdoc cref="GetValueInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},long)"/>
+		public static Task<long> GetValueInt64Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key, long missingValue)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return GetValueInt64Async(trans, keySpan, missingValue);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				return GetValueInt64Async(trans, keyBytes.Span, missingValue);
+			}
+		}
+
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 64-bit signed integer</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -1734,11 +1749,33 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be conditionally cleared.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
+		public static void AtomicClearIfZero32<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			Span<byte> zero = stackalloc byte[4];
+			zero.Clear();
+
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.Atomic(keySpan, zero, FdbMutationType.CompareAndClear);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.Atomic(keyBytes.Span, zero, FdbMutationType.CompareAndClear);
+			}
+		}
+
+		/// <summary>Atomically clear the key only if its value is equal to 4 consecutive zero bytes.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be conditionally cleared.</param>
+		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicClearIfZero32(this IFdbTransaction trans, ReadOnlySpan<byte> key)
 		{
-			int zero = 0;
-			var span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<int, byte>(ref zero), 4);
-			trans.Atomic(key, span, FdbMutationType.CompareAndClear);
+			Span<byte> zero = stackalloc byte[4];
+			zero.Clear();
+
+			trans.Atomic(key, zero, FdbMutationType.CompareAndClear);
 		}
 
 		/// <summary>Atomically clear the key only if its value is equal to 8 consecutive zero bytes.</summary>
@@ -1752,11 +1789,33 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be conditionally cleared.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
+		public static void AtomicClearIfZero64<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			Span<byte> zero = stackalloc byte[8];
+			zero.Clear();
+
+			if (key.TryGetSpan(out var keySpan))
+			{
+				trans.Atomic(keySpan, zero, FdbMutationType.CompareAndClear);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				trans.Atomic(keyBytes.Span, zero, FdbMutationType.CompareAndClear);
+			}
+		}
+
+		/// <summary>Atomically clear the key only if its value is equal to 8 consecutive zero bytes.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be conditionally cleared.</param>
+		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicClearIfZero64(this IFdbTransaction trans, ReadOnlySpan<byte> key)
 		{
-			long zero = 0;
-			var span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<long, byte>(ref zero), 8);
-			trans.Atomic(key, span, FdbMutationType.CompareAndClear);
+			Span<byte> zero = stackalloc byte[8];
+			zero.Clear();
+
+			trans.Atomic(key, zero, FdbMutationType.CompareAndClear);
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to increment by <see langword="1"/> the 32-bit value stored by the given <paramref name="key"/>.</summary>
@@ -1764,6 +1823,13 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement32(this IFdbTransaction trans, Slice key)
 			=> AtomicAdd32(trans, ToSpanKey(key), 1);
+
+		/// <summary>Modify the database snapshot represented by this transaction to increment by <see langword="1"/> the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicIncrement32<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+			=> AtomicAdd32(trans, in key, 1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to increment by <see langword="1"/> the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -1776,6 +1842,13 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement32(this IFdbTransaction trans, Slice key)
 			=> AtomicAdd32(trans, ToSpanKey(key), -1);
+
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicDecrement32<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+			=> AtomicAdd32(trans, in key, -1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -1815,6 +1888,13 @@ namespace FoundationDB.Client
 		/// <summary>Modify the database snapshot represented by this transaction to add <see langword="1"/> to the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicIncrement64<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+			=> AtomicAdd64(trans, in key, 1);
+
+		/// <summary>Modify the database snapshot represented by this transaction to add <see langword="1"/> to the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement64(this IFdbTransaction trans, Slice key)
 			=> AtomicAdd64(trans, ToSpanKey(key), 1);
 
@@ -1829,6 +1909,13 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement64(this IFdbTransaction trans, Slice key)
 			=> AtomicAdd64(trans, ToSpanKey(key), -1);
+
+		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit value stored by the given <paramref name="key"/>.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		public static void AtomicDecrement64<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+			=> AtomicAdd64(trans, in key, -1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
