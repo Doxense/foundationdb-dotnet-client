@@ -713,6 +713,121 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Get_Multiple_Values_From_Encoded_Keys()
+		{
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.AsDynamic();
+			await CleanLocation(db, location);
+
+			var ids = new[] { 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 };
+
+			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
+
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					tr.Set(subspace.Encode("hello", i, "world"), Text($"Value for #{i}"));
+				}
+
+				await tr.CommitAsync();
+			}
+
+			// array of keys
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = await tr.GetValuesAsync(ids.Select(id => subspace.GetKey("hello", id, "world")).ToArray());
+
+				Assert.That(results, Is.Not.Null);
+				Assert.That(results.Length, Is.EqualTo(ids.Length));
+
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i].ToString(), Is.EqualTo($"Value for #{ids[i]}"));
+				}
+			}
+
+			// List of keys
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = await tr.GetValuesAsync(ids.Select(id => subspace.GetKey("hello", id, "world")).ToList());
+
+				Assert.That(results, Is.Not.Null);
+				Assert.That(results.Length, Is.EqualTo(ids.Length));
+
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i].ToString(), Is.EqualTo($"Value for #{ids[i]}"));
+				}
+			}
+
+			// Sequence of keys
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = await tr.GetValuesAsync(ids.Select(id => subspace.GetKey("hello", id, "world")));
+
+				Assert.That(results, Is.Not.Null);
+				Assert.That(results.Length, Is.EqualTo(ids.Length));
+
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i].ToString(), Is.EqualTo($"Value for #{ids[i]}"));
+				}
+			}
+
+			// array of items + key selector
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = await tr.GetValuesAsync(ids, id => subspace.GetKey("hello", id, "world"));
+
+				Assert.That(results, Is.Not.Null);
+				Assert.That(results.Length, Is.EqualTo(ids.Length));
+
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i].ToString(), Is.EqualTo($"Value for #{ids[i]}"));
+				}
+			}
+
+			// sequence of items + key selector
+			using (var tr = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace = await location.Resolve(tr);
+
+				var results = await tr.GetValuesAsync(ids.Select(x => x), id => subspace.GetKey("hello", id, "world"));
+
+				Assert.That(results, Is.Not.Null);
+				Assert.That(results.Length, Is.EqualTo(ids.Length));
+
+				Log(string.Join(", ", results));
+
+				for (int i = 0; i < ids.Length; i++)
+				{
+					Assert.That(results[i].ToString(), Is.EqualTo($"Value for #{ids[i]}"));
+				}
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Get_Multiple_Values_Decoded()
 		{
 			using var db = await OpenTestPartitionAsync();
