@@ -2510,6 +2510,107 @@ namespace FoundationDB.Client
 			return trans.GetRange(sp.Begin, sp.End, options);
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbKeyValueRangeQuery GetRange<TBeginKey>(this IFdbReadOnlyTransaction trans, FdbKeySelector<TBeginKey> beginKeyInclusive, KeySelector endKeyExclusive, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+
+			//PERF: TODO: optimize!
+			var beginSelector = beginKeyInclusive.ToSelector();
+
+			return trans.GetRange(
+				beginSelector,
+				endKeyExclusive,
+				options
+			);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbKeyValueRangeQuery GetRange<TEndKey>(this IFdbReadOnlyTransaction trans, KeySelector beginKeyInclusive, FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+
+			//PERF: TODO: optimize!
+			var endSelector = endKeyExclusive.ToSelector();
+
+			return trans.GetRange(
+				beginKeyInclusive,
+				endSelector,
+				options
+			);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbKeyValueRangeQuery GetRange<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, FdbKeySelector<TBeginKey> beginKeyInclusive, FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+
+			//PERF: TODO: optimize!
+			var beginSelector = beginKeyInclusive.ToSelector();
+			var endSelector = endKeyExclusive.ToSelector();
+
+			return trans.GetRange(
+				beginSelector,
+				endSelector,
+				options
+			);
+		}
+
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbKeyValueRangeQuery GetRange<TBeginKey>(this IFdbReadOnlyTransaction trans, TBeginKey beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+
+			//PERF: TODO: optimize!
+			var beginKeyBytes = beginKeyInclusive.ToSlice();
+
+			return trans.GetRange(
+				KeySelector.FirstGreaterOrEqual(beginKeyBytes),
+				KeySelector.FirstGreaterOrEqual(endKeyExclusive),
+				options
+			);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbKeyValueRangeQuery GetRange<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, TBeginKey beginKeyInclusive, TEndKey endKeyExclusive, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+
+			//PERF: TODO: optimize!
+			var beginKeyBytes = beginKeyInclusive.ToSlice();
+			var endKeyBytes = endKeyExclusive.ToSlice();
+
+			return trans.GetRange(
+				KeySelector.FirstGreaterOrEqual(beginKeyBytes),
+				KeySelector.FirstGreaterOrEqual(endKeyBytes),
+				options
+			);
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static IFdbKeyValueRangeQuery GetRange<TKeyRange>(this IFdbReadOnlyTransaction trans, TKeyRange range, FdbRangeOptions? options = null)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			Contract.NotNull(trans);
+
+			//PERF: TODO: optimize!
+			var rangeBytes = range.ToKeyRange();
+
+			return trans.GetRange(
+				KeySelector.FirstGreaterOrEqual(rangeBytes.Begin),
+				KeySelector.FirstGreaterOrEqual(rangeBytes.End),
+				options
+			);
+		}
+
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		public static IFdbKeyValueRangeQuery GetRange(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
@@ -2711,10 +2812,96 @@ namespace FoundationDB.Client
 
 		#region GetRangeAsync...
 
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRangeAsync(KeySelector,KeySelector,FdbRangeOptions?,int)"/>
+		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options = null, int iteration = 0)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			// we will first encode the Begin key selector, and defer encoding the End key selector in another method
+			// => this should allow for a fast path when the JIT inlines a TryGetSpan that always return true
+
+			if (FdbKeySelector.TryGetSpan(in beginInclusive, out var beginSelector))
+			{
+				return GetRangeAsync<TEndKey>(trans, beginSelector, in endExclusive, options, iteration);
+			}
+
+			byte[]? buffer = null;
+			try
+			{
+				var selectorBytes = FdbKeySelector.Encode(in beginInclusive, ref buffer, ArrayPool<byte>.Shared);
+				return GetRangeAsync<TEndKey>(trans, selectorBytes.ToSpan(), in endExclusive, options, iteration);
+			}
+			finally
+			{
+				if (buffer is not null)
+				{
+					ArrayPool<byte>.Shared.Return(buffer);
+				}
+			}
+		}
+
+		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
+			where TBeginKey : struct, IFdbKey
+		{
+			return GetRangeAsync<TBeginKey>(trans, in beginInclusive, endExclusive.ToSpan(), options, iteration);
+		}
+
+		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions? options, int iteration)
+			where TBeginKey : struct, IFdbKey
+		{
+			if (FdbKeySelector.TryGetSpan(in beginInclusive, out var beginSelector))
+			{
+				return trans.GetRangeAsync(beginSelector, endExclusive, options, iteration);
+			}
+
+			byte[]? buffer = null;
+			try
+			{
+				var selectorBytes = FdbKeySelector.Encode(in beginInclusive, ref buffer, ArrayPool<byte>.Shared);
+				return trans.GetRangeAsync(selectorBytes.ToSpan(), endExclusive, options, iteration);
+			}
+			finally
+			{
+				if (buffer is not null)
+				{
+					ArrayPool<byte>.Shared.Return(buffer);
+				}
+			}
+		}
+
+		public static Task<FdbRangeChunk> GetRangeAsync<TEndKey>(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options, int iteration)
+			where TEndKey : struct, IFdbKey
+		{
+			return GetRangeAsync<TEndKey>(trans, beginInclusive.ToSpan(), in endExclusive, options, iteration);
+		}
+
+		public static Task<FdbRangeChunk> GetRangeAsync<TEndKey>(this IFdbReadOnlyTransaction trans, KeySpanSelector beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options, int iteration)
+			where TEndKey : struct, IFdbKey
+		{
+			if (FdbKeySelector.TryGetSpan(in endExclusive, out var endSelector))
+			{
+				return trans.GetRangeAsync(beginInclusive, endSelector, options, iteration);
+			}
+
+			byte[]? buffer = null;
+			try
+			{
+				var selectorBytes = FdbKeySelector.Encode(in endExclusive, ref buffer, ArrayPool<byte>.Shared);
+				return trans.GetRangeAsync(beginInclusive, selectorBytes.ToSpan(), options, iteration);
+			}
+			finally
+			{
+				if (buffer is not null)
+				{
+					ArrayPool<byte>.Shared.Return(buffer);
+				}
+			}
+		}
+
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
-		/// and lexicographically less than the key resolved by the end key selector.
+		/// which have a key lexicographically greater than or equal to the key resolved by the Begin key selector
+		/// and lexicographically less than the key resolved by the End key selector.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">key selector pair defining the beginning and the end of the range</param>
@@ -2728,8 +2915,8 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
-		/// and lexicographically less than the key resolved by the end key selector.
+		/// which have a key lexicographically greater than or equal to the key resolved by the Begin key selector
+		/// and lexicographically less than the key resolved by the End key selector.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">Range of keys defining the beginning (inclusive) and the end (exclusive) of the range</param>
@@ -2744,8 +2931,8 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
-		/// and lexicographically less than the key resolved by the end key selector.
+		/// which have a key lexicographically greater than or equal to the key resolved by the Begin key selector
+		/// and lexicographically less than the key resolved by the End key selector.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
@@ -2761,8 +2948,8 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
-		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
-		/// and lexicographically less than the key resolved by the end key selector.
+		/// which have a key lexicographically greater than or equal to the key resolved by the Begin key selector
+		/// and lexicographically less than the key resolved by the End key selector.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
@@ -2941,6 +3128,59 @@ namespace FoundationDB.Client
 		public static void ClearRange(this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			trans.ClearRange(ToSpanKey(beginKeyInclusive), ToSpanKey(endKeyExclusive));
+		}
+
+		public static void ClearRange<TKeyRange>(this IFdbTransaction trans, TKeyRange range)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			//PERF: TODO: optimize!
+			trans.ClearRange(range.ToKeyRange());
+		}
+
+		/// <inheritdoc cref="IFdbTransaction.ClearRange"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void ClearRange<TBeginKey>(this IFdbTransaction trans, TBeginKey beginKeyInclusive, Slice endKeyExclusive)
+			where TBeginKey : struct, IFdbKey
+		{
+			if (beginKeyInclusive.TryGetSpan(out var beginKeySpan))
+			{
+				trans.ClearRange(beginKeySpan, ToSpanKey(endKeyExclusive));
+			}
+			else
+			{
+				using var beginKeyBytes = FdbKeyExtensions.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
+				trans.ClearRange(beginKeyBytes.Span, ToSpanKey(endKeyExclusive));
+			}
+		}
+
+		/// <inheritdoc cref="IFdbTransaction.ClearRange"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void ClearRange<TBeginKey, TEndKey>(this IFdbTransaction trans, TBeginKey beginKeyInclusive, TEndKey endKeyExclusive)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			if (beginKeyInclusive.TryGetSpan(out var beginKeySpan))
+			{
+				ClearRangeContinuation(trans, beginKeySpan, in endKeyExclusive);
+			}
+			else
+			{
+				using var beginKeyBytes = FdbKeyExtensions.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
+				ClearRangeContinuation(trans, beginKeyBytes.Span, in endKeyExclusive);
+			}
+
+			static void ClearRangeContinuation(IFdbTransaction trans, ReadOnlySpan<byte> beginKeyInclusive, in TEndKey endKeyExclusive)
+			{
+				if (endKeyExclusive.TryGetSpan(out var endKeySpan))
+				{
+					trans.ClearRange(beginKeyInclusive, endKeySpan);
+				}
+				else
+				{
+					using var endKeyBytes = FdbKeyExtensions.Encode(in endKeyExclusive, ArrayPool<byte>.Shared);
+					trans.ClearRange(beginKeyInclusive, endKeyBytes.Span);
+				}
+			}
 		}
 
 		#endregion

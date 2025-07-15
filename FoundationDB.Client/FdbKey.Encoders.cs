@@ -40,8 +40,18 @@ namespace FoundationDB.Client
 		#region Generic...
 
 		/// <summary>Returns a key that wraps a value that will be encoded into bytes using a given encoder</summary>
+		/// <typeparam name="TKey">Type of the key, that implements <see cref="ISpanEncodable"/></typeparam>
+		/// <param name="subspace">Subspace that contains the key in the database</param>
+		/// <param name="key">Value of the key</param>
+		public static FdbKey<TKey> Create<TKey>(IKeySubspace subspace, TKey key)
+			where TKey : struct, ISpanEncodable
+		{
+			return new(subspace, key);
+		}
+
+		/// <summary>Returns a key that wraps a value that will be encoded into bytes using a given encoder</summary>
 		/// <typeparam name="TKey">Type of the key that is encoded</typeparam>
-		/// <typeparam name="TEncoder">Type of the encoder for this key</typeparam>
+		/// <typeparam name="TEncoder">Type of the encoder for this key, that implements <see cref="ISpanEncoder{TKey}"/></typeparam>
 		/// <param name="subspace">Subspace that contains the key in the database</param>
 		/// <param name="key">Value of the key</param>
 		public static FdbKey<TKey, TEncoder> Create<TKey, TEncoder>(IKeySubspace subspace, TKey key)
@@ -170,6 +180,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Optional subspace that contains this key</summary>
 		/// <remarks>If <c>null</c>, this is most probably a key that as already been encoded.</remarks>
+		[Pure]
 		IKeySubspace? GetSubspace();
 
 	}
@@ -235,6 +246,9 @@ namespace FoundationDB.Client
 		{
 			return this.Data.TryCopyTo(destination, out bytesWritten);
 		}
+
+		/// <summary>Converts a slice into a <see cref="FdbRawKey"/></summary>
+		public static implicit operator FdbRawKey(Slice key) => new(key);
 
 	}
 
@@ -303,6 +317,86 @@ namespace FoundationDB.Client
 	#endregion
 
 	#region Encoded Keys...
+
+	/// <summary>Wraps a value that will be encoded to get the corresponding key, relative to a subspace</summary>
+	/// <typeparam name="TKey">Type of the key</typeparam>
+	[DebuggerDisplay("Data={Data}")]
+	public readonly struct FdbKey<TKey>: IFdbKey
+		where TKey : struct, ISpanEncodable
+	{
+
+		public FdbKey(IKeySubspace subspace, TKey data)
+		{
+			this.Data = data;
+			this.Subspace = subspace;
+		}
+
+		/// <summary>Content of the key</summary>
+		public readonly TKey Data;
+
+		/// <summary>Optional subspace that contains this key</summary>
+		public readonly IKeySubspace Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public IKeySubspace? GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			//note: we could if the parent subspace did not have any prefix, which is not allowed
+			span = default;
+			return false;
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!this.Data.TryGetSizeHint(out var dataSize))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(dataSize + this.Subspace.GetPrefix().Count);
+			return true;
+		}
+
+		/// <inheritdoc />
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			{
+				if (this.Subspace.GetPrefix().TryCopyTo(destination, out var prefixLen)
+				 && this.Data.TryEncode(destination, out var dataLen))
+				{
+					bytesWritten = prefixLen + dataLen;
+					return true;
+				}
+
+				bytesWritten = 0;
+				return false;
+			}
+		}
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? provider = null)
+		{
+			return string.Create(CultureInfo.InvariantCulture, $"{this.Subspace}:{this.Data}");
+		}
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			return destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Subspace}:{this.Data}", out charsWritten);
+		}
+
+	}
 
 	/// <summary>Wraps a value that will be encoded to get the corresponding key, relative to a subspace</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
@@ -381,6 +475,157 @@ namespace FoundationDB.Client
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
 			return destination.TryWrite(CultureInfo.InvariantCulture, $"{this.Subspace}:{this.Data}", out charsWritten);
+		}
+
+	}
+
+	public readonly struct FdbSuccessorKey<TKey> : IFdbKey
+		where TKey : struct, IFdbKey
+	{
+
+		public FdbSuccessorKey(in TKey parent)
+		{
+			this.Parent = parent;
+		}
+
+		public readonly TKey Parent;
+		
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null)
+			=> $"SuccessorOf({this.Parent.ToString(format, formatProvider)})";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+			=> destination.TryWrite(provider, $"SuccessorOf({this.Parent})", out charsWritten);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			// we cannot modify the original span to append 0x00, so we don't support this operation
+			span = default;
+			return false;
+		}
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!this.Parent.TryGetSizeHint(out var size))
+			{
+				sizeHint = 0;
+				return true;
+			}
+
+			// we always add 1 to the original size
+			sizeHint = checked(size + 1);
+			return true;
+		}
+
+		/// <inheritdoc />
+		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten)
+		{
+			// first generate the wrapped key
+			if (!this.Parent.TryEncode(destination, out var len)
+			 || destination.Length <= len)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			// appends the 0x00 at the end
+			destination[len] = 0;
+			bytesWritten = checked(len + 1);
+			return true;
+		}
+
+	}
+
+	public readonly struct FdbNextKey<TKey> : IFdbKey
+		where TKey : struct, IFdbKey
+	{
+
+		public FdbNextKey(in TKey parent)
+		{
+			this.Parent = parent;
+		}
+
+		public readonly TKey Parent;
+		
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null)
+			=> $"Increment({this.Parent.ToString(format, formatProvider)})";
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+			=> destination.TryWrite(provider, $"Increment({this.Parent})", out charsWritten);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+
+		/// <inheritdoc />
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			// we cannot modify the original span, so we don't support this operation
+			span = default;
+			return false;
+		}
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!this.Parent.TryGetSizeHint(out var size))
+			{
+				sizeHint = 0;
+				return true;
+			}
+
+			// incrementing the key can only produce a key of the same size or smaller, except when the key is empty in which case the successor has size 1
+			sizeHint = Math.Max(size, 1);
+			return true;
+		}
+
+		/// <inheritdoc />
+		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten)
+		{
+			// first generate the wrapped key
+			if (!this.Parent.TryEncode(destination, out var len))
+			{
+				goto too_small;
+			}
+
+			// if the key is empty (??) we need to return 'x00'
+			if (len == 0)
+			{
+				goto empty_key;
+			}
+
+			// increment the buffer in-place
+			// => throws if the key is all FF
+			FdbKey.Increment(destination[..len], out len);
+			bytesWritten = len;
+			return true;
+
+		empty_key:
+			if (destination.Length == 0)
+			{
+				goto too_small;
+			}
+			destination[0] = 0;
+			bytesWritten = 1;
+			return true;
+
+		too_small:
+			bytesWritten = 0;
+			return false;
+
 		}
 
 	}

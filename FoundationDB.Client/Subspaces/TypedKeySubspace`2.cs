@@ -36,6 +36,19 @@ namespace FoundationDB.Client
 		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
 		ICompositeKeyEncoder<T1, T2> KeyEncoder { get; }
 
+		/// <summary>Returns a key in this subspace</summary>
+		/// <param name="item1">First part of the key</param>
+		/// <param name="item2">Second part of the key</param>
+		FdbTupleKey<T1, T2> GetKey(T1 item1, T2 item2);
+
+		/// <summary>Returns a partial key that matches all the elements in this subspace first the given <typeparamref name="T1"/> value</summary>
+		/// <param name="item1">First part of the key</param>
+		FdbTupleKey<T1> GetPartialKey(T1 item1);
+
+		/// <summary>Returns a partial key that matches all the elements in this subspace first the given <typeparamref name="T1"/> value</summary>
+		/// <param name="item1">First part of the key</param>
+		FdbKeyRange<FdbTupleKey<T1>> GetPartialRange(T1 item1);
+
 		/// <summary>Encode a pair of values into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
@@ -59,14 +72,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Second part of the key</param>
 		/// <returns>Encoded key in this subspace</returns>
 		/// <remarks>The key can be decoded back into its original components using <see cref="Decode(Slice)"/></remarks>
-		Slice Encode(T1? item1, T2? item2);
-
-		/// <summary>Encode a pair of values into a key in this subspace</summary>
-		/// <param name="item1">First part of the key</param>
-		/// <param name="item2">Second part of the key</param>
-		/// <returns>Encoded key in this subspace</returns>
-		/// <remarks>The key can be decoded back into its original components using <see cref="Decode(Slice)"/></remarks>
-		bool TryEncode(Span<byte> destination, out int bytesWritten, T1? item1, T2? item2);
+		Slice Encode(T1 item1, T2 item2);
 
 		/// <summary>Encode only the first part of pair into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
@@ -101,7 +107,16 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc/>
-		public Slice this[T1? item1, T2? item2]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleKey<T1, T2> GetKey(T1 item1, T2 item2) => new(this, item1, item2);
+
+		/// <inheritdoc/>
+		public FdbTupleKey<T1> GetPartialKey(T1 item1) => new(this, item1);
+
+		public FdbKeyRange<FdbTupleKey<T1>> GetPartialRange(T1 item1) => FdbKeyRange.PrefixedBy(new FdbTupleKey<T1>(this, item1));
+
+		/// <inheritdoc/>
+		public Slice this[T1 item1, T2 item2]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => Encode(item1, item2);
@@ -115,27 +130,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc/>
-		public Slice Encode(T1? item1, T2? item2)
-		{
-			var sw = this.OpenWriter(24);
-			var tuple = (item1, item2);
-			this.KeyEncoder.WriteKeyPartsTo(ref sw, 2, in tuple);
-			return sw.ToSlice();
-		}
-
-		/// <inheritdoc/>
-		public bool TryEncode(Span<byte> destination, out int bytesWritten, T1? item1, T2? item2)
-		{
-			if (!this.GetPrefix().TryCopyTo(destination, out var prefixLen)
-			 || !this.KeyEncoder.TryWriteKeyPartsTo(destination[prefixLen..], out int keyLen, 2, (item1, item2)))
-			{
-				bytesWritten = 0;
-				return false;
-			}
-
-			bytesWritten = prefixLen + keyLen;
-			return true;
-		}
+		public Slice Encode(T1 item1, T2 item2) => GetKey(item1, item2).ToSlice();
 
 		/// <inheritdoc/>
 		[Pure]

@@ -62,6 +62,11 @@ namespace FoundationDB.Client
 		[Pure]
 		KeyRange ToRange();
 
+		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
+		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
+		[Pure]
+		FdbRawKeyRange GetRange();
+
 		/// <summary>Return the key that is composed of the subspace prefix and a binary suffix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Full binary key</returns>

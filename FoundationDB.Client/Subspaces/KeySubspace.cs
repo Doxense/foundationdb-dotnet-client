@@ -187,9 +187,17 @@ namespace FoundationDB.Client
 			return this.Key;
 		}
 
+		/// <inheritdoc />
 		public KeyRange ToRange()
 		{
 			return GetKeyRange();
+		}
+
+		/// <inheritdoc />
+		public FdbRawKeyRange GetRange()
+		{
+			var range = GetKeyRange();
+			return new(range.Begin, range.End);
 		}
 
 		protected virtual KeyRange GetKeyRange()

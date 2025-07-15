@@ -32,6 +32,48 @@ namespace FoundationDB.Client
 	public static class FdbKeyExtensions
 	{
 
+		#region ToRange...
+
+		/// <summary>Returns a range that captures all the keys that have this key as a prefix</summary>
+		/// <param name="key">Key to encode</param>
+		/// <param name="excluded">If <c>true</c> the key itself is will not be included in the range, which corresponds to calling <see cref="KeyRange.PrefixedBy"/>. If <c>false</c> (default), it will be included, which corresponds to calling <see cref="KeyRange.StartsWith"/></param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbKeyRange<TKey> ToRange<TKey>(this TKey key, bool excluded = false)
+			where TKey : struct, IFdbKey
+		{
+			return excluded
+				? FdbKeyRange.PrefixedBy(in key)
+				: FdbKeyRange.StartsWith(in key);
+		}
+
+		/// <summary>Returns a key that is the immediate successor of this key</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Input key</param>
+		/// <returns>Key that, when encoded into binary, will append the byte 0x00 to the representation of <paramref name="key"/></returns>
+		/// <remarks>
+		/// <para>This can be used to produce the "end" key for a read or write conflict range, that will match a single key</para>
+		/// <para>For example, <c>subspace.GetKey("abc").GetSuccessor().ToSlice()</c> will be equivalent to <c>subspace.GetKey("abc").ToSlice() + (byte) 0</c></para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuccessorKey<TKey> GetSuccessor<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key);
+
+		/// <summary>Returns a key that is immediately after all the keys in the database that have this key has a prefix</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Input key</param>
+		/// <returns>Key that, when encoded into binary, will not have <paramref name="key"/> as its prefix</returns>
+		/// <remarks>
+		/// <para>This can be used to produce the "end" key for a range read</para>
+		/// <para>For example, <c>subspace.GetKey("abc").GetNext()</c> will be equivalent to <c>subspace.GetKey("abd")</c></para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbNextKey<TKey> Increment<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key);
+
+		#endregion
+
 		#region Encoding...
 
 		/// <summary>Returns a pre-encoded version of a key</summary>
@@ -213,7 +255,53 @@ namespace FoundationDB.Client
 		}
 
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static ReadOnlySpan<byte> Encode<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool)
+		internal static ReadOnlySpan<byte> Encode<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool, int? sizeHint = null)
+			where TKey : struct, IFdbKey
+		{
+			Contract.Debug.Requires(pool != null);
+
+			int capacity;
+			if (sizeHint is not null)
+			{
+				capacity = sizeHint.Value;
+			}
+			else if (!key.TryGetSizeHint(out capacity))
+			{
+				capacity = 0;
+			}
+			if (capacity <= 0)
+			{
+				capacity = 128;
+			}
+
+			while (true)
+			{
+				if (buffer is null)
+				{
+					buffer = pool.Rent(capacity);
+				}
+				else if (buffer.Length < capacity)
+				{
+					pool.Return(buffer);
+					buffer = pool.Rent(capacity);
+				}
+
+				if (key.TryEncode(buffer, out int bytesWritten))
+				{
+					return bytesWritten > 0 ? buffer.AsSpan(0, bytesWritten) : default;
+				}
+
+				if (capacity >= FdbKey.MaxSize)
+				{
+					// it would be too large anyway!
+					throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+				}
+				capacity *= 2;
+			}
+		}
+
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static Slice ToSlice<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool)
 			where TKey : struct, IFdbKey
 		{
 			Contract.Debug.Requires(pool != null);
@@ -237,7 +325,7 @@ namespace FoundationDB.Client
 
 				if (key.TryEncode(buffer, out int bytesWritten))
 				{
-					return bytesWritten > 0 ? buffer.AsSpan(0, bytesWritten) : default;
+					return bytesWritten > 0 ? buffer.AsSlice(0, bytesWritten) : Slice.Empty;
 				}
 
 				if (capacity >= FdbKey.MaxSize)
@@ -404,9 +492,6 @@ namespace FoundationDB.Client
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1> GetKey<T1>(this ITypedKeySubspace<T1> subspace, T1 item1) => new(subspace, item1);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2> GetKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3> GetKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2, T3 item3) => new(subspace, item1, item2, item3);
