@@ -119,7 +119,7 @@ namespace SnowBank.Buffers
 		}
 
 		/// <inheritdoc />
-		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten)
+		bool ISpanEncodable.TryEncode(scoped Span<byte> destination, out int bytesWritten)
 		{
 			var pos = this.Position;
 			if (!this.Buffer[..pos].TryCopyTo(destination))
