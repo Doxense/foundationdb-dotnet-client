@@ -78,11 +78,11 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.Increment(Literal("Hello")).ToString(), Is.EqualTo("Hellp"));
 			Assert.That(FdbKey.Increment(Literal("Hello\x00")).ToString(), Is.EqualTo("Hello<01>"));
 			Assert.That(FdbKey.Increment(Literal("Hello\xFE")).ToString(), Is.EqualTo("Hello<FF>"));
-			Assert.That(FdbKey.Increment(Literal("Hello\xFF")).ToString(), Is.EqualTo("Hellp"), "Should remove training \\xFF");
+			Assert.That(FdbKey.Increment(Literal("Hello\xFF")).ToString(), Is.EqualTo("Hellp"), "Should remove trailing \\xFF");
 			Assert.That(FdbKey.Increment(Literal("A\xFF\xFF\xFF")).ToString(), Is.EqualTo("B"), "Should truncate all trailing \\xFFs");
 
 			// corner cases
-			Assert.That(() => FdbKey.Increment(Slice.Nil), Throws.InstanceOf<ArgumentException>().With.Property("ParamName").EqualTo("slice"));
+			Assert.That(() => FdbKey.Increment(Slice.Nil), Throws.InstanceOf<ArgumentException>().With.Property("ParamName").EqualTo("key"));
 			Assert.That(() => FdbKey.Increment(Slice.Empty), Throws.InstanceOf<ArgumentException>());
 			Assert.That(() => FdbKey.Increment(Literal("\xFF")), Throws.InstanceOf<ArgumentException>());
 		}

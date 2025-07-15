@@ -72,39 +72,50 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <summary>Returns the first key lexicographically that does not have the passed in <paramref name="slice"/> as a prefix</summary>
-		/// <param name="slice">Slice to increment</param>
-		/// <returns>New slice that is guaranteed to be the first key lexicographically higher than <paramref name="slice"/> which does not have <paramref name="slice"/> as a prefix</returns>
-		/// <remarks>If the last byte is already equal to 0xFF, it will roll over to 0x00 and the next byte will be incremented.</remarks>
-		/// <exception cref="ArgumentException">If <paramref name="slice"/> is <see cref="Slice.Nil"/></exception>
-		/// <exception cref="OverflowException">If <paramref name="slice"/> is <see cref="Slice.Empty"/> or consists only of 0xFF bytes</exception>
+		/// <summary>Returns the first key (in lexicographically order) that does not have the passed in <paramref name="key"/> as a prefix</summary>
+		/// <param name="key">Slice to increment</param>
+		/// <returns>New slice that is guaranteed to be the first key lexicographically higher than <paramref name="key"/> which does not have <paramref name="key"/> as a prefix</returns>
+		/// <remarks>If the last byte is already equal to 0xFF, it will roll over to 0x00 and the previous byte will be incremented.</remarks>
+		/// <exception cref="ArgumentException">If <paramref name="key"/> is <see cref="Slice.Nil"/></exception>
+		/// <exception cref="OverflowException">If <paramref name="key"/> is <see cref="Slice.Empty"/> or consists only of 0xFF bytes</exception>
 		/// <example>
 		/// FdbKey.Increment(Slice.FromString("ABC")) => "ABD"
 		/// FdbKey.Increment(Slice.FromHexa("01 FF")) => { 02 }
 		/// </example>
-		public static Slice Increment(Slice slice)
+		public static Slice Increment(Slice key)
 		{
-			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", nameof(slice));
+			if (key.IsNull) throw new ArgumentException("Cannot increment null buffer", nameof(key));
 
+			var tmp = key.ToArray();
+			Increment(tmp.AsSpan(), out var length);
+			return tmp.AsSlice(0, length);
+		}
+
+		/// <summary>Increments the key in the buffer into the first key (in lexicographically order) that does not have the passed in <paramref name="key"/> as a prefix.</summary>
+		/// <param name="key"></param>
+		/// <param name="length"></param>
+		/// <remarks>
+		/// <para>If the last byte is already equal to 0xFF, the previous byte will be incremented instead.</para>
+		/// <para>If all bytes are equal to 0xFF, and exception is thrown</para>
+		/// <para>Examples:<code>
+		/// FdbKey.Increment([ 0x42, 0x12, 0x34, 0x00 ], out length) => [ 0x42, 0x12, 0x34, 0x01 ], length = 4
+		/// FdbKey.Increment([ 0x42, 0x12, 0x34, 0xFE ], out length) => [ 0x42, 0x12, 0x34, 0xFF ], length = 4
+		/// FdbKey.Increment([ 0x42, 0x12, 0x34, 0xFF ], out length) => [ 0x42, 0x12, 0x35 ], length = 3
+		/// FdbKey.Increment([ 0x42, 0x12, 0xFF, 0xFF ], out length) => [ 0x42, 0x13 ], length = 2
+		/// FdbKey.Increment([ 0x42, 0xFF, 0xFF, 0xFF ], out length) => [ 0x43 ], length = 1
+		/// FdbKey.Increment([ 0xFF, 0xFF, 0xFF, 0xFF ], out length) => throws!
+		/// </code></para>
+		/// </remarks>
+		public static void Increment(Span<byte> key, out int length)
+		{
 			// ReSharper disable once InconsistentNaming
-			int lastNonFFByte;
-
-			var tmp = slice.ToArray();
-			for (lastNonFFByte = tmp.Length - 1; lastNonFFByte >= 0; --lastNonFFByte)
-			{
-				if (tmp[lastNonFFByte] != 0xFF)
-				{
-					++tmp[lastNonFFByte];
-					break;
-				}
-			}
-
+			int lastNonFFByte = key.LastIndexOfAnyExcept((byte) 0xFF);
 			if (lastNonFFByte < 0)
 			{
 				throw Fdb.Errors.CannotIncrementKey();
 			}
-
-			return tmp.AsSlice(0, lastNonFFByte + 1);
+			++key[lastNonFFByte];
+			length = lastNonFFByte + 1;
 		}
 
 		/// <summary>Merges an array of keys with a same prefix, all sharing the same buffer</summary>
