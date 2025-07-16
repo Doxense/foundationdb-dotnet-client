@@ -247,6 +247,21 @@ namespace FoundationDB.Client
 		public static Task<int?> GetValueInt32Async(this IFdbReadOnlyTransaction trans, Slice key)
 			=> GetValueInt32Async(trans, ToSpanKey(key));
 
+		/// <inheritdoc cref="GetValueInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
+		public static Task<int?> GetValueInt32Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return trans.GetValueInt32Async(keySpan);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				return trans.GetValueInt32Async(keyBytes.Span);
+			}
+		}
+
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 32-bit unsigned integer</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Key to be looked up in the database</param>
@@ -315,6 +330,21 @@ namespace FoundationDB.Client
 		/// <inheritdoc cref="GetValueInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<long?> GetValueInt64Async(this IFdbReadOnlyTransaction trans, Slice key)
 			=> GetValueInt64Async(trans, ToSpanKey(key));
+
+		/// <inheritdoc cref="GetValueInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
+		public static Task<long?> GetValueInt64Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return GetValueInt64Async(trans, keySpan);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				return GetValueInt64Async(trans, keyBytes.Span);
+			}
+		}
 
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 64-bit signed integer</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
