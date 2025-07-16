@@ -303,21 +303,6 @@ namespace FoundationDB.Client
 		/// <summary>Returns a key that wraps a 128-bit UUID, encoded as 16 bytes</summary>
 		public static FdbValue<Guid, SpanEncoders.FixedSizeUuidEncoder> ToUuid128(Guid value) => new(value);
 
-		/// <summary>Returns a key that wraps a 128-bit UUID, encoded as 16 bytes</summary>
-		public static FdbValue<Uuid128, SpanEncoders.FixedSizeUuidEncoder> ToUuid128(Uuid128 value) => new(value);
-
-		/// <summary>Returns a key that wraps a 96-bit UUID, encoded as 12 bytes</summary>
-		public static FdbValue<Uuid96, SpanEncoders.FixedSizeUuidEncoder> ToUuid96(Uuid96 value) => new(value);
-
-		/// <summary>Returns a key that wraps an 80-bit UUID, encoded as 10 bytes</summary>
-		public static FdbValue<Uuid80, SpanEncoders.FixedSizeUuidEncoder> ToUuid80(Uuid80 value) => new(value);
-
-		/// <summary>Returns a key that wraps a 64-bit UUID, encoded as 8 bytes</summary>
-		public static FdbValue<Uuid64, SpanEncoders.FixedSizeUuidEncoder> ToUuid64(Uuid64 value) => new(value);
-
-		/// <summary>Returns a key that wraps a 48-bit UUID, encoded as 6 bytes</summary>
-		public static FdbValue<Uuid48, SpanEncoders.FixedSizeUuidEncoder> ToUuid48(Uuid48 value) => new(value);
-
 		#endregion
 
 	}

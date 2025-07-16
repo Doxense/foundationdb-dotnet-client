@@ -718,9 +718,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a UTF-8 encoded string</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToTextUtf8(...)) instead")]
 		public static void SetValueString(this IFdbTransaction trans, Slice key, string value) => SetValueString(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a UTF-8 encoded string</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToTextUtf8(...)) instead")]
 		public static void SetValueString(this IFdbTransaction trans, ReadOnlySpan<byte> key, string value)
 		{
 			Contract.NotNull(value);
@@ -728,9 +732,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a UTF-8 encoded string</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToTextUtf8(value)) instead")]
 		public static void SetValueString(this IFdbTransaction trans, Slice key, ReadOnlySpan<char> value) => SetValueString(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a UTF-8 encoded string</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToTextUtf8(value)) instead")]
 		public static void SetValueString(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<char> value)
 		{
 			if (value.Length == 0)
@@ -770,10 +778,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed32LittleEndian(value)) instead")]
 		public static void SetValueInt32(this IFdbTransaction trans, Slice key, int value) => SetValueInt32(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed32LittleEndian(value)) instead")]
 		public static void SetValueInt32<TKey>(this IFdbTransaction trans, in TKey key, int value)
 			where TKey : struct, IFdbKey
 		{
@@ -789,6 +801,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed32LittleEndian(value)) instead")]
 		public static void SetValueInt32(this IFdbTransaction trans, ReadOnlySpan<byte> key, int value)
 		{
 			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
@@ -797,9 +811,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToCompact32LittleEndian(value)) instead")]
 		public static void SetValueInt32Compact(this IFdbTransaction trans, Slice key, int value) => SetValueInt64Compact(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToCompact32LittleEndian(value)) instead")]
 		public static void SetValueInt32Compact(this IFdbTransaction trans, ReadOnlySpan<byte> key, int value) => SetValueInt64Compact(trans, key, value);
 
 		#endregion
@@ -808,10 +826,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed32LittleEndian(value)) instead")]
 		public static void SetValueUInt32(this IFdbTransaction trans, Slice key, uint value) => SetValueUInt32(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed32LittleEndian(value)) instead")]
 		public static void SetValueUInt32<TKey>(this IFdbTransaction trans, in TKey key, uint value)
 			where TKey : struct, IFdbKey
 		{
@@ -827,6 +849,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed32LittleEndian(value)) instead")]
 		public static void SetValueUInt32(this IFdbTransaction trans, ReadOnlySpan<byte> key, uint value)
 		{
 			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
@@ -835,9 +859,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToCompact32LittleEndian(value)) instead")]
 		public static void SetValueUInt32Compact(this IFdbTransaction trans, Slice key, uint value) => SetValueUInt64Compact(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian unsigned integer</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToCompact32LittleEndian(value)) instead")]
 		public static void SetValueUInt32Compact(this IFdbTransaction trans, ReadOnlySpan<byte> key, uint value) => SetValueUInt64Compact(trans, key, value);
 
 		#endregion
@@ -846,10 +874,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed64LittleEndian(value)) instead")]
 		public static void SetValueInt64(this IFdbTransaction trans, Slice key, long value) => SetValueInt64(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed64LittleEndian(value)) instead")]
 		public static void SetValueInt64<TKey>(this IFdbTransaction trans, in TKey key, long value)
 			where TKey : struct, IFdbKey
 		{
@@ -865,6 +897,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed64LittleEndian(value)) instead")]
 		public static void SetValueInt64(this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
 		{
 			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
@@ -873,9 +907,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToCompact64LittleEndian(value)) instead")]
 		public static void SetValueInt64Compact(this IFdbTransaction trans, Slice key, long value) => SetValueInt64Compact(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian signed integer</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToCompact64LittleEndian(value)) instead")]
 		public static void SetValueInt64Compact(this IFdbTransaction trans, ReadOnlySpan<byte> key, long value)
 		{
 			unchecked
@@ -893,10 +931,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed64LittleEndian(value)) instead")]
 		public static void SetValueUInt64(this IFdbTransaction trans, Slice key, ulong value) => SetValueUInt64(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 32-bits little-endian signed integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed64LittleEndian(value)) instead")]
 		public static void SetValueUInt64<TKey>(this IFdbTransaction trans, in TKey key, ulong value)
 			where TKey : struct, IFdbKey
 		{
@@ -912,6 +954,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToFixed64LittleEndian(value)) instead")]
 		public static void SetValueUInt64(this IFdbTransaction trans, ReadOnlySpan<byte> key, ulong value)
 		{
 			value = BitConverter.IsLittleEndian ? value : BinaryPrimitives.ReverseEndianness(value);
@@ -920,9 +964,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToCompact64LittleEndian(value)) instead")]
 		public static void SetValueUInt64Compact(this IFdbTransaction trans, Slice key, ulong value) => SetValueUInt64Compact(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits little-endian unsigned integer</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToCompact64LittleEndian(value)) instead")]
 		public static void SetValueUInt64Compact(this IFdbTransaction trans, ReadOnlySpan<byte> key, ulong value)
 		{
 			ulong v = Math.Min(Math.Max(1, value), ulong.MaxValue - 1);
@@ -937,10 +985,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToUuid128(value)) instead")]
 		public static void SetValueGuid(this IFdbTransaction trans, Slice key, Guid value) => SetValueGuid(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToUuid128(value)) instead")]
 		public static void SetValueGuid<TKey>(this IFdbTransaction trans, in TKey key, Guid value)
 			where TKey : struct, IFdbKey
 		{
@@ -956,6 +1008,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, FdbValue.ToUuid128(value)) instead")]
 		public static void SetValueGuid(this IFdbTransaction trans, ReadOnlySpan<byte> key, Guid value)
 		{
 			Span<byte> scratch = stackalloc byte[16];
@@ -965,10 +1019,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid128(this IFdbTransaction trans, Slice key, Uuid128 value) => SetValueUuid128(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid128<TKey>(this IFdbTransaction trans, in TKey key, Uuid128 value)
 			where TKey : struct, IFdbKey
 		{
@@ -984,6 +1042,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 128-bits UUID</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid128(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid128 value)
 		{
 			Span<byte> scratch = stackalloc byte[Uuid128.SizeOf];
@@ -993,10 +1053,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid96(this IFdbTransaction trans, Slice key, Uuid96 value) => SetValueUuid96(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid96<TKey>(this IFdbTransaction trans, in TKey key, Uuid96 value)
 			where TKey : struct, IFdbKey
 		{
@@ -1012,6 +1076,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid96(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid96 value)
 		{
 			Span<byte> scratch = stackalloc byte[Uuid96.SizeOf];
@@ -1021,11 +1087,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid80(this IFdbTransaction trans, Slice key, Uuid80 value) => SetValueUuid80(trans, ToSpanKey(key), value);
 
 
 		/// <summary>Sets the value of a key in the database as an 80-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid80<TKey>(this IFdbTransaction trans, in TKey key, Uuid80 value)
 			where TKey : struct, IFdbKey
 		{
@@ -1039,7 +1109,10 @@ namespace FoundationDB.Client
 				SetValueUuid80(trans, keyBytes.Span, value);
 			}
 		}
+
 		/// <summary>Sets the value of a key in the database as a 96-bits UUID</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid80(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid80 value)
 		{
 			Span<byte> scratch = stackalloc byte[Uuid96.SizeOf];
@@ -1049,10 +1122,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid64(this IFdbTransaction trans, Slice key, Uuid64 value) => SetValueUuid64(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid64<TKey>(this IFdbTransaction trans, in TKey key, Uuid64 value)
 			where TKey : struct, IFdbKey
 		{
@@ -1068,6 +1145,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 64-bits UUID</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid64(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid64 value)
 		{
 			Span<byte> scratch = stackalloc byte[Uuid64.SizeOf];
@@ -1077,10 +1156,14 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid48(this IFdbTransaction trans, Slice key, Uuid48 value) => SetValueUuid48(trans, ToSpanKey(key), value);
 
 		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid48<TKey>(this IFdbTransaction trans, in TKey key, Uuid48 value)
 			where TKey : struct, IFdbKey
 		{
@@ -1096,6 +1179,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets the value of a key in the database as a 48-bits UUID</summary>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use Set(key, value) instead")]
 		public static void SetValueUuid48(this IFdbTransaction trans, ReadOnlySpan<byte> key, Uuid48 value)
 		{
 			Span<byte> scratch = stackalloc byte[Uuid48.SizeOf];
