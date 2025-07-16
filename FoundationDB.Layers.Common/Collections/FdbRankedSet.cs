@@ -260,8 +260,8 @@ namespace FoundationDB.Layers.Collections
 			internal async Task SetupLevelsAsync(IFdbTransaction trans)
 			{
 				var ks = Enumerable.Range(0, MAX_LEVELS)
-					.Select((l) => this.Subspace.Encode(l, Slice.Empty))
-					.ToList();
+					.Select((l) => this.Subspace.GetKey(l, Slice.Empty))
+					.ToArray();
 
 				var res = await trans.GetValuesAsync(ks).ConfigureAwait(false);
 				for (int l = 0; l < res.Length; l++)

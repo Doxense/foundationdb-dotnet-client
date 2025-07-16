@@ -94,7 +94,7 @@ namespace FoundationDB.Layers.Collections
 				//note: this method does not need to be async, but subtract is, so it's better if both methods have the same shape.
 				Contract.NotNull(trans);
 
-				trans.AtomicIncrement64(this.Subspace[key, value]);
+				trans.AtomicIncrement64(this.Subspace.GetKey(key, value));
 			}
 
 			/// <summary>Decrements the count of an (index, value) pair in the multimap, and optionally removes it if the count reaches zero.</summary>
@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				// decrement, and optionally clear the key if it reaches zero
-				trans.AtomicDecrement64(this.Subspace[key, value], clearIfZero: !this.AllowNegativeValues);
+				trans.AtomicDecrement64(this.Subspace.GetKey(key, value), clearIfZero: !this.AllowNegativeValues);
 			}
 
 			/// <summary>Checks if a (key, value) pair exists</summary>
@@ -115,7 +115,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(trans);
 
-				var v = await trans.GetAsync(this.Subspace[key, value]).ConfigureAwait(false);
+				var v = await trans.GetAsync(this.Subspace.GetKey(key, value)).ConfigureAwait(false);
 				return this.AllowNegativeValues ? v.IsPresent : v.ToInt64() > 0;
 			}
 
@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(trans);
 
-				var v = await trans.GetAsync(this.Subspace[key, value]).ConfigureAwait(false);
+				var v = await trans.GetAsync(this.Subspace.GetKey(key, value)).ConfigureAwait(false);
 				if (v.IsNullOrEmpty) return null;
 				long c = v.ToInt64();
 				return this.AllowNegativeValues || c > 0 ? c : null;
@@ -198,7 +198,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(trans);
 
-				trans.Clear(this.Subspace[key, value]);
+				trans.Clear(this.Subspace.GetKey(key, value));
 			}
 
 			#endregion

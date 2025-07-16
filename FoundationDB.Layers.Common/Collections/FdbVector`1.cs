@@ -50,7 +50,7 @@ namespace FoundationDB.Layers.Collections
 
 		// Implementation note:
 		// - vector.py uses Thread Local Storage that does not work well with async and Tasks in .NET
-		//   so we wont be able to 'store' the current transaction in the vector object itself
+		//   so we won't be able to 'store' the current transaction in the vector object itself
 
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="location">Subspace where the vector will be stored</param>
@@ -185,7 +185,7 @@ namespace FoundationDB.Layers.Collections
 
 				if (index1 >= currentSize || index2 >= currentSize) throw new IndexOutOfRangeException($"Indices ({index1}, {index2}) are out of range");
 
-				var vs = await tr.GetValuesAsync([k1, k2]).ConfigureAwait(false);
+				var vs = await tr.GetValuesAsync([ k1, k2 ]).ConfigureAwait(false);
 				var v1 = vs[0];
 				var v2 = vs[1];
 
@@ -224,7 +224,7 @@ namespace FoundationDB.Layers.Collections
 
 				if (output.Key.HasValue)
 				{
-					if (output.Key == start)
+					if (this.Subspace.Decode<long>(output.Key) == index)
 					{ // The requested index had an associated key
 						return this.Encoder.DecodeValue(output.Value)!;
 					}
@@ -272,7 +272,7 @@ namespace FoundationDB.Layers.Collections
 
 				if (length < currentSize)
 				{
-					tr.ClearRange(GetKeyAt(length), this.Subspace.ToRange().End);
+					tr.ClearRange(GetKeyAt(length), this.Subspace.GetRange().End);
 
 					// Check if the new end of the vector was being sparsely represented
 					if (await ComputeSizeAsync(tr).ConfigureAwait(false) < length)
@@ -291,7 +291,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(tr);
 
-				tr.ClearRange(this.Subspace);
+				tr.ClearRange(this.Subspace.GetRange());
 			}
 
 			#region Private Helpers...
@@ -312,9 +312,9 @@ namespace FoundationDB.Layers.Collections
 				return this.Subspace.DecodeFirst<long>(lastKey) + 1;
 			}
 
-			private Slice GetKeyAt(long index)
+			private FdbTupleKey<long> GetKeyAt(long index)
 			{
-				return this.Subspace.Encode(index);
+				return this.Subspace.GetKey(index);
 			}
 
 			#endregion

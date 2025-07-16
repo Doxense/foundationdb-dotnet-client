@@ -96,7 +96,7 @@ namespace FoundationDB.Layers.Collections
 #endif
 
 				//BUGBUG: can be called multiple times per transaction, so need a unique stamp _per_ transaction!!
-				tr.SetVersionStampedKey(this.Subspace[tr.CreateUniqueVersionStamp()], this.Encoder.EncodeValue(value));
+				tr.SetVersionStampedKey(this.Subspace.GetKey(tr.CreateUniqueVersionStamp()), this.Encoder.EncodeValue(value));
 			}
 
 			private static readonly FdbRangeOptions SingleOptions = new() { Limit = 1, Streaming = FdbStreamingMode.Exact };

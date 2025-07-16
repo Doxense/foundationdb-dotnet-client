@@ -73,7 +73,7 @@ namespace FoundationDB.Layers.Indexing
 			{
 				if (this.Schema.IndexNullValues || value is not null)
 				{
-					trans.Set(this.Subspace[value, id], Slice.Empty);
+					trans.Set(this.Subspace.GetKey(value, id), Slice.Empty);
 					return true;
 				}
 				return false;
@@ -87,16 +87,16 @@ namespace FoundationDB.Layers.Indexing
 					// remove previous value
 					if (this.Schema.IndexNullValues || previousValue is not null)
 					{
-						trans.Clear(this.Subspace[previousValue, id]);
+						trans.Clear(this.Subspace.GetKey(previousValue, id));
 					}
 
 					// add new value
 					if (this.Schema.IndexNullValues || newValue is not null)
 					{
-						trans.Set(this.Subspace[newValue, id], Slice.Empty);
+						trans.Set(this.Subspace.GetKey(newValue, id), Slice.Empty);
 					}
 
-					// cannot be both null, so we did at least something)
+					// cannot be both null, so we did at least something
 					return true;
 				}
 				return false;
@@ -105,49 +105,68 @@ namespace FoundationDB.Layers.Indexing
 			/// <summary>Remove an entity from the index</summary>
 			public void Remove(IFdbTransaction trans, TId id, TValue? value)
 			{
-				trans.Clear(this.Subspace[value, id]);
+				trans.Clear(this.Subspace.GetKey(value, id));
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have the specified <paramref name="value"/></summary>
 			public IFdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 			{
-				var prefix = this.Subspace.EncodePartial(value);
-
 				return trans
-					.GetRange(KeyRange.StartsWith(prefix), reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
+					.GetRange(this.Subspace.GetRange(value), reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
 					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value greater than (or equal) a specified <paramref name="value"/></summary>
 			public IFdbRangeQuery<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
-				var prefix = this.Subspace.EncodePartial(value);
-				if (!orEqual) prefix = FdbKey.Increment(prefix);
 
-				var space = new KeySelectorPair(
-					KeySelector.FirstGreaterThan(prefix),
-					KeySelector.FirstGreaterOrEqual(this.Subspace.ToRange().End)
-				);
+				IFdbKeyValueRangeQuery query;
+				if (orEqual)
+				{ // (>= "abc", *) => (..., "abc") < x < (..., <FF>)
+					query = trans.GetRange(
+						FdbKeySelector.FirstGreaterThan(this.Subspace.GetPartialKey(value)),
+						this.Subspace.GetRange().GetEndSelector(),
+						FdbRangeOptions.Reversed
+					);
+				}
+				else
+				{ // (> "abc", *) => (..., "abd") < x < (... <FF>)
+					query = trans.GetRange(
+						FdbKeySelector.FirstGreaterThan(this.Subspace.GetPartialKey(value).Increment()),
+						this.Subspace.GetRange().GetEndSelector(),
+						FdbRangeOptions.Reversed
+					);
+				}
 
-				return trans
-					.GetRange(space, FdbRangeOptions.Reversed)
-					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
+				return query.Select((kvp) => this.Subspace.DecodeLast(kvp.Key)!);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value lesser than (or equal) a specified <paramref name="value"/></summary>
 			public IFdbRangeQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
-				var prefix = this.Subspace.EncodePartial(value);
-				if (orEqual) prefix = FdbKey.Increment(prefix);
+				var begin = this.Subspace.GetRange().ToBeginSelector();
 
-				var space = new KeySelectorPair(
-					KeySelector.FirstGreaterOrEqual(this.Subspace.ToRange().Begin),
-					KeySelector.FirstGreaterThan(prefix)
-				);
+				IFdbKeyValueRangeQuery query;
+				if (orEqual)
+				{
+					var end = this.Subspace.GetPartialKey(value).Increment();
+					query = trans.GetRange(
+						begin,
+						FdbKeySelector.FirstGreaterThan(end),
+						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
+					);
+				}
+				else
+				{
+					var end = this.Subspace.GetPartialKey(value);
+					query = trans.GetRange(
+						begin,
+						FdbKeySelector.FirstGreaterThan(end),
+						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
+					);
+				}
 
-				return trans
-					.GetRange(space, reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
-					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
+				return query.Select((kvp) => this.Subspace.DecodeLast(kvp.Key)!);
 			}
 
 		}

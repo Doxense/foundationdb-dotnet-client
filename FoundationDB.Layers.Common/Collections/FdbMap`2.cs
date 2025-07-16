@@ -80,7 +80,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(id);
 
-				var data = await trans.GetAsync(this.Subspace[id]).ConfigureAwait(false);
+				var data = await trans.GetAsync(this.Subspace.GetKey(id)).ConfigureAwait(false);
 
 				if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
 				return this.ValueEncoder.DecodeValue(data)!;
@@ -89,13 +89,13 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Returns the value of an entry in the map if it exists.</summary>
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="id">Key of the entry to read from the map</param>
-			/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
+			/// <returns>Optional with the value of the entry if it exists, or an empty result if it is not present in the map.</returns>
 			public async Task<(TValue? Value, bool HasValue)> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
 			{
 				Contract.NotNull(trans);
 				Contract.NotNull(id);
 
-				var data = await trans.GetAsync(this.Subspace[id]).ConfigureAwait(false);
+				var data = await trans.GetAsync(this.Subspace.GetKey(id)).ConfigureAwait(false);
 
 				if (data.IsNull) return (default(TValue), false);
 				return (this.ValueEncoder.DecodeValue(data), true);
@@ -105,13 +105,13 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="id">Key of the entry to add or update</param>
 			/// <param name="value">New value of the entry</param>
-			/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
+			/// <remarks>If the entry did not exist, it will be created. If not, its value will be replaced with <paramref name="value"/>.</remarks>
 			public void Set(IFdbTransaction trans, TKey id, TValue value)
 			{
 				Contract.NotNull(trans);
 				Contract.NotNull(id);
 
-				trans.Set(this.Subspace[id], this.ValueEncoder.EncodeValue(value));
+				trans.Set(this.Subspace.GetKey(id), this.ValueEncoder.EncodeValue(value));
 			}
 
 			/// <summary>Remove a single entry from the map</summary>
@@ -123,7 +123,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(id);
 
-				trans.Clear(this.Subspace[id]);
+				trans.Clear(this.Subspace.GetKey(id));
 			}
 
 			/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
@@ -136,7 +136,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				return trans
-					.GetRange(this.Subspace.ToRange(), options)
+					.GetRange(this.Subspace.GetRange(), options)
 					.Select(kv => DecodeItem(this.Subspace, this.ValueEncoder, kv));
 			}
 
@@ -149,7 +149,8 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(ids);
 
-				var kv = await trans.GetValuesAsync(ids.Select(id => this.Subspace[id])).ConfigureAwait(false);
+				//PERF: TODO: implement GetValuesAsync<TElement, TKey> !!
+				var kv = await trans.GetValuesAsync(ids, id => this.Subspace.GetKey(id)).ConfigureAwait(false);
 				if (kv.Length == 0) return [ ];
 
 				var result = new TValue?[kv.Length];
@@ -173,7 +174,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(trans);
 
-				trans.ClearRange(this.Subspace.ToRange());
+				trans.ClearRange(this.Subspace.GetRange());
 			}
 
 			#region Import...
