@@ -100,7 +100,7 @@ namespace SnowBank.Data.Tuples.Tests
 			long y = 123;
 			Guid z = Guid.NewGuid();
 
-			var encoder = TuPack.Encoding.GetKeyEncoder<string, long, Guid>();
+			var encoder = TuPack.Encoding.GetKeyEncoder<string?, long, Guid>();
 			Assert.That(encoder, Is.Not.Null);
 
 			// full key encoding

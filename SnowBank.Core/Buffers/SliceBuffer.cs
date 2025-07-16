@@ -165,8 +165,6 @@ namespace SnowBank.Buffers
 		{
 			if (sizeHint < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", nameof(sizeHint));
 
-			const int ALIGNMENT = 4;
-
 			int p = m_pos;
 			if (sizeHint > m_remaining)
 			{ // does not fit

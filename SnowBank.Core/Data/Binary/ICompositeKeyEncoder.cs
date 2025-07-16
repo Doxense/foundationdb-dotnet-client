@@ -39,10 +39,10 @@ namespace SnowBank.Data.Binary
 		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
 	}
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
@@ -56,10 +56,10 @@ namespace SnowBank.Data.Binary
 		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
 	}
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
@@ -73,10 +73,10 @@ namespace SnowBank.Data.Binary
 		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
 
 	}
 
@@ -91,10 +91,10 @@ namespace SnowBank.Data.Binary
 		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4, T5) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
 	}
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
@@ -108,10 +108,10 @@ namespace SnowBank.Data.Binary
 		bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4, T5, T6) key);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
+		void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6) items);
 
 		/// <summary>Read some or all parts of a composite key</summary>
-		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
+		bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6) items);
 	}
 
 	/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
@@ -129,10 +129,10 @@ namespace SnowBank.Data.Binary
 		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?) items);
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -148,17 +148,21 @@ namespace SnowBank.Data.Binary
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 2, in items);
 		}
 
+#pragma warning disable CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
+
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?) items)
 		{
 			ReadKeyPartsFrom(ref reader, 2, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 2, out items);
 		}
+
+#pragma warning restore CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
 
 	}
 
@@ -177,10 +181,10 @@ namespace SnowBank.Data.Binary
 		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?) items);
 
 		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3) items)
@@ -195,17 +199,21 @@ namespace SnowBank.Data.Binary
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 3, in items);
 		}
 
+#pragma warning disable CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
+
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?) items)
 		{
 			ReadKeyPartsFrom(ref reader, 3, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 3, out items);
 		}
+
+#pragma warning restore CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
 
 	}
 
@@ -224,10 +232,10 @@ namespace SnowBank.Data.Binary
 		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?) items);
 
 		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4) items)
@@ -242,17 +250,21 @@ namespace SnowBank.Data.Binary
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 4, in items);
 		}
 
+#pragma warning disable CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
+
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?) items)
 		{
 			ReadKeyPartsFrom(ref reader, 4, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 4, out items);
 		}
+
+#pragma warning restore CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
 
 	}
 
@@ -271,10 +283,10 @@ namespace SnowBank.Data.Binary
 		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4, T5) items);
 
 		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5) items);
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?) items);
 
 		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4, T5) items)
@@ -289,17 +301,21 @@ namespace SnowBank.Data.Binary
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 5, in items);
 		}
 
+#pragma warning disable CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
+
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?, T5?) items)
 		{
 			ReadKeyPartsFrom(ref reader, 5, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?, T5?) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 5, out items);
 		}
+
+#pragma warning restore CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
 
 	}
 
@@ -317,11 +333,15 @@ namespace SnowBank.Data.Binary
 		/// <inheritdoc />
 		public abstract bool TryWriteKeyPartsTo(Span<byte> destination, out int bytesWritten, int count, in (T1, T2, T3, T4, T5, T6) items);
 
-		/// <inheritdoc />
-		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
+#pragma warning disable CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
 
 		/// <inheritdoc />
-		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1, T2, T3, T4, T5, T6) items);
+		public abstract void ReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6?) items);
+
+		/// <inheritdoc />
+		public abstract bool TryReadKeyPartsFrom(ref SliceReader reader, int count, out (T1?, T2?, T3?, T4?, T5?, T6?) items);
+
+#pragma warning restore CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
 
 		/// <inheritdoc />
 		public void WriteKeyTo(ref SliceWriter writer, (T1, T2, T3, T4, T5, T6) items)
@@ -336,17 +356,21 @@ namespace SnowBank.Data.Binary
 			return TryWriteKeyPartsTo(destination, out bytesWritten, 6, in items);
 		}
 
+#pragma warning disable CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
+
 		/// <inheritdoc />
-		public void ReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5, T6) items)
+		public void ReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?) items)
 		{
 			ReadKeyPartsFrom(ref reader, 6, out items);
 		}
 
 		/// <inheritdoc />
-		public bool TryReadKeyFrom(ref SliceReader reader, out (T1, T2, T3, T4, T5, T6) items)
+		public bool TryReadKeyFrom(ref SliceReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?) items)
 		{
 			return TryReadKeyPartsFrom(ref reader, 6, out items);
 		}
+
+#pragma warning restore CS8614 // Nullability of reference types in type of parameter doesn't match implicitly implemented member.
 
 	}
 

@@ -106,14 +106,14 @@ namespace SnowBank.Data.Binary
 		#region <T1, T2>
 
 		/// <summary>Appends a pair of values onto a buffer, using the specified key encoder</summary>
-		public static void WriteKeyTo<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, ref SliceWriter writer, T1? value1, T2? value2)
+		public static void WriteKeyTo<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, ref SliceWriter writer, T1 value1, T2 value2)
 		{
 			var tuple = (value1, value2);
 			encoder.WriteKeyPartsTo(ref writer, 2, in tuple);
 		}
 
 		/// <summary>Encodes a pair of values into a key, using the specified encoder</summary>
-		public static Slice EncodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, T1? item1, T2? item2)
+		public static Slice EncodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, T1 item1, T2 item2)
 		{
 			var writer = default(SliceWriter);
 			var tuple = (item1, item2);
@@ -122,7 +122,7 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes a pair of values into a key, with an additional prefix, using the specified encoder</summary>
-		public static Slice EncodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, Slice prefix, T1? item1, T2? item2)
+		public static Slice EncodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, Slice prefix, T1 item1, T2 item2)
 		{
 			var writer = new SliceWriter(prefix.Count + 24);
 			writer.WriteBytes(prefix);
@@ -131,26 +131,26 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes only the first part of a key, using the specified encoder</summary>
-		public static Slice EncodePartialKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, T1? item1)
+		public static Slice EncodePartialKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, T1 item1)
 		{
 			var writer = default(SliceWriter);
-			var tuple = (item1, default(T2));
+			var tuple = (item1, default(T2)!);
 			encoder.WriteKeyPartsTo(ref writer, 1, in tuple);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Encodes only the first part of a key, with an additional prefix, using the specified encoder</summary>
-		public static Slice EncodePartialKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, Slice prefix, T1? item1)
+		public static Slice EncodePartialKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, Slice prefix, T1 item1)
 		{
 			var writer = new SliceWriter(prefix.Count + 16);
 			writer.WriteBytes(prefix);
-			var tuple = (item1, default(T2));
+			var tuple = (item1, default(T2)!);
 			encoder.WriteKeyPartsTo(ref writer, 1, in tuple);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Encodes the first few elements of a key, using the specified encoder</summary>
-		public static Slice EncodeKeyParts<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, int count, (T1?, T2?) items)
+		public static Slice EncodeKeyParts<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder, int count, (T1, T2) items)
 		{
 			var writer = default(SliceWriter);
 			encoder.WriteKeyPartsTo(ref writer, count, in items);
@@ -167,7 +167,7 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Decodes a key into the original pair of values, using the specified encoder</summary>
-		public static bool TryDecodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> decoder, Slice encoded, out (T1?, T2?) items)
+		public static bool TryDecodeKey<T1, T2>(this ICompositeKeyEncoder<T1, T2> decoder, Slice encoded, out (T1, T2) items)
 		{
 			var reader = new SliceReader(encoded);
 			//TODO: throw if extra bytes?
@@ -187,14 +187,14 @@ namespace SnowBank.Data.Binary
 		#region <T1, T2, T3>
 
 		/// <summary>Appends a set of values onto a buffer, using the specified key encoder</summary>
-		public static void WriteKeyTo<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, ref SliceWriter writer, T1? value1, T2? value2, T3? value3)
+		public static void WriteKeyTo<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, ref SliceWriter writer, T1 value1, T2 value2, T3 value3)
 		{
 			var tuple = (value1, value2, value3);
 			encoder.WriteKeyPartsTo(ref writer, 3, in tuple);
 		}
 
 		/// <summary>Encodes a set of values into a key, using the specified encoder</summary>
-		public static Slice EncodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, T1? item1, T2? item2, T3? item3)
+		public static Slice EncodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, T1 item1, T2 item2, T3 item3)
 		{
 			var writer = default(SliceWriter);
 			var tuple = (item1, item2, item3);
@@ -203,7 +203,7 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes a set of values into a key, with an additional prefix, using the specified encoder</summary>
-		public static Slice EncodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, Slice prefix, T1? item1, T2? item2, T3? item3)
+		public static Slice EncodeKey<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
 			var writer = new SliceWriter(prefix.Count + 32);
 			writer.WriteBytes(prefix);
@@ -212,7 +212,7 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes the first few elements of a key, using the specified encoder</summary>
-		public static Slice EncodeKeyParts<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, int count, (T1?, T2?, T3?) items)
+		public static Slice EncodeKeyParts<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder, int count, (T1, T2, T3) items)
 		{
 			var writer = default(SliceWriter);
 			encoder.WriteKeyPartsTo(ref writer, count, in items);
@@ -233,7 +233,7 @@ namespace SnowBank.Data.Binary
 		{
 			var reader = new SliceReader(encoded);
 			//TODO: throw if extra bytes?
-			return decoder.TryReadKeyFrom(ref reader, out items);
+			return decoder.TryReadKeyFrom(ref reader, out items!);
 		}
 
 		/// <summary>Decode part of a key, using the specified encoder</summary>
@@ -295,7 +295,7 @@ namespace SnowBank.Data.Binary
 		{
 			var reader = new SliceReader(encoded);
 			//TODO: throw if extra bytes?
-			return decoder.TryReadKeyFrom(ref reader, out items);
+			return decoder.TryReadKeyFrom(ref reader, out items!);
 		}
 
 		/// <summary>Decodes part of a key, using the specified encoder</summary>
@@ -311,14 +311,14 @@ namespace SnowBank.Data.Binary
 		#region <T1, T2, T3, T4, T5>
 
 		/// <summary>Appends a set of values onto a buffer, using the specified key encoder</summary>
-		public static void WriteKeyTo<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, ref SliceWriter writer, T1? value1, T2? value2, T3? value3, T4? value4, T5? value5)
+		public static void WriteKeyTo<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, ref SliceWriter writer, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5)
 		{
 			var tuple = (value1, value2, value3, value4, value5);
 			encoder.WriteKeyPartsTo(ref writer, 5, in tuple);
 		}
 		
 		/// <summary>Encodes a set of values into a key, using the specified encoder</summary>
-		public static Slice EncodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var writer = default(SliceWriter);
 			var tuple = (item1, item2, item3, item4, item5);
@@ -327,7 +327,7 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes a set of values into a key, with an additional prefix, using the specified encoder</summary>
-		public static Slice EncodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, Slice prefix, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
+		public static Slice EncodeKey<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var writer = new SliceWriter(prefix.Count + 56);
 			writer.WriteBytes(prefix);
@@ -336,7 +336,7 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes the first few elements of a key, using the specified encoder</summary>
-		public static Slice EncodeKeyParts<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, int count, (T1?, T2?, T3?, T4?, T5?) items)
+		public static Slice EncodeKeyParts<T1, T2, T3, T4, T5>(this ICompositeKeyEncoder<T1, T2, T3, T4, T5> encoder, int count, (T1, T2, T3, T4, T5) items)
 		{
 			var writer = default(SliceWriter);
 			encoder.WriteKeyPartsTo(ref writer, count, in items);
@@ -357,7 +357,7 @@ namespace SnowBank.Data.Binary
 		{
 			var reader = new SliceReader(encoded);
 			//TODO: throw if extra bytes?
-			return decoder.TryReadKeyFrom(ref reader, out items);
+			return decoder.TryReadKeyFrom(ref reader, out items!);
 		}
 
 		/// <summary>Decodes part of a key, using the specified encoder</summary>
