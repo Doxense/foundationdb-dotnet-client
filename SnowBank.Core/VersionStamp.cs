@@ -35,6 +35,7 @@ namespace System
 	using Globalization;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Data.Binary;
 	using SnowBank.Runtime;
 	using SnowBank.Text;
 
@@ -46,7 +47,7 @@ namespace System
 	/// </remarks>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>, IComparable, IJsonSerializable, IJsonPackable, IJsonDeserializable<VersionStamp>
+	public readonly struct VersionStamp : IEquatable<VersionStamp>, IComparable<VersionStamp>, IComparable, IJsonSerializable, IJsonPackable, IJsonDeserializable<VersionStamp>, ISpanEncodable
 		, IEquatable<Uuid80>, IComparable<Uuid80>
 		, IEquatable<Uuid96>, IComparable<Uuid96>
 #if NET8_0_OR_GREATER
@@ -1370,6 +1371,23 @@ namespace System
 			result = ReadFrom(output[..bytesWritten]);
 			return true;
 		}
+
+		#region ISpanEncodable...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint) { sizeHint = (this.Flags & FLAGS_HAS_VERSION) != 0 ? 12 : 10; return true; }
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryEncode(scoped Span<byte> destination, out int bytesWritten)
+			=> TryWriteTo(destination, out bytesWritten);
+
+		#endregion
 
 	}
 

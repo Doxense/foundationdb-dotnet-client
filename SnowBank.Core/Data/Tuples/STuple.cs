@@ -31,6 +31,7 @@ namespace SnowBank.Data.Tuples
 	using System.Numerics;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
+	using SnowBank.Data.Binary;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime;
 	using SnowBank.Runtime.Converters;
@@ -44,6 +45,7 @@ namespace SnowBank.Data.Tuples
 		, ITupleSpanPackable
 		, ITupleFormattable
 		, ISpanFormattable
+		, ISpanEncodable
 	{
 		//note: We cannot use 'Tuple' because it's already used by the BCL in the System namespace, and we cannot use 'Tuples' either because it is part of the namespace...
 
@@ -209,6 +211,18 @@ namespace SnowBank.Data.Tuples
 		{
 			return 0;
 		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return true; }
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint) { sizeHint = 0; return true; }
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten) { bytesWritten = 0; return true; }
 
 		#endregion
 

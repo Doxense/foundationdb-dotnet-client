@@ -31,6 +31,7 @@ namespace SnowBank.Data.Tuples
 	using System.Collections;
 	using System.ComponentModel;
 	using SnowBank.Buffers.Text;
+	using SnowBank.Data.Binary;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
@@ -48,6 +49,7 @@ namespace SnowBank.Data.Tuples
 		, ITupleSpanPackable
 		, ITupleFormattable
 		, ISpanFormattable
+		, ISpanEncodable
 	{
 		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -643,6 +645,34 @@ namespace SnowBank.Data.Tuples
 			}
 
 		}
+
+		#region ISpanEncodable...
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Item1, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Item2, out var size2)
+			 || !TupleEncoder.TryGetSizeHint(this.Item3, out var size3))
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = checked(size1 + size2 + size3);
+			return true;
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, default, in this);
+
+		#endregion
 
 	}
 

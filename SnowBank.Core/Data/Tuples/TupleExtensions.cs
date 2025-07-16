@@ -714,59 +714,59 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <summary>Returns the equivalent <see cref="STuple{T1}"/></summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1> ToSTuple<T1>(this ValueTuple<T1> tuple)
 		{
-			return new STuple<T1>(tuple.Item1);
+			return new(tuple.Item1);
 		}
 
 		/// <summary>Returns the equivalent <see cref="STuple{T1,T2}"/></summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2> ToSTuple<T1, T2>(this (T1, T2) tuple)
 		{
-			return new STuple<T1, T2>(tuple.Item1, tuple.Item2);
+			return new(tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Returns the equivalent <see cref="STuple{T1,T2,T3}"/></summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3> ToSTuple<T1, T2, T3>(this (T1, T2, T3) tuple)
 		{
-			return new STuple<T1, T2, T3>(tuple.Item1, tuple.Item2, tuple.Item3);
+			return new(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Returns the equivalent <see cref="STuple{T1,T2,T3,T4}"/></summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4> ToSTuple<T1, T2, T3, T4>(this (T1, T2, T3, T4) tuple)
 		{
-			return new STuple<T1, T2, T3, T4>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
+			return new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Returns the equivalent <see cref="STuple{T1,T2,T3,T4,T5}"/></summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4, T5> ToSTuple<T1, T2, T3, T4, T5>(this (T1, T2, T3, T4, T5) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
+			return new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6}"/></summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4, T5, T6> ToSTuple<T1, T2, T3, T4, T5, T6>(this (T1, T2, T3, T4, T5, T6) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
+			return new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
 		/// <summary>Returns the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7}"/></summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4, T5, T6, T7> ToSTuple<T1, T2, T3, T4, T5, T6, T7>(this (T1, T2, T3, T4, T5, T6, T7) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
+			return new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 		}
 
 		/// <summary>Returns the equivalent <see cref="STuple{T1,T2,T3,T4,T5,T6,T7,T8}"/></summary>
-		[Pure]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static STuple<T1, T2, T3, T4, T5, T6, T7, T8> ToSTuple<T1, T2, T3, T4, T5, T6, T7, T8>(this (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
 		{
-			return new STuple<T1, T2, T3, T4, T5, T6, T7, T8>(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8);
+			return new(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8);
 		}
 
 		/// <summary>Returns a new tuple with the concatenation of this tuple and another tuple</summary>

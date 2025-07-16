@@ -31,6 +31,7 @@ namespace SnowBank.Data.Tuples
 	using System.Collections;
 	using System.ComponentModel;
 	using SnowBank.Buffers.Text;
+	using SnowBank.Data.Binary;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime.Converters;
 
@@ -46,6 +47,7 @@ namespace SnowBank.Data.Tuples
 		, ITupleFormattable
 		, ITupleSpanPackable
 		, ISpanFormattable
+		, ISpanEncodable
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an STuple<T> as an ITuple, it will be boxed by the CLR and all memory gains will be lost
@@ -517,6 +519,22 @@ namespace SnowBank.Data.Tuples
 			#endregion
 
 		}
+
+		#region ISpanEncodable...
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint) => TupleEncoder.TryGetSizeHint<T1>(this.Item1, out sizeHint);
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, this.Item1);
+
+		#endregion
 
 	}
 

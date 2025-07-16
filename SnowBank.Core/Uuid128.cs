@@ -31,6 +31,7 @@ namespace System
 	using System.Runtime.InteropServices;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Data.Binary;
 	using SnowBank.Text;
 #if NET8_0_OR_GREATER
 	using System.Buffers.Text;
@@ -40,7 +41,7 @@ namespace System
 	/// <remarks>You should use this type if you are primarily exchanging UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), PublicAPI, Serializable]
-	public readonly struct Uuid128 : IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>, ISliceSerializable
+	public readonly struct Uuid128 : IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>, ISliceSerializable, ISpanEncodable
 #if NET8_0_OR_GREATER
 		, ISpanFormattable
 		, ISpanParsable<Uuid128>
@@ -1491,6 +1492,23 @@ namespace System
 				return x.m_packed.CompareTo(y.m_packed);
 			}
 		}
+
+		#region ISpanEncodable...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint) { sizeHint = SizeOf; return true; }
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryEncode(scoped Span<byte> destination, out int bytesWritten)
+			=> TryWriteTo(destination, out bytesWritten);
+
+		#endregion
 
 	}
 

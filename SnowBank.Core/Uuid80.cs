@@ -31,11 +31,12 @@ namespace System
 	using System.Security.Cryptography;
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Binary;
+	using SnowBank.Data.Binary;
 
 	/// <summary>Represents an 80-bit UUID that is stored in high-endian format on the wire</summary>
 	[DebuggerDisplay("[{ToString(),nq}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]
-	public readonly struct Uuid80 : IFormattable, IEquatable<Uuid80>, IComparable<Uuid80>, IEquatable<Slice>, ISliceSerializable
+	public readonly struct Uuid80 : IFormattable, IEquatable<Uuid80>, IComparable<Uuid80>, IEquatable<Slice>, ISliceSerializable, ISpanEncodable
 #if NET8_0_OR_GREATER
 		, ISpanFormattable
 		, ISpanParsable<Uuid80>
@@ -1199,6 +1200,23 @@ namespace System
 			}
 
 		}
+
+		#region ISpanEncodable...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint) { sizeHint = SizeOf; return true; }
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryEncode(scoped Span<byte> destination, out int bytesWritten)
+			=> TryWriteTo(destination, out bytesWritten);
+
+		#endregion
 
 	}
 
