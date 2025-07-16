@@ -36,6 +36,8 @@ namespace FoundationDB.Tests.Sandbox
 	using System.Threading.Tasks;
 	using SnowBank.Data.Tuples;
 	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
+	using JetBrains.Annotations;
 
 	class Program
 	{
@@ -514,24 +516,37 @@ namespace FoundationDB.Tests.Sandbox
 
 			var location = db.Root.ByKey("hello").AsTyped<int>();
 
+			Console.WriteLine("# Task.WhenAll+GetAsync");
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
 				_ = await Task.WhenAll(Enumerable
 					.Range(0, N)
-					.Select((i) => trans.GetAsync(subspace[i]))
+					.Select((i) => trans.GetAsync(subspace.GetKey(i)))
 				);
 			}
 			sw.Stop();
 			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
 			Console.WriteLine();
 
+			Console.WriteLine("# GetValuesAsync");
 			sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
-				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace[i]));
+				_ = await trans.GetValuesAsync(Enumerable.Range(0, N), i => subspace.GetKey(i));
+			}
+			sw.Stop();
+			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
+			Console.WriteLine();
+
+			Console.WriteLine("# GetBatchAsync");
+			sw = Stopwatch.StartNew();
+			using (var trans = db.BeginTransaction(ct))
+			{
+				var subspace = await location.Resolve(trans);
+				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace.Encode(i)));
 			}
 			sw.Stop();
 			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
@@ -609,7 +624,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					for (int k = i; k < i + 1000 && k < N; k++)
 					{
-						trans.Set(subspace[k], segment.AsSlice());
+						trans.Set(subspace.GetKey(k), segment.AsSlice());
 					}
 					await trans.CommitAsync();
 					Console.Write("\r" + i + " / " + N);
@@ -624,15 +639,16 @@ namespace FoundationDB.Tests.Sandbox
 
 				Console.WriteLine("READ");
 				// get all the lists
-				var data = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace[i]));
+				var data = await trans.GetValuesAsync(Enumerable.Range(0, N).Select(i => subspace.GetKey(i)));
 
 				// change them
 				Console.WriteLine("CHANGE");
 				for (int i = 0; i < data.Length; i++)
 				{
-					var list = data[i].Value.GetBytes();
+					Debug.Assert(!data[i].IsNull);
+					var list = data[i].ToArray();
 					list[(list.Length >> 1) + 1] = (byte) rnd.Next(256);
-					trans.Set(data[i].Key, list.AsSlice());
+					trans.Set(subspace.GetKey(i), list.AsSlice());
 				}
 
 				Console.WriteLine("COMMIT");

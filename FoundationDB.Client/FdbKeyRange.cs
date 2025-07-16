@@ -53,6 +53,10 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 			=> new(cursor, excluded);
 
+		public static FdbSingleKeyRange<TKey> Single<TKey>(in TKey cursor)
+			where TKey : struct, IFdbKey
+			=> new(cursor);
+
 	}
 
 	public interface IFdbKeyRange
@@ -157,7 +161,7 @@ namespace FoundationDB.Client
 		where TKey : struct, IFdbKey
 	{
 
-		public FdbKeyRange(TKey prefix, bool excluded)
+		public FdbKeyRange(in TKey prefix, bool excluded)
 		{
 			this.Prefix = prefix;
 			this.Excluded = excluded;
@@ -209,7 +213,7 @@ namespace FoundationDB.Client
 		where TKey : struct, IFdbKey
 	{
 
-		public FdbTailKeyRange(TKey cursor, bool excluded)
+		public FdbTailKeyRange(in TKey cursor, bool excluded)
 		{
 			Contract.Debug.Requires(cursor.GetSubspace() is not null);
 			this.Cursor = cursor;
@@ -266,5 +270,28 @@ namespace FoundationDB.Client
 
 	}
 
-}
+	public readonly struct FdbSingleKeyRange<TKey> : IFdbKeyRange
+		where TKey : struct, IFdbKey
+	{
 
+		public FdbSingleKeyRange(in TKey key)
+		{
+			this.Key = key;
+		}
+
+		public readonly TKey Key;
+
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Key.GetSubspace();
+
+		/// <inheritdoc />
+		public KeyRange ToKeyRange()
+		{
+			//PERF: TODO: optimize this!
+			return KeyRange.FromKey(this.Key.ToSlice());
+		}
+
+	}
+
+}

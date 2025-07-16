@@ -1061,7 +1061,7 @@ namespace FoundationDB.Client
 			{
 				// Set the version key
 				trans.Set(partition.VersionKey, MakeVersionValue());
-				trans.SetValueInt32(partition.StampKey, 0);
+				trans.Set(partition.StampKey, FdbValue.Zero32);
 			}
 
 			private static void TouchPartitionMetadataKey(IFdbTransaction trans, PartitionDescriptor partition)

@@ -27,7 +27,6 @@
 namespace FoundationDB.Layers.Allocators
 {
 	using FoundationDB.Client;
-	using FoundationDB.Filters.Logging;
 
 	/// <summary>Custom allocator that generates unique integer values with low probability of conflicts</summary>
 	[DebuggerDisplay("Location={" + nameof(Location) + "}")]
@@ -36,7 +35,7 @@ namespace FoundationDB.Layers.Allocators
 		private const int COUNTERS = 0;
 		private const int RECENT = 1;
 
-		private readonly Random m_rnd = new Random();
+		private readonly Random m_rnd = new();
 
 		/// <summary>Create an allocator operating under a specific location</summary>
 		public FdbHighContentionAllocator(ISubspaceLocation location)
@@ -108,14 +107,14 @@ namespace FoundationDB.Layers.Allocators
 			if ((count + 1) * 2 >= window)
 			{ // advance the window
 				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate($"Advance allocator window size to {window} starting at {start + window}");
-				trans.ClearRange(subspace[COUNTERS, 0], subspace[COUNTERS, start + 1]);
+				trans.ClearRange(subspace.GetKey(COUNTERS, 0), subspace.GetKey(COUNTERS, start + 1));
 				start += window;
 				count = 0;
-				trans.ClearRange(subspace[RECENT, 0], subspace[RECENT, start]);
+				trans.ClearRange(subspace.GetKey(RECENT, 0), subspace.GetKey(RECENT, start));
 			}
 
 			// Increment the allocation count for the current window
-			trans.AtomicAdd64(subspace[COUNTERS, start], 1);
+			trans.AtomicIncrement64(subspace.GetKey(COUNTERS, start));
 
 			// As of the snapshot being read from, the window is less than half
 			// full, so this should be expected to take 2 tries.  Under high
@@ -131,7 +130,7 @@ namespace FoundationDB.Layers.Allocators
 				}
 
 				// test if the key is used
-				var key = subspace[RECENT, candidate];
+				var key = subspace.GetKey(RECENT, candidate);
 				var value = await trans.GetAsync(key).ConfigureAwait(false);
 
 				if (value.IsNull)

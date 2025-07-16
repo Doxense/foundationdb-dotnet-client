@@ -36,19 +36,6 @@ namespace FoundationDB.Client
 		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
 		ICompositeKeyEncoder<T1, T2> KeyEncoder { get; }
 
-		/// <summary>Returns a key in this subspace</summary>
-		/// <param name="item1">First part of the key</param>
-		/// <param name="item2">Second part of the key</param>
-		FdbTupleKey<T1, T2> GetKey(T1 item1, T2 item2);
-
-		/// <summary>Returns a partial key that matches all the elements in this subspace first the given <typeparamref name="T1"/> value</summary>
-		/// <param name="item1">First part of the key</param>
-		FdbTupleKey<T1> GetPartialKey(T1 item1);
-
-		/// <summary>Returns a partial key that matches all the elements in this subspace first the given <typeparamref name="T1"/> value</summary>
-		/// <param name="item1">First part of the key</param>
-		FdbKeyRange<FdbTupleKey<T1>> GetPartialRange(T1 item1);
-
 		/// <summary>Encode a pair of values into a key in this subspace</summary>
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
@@ -57,6 +44,7 @@ namespace FoundationDB.Client
 		/// The key can be decoded back into its original components using <see cref="Decode(Slice)"/>.
 		/// This class is a shortcut to calling <see cref="Encode"/>
 		/// </remarks>
+		[Obsolete("Use either GetKey(...) or Encode(...) instead")]
 		Slice this[T1 item1, T2 item2] { get; }
 
 		/// <summary>Pack a 2-tuple into a key in this subspace</summary>
@@ -65,6 +53,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// This class is a shortcut to calling <see cref="Encode">Encode(items.Item1, items.Item2)</see>
 		/// </remarks>
+		[Obsolete("Use either GetKey(...) or Pack(...) instead")]
 		Slice this[in (T1, T2) items] { get; }
 
 		/// <summary>Encode a pair of values into a key in this subspace</summary>
@@ -107,15 +96,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc/>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2> GetKey(T1 item1, T2 item2) => new(this, item1, item2);
-
-		/// <inheritdoc/>
-		public FdbTupleKey<T1> GetPartialKey(T1 item1) => new(this, item1);
-
-		public FdbKeyRange<FdbTupleKey<T1>> GetPartialRange(T1 item1) => FdbKeyRange.PrefixedBy(new FdbTupleKey<T1>(this, item1));
-
-		/// <inheritdoc/>
 		public Slice this[T1 item1, T2 item2]
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -130,7 +110,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc/>
-		public Slice Encode(T1 item1, T2 item2) => GetKey(item1, item2).ToSlice();
+		public Slice Encode(T1 item1, T2 item2) => this.GetKey(item1, item2).ToSlice();
 
 		/// <inheritdoc/>
 		[Pure]

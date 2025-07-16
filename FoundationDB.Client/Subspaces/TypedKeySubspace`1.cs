@@ -42,6 +42,7 @@ namespace FoundationDB.Client
 		/// The key can be decoded back into its original components using <see cref="Decode(Slice)"/>.
 		/// This class is a shortcut to calling <see cref="Encode"/>
 		/// </remarks>
+		[Obsolete("Use either GetKey(...) or Encode(...) instead")]
 		Slice this[T1? item1] { get; }
 
 		/// <summary>Pack a 1-tuple into a key in this subspace</summary>
@@ -50,6 +51,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// This class is a shortcut to calling <see cref="Encode">Encode(items.Item1)</see>
 		/// </remarks>
+		[Obsolete("Use either GetKey(...) or Pack(...) instead")]
 		Slice this[ValueTuple<T1> items] { get; }
 
 		/// <summary>Encode a value into a key in this subspace</summary>

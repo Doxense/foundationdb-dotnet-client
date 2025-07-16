@@ -38,8 +38,10 @@ namespace FoundationDB.Client
 		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
 		ICompositeKeyEncoder<T1, T2, T3, T4> KeyEncoder { get; }
 
+		[Obsolete("Use either GetKey(...) or Encode(...) instead")]
 		Slice this[T1 item1, T2 item2, T3 item3, T4 item4] { get; }
 
+		[Obsolete("Use either GetKey(...) or Pack(...) instead")]
 		Slice this[in (T1, T2, T3, T4) items] { get; }
 
 		[Pure]

@@ -634,6 +634,7 @@ namespace FoundationDB.Client
 
 	#region Tuple Keys...
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbVarTupleKey : IFdbKey
 	{
 
@@ -700,6 +701,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1> : IFdbKey
 	{
 
@@ -782,6 +784,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2> : IFdbKey
 	{
 
@@ -862,6 +865,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3> : IFdbKey
 	{
 
@@ -943,6 +947,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4> : IFdbKey
 	{
 
@@ -1022,6 +1027,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5> : IFdbKey
 	{
 
@@ -1099,6 +1105,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6> : IFdbKey
 	{
 
@@ -1174,6 +1181,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> : IFdbKey
 	{
 
@@ -1247,6 +1255,7 @@ namespace FoundationDB.Client
 
 	}
 
+	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> : IFdbKey
 	{
 

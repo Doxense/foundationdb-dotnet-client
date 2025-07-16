@@ -1500,11 +1500,11 @@ namespace FoundationDB.Client.Tests
 					var processed = await locProcessed.Resolve(tr);
 
 					// Items
-					tr.Set(items["userA", 10093], Slice.Empty);
-					tr.Set(items["userA", 19238], Slice.Empty);
-					tr.Set(items["userB", 20003], Slice.Empty);
+					tr.Set(items.GetKey("userA", 10093), Slice.Empty);
+					tr.Set(items.GetKey("userA", 19238), Slice.Empty);
+					tr.Set(items.GetKey("userB", 20003), Slice.Empty);
 					// Processed
-					tr.Set(processed["userA", 19238], Slice.Empty);
+					tr.Set(processed.GetKey("userA", 19238), Slice.Empty);
 				}, this.Cancellation);
 
 				// the query (Items ∩ Processed) should return (userA, 10093) and (userB, 20003)

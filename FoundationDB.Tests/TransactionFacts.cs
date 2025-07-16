@@ -217,7 +217,7 @@ namespace FoundationDB.Client.Tests
 			using var tr = db.BeginTransaction(this.Cancellation);
 			var subspace = await location.Resolve(tr);
 
-			tr.Set(subspace[1], Text("hello"));
+			tr.Set(subspace.GetKey(1), Text("hello"));
 			tr.Cancel();
 
 			await TestHelpers.AssertThrowsFdbErrorAsync(
@@ -248,7 +248,7 @@ namespace FoundationDB.Client.Tests
 			// Writes about 5 MB of stuff in 100k chunks
 			for (int i = 0; i < 50; i++)
 			{
-				tr.Set(subspace[i], Slice.Random(rnd, 100 * 1000));
+				tr.Set(subspace.GetKey(i), Slice.Random(rnd, 100 * 1000));
 			}
 
 			// start commiting
@@ -289,7 +289,7 @@ namespace FoundationDB.Client.Tests
 			// Writes about 5 MB of stuff in 100k chunks
 			for (int i = 0; i < 50; i++)
 			{
-				tr.Set(subspace[i], Slice.Random(rnd, 100 * 1000));
+				tr.Set(subspace.GetKey(i), Slice.Random(rnd, 100 * 1000));
 			}
 
 			// start commiting with a cancellation token
@@ -340,9 +340,9 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				tr.Set(subspace["hello"], Text("World!"));
-				tr.Set(subspace["timestamp"], Slice.FromInt64(ticks));
-				tr.Set(subspace["blob"], new byte[] { 42, 123, 7 }.AsSlice());
+				tr.Set(subspace.Encode("hello"), Text("World!"));
+				tr.Set(subspace.Encode("timestamp"), Slice.FromInt64(ticks));
+				tr.Set(subspace.Encode("blob"), new byte[] { 42, 123, 7 }.AsSlice());
 
 				await tr.CommitAsync();
 
@@ -359,17 +359,17 @@ namespace FoundationDB.Client.Tests
 				Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
 
 				{
-					var bytes = await tr.GetAsync(subspace["hello"]); // => 1007 "past_version"
+					var bytes = await tr.GetAsync(subspace.Encode("hello")); // => 1007 "past_version"
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(Encoding.UTF8.GetString(bytes.Array, bytes.Offset, bytes.Count), Is.EqualTo("World!"));
 				}
 				{
-					var bytes = await tr.GetAsync(subspace["timestamp"]);
+					var bytes = await tr.GetAsync(subspace.Encode("timestamp"));
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(bytes.ToInt64(), Is.EqualTo(ticks));
 				}
 				{
-					var bytes = await tr.GetAsync(subspace["blob"]);
+					var bytes = await tr.GetAsync(subspace.Encode("blob"));
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(bytes.Array, Is.EqualTo(new byte[] { 42, 123, 7 }));
 				}
@@ -402,9 +402,9 @@ namespace FoundationDB.Client.Tests
 
 				tr.Set(subspace.GetKey("hello"), FdbValue.ToTextUtf8("World!"));
 				tr.Set(subspace.GetKey("timestamp"), FdbValue.ToCompactLittleEndian(ticks));
-				tr.Set(subspace.GetKey("uuid"), FdbValue.ToUuid128(uuid));
-				tr.Set(subspace.GetKey("tuple"), FdbValue.ToTuple("hello", 123, true, "world"));
-				tr.Set(subspace.GetKey("blob"), FdbValue.ToBytes([ 42, 123, 7 ]));
+				tr.Set(subspace.GetKey("uuid"), uuid);
+				tr.Set(subspace.GetKey("tuple"), STuple.Create("hello", 123, true, "world"));
+				tr.Set(subspace.GetKey("blob"), [ 42, 123, 7 ]);
 
 				await tr.CommitAsync();
 
@@ -542,7 +542,7 @@ namespace FoundationDB.Client.Tests
 				tr.Set(subspace.Append(FdbKey.MinValue), Text("min"));
 				for (int i = 0; i < 20; i++)
 				{
-					tr.Set(subspace[i], Text(i.ToString()));
+					tr.Set(subspace.GetKey(i), Text(i.ToString()));
 				}
 
 				tr.Set(subspace.Append(FdbKey.MaxValue), Text("max"));
@@ -560,43 +560,43 @@ namespace FoundationDB.Client.Tests
 				KeySelector sel;
 
 				// >= 0
-				sel = KeySelector.FirstGreaterOrEqual(subspace[0]);
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace[0]), "fGE(0) should return 0");
+				sel = KeySelector.FirstGreaterOrEqual(subspace.Encode(0));
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Encode(0)), "fGE(0) should return 0");
 				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Append(FdbKey.MinValue)), "fGE(0)-1 should return minKey");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace[1]), "fGE(0)+1 should return 1");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(1)), "fGE(0)+1 should return 1");
 
 				// > 0
-				sel = KeySelector.FirstGreaterThan(subspace[0]);
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace[1]), "fGT(0) should return 1");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace[0]), "fGT(0)-1 should return 0");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace[2]), "fGT(0)+1 should return 2");
+				sel = KeySelector.FirstGreaterThan(subspace.Encode(0));
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Encode(1)), "fGT(0) should return 1");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(0)), "fGT(0)-1 should return 0");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(2)), "fGT(0)+1 should return 2");
 
 				// <= 10
-				sel = KeySelector.LastLessOrEqual(subspace[10]);
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace[10]), "lLE(10) should return 10");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace[9]), "lLE(10)-1 should return 9");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace[11]), "lLE(10)+1 should return 11");
+				sel = KeySelector.LastLessOrEqual(subspace.Encode(10));
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Encode(10)), "lLE(10) should return 10");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(9)), "lLE(10)-1 should return 9");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(11)), "lLE(10)+1 should return 11");
 
 				// < 10
-				sel = KeySelector.LastLessThan(subspace[10]);
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace[9]), "lLT(10) should return 9");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace[8]), "lLT(10)-1 should return 8");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace[10]), "lLT(10)+1 should return 10");
+				sel = KeySelector.LastLessThan(subspace.Encode(10));
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Encode(9)), "lLT(10) should return 9");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(8)), "lLT(10)-1 should return 8");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(10)), "lLT(10)+1 should return 10");
 
 				// < 0
-				sel = KeySelector.LastLessThan(subspace[0]);
+				sel = KeySelector.LastLessThan(subspace.Encode(0));
 				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MinValue)), "lLT(0) should return minKey");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace[0]), "lLT(0)+1 should return 0");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(0)), "lLT(0)+1 should return 0");
 
 				// >= 20
-				sel = KeySelector.FirstGreaterOrEqual(subspace[20]);
+				sel = KeySelector.FirstGreaterOrEqual(subspace.Encode(20));
 				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MaxValue)), "fGE(20) should return maxKey");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace[19]), "fGE(20)-1 should return 19");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(19)), "fGE(20)-1 should return 19");
 
 				// > 19
-				sel = KeySelector.FirstGreaterThan(subspace[19]);
+				sel = KeySelector.FirstGreaterThan(subspace.Encode(19));
 				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MaxValue)), "fGT(19) should return maxKey");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace[19]), "fGT(19)-1 should return 19");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(19)), "fGT(19)-1 should return 19");
 			}
 		}
 
@@ -686,7 +686,7 @@ namespace FoundationDB.Client.Tests
 
 				for (int i = 0; i < ids.Length; i++)
 				{
-					tr.Set(subspace[i], Text("#" + i.ToString()));
+					tr.Set(subspace.Encode(i), Text($"Value of #{i}"));
 				}
 
 				await tr.CommitAsync();
@@ -707,7 +707,7 @@ namespace FoundationDB.Client.Tests
 
 				for (int i = 0; i < ids.Length; i++)
 				{
-					Assert.That(results[i].ToString(), Is.EqualTo("#" + ids[i].ToString()));
+					Assert.That(results[i].ToString(), Is.EqualTo($"Value of #{ids[i]}"));
 				}
 			}
 		}
@@ -959,7 +959,7 @@ namespace FoundationDB.Client.Tests
 				tr.Set(subspace.Append(FdbKey.MinValue), Text("min"));
 				for (int i = 0; i < 20; i++)
 				{
-					tr.Set(subspace[i], Text(i.ToString()));
+					tr.Set(subspace.Encode(i), Text(i.ToString()));
 				}
 
 				tr.Set(subspace.Append(FdbKey.MaxValue), Text("max"));
@@ -976,7 +976,7 @@ namespace FoundationDB.Client.Tests
 
 				var selectors = Enumerable
 					.Range(0, N)
-					.Select((i) => KeySelector.FirstGreaterOrEqual(subspace[i]))
+					.Select((i) => KeySelector.FirstGreaterOrEqual(subspace.Encode(i)))
 					.ToArray();
 
 				// GetKeysAsync([])
@@ -985,7 +985,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(results.Length, Is.EqualTo(20));
 				for (int i = 0; i < N; i++)
 				{
-					Assert.That(results[i], Is.EqualTo(subspace[i]));
+					Assert.That(results[i], Is.EqualTo(subspace.Encode(i)));
 				}
 
 				// GetKeysAsync(cast to enumerable)
@@ -1011,8 +1011,8 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace["hello"], Text("World!"));
-				tr.Set(subspace["foo"], Slice.Empty);
+				tr.Set(subspace.Encode("hello"), Text("World!"));
+				tr.Set(subspace.Encode("foo"), Slice.Empty);
 			}, this.Cancellation);
 
 			async Task Check(IFdbReadOnlyTransaction tr, Slice key, Slice expected, FdbValueCheckResult result, Slice actual)
@@ -1030,10 +1030,10 @@ namespace FoundationDB.Client.Tests
 				var subspace = await location.Resolve(tr);
 
 				// hello should only be equal to 'World!', not any other value, empty or nil
-				await Check(tr, subspace["hello"], Text("World!"), FdbValueCheckResult.Success, Text("World!"));
-				await Check(tr, subspace["hello"], Text("Le Monde!"), FdbValueCheckResult.Failed, Text("World!"));
-				await Check(tr, subspace["hello"], Slice.Nil, FdbValueCheckResult.Failed, Text("World!"));
-				await Check(tr, subspace["hello"], subspace["hello"], FdbValueCheckResult.Failed, Text("World!"));
+				await Check(tr, subspace.Encode("hello"), Text("World!"), FdbValueCheckResult.Success, Text("World!"));
+				await Check(tr, subspace.Encode("hello"), Text("Le Monde!"), FdbValueCheckResult.Failed, Text("World!"));
+				await Check(tr, subspace.Encode("hello"), Slice.Nil, FdbValueCheckResult.Failed, Text("World!"));
+				await Check(tr, subspace.Encode("hello"), subspace.Encode("hello"), FdbValueCheckResult.Failed, Text("World!"));
 			}
 
 			// foo should only be equal to Empty, *not* Nil or any other value
@@ -1041,10 +1041,10 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				await Check(tr, subspace["foo"], Slice.Empty, FdbValueCheckResult.Success, Slice.Empty);
-				await Check(tr, subspace["foo"], Text("bar"), FdbValueCheckResult.Failed, Slice.Empty);
-				await Check(tr, subspace["foo"], Slice.Nil, FdbValueCheckResult.Failed, Slice.Empty);
-				await Check(tr, subspace["foo"], subspace["foo"], FdbValueCheckResult.Failed, Slice.Empty);
+				await Check(tr, subspace.Encode("foo"), Slice.Empty, FdbValueCheckResult.Success, Slice.Empty);
+				await Check(tr, subspace.Encode("foo"), Text("bar"), FdbValueCheckResult.Failed, Slice.Empty);
+				await Check(tr, subspace.Encode("foo"), Slice.Nil, FdbValueCheckResult.Failed, Slice.Empty);
+				await Check(tr, subspace.Encode("foo"), subspace.Encode("foo"), FdbValueCheckResult.Failed, Slice.Empty);
 			}
 
 			// not_found should only be equal to Nil, *not* Empty or any other value
@@ -1052,9 +1052,9 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				await Check(tr, subspace["not_found"], Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
-				await Check(tr, subspace["not_found"], Slice.Empty, FdbValueCheckResult.Failed, Slice.Nil);
-				await Check(tr, subspace["not_found"], subspace["not_found"], FdbValueCheckResult.Failed, Slice.Nil);
+				await Check(tr, subspace.Encode("not_found"), Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
+				await Check(tr, subspace.Encode("not_found"), Slice.Empty, FdbValueCheckResult.Failed, Slice.Nil);
+				await Check(tr, subspace.Encode("not_found"), subspace.Encode("not_found"), FdbValueCheckResult.Failed, Slice.Nil);
 			}
 
 			// checking, changing and checking again: 2nd check should see the modified value!
@@ -1063,16 +1063,16 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				await Check(tr, subspace["hello"], Text("World!"), FdbValueCheckResult.Success, Text("World!"));
-				await Check(tr, subspace["not_found"], Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
+				await Check(tr, subspace.Encode("hello"), Text("World!"), FdbValueCheckResult.Success, Text("World!"));
+				await Check(tr, subspace.Encode("not_found"), Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
 
-				tr.Set(subspace["hello"], Text("Le Monde!"));
-				await Check(tr, subspace["hello"], Text("Le Monde!"), FdbValueCheckResult.Success, Text("Le Monde!"));
-				await Check(tr, subspace["hello"], Text("World!"), FdbValueCheckResult.Failed, Text("Le Monde!"));
+				tr.Set(subspace.Encode("hello"), Text("Le Monde!"));
+				await Check(tr, subspace.Encode("hello"), Text("Le Monde!"), FdbValueCheckResult.Success, Text("Le Monde!"));
+				await Check(tr, subspace.Encode("hello"), Text("World!"), FdbValueCheckResult.Failed, Text("Le Monde!"));
 
-				tr.Set(subspace["not_found"], Text("Surprise!"));
-				await Check(tr, subspace["not_found"], Text("Surprise!"), FdbValueCheckResult.Success, Text("Surprise!"));
-				await Check(tr, subspace["not_found"], Slice.Nil, FdbValueCheckResult.Failed, Text("Surprise!"));
+				tr.Set(subspace.Encode("not_found"), Text("Surprise!"));
+				await Check(tr, subspace.Encode("not_found"), Text("Surprise!"), FdbValueCheckResult.Success, Text("Surprise!"));
+				await Check(tr, subspace.Encode("not_found"), Slice.Nil, FdbValueCheckResult.Failed, Text("Surprise!"));
 
 				//note: don't commit!
 			}
@@ -1104,10 +1104,10 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				tr.Set(subspace["hello"], Text("World!"));
-				tr.Set(subspace["timestamp"], Slice.FromInt64(ticks));
-				tr.Set(subspace["blob"], rnd);
-				tr.Set(subspace["json"], """{ "hello": "world", "foo": "bar", "level": 9001 }"""u8);
+				tr.Set(subspace.Encode("hello"), Text("World!"));
+				tr.Set(subspace.Encode("timestamp"), Slice.FromInt64(ticks));
+				tr.Set(subspace.Encode("blob"), rnd);
+				tr.Set(subspace.Encode("json"), """{ "hello": "world", "foo": "bar", "level": 9001 }"""u8);
 
 			}, this.Cancellation);
 
@@ -1116,7 +1116,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var res = await Read((tr, subspace) =>
 					tr.GetAsync(
-						subspace["hello"],
+						subspace.Encode("hello"),
 						(buffer, exists) => exists ? buffer.ToStringUtf8() : "<not_found>"
 					)
 				);
@@ -1125,7 +1125,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var res = await Read((tr, subspace) =>
 					tr.GetAsync(
-						subspace["hello"], "some_state",
+						subspace.Encode("hello"), "some_state",
 						(state, buffer, exists) => exists ? state + ":" + buffer.ToStringUtf8() : "<not_found>"
 					)
 				);
@@ -1134,7 +1134,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var res = await Read((tr, subspace) =>
 					tr.GetAsync(
-						subspace["json"],
+						subspace.Encode("json"),
 						(buffer, exists) => exists ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(buffer) : null
 					)
 				);
@@ -1275,13 +1275,13 @@ namespace FoundationDB.Client.Tests
 				Log("resolving...");
 				var subspace = await location.Resolve(tr);
 				Log(subspace);
-				tr.SetValueInt32(subspace.GetKey("AAA"), 0);
-				tr.SetValueInt32(subspace.GetKey("BBB"), 1);
-				tr.SetValueInt32(subspace.GetKey("CCC"), 43);
-				tr.SetValueInt32(subspace.GetKey("DDD"), 255);
+				tr.Set(subspace.GetKey("AAA"), FdbValue.ToFixed32LittleEndian(0));
+				tr.Set(subspace.GetKey("BBB"), FdbValue.ToFixed32LittleEndian(1));
+				tr.Set(subspace.GetKey("CCC"), FdbValue.ToFixed32LittleEndian(43));
+				tr.Set(subspace.GetKey("DDD"), FdbValue.ToFixed32LittleEndian(255));
 				//EEE does not exist
-				tr.SetValueInt32(subspace.GetKey("FFF"), 0x5A5A5A5A);
-				tr.SetValueInt32(subspace.GetKey("GGG"), -1);
+				tr.Set(subspace.GetKey("FFF"), FdbValue.ToFixed32LittleEndian(0x5A5A5A5A));
+				tr.Set(subspace.GetKey("GGG"), FdbValue.ToFixed32LittleEndian(-1));
 				//HHH does not exist
 			}, this.Cancellation);
 
@@ -1303,14 +1303,14 @@ namespace FoundationDB.Client.Tests
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.EqualTo(1));
-				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(43));
-				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.EqualTo(42));
-				Assert.That((await tr.GetValueInt32Async(subspace["DDD"])), Is.EqualTo(297));
-				Assert.That((await tr.GetValueInt32Async(subspace["EEE"])), Is.EqualTo(42));
-				Assert.That((await tr.GetValueInt32Async(subspace["FFF"])), Is.EqualTo(-1));
-				Assert.That((await tr.GetValueInt32Async(subspace["GGG"])), Is.EqualTo(0));
-				Assert.That((await tr.GetValueInt32Async(subspace["HHH"])), Is.EqualTo(-1));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("AAA"))), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("BBB"))), Is.EqualTo(43));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("CCC"))), Is.EqualTo(42));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("DDD"))), Is.EqualTo(297));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("EEE"))), Is.EqualTo(42));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("FFF"))), Is.EqualTo(-1));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("GGG"))), Is.EqualTo(0));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("HHH"))), Is.EqualTo(-1));
 			}, this.Cancellation);
 		}
 
@@ -1327,36 +1327,36 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.SetValueInt32(subspace["AAA"], 0);
-				tr.SetValueInt32(subspace["BBB"], 1);
-				tr.SetValueInt32(subspace["CCC"], 42);
-				tr.SetValueInt32(subspace["DDD"], 255);
+				tr.Set(subspace.GetKey("AAA"), FdbValue.ToFixed32LittleEndian(0));
+				tr.Set(subspace.GetKey("BBB"), FdbValue.ToFixed32LittleEndian(1));
+				tr.Set(subspace.GetKey("CCC"), FdbValue.ToFixed32LittleEndian(42));
+				tr.Set(subspace.GetKey("DDD"), FdbValue.ToFixed32LittleEndian(255));
 				// EEE does not exist
-				tr.SetValueInt32(subspace["FFF"], -1);
+				tr.Set(subspace.GetKey("FFF"), FdbValue.ToFixed32LittleEndian(-1));
 			}, this.Cancellation);
 
 			// execute
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.AtomicIncrement32(subspace["AAA"]);
-				tr.AtomicIncrement32(subspace["BBB"]);
-				tr.AtomicIncrement32(subspace["CCC"]);
-				tr.AtomicIncrement32(subspace["DDD"]);
-				tr.AtomicIncrement32(subspace["EEE"]);
-				tr.AtomicIncrement32(subspace["FFF"]);
+				tr.AtomicIncrement32(subspace.GetKey("AAA"));
+				tr.AtomicIncrement32(subspace.GetKey("BBB"));
+				tr.AtomicIncrement32(subspace.GetKey("CCC"));
+				tr.AtomicIncrement32(subspace.GetKey("DDD"));
+				tr.AtomicIncrement32(subspace.GetKey("EEE"));
+				tr.AtomicIncrement32(subspace.GetKey("FFF"));
 			}, this.Cancellation);
 
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.EqualTo(1));
-				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(2));
-				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.EqualTo(43));
-				Assert.That((await tr.GetValueInt32Async(subspace["DDD"])), Is.EqualTo(256));
-				Assert.That((await tr.GetValueInt32Async(subspace["EEE"])), Is.EqualTo(1));
-				Assert.That((await tr.GetValueInt32Async(subspace["FFF"])), Is.EqualTo(0));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("AAA"))), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("BBB"))), Is.EqualTo(2));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("CCC"))), Is.EqualTo(43));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("DDD"))), Is.EqualTo(256));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("EEE"))), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("FFF"))), Is.EqualTo(0));
 			}, this.Cancellation);
 		}
 
@@ -1373,13 +1373,13 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.SetValueInt64(subspace["AAA"], 0);
-				tr.SetValueInt64(subspace["BBB"], 1);
-				tr.SetValueInt64(subspace["CCC"], 43);
-				tr.SetValueInt64(subspace["DDD"], 255);
+				tr.Set(subspace.GetKey("AAA"), FdbValue.Zero64);
+				tr.Set(subspace.GetKey("BBB"), FdbValue.ToFixed64LittleEndian(1));
+				tr.Set(subspace.GetKey("CCC"), FdbValue.ToFixed64LittleEndian(43));
+				tr.Set(subspace.GetKey("DDD"), FdbValue.ToFixed64LittleEndian(255));
 				//EEE does not exist
-				tr.SetValueInt64(subspace["FFF"], 0x5A5A5A5A5A5A5A5A);
-				tr.SetValueInt64(subspace["GGG"], -1);
+				tr.Set(subspace.GetKey("FFF"), FdbValue.ToFixed64LittleEndian(0x5A5A5A5A5A5A5A5A));
+				tr.Set(subspace.GetKey("GGG"), FdbValue.ToFixed64LittleEndian(-1));
 				//HHH does not exist
 			}, this.Cancellation);
 
@@ -1387,28 +1387,28 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.AtomicAdd64(subspace["AAA"], 1);
-				tr.AtomicAdd64(subspace["BBB"], 42);
-				tr.AtomicAdd64(subspace["CCC"], -1);
-				tr.AtomicAdd64(subspace["DDD"], 42);
-				tr.AtomicAdd64(subspace["EEE"], 42);
-				tr.AtomicAdd64(subspace["FFF"], 0xA5A5A5A5A5A5A5A5);
-				tr.AtomicAdd64(subspace["GGG"], 1);
-				tr.AtomicAdd64(subspace["HHH"], ulong.MaxValue);
+				tr.AtomicAdd64(subspace.GetKey("AAA"), 1);
+				tr.AtomicAdd64(subspace.GetKey("BBB"), 42);
+				tr.AtomicAdd64(subspace.GetKey("CCC"), -1);
+				tr.AtomicAdd64(subspace.GetKey("DDD"), 42);
+				tr.AtomicAdd64(subspace.GetKey("EEE"), 42);
+				tr.AtomicAdd64(subspace.GetKey("FFF"), 0xA5A5A5A5A5A5A5A5);
+				tr.AtomicAdd64(subspace.GetKey("GGG"), 1);
+				tr.AtomicAdd64(subspace.GetKey("HHH"), ulong.MaxValue);
 			}, this.Cancellation);
 
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				Assert.That((await tr.GetValueInt64Async(subspace["AAA"])), Is.EqualTo(1));
-				Assert.That((await tr.GetValueInt64Async(subspace["BBB"])), Is.EqualTo(43));
-				Assert.That((await tr.GetValueInt64Async(subspace["CCC"])), Is.EqualTo(42));
-				Assert.That((await tr.GetValueInt64Async(subspace["DDD"])), Is.EqualTo(297));
-				Assert.That((await tr.GetValueInt64Async(subspace["EEE"])), Is.EqualTo(42));
-				Assert.That((await tr.GetValueInt64Async(subspace["FFF"])), Is.EqualTo(-1));
-				Assert.That((await tr.GetValueInt64Async(subspace["GGG"])), Is.EqualTo(0));
-				Assert.That((await tr.GetValueInt64Async(subspace["HHH"])), Is.EqualTo(-1));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("AAA"))), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("BBB"))), Is.EqualTo(43));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("CCC"))), Is.EqualTo(42));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("DDD"))), Is.EqualTo(297));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("EEE"))), Is.EqualTo(42));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("FFF"))), Is.EqualTo(-1));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("GGG"))), Is.EqualTo(0));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("HHH"))), Is.EqualTo(-1));
 			}, this.Cancellation);
 		}
 
@@ -1425,36 +1425,36 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.SetValueInt64(subspace["AAA"], 0);
-				tr.SetValueInt64(subspace["BBB"], 1);
-				tr.SetValueInt64(subspace["CCC"], 42);
-				tr.SetValueInt64(subspace["DDD"], 255);
+				tr.Set(subspace.GetKey("AAA"), FdbValue.ToFixed64LittleEndian(0));
+				tr.Set(subspace.GetKey("BBB"), FdbValue.ToFixed64LittleEndian(1));
+				tr.Set(subspace.GetKey("CCC"), FdbValue.ToFixed64LittleEndian(42));
+				tr.Set(subspace.GetKey("DDD"), FdbValue.ToFixed64LittleEndian(255));
 				//EEE does not exist
-				tr.SetValueInt64(subspace["FFF"], -1);
+				tr.Set(subspace.GetKey("FFF"), FdbValue.ToFixed64LittleEndian(-1));
 			}, this.Cancellation);
 
 			// execute
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.AtomicIncrement64(subspace["AAA"]);
-				tr.AtomicIncrement64(subspace["BBB"]);
-				tr.AtomicIncrement64(subspace["CCC"]);
-				tr.AtomicIncrement64(subspace["DDD"]);
-				tr.AtomicIncrement64(subspace["EEE"]);
-				tr.AtomicIncrement64(subspace["FFF"]);
+				tr.AtomicIncrement64(subspace.GetKey("AAA"));
+				tr.AtomicIncrement64(subspace.GetKey("BBB"));
+				tr.AtomicIncrement64(subspace.GetKey("CCC"));
+				tr.AtomicIncrement64(subspace.GetKey("DDD"));
+				tr.AtomicIncrement64(subspace.GetKey("EEE"));
+				tr.AtomicIncrement64(subspace.GetKey("FFF"));
 			}, this.Cancellation);
 
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				Assert.That((await tr.GetValueInt64Async(subspace["AAA"])), Is.EqualTo(1));
-				Assert.That((await tr.GetValueInt64Async(subspace["BBB"])), Is.EqualTo(2));
-				Assert.That((await tr.GetValueInt64Async(subspace["CCC"])), Is.EqualTo(43));
-				Assert.That((await tr.GetValueInt64Async(subspace["DDD"])), Is.EqualTo(256));
-				Assert.That((await tr.GetValueInt64Async(subspace["EEE"])), Is.EqualTo(1));
-				Assert.That((await tr.GetValueInt64Async(subspace["FFF"])), Is.EqualTo(0));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("AAA"))), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("BBB"))), Is.EqualTo(2));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("CCC"))), Is.EqualTo(43));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("DDD"))), Is.EqualTo(256));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("EEE"))), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("FFF"))), Is.EqualTo(0));
 			}, this.Cancellation);
 		}
 
@@ -1471,11 +1471,11 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.SetValueInt32(subspace["AAA"], 0);
-				tr.SetValueInt32(subspace["BBB"], 1);
-				tr.SetValueInt32(subspace["CCC"], 42);
-				tr.SetValueInt64(subspace["DDD"], 0);
-				tr.SetValueInt64(subspace["EEE"], 1);
+				tr.Set(subspace.GetKey("AAA"), FdbValue.ToFixed32LittleEndian(0));
+				tr.Set(subspace.GetKey("BBB"), FdbValue.ToFixed32LittleEndian(1));
+				tr.Set(subspace.GetKey("CCC"), FdbValue.ToFixed32LittleEndian(42));
+				tr.Set(subspace.GetKey("DDD"), FdbValue.ToFixed64LittleEndian(0));
+				tr.Set(subspace.GetKey("EEE"), FdbValue.ToFixed64LittleEndian(1));
 				//FFF does not exist
 			}, this.Cancellation);
 
@@ -1483,24 +1483,24 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.AtomicCompareAndClear(subspace["AAA"], Slice.FromFixed32(0));  // should be cleared
-				tr.AtomicCompareAndClear(subspace["BBB"], Slice.FromFixed32(0));  // should not be touched
-				tr.AtomicCompareAndClear(subspace["CCC"], Slice.FromFixed32(42)); // should be cleared
-				tr.AtomicCompareAndClear(subspace["DDD"], Slice.FromFixed64(0));  // should be cleared
-				tr.AtomicCompareAndClear(subspace["EEE"], Slice.FromFixed64(0));  // should not be touched
-				tr.AtomicCompareAndClear(subspace["FFF"], Slice.FromFixed64(42)); // should not be created
+				tr.AtomicCompareAndClear(subspace.GetKey("AAA"), Slice.FromFixed32(0));  // should be cleared
+				tr.AtomicCompareAndClear(subspace.GetKey("BBB"), Slice.FromFixed32(0));  // should not be touched
+				tr.AtomicCompareAndClear(subspace.GetKey("CCC"), Slice.FromFixed32(42)); // should be cleared
+				tr.AtomicCompareAndClear(subspace.GetKey("DDD"), Slice.FromFixed64(0));  // should be cleared
+				tr.AtomicCompareAndClear(subspace.GetKey("EEE"), Slice.FromFixed64(0));  // should not be touched
+				tr.AtomicCompareAndClear(subspace.GetKey("FFF"), Slice.FromFixed64(42)); // should not be created
 			}, this.Cancellation);
 
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				Assert.That((await tr.GetValueInt32Async(subspace["AAA"])), Is.Null);
-				Assert.That((await tr.GetValueInt32Async(subspace["BBB"])), Is.EqualTo(1));
-				Assert.That((await tr.GetValueInt32Async(subspace["CCC"])), Is.Null);
-				Assert.That((await tr.GetValueInt64Async(subspace["DDD"])), Is.Null);
-				Assert.That((await tr.GetValueInt64Async(subspace["EEE"])), Is.EqualTo(1));
-				Assert.That((await tr.GetValueInt64Async(subspace["FFF"])), Is.Null);
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("AAA"))), Is.Null);
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("BBB"))), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt32Async(subspace.GetKey("CCC"))), Is.Null);
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("DDD"))), Is.Null);
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("EEE"))), Is.EqualTo(1));
+				Assert.That((await tr.GetValueInt64Async(subspace.GetKey("FFF"))), Is.Null);
 			}, this.Cancellation);
 		}
 
@@ -1515,10 +1515,10 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace["AAA"], Slice.Empty);
-				tr.Set(subspace["BBB"], Slice.Repeat('B', 10));
-				tr.Set(subspace["CCC"], Slice.Repeat('C', 90_000));
-				tr.Set(subspace["DDD"], Slice.Repeat('D', 100_000));
+				tr.Set(subspace.GetKey("AAA"), Slice.Empty);
+				tr.Set(subspace.GetKey("BBB"), Slice.Repeat('B', 10));
+				tr.Set(subspace.GetKey("CCC"), Slice.Repeat('C', 90_000));
+				tr.Set(subspace.GetKey("DDD"), Slice.Repeat('D', 100_000));
 				//EEE does not exist
 			}, this.Cancellation);
 
@@ -1528,23 +1528,23 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.AtomicAppendIfFits(subspace["AAA"], Text("Hello, World!"));
-				tr.AtomicAppendIfFits(subspace["BBB"], Text("Hello"));
-				tr.AtomicAppendIfFits(subspace["BBB"], Text(", World!"));
-				tr.AtomicAppendIfFits(subspace["CCC"], Slice.Repeat('c', 10_000)); // should just fit exactly!
-				tr.AtomicAppendIfFits(subspace["DDD"], Text("!")); // should not fit!
-				tr.AtomicAppendIfFits(subspace["EEE"], Text("Hello, World!"));
+				tr.AtomicAppendIfFits(subspace.GetKey("AAA"), Text("Hello, World!"));
+				tr.AtomicAppendIfFits(subspace.GetKey("BBB"), Text("Hello"));
+				tr.AtomicAppendIfFits(subspace.GetKey("BBB"), Text(", World!"));
+				tr.AtomicAppendIfFits(subspace.GetKey("CCC"), Slice.Repeat('c', 10_000)); // should just fit exactly!
+				tr.AtomicAppendIfFits(subspace.GetKey("DDD"), Text("!")); // should not fit!
+				tr.AtomicAppendIfFits(subspace.GetKey("EEE"), Text("Hello, World!"));
 			}, this.Cancellation);
 
 			// check
 			await db.ReadAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				Assert.That((await tr.GetAsync(subspace["AAA"])).ToString(), Is.EqualTo("Hello, World!"));
-				Assert.That((await tr.GetAsync(subspace["BBB"])).ToString(), Is.EqualTo("BBBBBBBBBBHello, World!"));
-				Assert.That((await tr.GetAsync(subspace["CCC"])), Is.EqualTo(Slice.Repeat('C', 90_000) + Slice.Repeat('c', 10_000)));
-				Assert.That((await tr.GetAsync(subspace["DDD"])), Is.EqualTo(Slice.Repeat('D', 100_000)));
-				Assert.That((await tr.GetAsync(subspace["EEE"])).ToString(), Is.EqualTo("Hello, World!"));
+				Assert.That((await tr.GetAsync(subspace.GetKey("AAA"))).ToString(), Is.EqualTo("Hello, World!"));
+				Assert.That((await tr.GetAsync(subspace.GetKey("BBB"))).ToString(), Is.EqualTo("BBBBBBBBBBHello, World!"));
+				Assert.That((await tr.GetAsync(subspace.GetKey("CCC"))), Is.EqualTo(Slice.Repeat('C', 90_000) + Slice.Repeat('c', 10_000)));
+				Assert.That((await tr.GetAsync(subspace.GetKey("DDD"))), Is.EqualTo(Slice.Repeat('D', 100_000)));
+				Assert.That((await tr.GetAsync(subspace.GetKey("EEE"))).ToString(), Is.EqualTo("Hello, World!"));
 			}, this.Cancellation);
 		}
 
@@ -1561,8 +1561,8 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace["hello"], Text("World!"));
-				tr.Set(subspace["foo"], Text("bar"));
+				tr.Set(subspace.GetKey("hello"), Text("World!"));
+				tr.Set(subspace.GetKey("foo"), Text("bar"));
 			}, this.Cancellation);
 
 			// read them using snapshot
@@ -1572,10 +1572,10 @@ namespace FoundationDB.Client.Tests
 
 				Slice bytes;
 
-				bytes = await tr.Snapshot.GetAsync(subspace["hello"]);
+				bytes = await tr.Snapshot.GetAsync(subspace.GetKey("hello"));
 				Assert.That(bytes.ToUnicode(), Is.EqualTo("World!"));
 
-				bytes = await tr.Snapshot.GetAsync(subspace["foo"]);
+				bytes = await tr.Snapshot.GetAsync(subspace.GetKey("foo"));
 				Assert.That(bytes.ToUnicode(), Is.EqualTo("bar"));
 			}
 		}
@@ -1684,7 +1684,7 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace["foo"], Text("foo"));
+				tr.Set(subspace.GetKey("foo"), Text("foo"));
 			}, this.Cancellation);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1696,11 +1696,11 @@ namespace FoundationDB.Client.Tests
 			var subspaceB = await location.Resolve(trB);
 
 			// regular read
-			_ = await trA.GetAsync(subspaceA["foo"]);
-			trA.Set(subspaceA["foo"], Text("bar"));
+			_ = await trA.GetAsync(subspaceA.GetKey("foo"));
+			trA.Set(subspaceA.GetKey("foo"), Text("bar"));
 
 			// this will conflict with our read
-			trB.Set(subspaceB["foo"], Text("bar"));
+			trB.Set(subspaceB.GetKey("foo"), Text("bar"));
 			await trB.CommitAsync();
 
 			// should fail with a "not_comitted" error
@@ -1725,7 +1725,7 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace["foo"], Text("foo"));
+				tr.Set(subspace.GetKey("foo"), Text("foo"));
 			}, this.Cancellation);
 
 			using var trA = db.BeginTransaction(this.Cancellation);
@@ -1735,11 +1735,11 @@ namespace FoundationDB.Client.Tests
 			var subspaceB = await location.Resolve(trB);
 
 			// reading with snapshot mode should not conflict
-			_ = await trA.Snapshot.GetAsync(subspaceA["foo"]);
-			trA.Set(subspaceA["foo"], Text("bar"));
+			_ = await trA.Snapshot.GetAsync(subspaceA.GetKey("foo"));
+			trA.Set(subspaceA.GetKey("foo"), Text("bar"));
 
 			// this would normally conflict with the previous read if it wasn't a snapshot read
-			trB.Set(subspaceB["foo"], Text("bar"));
+			trB.Set(subspaceB.GetKey("foo"), Text("bar"));
 			await trB.CommitAsync();
 
 			// should succeed
@@ -2103,10 +2103,10 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace["A"], Text("a"));
-				tr.Set(subspace["B"], Text("b"));
-				tr.Set(subspace["C"], Text("c"));
-				tr.Set(subspace["D"], Text("d"));
+				tr.Set(subspace.GetKey("A"), Text("a"));
+				tr.Set(subspace.GetKey("B"), Text("b"));
+				tr.Set(subspace.GetKey("C"), Text("c"));
+				tr.Set(subspace.GetKey("D"), Text("d"));
 			}, this.Cancellation);
 
 			Log("Initial db state:");
@@ -2119,25 +2119,25 @@ namespace FoundationDB.Client.Tests
 				var subspace = await location.Resolve(tr);
 
 				// check initial state
-				Assert.That((await tr.GetAsync(subspace["A"])).ToStringUtf8(), Is.EqualTo("a"));
-				Assert.That((await tr.GetAsync(subspace["B"])).ToStringUtf8(), Is.EqualTo("b"));
-				Assert.That((await tr.Snapshot.GetAsync(subspace["C"])).ToStringUtf8(), Is.EqualTo("c"));
-				Assert.That((await tr.Snapshot.GetAsync(subspace["D"])).ToStringUtf8(), Is.EqualTo("d"));
+				Assert.That((await tr.GetAsync(subspace.GetKey("A"))).ToStringUtf8(), Is.EqualTo("a"));
+				Assert.That((await tr.GetAsync(subspace.GetKey("B"))).ToStringUtf8(), Is.EqualTo("b"));
+				Assert.That((await tr.Snapshot.GetAsync(subspace.GetKey("C"))).ToStringUtf8(), Is.EqualTo("c"));
+				Assert.That((await tr.Snapshot.GetAsync(subspace.GetKey("D"))).ToStringUtf8(), Is.EqualTo("d"));
 
 				// mutate (not yet committed)
-				tr.Set(subspace["A"], Text("aa"));
-				tr.Set(subspace["C"], Text("cc"));
+				tr.Set(subspace.GetKey("A"), Text("aa"));
+				tr.Set(subspace.GetKey("C"), Text("cc"));
 				await db.WriteAsync((tr2) =>
 				{ // have another transaction change B and D under our nose
-					tr2.Set(subspace["B"], Text("bb"));
-					tr2.Set(subspace["D"], Text("dd"));
+					tr2.Set(subspace.GetKey("B"), Text("bb"));
+					tr2.Set(subspace.GetKey("D"), Text("dd"));
 				}, this.Cancellation);
 
 				// check what the transaction sees
-				Assert.That((await tr.GetAsync(subspace["A"])).ToStringUtf8(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
-				Assert.That((await tr.GetAsync(subspace["B"])).ToStringUtf8(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
-				Assert.That((await tr.Snapshot.GetAsync(subspace["C"])).ToStringUtf8(), Is.EqualTo("cc"), "The transaction own writes should be visible in snapshot reads");
-				Assert.That((await tr.Snapshot.GetAsync(subspace["D"])).ToStringUtf8(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
+				Assert.That((await tr.GetAsync(subspace.GetKey("A"))).ToStringUtf8(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
+				Assert.That((await tr.GetAsync(subspace.GetKey("B"))).ToStringUtf8(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
+				Assert.That((await tr.Snapshot.GetAsync(subspace.GetKey("C"))).ToStringUtf8(), Is.EqualTo("cc"), "The transaction own writes should be visible in snapshot reads");
+				Assert.That((await tr.Snapshot.GetAsync(subspace.GetKey("D"))).ToStringUtf8(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
 
 				//note: committing here would conflict
 			}
@@ -2165,10 +2165,10 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async (tr) =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace["A"], Text("a"));
-				tr.Set(subspace["B"], Text("b"));
-				tr.Set(subspace["C"], Text("c"));
-				tr.Set(subspace["D"], Text("d"));
+				tr.Set(subspace.GetKey("A"), Text("a"));
+				tr.Set(subspace.GetKey("B"), Text("b"));
+				tr.Set(subspace.GetKey("C"), Text("c"));
+				tr.Set(subspace.GetKey("D"), Text("d"));
 			}, this.Cancellation);
 
 			Log("Initial db state:");
@@ -2181,26 +2181,26 @@ namespace FoundationDB.Client.Tests
 				tr.Options.WithSnapshotReadYourWritesDisable();
 
 				// check initial state
-				Assert.That((await tr.GetAsync(subspace["A"])).ToStringUtf8(), Is.EqualTo("a"));
-				Assert.That((await tr.GetAsync(subspace["B"])).ToStringUtf8(), Is.EqualTo("b"));
-				Assert.That((await tr.Snapshot.GetAsync(subspace["C"])).ToStringUtf8(), Is.EqualTo("c"));
-				Assert.That((await tr.Snapshot.GetAsync(subspace["D"])).ToStringUtf8(), Is.EqualTo("d"));
+				Assert.That((await tr.GetAsync(subspace.GetKey("A"))).ToStringUtf8(), Is.EqualTo("a"));
+				Assert.That((await tr.GetAsync(subspace.GetKey("B"))).ToStringUtf8(), Is.EqualTo("b"));
+				Assert.That((await tr.Snapshot.GetAsync(subspace.GetKey("C"))).ToStringUtf8(), Is.EqualTo("c"));
+				Assert.That((await tr.Snapshot.GetAsync(subspace.GetKey("D"))).ToStringUtf8(), Is.EqualTo("d"));
 
 				// mutate (not yet committed)
-				tr.Set(subspace["A"], Text("aa"));
-				tr.Set(subspace["C"], Text("cc"));
+				tr.Set(subspace.GetKey("A"), Text("aa"));
+				tr.Set(subspace.GetKey("C"), Text("cc"));
 				await db.WriteAsync((tr2) =>
 				{ // have another transaction change B and D under our nose
-					tr2.Set(subspace["B"], Text("bb"));
-					tr2.Set(subspace["D"], Text("dd"));
+					tr2.Set(subspace.GetKey("B"), Text("bb"));
+					tr2.Set(subspace.GetKey("D"), Text("dd"));
 				}, this.Cancellation);
 
 				// check what the transaction sees
-				Assert.That((await tr.GetAsync(subspace["A"])).ToStringUtf8(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
-				Assert.That((await tr.GetAsync(subspace["B"])).ToStringUtf8(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
+				Assert.That((await tr.GetAsync(subspace.GetKey("A"))).ToStringUtf8(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
+				Assert.That((await tr.GetAsync(subspace.GetKey("B"))).ToStringUtf8(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
 				//FAIL: test fails here because we read "CC" ??
-				Assert.That((await tr.Snapshot.GetAsync(subspace["C"])).ToStringUtf8(), Is.EqualTo("c"), "The transaction own writes should not change the value of snapshot reads");
-				Assert.That((await tr.Snapshot.GetAsync(subspace["D"])).ToStringUtf8(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
+				Assert.That((await tr.Snapshot.GetAsync(subspace.GetKey("C"))).ToStringUtf8(), Is.EqualTo("c"), "The transaction own writes should not change the value of snapshot reads");
+				Assert.That((await tr.Snapshot.GetAsync(subspace.GetKey("D"))).ToStringUtf8(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
 
 				//note: committing here would conflict
 			}
@@ -2308,7 +2308,7 @@ namespace FoundationDB.Client.Tests
 			using (var tr1 = db.BeginTransaction(this.Cancellation))
 			{
 				var subspace = await location.Resolve(tr1);
-				tr1.Set(subspace["concurrent"], Slice.FromByte(1));
+				tr1.Set(subspace.GetKey("concurrent"), Slice.FromByte(1));
 				await tr1.CommitAsync();
 
 				// get this version
@@ -2319,7 +2319,7 @@ namespace FoundationDB.Client.Tests
 			using (var tr2 = db.BeginTransaction(this.Cancellation))
 			{
 				var subspace = await location.Resolve(tr2);
-				tr2.Set(subspace["concurrent"], Slice.FromByte(2));
+				tr2.Set(subspace.GetKey("concurrent"), Slice.FromByte(2));
 				await tr2.CommitAsync();
 			}
 
@@ -2333,7 +2333,7 @@ namespace FoundationDB.Client.Tests
 
 				var subspace = await location.Resolve(tr3);
 
-				var bytes = await tr3.GetAsync(subspace["concurrent"]);
+				var bytes = await tr3.GetAsync(subspace.GetKey("concurrent"));
 
 				Assert.That(bytes.GetBytes(), Is.EqualTo(new byte[] { 1 }), "Should have seen the first version!");
 			}
@@ -2558,18 +2558,18 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr1);
 
-				await tr1.GetAsync(subspace[1]);
+				await tr1.GetAsync(subspace.GetKey(1));
 				// tr1 writes to one key
-				tr1.Set(subspace[1], Text("hello"));
+				tr1.Set(subspace.GetKey(1), Text("hello"));
 				// but add the second as a conflict range
-				tr1.AddReadConflictKey(subspace[2]);
+				tr1.AddReadConflictKey(subspace.GetKey(2));
 
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace2 = await location.Resolve(tr2);
 
 					// tr2 writes to the second key
-					tr2.Set(subspace2[2], Text("world"));
+					tr2.Set(subspace2.GetKey(2), Text("world"));
 
 					// tr2 should succeed
 					await tr2.CommitAsync();

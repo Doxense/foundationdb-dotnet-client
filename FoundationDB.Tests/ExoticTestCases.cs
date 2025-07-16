@@ -133,13 +133,13 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("AAA"), Text("111"));
-					tr.AtomicAdd(subspace.Encode("BBB"), Text("222"));
-					tr.AtomicAnd(subspace.Encode("CCC"), Text("333"));
-					tr.AtomicOr(subspace.Encode("DDD"), Text("444"));
-					tr.AtomicXor(subspace.Encode("EEE"), Text("555"));
-					tr.AtomicMax(subspace.Encode("FFF"), Text("666"));
-					tr.AtomicMin(subspace.Encode("GGG"), Text("777"));
+					tr.Set(subspace.GetKey("AAA"), Text("111"));
+					tr.AtomicAdd(subspace.GetKey("BBB"), Text("222"));
+					tr.AtomicAnd(subspace.GetKey("CCC"), Text("333"));
+					tr.AtomicOr(subspace.GetKey("DDD"), Text("444"));
+					tr.AtomicXor(subspace.GetKey("EEE"), Text("555"));
+					tr.AtomicMax(subspace.GetKey("FFF"), Text("666"));
+					tr.AtomicMin(subspace.GetKey("GGG"), Text("777"));
 					await tr.CommitAsync();
 				}
 			}

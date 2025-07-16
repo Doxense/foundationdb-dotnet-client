@@ -24,8 +24,11 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable StringLiteralTypo
+
 namespace FoundationDB.Client.Tests
 {
+
 	[TestFixture]
 	[Category("Fdb-Client-InProc")]
 	[Parallelizable(ParallelScope.All)]
@@ -100,7 +103,7 @@ namespace FoundationDB.Client.Tests
 		public void Test_Cannot_Create_Or_Partition_Subspace_With_Slice_Nil()
 		{
 			Assert.That(() => new KeySubspace(Slice.Nil, SubspaceContext.Default), Throws.ArgumentException);
-			Assert.That(() => new KeySubspace(Slice.Empty, default(SubspaceContext)!), Throws.ArgumentNullException);
+			Assert.That(() => new KeySubspace(Slice.Empty, null!), Throws.ArgumentNullException);
 			Assert.That(() => KeySubspace.FromKey(Slice.Nil), Throws.ArgumentException);
 			//FIXME: typed subspaces refactoring !
 			//Assert.That(() => FdbSubspace.Empty.Partition[Slice.Nil], Throws.ArgumentException);
@@ -227,19 +230,20 @@ namespace FoundationDB.Client.Tests
 			Assert.That(location.KeyEncoder, Is.Not.Null, "Should have a Key Encoder");
 			Assert.That(location.KeyEncoder.Encoding, Is.SameAs(TuPack.Encoding), "Encoder should use Tuple type system");
 
-			// shortcuts
+			// Binary Suffix
 			Assert.That(location.Append(Slice.FromString("SUFFIX")).ToString(), Is.EqualTo("PREFIXSUFFIX"));
-			Assert.That(location["hello"].ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
-			Assert.That(location[ValueTuple.Create("hello")].ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
 
 			// Encode<T...>(...)
-			Assert.That(location["hello"].ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Encode("hello").ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
 
-			// Pack(ITuple)
+			// Pack(STuple)
 			Assert.That(location.Pack(STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
 
 			// Pack(ValueTuple)
 			Assert.That(location.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+
+			// GetKey(...)
+			Assert.That(location.GetKey("hello").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
 
 			// STuple<T...> Decode(...)
 			Assert.That(location.Decode(Slice.Unescape("PREFIX<02>hello<00>")), Is.EqualTo("hello"));
@@ -254,10 +258,8 @@ namespace FoundationDB.Client.Tests
 		{
 			var location = KeySubspace.CreateTyped<string, int>(Slice.FromString("PREFIX"));
 
-			// shortcuts
+			// Binary Suffix
 			Assert.That(location.Append(Slice.FromString("SUFFIX")).ToString(), Is.EqualTo("PREFIXSUFFIX"));
-			Assert.That(location["hello", 123].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
-			Assert.That(location[("hello", 123)].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
 
 			// Encode<T...>(...)
 			Assert.That(location.Encode("hello", 123).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
@@ -267,6 +269,9 @@ namespace FoundationDB.Client.Tests
 
 			// Pack(ValueTuple)
 			Assert.That(location.Pack(("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+
+			// Encode<T...>(...)
+			Assert.That(location.GetKey("hello", 123).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
 
 			// STuple<T...> Decode(...)
 			Assert.That(location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{")), Is.EqualTo(("hello", 123)));
@@ -282,10 +287,8 @@ namespace FoundationDB.Client.Tests
 		{
 			var location = KeySubspace.CreateTyped<string, int, string>(Slice.FromString("PREFIX"));
 
-			// shortcuts
+			// Binary Suffix
 			Assert.That(location.Append(Slice.FromString("SUFFIX")).ToString(), Is.EqualTo("PREFIXSUFFIX"));
-			Assert.That(location["hello", 123, "world"].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
-			Assert.That(location[("hello", 123, "world")].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
 
 			// Encode<T...>(...)
 			Assert.That(location.Encode("hello", 123, "world").ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
@@ -295,6 +298,9 @@ namespace FoundationDB.Client.Tests
 
 			// Pack(ValueTuple)
 			Assert.That(location.Pack(("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+
+			// Encode<T...>(...)
+			Assert.That(location.GetKey("hello", 123, "world").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
 
 			// STuple<T...> Decode(...)
 			Assert.That(location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00>")), Is.EqualTo(("hello", 123, "world")));
@@ -311,10 +317,8 @@ namespace FoundationDB.Client.Tests
 		{
 			var location = KeySubspace.CreateTyped<string, int, string, int>(Slice.FromString("PREFIX"));
 
-			// shortcuts
+			// Binary Suffix
 			Assert.That(location.Append(Slice.FromString("SUFFIX")).ToString(), Is.EqualTo("PREFIXSUFFIX"));
-			Assert.That(location["hello", 123, "world", 456].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
-			Assert.That(location[("hello", 123, "world", 456)].ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
 
 			// Encode<T...>(...)
 			Assert.That(location.Encode("hello", 123, "world", 456).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
@@ -324,6 +328,9 @@ namespace FoundationDB.Client.Tests
 
 			// Pack(ValueTuple)
 			Assert.That(location.Pack(("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+
+			// Encode<T...>(...)
+			Assert.That(location.GetKey("hello", 123, "world", 456).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
 
 			// STuple<T...> Decode(...)
 			Assert.That(location.Decode(Slice.Unescape("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>")), Is.EqualTo(("hello", 123, "world", 456)));

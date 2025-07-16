@@ -354,7 +354,7 @@ namespace FoundationDB.Client.Tests
 				var expectedUnpacked = TuPack.Unpack(expectedPacked);
 				Log($"# ({tuple.GetType().GetFriendlyName()}) {tuple}: -> [{expectedPacked.Count:N0}] {expectedPacked:x} -> {expectedUnpacked}");
 
-				var value = FdbValue.PackTuple(tuple);
+				var value = FdbValue.FromTuple(tuple);
 				var slice = value.ToSlice();
 				Assert.That(slice, Is.EqualTo(expectedPacked));
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
