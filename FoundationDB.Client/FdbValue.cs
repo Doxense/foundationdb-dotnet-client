@@ -152,6 +152,8 @@ namespace FoundationDB.Client
 
 		#region Text...
 
+		#region UTF-8...
+
 		/// <summary>Returns a value that wraps a string, encoded as UTF-8 bytes</summary>
 		public static FdbUtf8Value ToTextUtf8(string? value) => new(value.AsMemory());
 
@@ -179,6 +181,41 @@ namespace FoundationDB.Client
 		[OverloadResolutionPriority(-1)]
 		public static FdbUtf8Value ToTextUtf8(ReadOnlySpan<char> value) => new(value.ToArray().AsMemory());
 #endif
+
+		#endregion
+
+		#region UTF-16...
+
+		/// <summary>Returns a value that wraps a string, encoded as UTF-16 bytes</summary>
+		public static FdbUtf16Value ToTextUtf16(string? value) => new(value.AsMemory());
+
+		/// <summary>Returns a value that wraps a StringBuilder, encoded as UTF-16 bytes</summary>
+		public static FdbValue<StringBuilder, SpanEncoders.Utf16Encoder> ToTextUtf16(StringBuilder? value) => new(value);
+
+		/// <summary>Returns a value that wraps a char array, encoded as UTF-16 bytes</summary>
+		public static FdbUtf16Value ToTextUtf16(char[] value) => new(value.AsMemory());
+
+		/// <summary>Returns a value that wraps a segment of a char array, encoded as UTF-16 bytes</summary>
+		public static FdbUtf16Value ToTextUtf16(char[] value, int start, int length) => new(value.AsMemory(start, length));
+
+		/// <summary>Returns a value that wraps a span of char, encoded as UTF-16 bytes</summary>
+		public static FdbUtf16Value ToTextUtf16(ReadOnlyMemory<char> value) => new(value);
+
+#if NET9_0_OR_GREATER
+		/// <summary>Returns a value that wraps a span of char, encoded as UTF-16 bytes</summary>
+		public static FdbUtf16SpanValue ToTextUtf16(ReadOnlySpan<char> value) => new(value);
+#else
+		/// <summary>Returns a value that copies the contents of a span of char, encoded as UTF-16 bytes</summary>
+		/// <remarks>
+		/// <para><b>WARNING:</b> on .NET 8.0 (or lower) this method has to copy the span into a string, which causes memory allocations.</para>
+		/// <para>Please consider using <see cref="ReadOnlyMemory{char}"/> instead, or upgrade to .NET 9.0 or higher.</para>
+		/// </remarks>
+		[OverloadResolutionPriority(-1)]
+		public static FdbUtf16Value ToTextUtf16(ReadOnlySpan<char> value) => new(value.ToArray().AsMemory());
+#endif
+
+		#endregion
+
 		#endregion
 
 		#region Fixed Size...
@@ -693,6 +730,88 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten) => SpanEncoders.Utf8Encoder.TryEncode(destination, out bytesWritten, in this.Text);
+
+	}
+
+	/// <summary>Value that wraps text that is encoded as UTF-16 bytes</summary>
+	public readonly struct FdbUtf16Value : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbUtf16Value(string text)
+		{
+			this.Text = text.AsMemory();
+		}
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbUtf16Value(ReadOnlyMemory<char> text)
+		{
+			this.Text = text;
+		}
+
+		public readonly ReadOnlyMemory<char> Text;
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => $"\"{this.Text.Span}\""; //TODO: escape?
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			return destination.TryWrite($"\"{this.Text.Span}\"", out charsWritten); //TODO: escape?
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) => SpanEncoders.Utf16Encoder.TryGetSpan(in this.Text, out span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint) => SpanEncoders.Utf16Encoder.TryGetSizeHint(in this.Text, out sizeHint);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten) => SpanEncoders.Utf16Encoder.TryEncode(destination, out bytesWritten, in this.Text);
+
+	}
+
+	/// <summary>Value that wraps text that is encoded as UTF-16 bytes</summary>
+	public readonly ref struct FdbUtf16SpanValue : IFdbValue
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbUtf16SpanValue(ReadOnlySpan<char> text)
+		{
+			this.Text = text;
+		}
+
+		public readonly ReadOnlySpan<char> Text;
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => $"\"{this.Text}\""; //TODO: escape?
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			return destination.TryWrite($"\"{this.Text}\"", out charsWritten); //TODO: escape?
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) => SpanEncoders.Utf16Encoder.TryGetSpan(in this.Text, out span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint) => SpanEncoders.Utf16Encoder.TryGetSizeHint(in this.Text, out sizeHint);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten) => SpanEncoders.Utf16Encoder.TryEncode(destination, out bytesWritten, in this.Text);
 
 	}
 

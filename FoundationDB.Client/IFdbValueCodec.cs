@@ -73,6 +73,24 @@ namespace FoundationDB.Client
 
 	}
 
+	public sealed class FdbUtf16ValueCodec : IFdbValueCodec<string, FdbUtf16Value>
+	{
+
+		public static readonly FdbUtf16ValueCodec Instance = new();
+
+		private FdbUtf16ValueCodec() { }
+
+		/// <inheritdoc />
+		public FdbUtf16Value EncodeValue(in string value) => new(value);
+
+		/// <inheritdoc />
+		public string DecodeValue(ReadOnlySpan<byte> encoded)
+			=> SpanEncoders.Utf16Encoder.TryDecode(encoded, out string? value)
+				? value!
+				: throw new FormatException("Failed to decoded string literal");
+
+	}
+
 	public sealed class FdbValueSpanEncoderCodec<TValue, TCodec> : IFdbValueCodec<TValue, FdbValue<TValue, TCodec>>
 		where TCodec : struct, ISpanEncoder<TValue>, ISpanDecoder<TValue>
 	{

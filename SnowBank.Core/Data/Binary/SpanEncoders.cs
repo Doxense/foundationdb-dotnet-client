@@ -540,6 +540,9 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes strings as UTF-8 bytes</summary>
+		/// <remarks>
+		/// <para>This encoder can produce larger values than <see cref="Utf16Encoder"/> when the encoded text contains mostly non-Latin text (which will use up to 3 bytes per character instead of 2)</para>
+		/// </remarks>
 		public readonly struct Utf8Encoder : 
 			ISpanEncoder<string>, ISpanDecoder<string>,
 			ISpanEncoder<ReadOnlyMemory<char>>, ISpanDecoder<ReadOnlyMemory<char>>,
@@ -678,6 +681,164 @@ namespace SnowBank.Data.Binary
 				foreach (var chunk in value.GetChunks())
 				{
 					if (!Encoding.UTF8.TryGetBytes(chunk.Span, destination[cursor..], out int len))
+					{
+						bytesWritten = 0;
+						return false;
+					}
+					cursor = checked(cursor + len);
+				}
+
+				bytesWritten = cursor;
+				return true;
+			}
+
+			#endregion
+
+		}
+
+		/// <summary>Encodes strings as UTF-16 bytes</summary>
+		/// <remarks>
+		/// <para>Each character will be encoded as 2 bytes (in little-endian)</para>
+		/// <para>This encoder can produce more compact values than <see cref="Utf8Encoder"/> when the text contains mostly non-Latin text (which would use up to 3 bytes per character)</para>
+		/// </remarks>
+		public readonly struct Utf16Encoder : 
+			ISpanEncoder<string>, ISpanDecoder<string>,
+			ISpanEncoder<ReadOnlyMemory<char>>, ISpanDecoder<ReadOnlyMemory<char>>,
+			ISpanEncoder<StringBuilder>
+#if NET9_0_OR_GREATER
+			, ISpanEncoder<ReadOnlySpan<char>>
+#endif
+		{
+
+			#region String...
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSpan(scoped in string? value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return string.IsNullOrEmpty(value);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSizeHint(in string? value, out int sizeHint)
+			{
+				sizeHint = Encoding.Unicode.GetByteCount(value ?? "");
+				return true;
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in string? value)
+			{
+				return Encoding.Unicode.TryGetBytes(value, destination, out bytesWritten);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out string? value)
+			{
+				value = Encoding.Unicode.GetString(source);
+				return true;
+			}
+
+			#endregion
+
+			#region ReadOnlySpan<char>...
+
+			/// <inheritdoc cref="TryGetSpan(in string?,out ReadOnlySpan{byte})" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSpan(scoped in ReadOnlySpan<char> value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return value.Length == 0;
+			}
+
+			/// <inheritdoc cref="TryGetSizeHint(in string?,out int)" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSizeHint(in ReadOnlySpan<char> value, out int sizeHint)
+			{
+				sizeHint = Encoding.Unicode.GetByteCount(value);
+				return true;
+			}
+
+			/// <inheritdoc cref="TryEncode(System.Span{byte},out int,in string?)" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in ReadOnlySpan<char> value)
+			{
+				return Encoding.Unicode.TryGetBytes(value, destination, out bytesWritten);
+			}
+
+			#endregion
+
+			#region ReadOnlyMemory<char>...
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSpan(scoped in ReadOnlyMemory<char> value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return value.Length == 0;
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSizeHint(in ReadOnlyMemory<char> value, out int sizeHint)
+			{
+				sizeHint = Encoding.Unicode.GetByteCount(value.Span);
+				return true;
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in ReadOnlyMemory<char> value)
+			{
+				return Encoding.Unicode.TryGetBytes(value.Span, destination, out bytesWritten);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out ReadOnlyMemory<char> value)
+			{
+				value = Encoding.Unicode.GetString(source).AsMemory();
+				return true;
+			}
+
+			#endregion
+
+			#region StringBuilder...
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSpan(scoped in StringBuilder? value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return value is null || value.Length == 0;
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSizeHint(in StringBuilder? value, out int sizeHint)
+			{
+				sizeHint = Encoding.Unicode.GetMaxByteCount(value?.Length ?? 0);
+				return true;
+			}
+
+			/// <inheritdoc />
+			[Pure]
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in StringBuilder? value)
+			{
+				if (value is null || value.Length == 0)
+				{
+					bytesWritten = 0;
+					return true;
+				}
+
+				int cursor = 0;
+				foreach (var chunk in value.GetChunks())
+				{
+					if (!Encoding.Unicode.TryGetBytes(chunk.Span, destination[cursor..], out int len))
 					{
 						bytesWritten = 0;
 						return false;
