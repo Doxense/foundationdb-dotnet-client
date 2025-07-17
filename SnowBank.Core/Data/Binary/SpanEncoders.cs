@@ -267,7 +267,11 @@ namespace SnowBank.Data.Binary
 		#endregion
 
 		/// <summary>Encodes raw binary values (<see cref="Slice"/>, spans or arrays of bytes, ...)</summary>
-		public readonly struct RawEncoder : ISpanEncoder<Slice>, ISpanEncoder<byte[]>, ISpanEncoder<ReadOnlyMemory<byte>>, ISpanEncoder<MemoryStream>
+		public readonly struct RawEncoder : 
+			ISpanEncoder<Slice>, ISpanDecoder<Slice>,
+			ISpanEncoder<byte[]>, ISpanDecoder<byte[]>,
+			ISpanEncoder<ReadOnlyMemory<byte>>, ISpanDecoder<ReadOnlyMemory<byte>>,
+			ISpanEncoder<MemoryStream>, ISpanDecoder<MemoryStream>
 #if NET9_0_OR_GREATER
 			, ISpanEncoder<ReadOnlySpan<byte>>
 #endif
@@ -276,6 +280,7 @@ namespace SnowBank.Data.Binary
 			#region Slice...
 
 			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSpan(scoped in Slice value, out ReadOnlySpan<byte> span)
 			{
 				span = value.Span;
@@ -283,6 +288,7 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSizeHint(in Slice value, out int sizeHint)
 			{
 				sizeHint = value.Count;
@@ -290,9 +296,18 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in Slice value)
 			{
 				return value.TryCopyTo(destination, out bytesWritten);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Slice value)
+			{
+				value = Slice.FromBytes(source);
+				return true;
 			}
 
 			#endregion
@@ -343,6 +358,14 @@ namespace SnowBank.Data.Binary
 				return value.Span.TryCopyTo(destination, out bytesWritten);
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out ReadOnlyMemory<byte> value)
+			{
+				value = Slice.FromBytes(source).Memory;
+				return true;
+			}
+
 			#endregion
 
 			#region byte[]...
@@ -370,6 +393,14 @@ namespace SnowBank.Data.Binary
 					return true;
 				}
 				return value.TryCopyTo(destination, out bytesWritten);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out byte[] value)
+			{
+				value = source.ToArray();
+				return true;
 			}
 
 			#endregion
@@ -454,6 +485,16 @@ namespace SnowBank.Data.Binary
 				bytesWritten = length;
 				return true;
 			}
+
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out MemoryStream value)
+			{
+				value = new(source.ToArray(), 0, source.Length, writable: false, publiclyVisible: true);
+				return true;
+			}
+
 			#endregion
 
 		}
@@ -499,7 +540,10 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes strings as UTF-8 bytes</summary>
-		public readonly struct Utf8Encoder : ISpanEncoder<string>, ISpanEncoder<StringBuilder>, ISpanEncoder<ReadOnlyMemory<char>>
+		public readonly struct Utf8Encoder : 
+			ISpanEncoder<string>, ISpanDecoder<string>,
+			ISpanEncoder<ReadOnlyMemory<char>>, ISpanDecoder<ReadOnlyMemory<char>>,
+			ISpanEncoder<StringBuilder>
 #if NET9_0_OR_GREATER
 			, ISpanEncoder<ReadOnlySpan<char>>
 #endif
@@ -508,7 +552,7 @@ namespace SnowBank.Data.Binary
 			#region String...
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSpan(scoped in string? value, out ReadOnlySpan<byte> span)
 			{
 				span = default;
@@ -516,7 +560,7 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSizeHint(in string? value, out int sizeHint)
 			{
 				sizeHint = Encoding.UTF8.GetByteCount(value ?? "");
@@ -524,34 +568,42 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in string? value)
 			{
 				return Encoding.UTF8.TryGetBytes(value, destination, out bytesWritten);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out string? value)
+			{
+				value = Encoding.UTF8.GetString(source);
+				return true;
 			}
 
 			#endregion
 
 			#region ReadOnlySpan<char>...
 
-			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <inheritdoc cref="TryGetSpan(in string?,out ReadOnlySpan{byte})" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSpan(scoped in ReadOnlySpan<char> value, out ReadOnlySpan<byte> span)
 			{
 				span = default;
 				return value.Length == 0;
 			}
 
-			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <inheritdoc cref="TryGetSizeHint(in string?,out int)" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSizeHint(in ReadOnlySpan<char> value, out int sizeHint)
 			{
 				sizeHint = Encoding.UTF8.GetByteCount(value);
 				return true;
 			}
 
-			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			/// <inheritdoc cref="TryEncode(System.Span{byte},out int,in string?)" />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in ReadOnlySpan<char> value)
 			{
 				return Encoding.UTF8.TryGetBytes(value, destination, out bytesWritten);
@@ -562,7 +614,7 @@ namespace SnowBank.Data.Binary
 			#region ReadOnlyMemory<char>...
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSpan(scoped in ReadOnlyMemory<char> value, out ReadOnlySpan<byte> span)
 			{
 				span = default;
@@ -570,7 +622,7 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSizeHint(in ReadOnlyMemory<char> value, out int sizeHint)
 			{
 				sizeHint = Encoding.UTF8.GetByteCount(value.Span);
@@ -578,10 +630,18 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in ReadOnlyMemory<char> value)
 			{
 				return Encoding.UTF8.TryGetBytes(value.Span, destination, out bytesWritten);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out ReadOnlyMemory<char> value)
+			{
+				value = Encoding.UTF8.GetString(source).AsMemory();
+				return true;
 			}
 
 			#endregion
@@ -589,7 +649,7 @@ namespace SnowBank.Data.Binary
 			#region StringBuilder...
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSpan(scoped in StringBuilder? value, out ReadOnlySpan<byte> span)
 			{
 				span = default;
@@ -597,7 +657,7 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSizeHint(in StringBuilder? value, out int sizeHint)
 			{
 				sizeHint = Encoding.UTF8.GetMaxByteCount(value?.Length ?? 0);
@@ -605,6 +665,7 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
+			[Pure]
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in StringBuilder? value)
 			{
 				if (value is null || value.Length == 0)
@@ -1134,7 +1195,14 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes UUID values into big-endian, using a fixed size</summary>
-		public readonly struct FixedSizeUuidEncoder : ISpanEncoder<Guid>, ISpanEncoder<Uuid128>, ISpanEncoder<Uuid96>, ISpanEncoder<Uuid80>, ISpanEncoder<Uuid64>, ISpanEncoder<Uuid48>, ISpanEncoder<VersionStamp>
+		public readonly struct FixedSizeUuidEncoder :
+			ISpanEncoder<Guid>, ISpanDecoder<Guid>,
+			ISpanEncoder<Uuid128>, ISpanDecoder<Uuid128>,
+			ISpanEncoder<Uuid96>, ISpanDecoder<Uuid96>,
+			ISpanEncoder<Uuid80>, ISpanDecoder<Uuid80>,
+			ISpanEncoder<Uuid64>, ISpanDecoder<Uuid64>,
+			ISpanEncoder<Uuid48>, ISpanDecoder<Uuid48>,
+			ISpanEncoder<VersionStamp>, ISpanDecoder<VersionStamp>
 		{
 
 			#region Guid...
@@ -1162,12 +1230,26 @@ namespace SnowBank.Data.Binary
 				return new Uuid128(value).TryWriteTo(destination, out bytesWritten);
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Guid value)
+			{
+				if (source.Length < Uuid128.SizeOf)
+				{
+					value = Guid.Empty;
+					return false;
+				}
+
+				value = (Guid) Uuid128.Read(source);
+				return true;
+			}
+
 			#endregion
 
 			#region Uuid128...
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSpan(scoped in Uuid128 value, out ReadOnlySpan<byte> span)
 			{
 				span = default;
@@ -1175,7 +1257,7 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSizeHint(in Uuid128 value, out int sizeHint)
 			{
 				sizeHint = Uuid128.SizeOf;
@@ -1183,10 +1265,24 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in Uuid128 value)
 			{
 				return value.TryWriteTo(destination, out bytesWritten);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Uuid128 value)
+			{
+				if (source.Length < Uuid128.SizeOf)
+				{
+					value = default;
+					return false;
+				}
+
+				value = Uuid128.Read(source);
+				return true;
 			}
 
 			#endregion
@@ -1216,6 +1312,20 @@ namespace SnowBank.Data.Binary
 				return value.TryWriteTo(destination, out bytesWritten);
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Uuid96 value)
+			{
+				if (source.Length < Uuid96.SizeOf)
+				{
+					value = default;
+					return false;
+				}
+
+				value = Uuid96.Read(source);
+				return true;
+			}
+
 			#endregion
 
 			#region Uuid80...
@@ -1241,6 +1351,20 @@ namespace SnowBank.Data.Binary
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in Uuid80 value)
 			{
 				return value.TryWriteTo(destination, out bytesWritten);
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Uuid80 value)
+			{
+				if (source.Length < Uuid80.SizeOf)
+				{
+					value = default;
+					return false;
+				}
+
+				value = Uuid80.Read(source);
+				return true;
 			}
 
 			#endregion
@@ -1270,6 +1394,20 @@ namespace SnowBank.Data.Binary
 				return value.TryWriteTo(destination, out bytesWritten);
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Uuid64 value)
+			{
+				if (source.Length < Uuid64.SizeOf)
+				{
+					value = default;
+					return false;
+				}
+
+				value = Uuid64.Read(source);
+				return true;
+			}
+
 			#endregion
 
 			#region Uuid48...
@@ -1297,6 +1435,20 @@ namespace SnowBank.Data.Binary
 				return value.TryWriteTo(destination, out bytesWritten);
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Uuid48 value)
+			{
+				if (source.Length < Uuid48.SizeOf)
+				{
+					value = default;
+					return false;
+				}
+
+				value = Uuid48.Read(source);
+				return true;
+			}
+
 			#endregion
 
 			#region VersionStamp...
@@ -1322,6 +1474,21 @@ namespace SnowBank.Data.Binary
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in VersionStamp value)
 			{
 				return value.TryWriteTo(destination, out bytesWritten);
+			}
+
+			
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out VersionStamp value)
+			{
+				if (source.Length < 10)
+				{
+					value = default;
+					return false;
+				}
+
+				value = VersionStamp.ReadFrom(source); // will throw if not 10 or 12 bytes
+				return true;
 			}
 
 			#endregion

@@ -26,7 +26,6 @@
 
 namespace SnowBank.Data.Binary
 {
-
 	/// <summary>Defines methods to encode the binary representation of instances of type <typeparamref name="TValue"/> into a span</summary>
 	/// <typeparam name="TValue">Type of the encoded values</typeparam>
 	/// <remarks>
@@ -62,7 +61,7 @@ namespace SnowBank.Data.Binary
 		/// <param name="destination">Destination buffer that will receive the encoded representation of the value</param>
 		/// <param name="bytesWritten">Number of bytes that where written to the buffer, if the operation is successful</param>
 		/// <param name="value">Value to encode</param>
-		/// <returns><c>false</c> if the buffer is not large enough, <c>true</c> if the operation was successful.</returns>
+		/// <returns><c>false</c> if the buffer is not large enough, <c>true</c> if the operation was successful, or an exception if the encoding failed for other reasons</returns>
 		/// <remarks>
 		/// <para>This method behaves similarly to <see cref="ISpanFormattable.TryFormat"/>: the caller allocates a buffer with a safe initial capacity. If the buffer is too small, then the caller should retry with a larger buffer, until the method returns <c>true</c> or fails.</para>
 		/// <para>Please note that the method MUST NOT return <c>false</c> for a reason other than a buffer being too small, otherwise the caller may end up in an infinite retry loop, passing a larger and larger buffer.</para>
