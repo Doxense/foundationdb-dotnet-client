@@ -855,13 +855,22 @@ namespace SnowBank.Data.Binary
 		}
 
 		/// <summary>Encodes primitive integers into little-endian, using a fixed size</summary>
-		public readonly struct FixedSizeLittleEndianEncoder : ISpanEncoder<int>, ISpanEncoder<uint>, ISpanEncoder<long>, ISpanEncoder<ulong>, ISpanEncoder<float>, ISpanEncoder<double>, ISpanEncoder<Half>
+		public readonly struct FixedSizeLittleEndianEncoder :
+			ISpanEncoder<int>, ISpanDecoder<int>,
+			ISpanEncoder<uint>, ISpanDecoder<uint>,
+			ISpanEncoder<long>, ISpanDecoder<long>,
+			ISpanEncoder<ulong>, ISpanDecoder<ulong>,
+			ISpanEncoder<float>, ISpanDecoder<float>,
+			ISpanEncoder<double>, ISpanDecoder<double>,
+			ISpanEncoder<Half>, ISpanDecoder<Half>,
+			ISpanEncoder<Int128>, ISpanDecoder<Int128>,
+			ISpanEncoder<UInt128>, ISpanDecoder<UInt128>
 		{
 
 			#region Int32...
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSpan(scoped in int value, out ReadOnlySpan<byte> span)
 			{
 				span = default;
@@ -869,7 +878,7 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryGetSizeHint(in int value, out int sizeHint)
 			{
 				sizeHint = Unsafe.SizeOf<int>();
@@ -877,7 +886,7 @@ namespace SnowBank.Data.Binary
 			}
 
 			/// <inheritdoc />
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in int value)
 			{
 				if (destination.Length < Unsafe.SizeOf<int>())
@@ -890,6 +899,11 @@ namespace SnowBank.Data.Binary
 				bytesWritten = Unsafe.SizeOf<int>();
 				return true;
 			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out int value)
+				=> BinaryPrimitives.TryReadInt32LittleEndian(source, out value);
 
 			#endregion
 
@@ -926,6 +940,11 @@ namespace SnowBank.Data.Binary
 				return true;
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out uint value)
+				=> BinaryPrimitives.TryReadUInt32LittleEndian(source, out value);
+
 			#endregion
 
 			#region Int64...
@@ -960,6 +979,11 @@ namespace SnowBank.Data.Binary
 				bytesWritten = Unsafe.SizeOf<long>();
 				return true;
 			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out long value)
+				=> BinaryPrimitives.TryReadInt64LittleEndian(source, out value);
 
 			#endregion
 
@@ -996,6 +1020,91 @@ namespace SnowBank.Data.Binary
 				return true;
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out ulong value)
+				=> BinaryPrimitives.TryReadUInt64LittleEndian(source, out value);
+
+			#endregion
+
+			#region Int128...
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSpan(scoped in Int128 value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return false;
+			}
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSizeHint(in Int128 value, out int sizeHint)
+			{
+				sizeHint = Unsafe.SizeOf<Int128>();
+				return true;
+			}
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in Int128 value)
+			{
+				if (destination.Length < Unsafe.SizeOf<Int128>())
+				{
+					bytesWritten = 0;
+					return false;
+				}
+
+				BinaryPrimitives.WriteInt128LittleEndian(destination, value);
+				bytesWritten = Unsafe.SizeOf<Int128>();
+				return true;
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Int128 value)
+				=> BinaryPrimitives.TryReadInt128LittleEndian(source, out value);
+
+			#endregion
+
+			#region UInt128...
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSpan(scoped in UInt128 value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return false;
+			}
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSizeHint(in UInt128 value, out int sizeHint)
+			{
+				sizeHint = Unsafe.SizeOf<UInt128>();
+				return true;
+			}
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in UInt128 value)
+			{
+				if (destination.Length < Unsafe.SizeOf<UInt128>())
+				{
+					bytesWritten = 0;
+					return false;
+				}
+
+				BinaryPrimitives.WriteUInt128LittleEndian(destination, value);
+				bytesWritten = Unsafe.SizeOf<UInt128>();
+				return true;
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out UInt128 value)
+				=> BinaryPrimitives.TryReadUInt128LittleEndian(source, out value);
+
 			#endregion
 
 			#region Single...
@@ -1030,6 +1139,11 @@ namespace SnowBank.Data.Binary
 				bytesWritten = Unsafe.SizeOf<float>();
 				return true;
 			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out float value)
+				=> BinaryPrimitives.TryReadSingleLittleEndian(source, out value);
 
 			#endregion
 
@@ -1066,6 +1180,11 @@ namespace SnowBank.Data.Binary
 				return true;
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out double value)
+				=> BinaryPrimitives.TryReadDoubleLittleEndian(source, out value);
+
 			#endregion
 
 			#region Half...
@@ -1101,12 +1220,26 @@ namespace SnowBank.Data.Binary
 				return true;
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Half value)
+				=> BinaryPrimitives.TryReadHalfLittleEndian(source, out value);
+
 			#endregion
 
 		}
 
 		/// <summary>Encodes primitive integers into big-endian, using a fixed size</summary>
-		public readonly struct FixedSizeBigEndianEncoder : ISpanEncoder<int>, ISpanEncoder<uint>, ISpanEncoder<long>, ISpanEncoder<ulong>, ISpanEncoder<float>, ISpanEncoder<double>, ISpanEncoder<Half>
+		public readonly struct FixedSizeBigEndianEncoder :
+			ISpanEncoder<int>, ISpanDecoder<int>,
+			ISpanEncoder<uint>, ISpanDecoder<uint>,
+			ISpanEncoder<long>, ISpanDecoder<long>,
+			ISpanEncoder<ulong>, ISpanDecoder<ulong>,
+			ISpanEncoder<float>, ISpanDecoder<float>,
+			ISpanEncoder<double>, ISpanDecoder<double>,
+			ISpanEncoder<Half>, ISpanDecoder<Half>,
+			ISpanEncoder<Int128>, ISpanDecoder<Int128>,
+			ISpanEncoder<UInt128>, ISpanDecoder<UInt128>
 		{
 
 			#region Int32...
@@ -1141,6 +1274,11 @@ namespace SnowBank.Data.Binary
 				bytesWritten = Unsafe.SizeOf<int>();
 				return true;
 			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out int value)
+				=> BinaryPrimitives.TryReadInt32BigEndian(source, out value);
 
 			#endregion
 
@@ -1177,6 +1315,11 @@ namespace SnowBank.Data.Binary
 				return true;
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out uint value)
+				=> BinaryPrimitives.TryReadUInt32BigEndian(source, out value);
+
 			#endregion
 
 			#region Int64...
@@ -1211,6 +1354,11 @@ namespace SnowBank.Data.Binary
 				bytesWritten = Unsafe.SizeOf<long>();
 				return true;
 			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out long value)
+				=> BinaryPrimitives.TryReadInt64BigEndian(source, out value);
 
 			#endregion
 
@@ -1247,6 +1395,91 @@ namespace SnowBank.Data.Binary
 				return true;
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out ulong value)
+				=> BinaryPrimitives.TryReadUInt64BigEndian(source, out value);
+
+			#endregion
+
+			#region Int128...
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSpan(scoped in Int128 value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return false;
+			}
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSizeHint(in Int128 value, out int sizeHint)
+			{
+				sizeHint = Unsafe.SizeOf<Int128>();
+				return true;
+			}
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in Int128 value)
+			{
+				if (destination.Length < Unsafe.SizeOf<Int128>())
+				{
+					bytesWritten = 0;
+					return false;
+				}
+
+				BinaryPrimitives.WriteInt128BigEndian(destination, value);
+				bytesWritten = Unsafe.SizeOf<Int128>();
+				return true;
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Int128 value)
+				=> BinaryPrimitives.TryReadInt128BigEndian(source, out value);
+
+			#endregion
+
+			#region UInt128...
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSpan(scoped in UInt128 value, out ReadOnlySpan<byte> span)
+			{
+				span = default;
+				return false;
+			}
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryGetSizeHint(in UInt128 value, out int sizeHint)
+			{
+				sizeHint = Unsafe.SizeOf<UInt128>();
+				return true;
+			}
+
+			/// <inheritdoc />
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryEncode(Span<byte> destination, out int bytesWritten, in UInt128 value)
+			{
+				if (destination.Length < Unsafe.SizeOf<UInt128>())
+				{
+					bytesWritten = 0;
+					return false;
+				}
+
+				BinaryPrimitives.WriteUInt128BigEndian(destination, value);
+				bytesWritten = Unsafe.SizeOf<UInt128>();
+				return true;
+			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out UInt128 value)
+				=> BinaryPrimitives.TryReadUInt128BigEndian(source, out value);
+
 			#endregion
 
 			#region Single...
@@ -1281,6 +1514,11 @@ namespace SnowBank.Data.Binary
 				bytesWritten = Unsafe.SizeOf<float>();
 				return true;
 			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out float value)
+				=> BinaryPrimitives.TryReadSingleBigEndian(source, out value);
 
 			#endregion
 
@@ -1317,6 +1555,11 @@ namespace SnowBank.Data.Binary
 				return true;
 			}
 
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out double value)
+				=> BinaryPrimitives.TryReadDoubleBigEndian(source, out value);
+
 			#endregion
 
 			#region Half...
@@ -1350,6 +1593,11 @@ namespace SnowBank.Data.Binary
 				bytesWritten = Unsafe.SizeOf<Half>();
 				return true;
 			}
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static bool TryDecode(ReadOnlySpan<byte> source, out Half value)
+				=> BinaryPrimitives.TryReadHalfBigEndian(source, out value);
 
 			#endregion
 

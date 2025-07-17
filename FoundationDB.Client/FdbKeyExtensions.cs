@@ -46,7 +46,7 @@ namespace FoundationDB.Client
 				: FdbKeyRange.StartsWith(in key);
 		}
 
-		/// <summary>Returns a key that is the immediate successor of this key</summary>
+		/// <summary>Returns a key that adds a <c>0x00</c> suffix to get the immediate successor of this key</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <param name="key">Input key</param>
 		/// <returns>Key that, when encoded into binary, will append the byte 0x00 to the representation of <paramref name="key"/></returns>
@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 			=> new(key);
 
-		/// <summary>Returns a key that is immediately after all the keys in the database that have this key has a prefix</summary>
+		/// <summary>Returns a key that increments the last byte to get the key that is immediately after all the keys in the database that have the current key has a prefix</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <param name="key">Input key</param>
 		/// <returns>Key that, when encoded into binary, will not have <paramref name="key"/> as its prefix</returns>
@@ -91,6 +91,38 @@ namespace FoundationDB.Client
 			}
 
 			return new(key.ToSlice());
+		}
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key to test</param>
+		/// <param name="expectedBytes">Expected encoded bytes</param>
+		/// <returns><c>true</c> if the key encodes to the exact same bytes; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool Equals<TKey>(in TKey key, Slice expectedBytes)
+			where TKey : struct, IFdbKey
+			=> Equals(in key, expectedBytes.Span);
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key to test</param>
+		/// <param name="expectedBytes">Expected encoded bytes</param>
+		/// <returns><c>true</c> if the key encodes to the exact same bytes; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool Equals<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var span))
+			{
+				return span.SequenceEqual(expectedBytes);
+			}
+
+			using var bytes = Encode(in key, ArrayPool<byte>.Shared);
+			return bytes.Span.SequenceEqual(expectedBytes);
 		}
 
 		/// <summary>Encodes this key into <see cref="Slice"/></summary>
@@ -346,7 +378,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns the key for this subspace</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbBinaryKey GetKey(this IDynamicKeySubspace subspace) => new(subspace, Slice.Empty);
+		public static FdbSuffixKey GetKey(this IDynamicKeySubspace subspace) => new(subspace, Slice.Empty);
 
 		/// <summary>Returns a key under this subspace</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
@@ -490,86 +522,86 @@ namespace FoundationDB.Client
 
 		#region IDynamicKeySubspace.GetRange(...)...
 
-		/// <summary>Returns a key under this subspace</summary>
+		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first element</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="item1">value of the single element in the key</param>
+		/// <param name="item1">Value of the 1st element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeyRange<FdbTupleKey<T1>> GetRange<T1>(this IDynamicKeySubspace subspace, T1 item1)
 			=> new(new(subspace, item1), excluded: true);
 
-		/// <summary>Returns a key with 2 elements under this subspace</summary>
+		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first two elements</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="item1">value of the 1st element in the key</param>
-		/// <param name="item2">value of the 2nd element in the key</param>
+		/// <param name="item1">Value of the 1st element of the matched keys</param>
+		/// <param name="item2">Value of the 2nd element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeyRange<FdbTupleKey<T1, T2>> GetRange<T1, T2>(this IDynamicKeySubspace subspace, T1 item1, T2 item2)
 			=> new(new(subspace, item1, item2), excluded: true);
 
-		/// <summary>Returns a key with 3 elements under this subspace</summary>
+		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first three elements</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="item1">value of the 1st element in the key</param>
-		/// <param name="item2">value of the 2nd element in the key</param>
-		/// <param name="item3">value of the 3rd element in the key</param>
+		/// <param name="item1">Value of the 1st element of the matched keys</param>
+		/// <param name="item2">Value of the 2nd element of the matched keys</param>
+		/// <param name="item3">value of the 3rd element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeyRange<FdbTupleKey<T1, T2, T3>> GetRange<T1, T2, T3>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3)
 			=> new(new(subspace, item1, item2, item3), excluded: true);
 
-		/// <summary>Returns a key with 4 elements under this subspace</summary>
+		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first four elements</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="item1">value of the 1st element in the key</param>
-		/// <param name="item2">value of the 2nd element in the key</param>
-		/// <param name="item3">value of the 3rd element in the key</param>
-		/// <param name="item4">value of the 4th element in the key</param>
+		/// <param name="item1">Value of the 1st element of the matched keys</param>
+		/// <param name="item2">Value of the 2nd element of the matched keys</param>
+		/// <param name="item3">value of the 3rd element of the matched keys</param>
+		/// <param name="item4">value of the 4th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4>> GetRange<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4)
 			=> new(new(subspace, item1, item2, item3, item4), excluded: true);
 
-		/// <summary>Returns a key with 5 elements under this subspace</summary>
+		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first five elements</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="item1">value of the 1st element in the key</param>
-		/// <param name="item2">value of the 2nd element in the key</param>
-		/// <param name="item3">value of the 3rd element in the key</param>
-		/// <param name="item4">value of the 4th element in the key</param>
-		/// <param name="item5">value of the 5th element in the key</param>
+		/// <param name="item1">Value of the 1st element of the matched keys</param>
+		/// <param name="item2">Value of the 2nd element of the matched keys</param>
+		/// <param name="item3">value of the 3rd element of the matched keys</param>
+		/// <param name="item4">value of the 4th element of the matched keys</param>
+		/// <param name="item5">value of the 5th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4, T5>> GetRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 			=> new(new(subspace, item1, item2, item3, item4, item5), excluded: true);
 
-		/// <summary>Returns a key with 6 elements under this subspace</summary>
+		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first six elements</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="item1">value of the 1st element in the key</param>
-		/// <param name="item2">value of the 2nd element in the key</param>
-		/// <param name="item3">value of the 3rd element in the key</param>
-		/// <param name="item4">value of the 4th element in the key</param>
-		/// <param name="item5">value of the 5th element in the key</param>
-		/// <param name="item6">value of the 6th element in the key</param>
+		/// <param name="item1">Value of the 1st element of the matched keys</param>
+		/// <param name="item2">Value of the 2nd element of the matched keys</param>
+		/// <param name="item3">value of the 3rd element of the matched keys</param>
+		/// <param name="item4">value of the 4th element of the matched keys</param>
+		/// <param name="item5">value of the 5th element of the matched keys</param>
+		/// <param name="item6">value of the 6th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4, T5, T6>> GetRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6), excluded: true);
 
-		/// <summary>Returns a key with 7 elements under this subspace</summary>
+		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first seven elements</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="item1">value of the 1st element in the key</param>
-		/// <param name="item2">value of the 2nd element in the key</param>
-		/// <param name="item3">value of the 3rd element in the key</param>
-		/// <param name="item4">value of the 4th element in the key</param>
-		/// <param name="item5">value of the 5th element in the key</param>
-		/// <param name="item6">value of the 6th element in the key</param>
-		/// <param name="item7">value of the 7th element in the key</param>
+		/// <param name="item1">Value of the 1st element of the matched keys</param>
+		/// <param name="item2">Value of the 2nd element of the matched keys</param>
+		/// <param name="item3">value of the 3rd element of the matched keys</param>
+		/// <param name="item4">value of the 4th element of the matched keys</param>
+		/// <param name="item5">value of the 5th element of the matched keys</param>
+		/// <param name="item6">value of the 6th element of the matched keys</param>
+		/// <param name="item7">value of the 7th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>> GetRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6, item7), excluded: true);
 
-		/// <summary>Returns a key with 8 elements under this subspace</summary>
+		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first eight elements</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
-		/// <param name="item1">value of the 1st element in the key</param>
-		/// <param name="item2">value of the 2nd element in the key</param>
-		/// <param name="item3">value of the 3rd element in the key</param>
-		/// <param name="item4">value of the 4th element in the key</param>
-		/// <param name="item5">value of the 5th element in the key</param>
-		/// <param name="item6">value of the 6th element in the key</param>
-		/// <param name="item7">value of the 7th element in the key</param>
-		/// <param name="item8">value of the 8th element in the key</param>
+		/// <param name="item1">Value of the 1st element of the matched keys</param>
+		/// <param name="item2">Value of the 2nd element of the matched keys</param>
+		/// <param name="item3">value of the 3rd element of the matched keys</param>
+		/// <param name="item4">value of the 4th element of the matched keys</param>
+		/// <param name="item5">value of the 5th element of the matched keys</param>
+		/// <param name="item6">value of the 6th element of the matched keys</param>
+		/// <param name="item7">value of the 7th element of the matched keys</param>
+		/// <param name="item8">value of the 8th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>> GetRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6, item7, item8), excluded: true);
@@ -731,14 +763,14 @@ namespace FoundationDB.Client
 		#region IBinaryKeySubspace.AppendKey(...)
 
 		[Pure]
-		public static FdbBinaryKey AppendKey(this IBinaryKeySubspace subspace, Slice relativeKey)
+		public static FdbSuffixKey AppendKey(this IBinaryKeySubspace subspace, Slice relativeKey)
 		{
 			Contract.NotNull(subspace);
 			return new(subspace, relativeKey);
 		}
 
 		[Pure]
-		public static FdbBinaryKey AppendKey(this IBinaryKeySubspace subspace, byte[]? relativeKey)
+		public static FdbSuffixKey AppendKey(this IBinaryKeySubspace subspace, byte[]? relativeKey)
 		{
 			Contract.NotNull(subspace);
 			return new(subspace, relativeKey.AsSlice());

@@ -66,15 +66,15 @@ namespace FoundationDB.Client
 
 		#region No Subspace...
 
-		/// <summary>Returns a key that wraps a <see cref="Slice"/></summary>
+		/// <summary>Returns a key that wraps a pre-encoded <see cref="Slice"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbRawKey ToBytes(Slice key) => new(key);
 
-		/// <summary>Returns a key that wraps a byte array</summary>
+		/// <summary>Returns a key that wraps a pre-encoded byte array</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbRawKey ToBytes(byte[] key) => new(key.AsSlice());
 
-		/// <summary>Returns a key that wraps a byte array</summary>
+		/// <summary>Returns a key that wraps a pre-encoded byte array</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbRawKey ToBytes(byte[] key, int start, int length) => new(key.AsSlice(start, length));
 
@@ -82,19 +82,19 @@ namespace FoundationDB.Client
 
 		#region With Subspace...
 
-		/// <summary>Returns a key that wraps suffix inside a <see cref="IBinaryKeySubspace"/></summary>
+		/// <summary>Returns a key that wraps a pre-encoded binary suffix inside a <see cref="IBinaryKeySubspace"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbBinaryKey ToBytes(IKeySubspace subspace, Slice relativeKey)
+		public static FdbSuffixKey ToBytes(IKeySubspace subspace, Slice relativeKey)
 			=> new(subspace, relativeKey);
 
-		/// <summary>Returns a key that wraps a suffix inside a <see cref="IBinaryKeySubspace"/></summary>
+		/// <summary>Returns a key that wraps a pre-encoded binary suffix inside a <see cref="IBinaryKeySubspace"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbBinaryKey ToBytes(IKeySubspace subspace, byte[] relativeKey)
+		public static FdbSuffixKey ToBytes(IKeySubspace subspace, byte[] relativeKey)
 			=> new(subspace, relativeKey.AsSlice());
 
-		/// <summary>Returns a key that wraps a suffix inside a <see cref="IBinaryKeySubspace"/></summary>
+		/// <summary>Returns a key that wraps a pre-encoded binary suffix inside a <see cref="IBinaryKeySubspace"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbBinaryKey ToBytes(IKeySubspace subspace, byte[] relativeKey, int start, int length)
+		public static FdbSuffixKey ToBytes(IKeySubspace subspace, byte[] relativeKey, int start, int length)
 			=> new(subspace, relativeKey.AsSlice(start, length));
 
 		#endregion
@@ -189,6 +189,10 @@ namespace FoundationDB.Client
 
 	/// <summary>Wraps a <see cref="Slice"/> that contains a pre-encoded key in the database</summary>
 	public readonly struct FdbRawKey : IFdbKey
+		, IEquatable<FdbRawKey>, IEquatable<Slice>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -212,6 +216,38 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => null;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbRawKey key => this.Equals(key.Data),
+				FdbVarTupleKey key => key.Equals(this),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Data.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		/// <inheritdoc />
 		public override string ToString() => this.Data.ToString();
@@ -252,35 +288,75 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Wraps a <see cref="Slice"/> that contains a pre-encoded key, relative to a subspace</summary>
-	public readonly struct FdbBinaryKey : IFdbKey
+	/// <summary>Wraps a <see cref="Slice"/> that wraps a pre-encoded binary suffix, relative to a subspace</summary>
+	public readonly struct FdbSuffixKey : IFdbKey
+		, IEquatable<FdbSuffixKey>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[SkipLocalsInit]
-		internal FdbBinaryKey(IKeySubspace subspace, Slice data)
+		internal FdbSuffixKey(IKeySubspace subspace, Slice suffix)
 		{
-			this.Data = data;
+			this.Suffix = suffix;
 			this.Subspace = subspace;
 		}
 
 		public readonly IKeySubspace Subspace;
 
-		public readonly Slice Data;
+		public readonly Slice Suffix;
 
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbSuffixKey key => this.Equals(key),
+				FdbRawKey key => this.Equals(key),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Suffix.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbSuffixKey other) => Equals(this.Subspace, other.Subspace) && this.Suffix.Equals(other.Suffix);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null)
-			=> string.Create(formatProvider, $"[{this.Subspace}] {this.Data}");
+			=> string.Create(formatProvider, $"[{this.Subspace}] {this.Suffix}");
 
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-			=> destination.TryWrite(provider, $"[{this.Subspace}] {this.Data}", out charsWritten);
+			=> destination.TryWrite(provider, $"[{this.Subspace}] {this.Suffix}", out charsWritten);
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -294,7 +370,7 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint)
 		{
-			sizeHint = this.Subspace.GetPrefix().Count + this.Data.Count;
+			sizeHint = this.Subspace.GetPrefix().Count + this.Suffix.Count;
 			return true;
 		}
 
@@ -302,7 +378,7 @@ namespace FoundationDB.Client
 		public bool TryEncode(Span<byte> destination, out int bytesWritten)
 		{
 			if (this.Subspace.GetPrefix().TryCopyTo(destination, out var prefixLen)
-			 && this.Data.TryCopyTo(destination[prefixLen..], out var dataLen))
+			 && this.Suffix.TryCopyTo(destination[prefixLen..], out var dataLen))
 			{
 				bytesWritten = prefixLen + dataLen;
 				return true;
@@ -636,6 +712,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbVarTupleKey : IFdbKey
+		, IEquatable<FdbVarTupleKey>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[SkipLocalsInit]
@@ -648,6 +728,47 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace? Subspace;
 
 		public readonly IVarTuple Items;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbVarTupleKey key => this.Equals(key),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Items.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbVarTupleKey Append<T1>(T1 item1) => new(this.Subspace, this.Items.Append(item1));
@@ -703,6 +824,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1> : IFdbKey
+		, IEquatable<FdbTupleKey<T1>>, IEquatable<STuple<T1>>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[SkipLocalsInit]
@@ -729,6 +854,51 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace Subspace;
 
 		public readonly T1 Item1;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbTupleKey<T1> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => STuple.Create(this.Item1).GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleKey<T1> other) => Equals(this.Subspace, other.Subspace) && EqualityComparer<T1>.Default.Equals(this.Item1, other.Item1);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1> other) => STuple.Create(this.Item1).Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => STuple.Create(this.Item1).Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey<T1, T2> Append<T2>(T2 item2) => new(Subspace, this.Item1, item2);
@@ -786,6 +956,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2> : IFdbKey
+		, IEquatable<FdbTupleKey<T1, T2>>, IEquatable<STuple<T1, T2>>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+	#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+	#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -812,6 +986,51 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace Subspace;
 
 		public readonly STuple<T1, T2> Items;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbTupleKey<T1, T2> tuple => this.Equals(tuple),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Items.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleKey<T1, T2> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1, T2> other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey<T1, T2, T3> Append<T3>(T3 item3) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3));
@@ -867,6 +1086,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3> : IFdbKey
+		, IEquatable<FdbTupleKey<T1, T2, T3>>, IEquatable<STuple<T1, T2, T3>>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -893,6 +1116,51 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace Subspace;
 
 		public readonly STuple<T1, T2, T3> Items;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbTupleKey<T1, T2, T3> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Items.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleKey<T1, T2, T3> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1, T2, T3> other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey<T1, T2, T3, T4> Append<T4>(T4 item4) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4));
@@ -949,6 +1217,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4> : IFdbKey
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4>>, IEquatable<STuple<T1, T2, T3, T4>>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -975,6 +1247,51 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace Subspace;
 
 		public readonly STuple<T1, T2, T3, T4> Items;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbTupleKey<T1, T2, T3, T4> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Items.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1, T2, T3, T4> other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T5>(T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5));
@@ -1029,6 +1346,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5> : IFdbKey
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5>>, IEquatable<STuple<T1, T2, T3, T4, T5>>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1055,6 +1376,51 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace Subspace;
 
 		public readonly STuple<T1, T2, T3, T4, T5> Items;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbTupleKey<T1, T2, T3, T4, T5> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Items.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1, T2, T3, T4, T5> other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T6>(T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6));
@@ -1107,6 +1473,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6> : IFdbKey
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6>>, IEquatable<STuple<T1, T2, T3, T4, T5, T6>>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1133,6 +1503,51 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace Subspace;
 
 		public readonly STuple<T1, T2, T3, T4, T5, T6> Items;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbTupleKey<T1, T2, T3, T4, T5, T6> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Items.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1, T2, T3, T4, T5, T6> other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T7>(T7 item7) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7);
@@ -1183,6 +1598,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> : IFdbKey
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>>, IEquatable<STuple<T1, T2, T3, T4, T5, T6, T7>>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1209,6 +1628,51 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace Subspace;
 
 		public readonly STuple<T1, T2, T3, T4, T5, T6, T7> Items;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Items.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7> other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T8>(T8 item8) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, this.Items.Item7, item8);
@@ -1257,6 +1721,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> : IFdbKey
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>>, IEquatable<STuple<T1, T2, T3, T4, T5, T6, T7, T8>>, IEquatable<IVarTuple>, IEquatable<Slice>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1283,6 +1751,51 @@ namespace FoundationDB.Client
 		public readonly IKeySubspace Subspace;
 
 		public readonly STuple<T1, T2, T3, T4, T5, T6, T7, T8> Items;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key.Data),
+				IVarTuple tuple => this.Equals(tuple),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Items.GetHashCode();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7, T8> other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider) => $"[{this.Subspace}] {this.Items}";

@@ -36,7 +36,7 @@ namespace FoundationDB.Client
 
 		TEncoded EncodeValue(in TValue value);
 
-		TValue DecodeValue(ReadOnlySpan<byte> encoded);
+		TValue? DecodeValue(ReadOnlySpan<byte> encoded);
 
 	}
 
@@ -52,6 +52,22 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public IVarTuple DecodeValue(ReadOnlySpan<byte> encoded) => TuPack.Unpack(encoded).ToTuple();
+
+	}
+
+	/// <summary>Encodes a <typeparamref name="T"/> value using the Tuple Encoding</summary>
+	public sealed class FdbTupleValueCodec<T> : IFdbValueCodec<T, STuple<T>>
+	{
+
+		public static readonly FdbTupleValueCodec<T> Instance = new();
+
+		private FdbTupleValueCodec() { }
+
+		/// <inheritdoc />
+		public STuple<T> EncodeValue(in T value) => STuple.Create<T>(value);
+
+		/// <inheritdoc />
+		public T? DecodeValue(ReadOnlySpan<byte> encoded) => TuPack.DecodeKey<T>(encoded);
 
 	}
 
@@ -107,6 +123,98 @@ namespace FoundationDB.Client
 			=> TCodec.TryDecode(encoded, out var value)
 				? value!
 				: throw new FormatException($"Failed to decode value of type '{typeof(TValue).GetFriendlyName()}'");
+	}
+
+	public static class FdbValueCodec
+	{
+
+		public static FdbRawValueCodec Raw => FdbRawValueCodec.Instance;
+
+		public static class Tuples
+		{
+
+			public static FdbVarTupleValueCodec Dynamic => FdbVarTupleValueCodec.Instance;
+
+			public static FdbTupleValueCodec<T> ForKey<T>() => FdbTupleValueCodec<T>.Instance;
+
+		}
+
+		public static FdbUtf8ValueCodec Utf8 => FdbUtf8ValueCodec.Instance;
+
+		public static FdbUtf16ValueCodec Utf16 => FdbUtf16ValueCodec.Instance;
+
+		public static class FixedSize
+		{
+
+			#region Little Endian...
+
+			public static FdbValueSpanEncoderCodec<int, SpanEncoders.FixedSizeLittleEndianEncoder> Int32LittleEndian => FdbValueSpanEncoderCodec<int, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<long, SpanEncoders.FixedSizeLittleEndianEncoder> Int64LittleEndian => FdbValueSpanEncoderCodec<long, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<Int128, SpanEncoders.FixedSizeLittleEndianEncoder> Int128LittleEndian => FdbValueSpanEncoderCodec<Int128, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<uint, SpanEncoders.FixedSizeLittleEndianEncoder> UInt32LittleEndian => FdbValueSpanEncoderCodec<uint, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<ulong, SpanEncoders.FixedSizeLittleEndianEncoder> UInt64LittleEndian => FdbValueSpanEncoderCodec<ulong, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<UInt128, SpanEncoders.FixedSizeLittleEndianEncoder> UInt128LittleEndian => FdbValueSpanEncoderCodec<UInt128, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<float, SpanEncoders.FixedSizeLittleEndianEncoder> SingleLittleEndian => FdbValueSpanEncoderCodec<float, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<double, SpanEncoders.FixedSizeLittleEndianEncoder> DoubleLittleEndian => FdbValueSpanEncoderCodec<double, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<Half, SpanEncoders.FixedSizeLittleEndianEncoder> HalfLittleEndian => FdbValueSpanEncoderCodec<Half, SpanEncoders.FixedSizeLittleEndianEncoder>.Instance;
+
+			#endregion
+
+			#region Big Endian...
+
+			public static FdbValueSpanEncoderCodec<int, SpanEncoders.FixedSizeBigEndianEncoder> Int32BigEndian => FdbValueSpanEncoderCodec<int, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<long, SpanEncoders.FixedSizeBigEndianEncoder> Int64BigEndian => FdbValueSpanEncoderCodec<long, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<Int128, SpanEncoders.FixedSizeBigEndianEncoder> Int128BigEndian => FdbValueSpanEncoderCodec<Int128, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<uint, SpanEncoders.FixedSizeBigEndianEncoder> UInt32BigEndian => FdbValueSpanEncoderCodec<uint, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<ulong, SpanEncoders.FixedSizeBigEndianEncoder> UInt64BigEndian => FdbValueSpanEncoderCodec<ulong, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<UInt128, SpanEncoders.FixedSizeBigEndianEncoder> UInt128BigEndian => FdbValueSpanEncoderCodec<UInt128, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<float, SpanEncoders.FixedSizeBigEndianEncoder> SingleBigEndian => FdbValueSpanEncoderCodec<float, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<double, SpanEncoders.FixedSizeBigEndianEncoder> DoubleBigEndian => FdbValueSpanEncoderCodec<double, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			public static FdbValueSpanEncoderCodec<Half, SpanEncoders.FixedSizeBigEndianEncoder> HalfBigEndian => FdbValueSpanEncoderCodec<Half, SpanEncoders.FixedSizeBigEndianEncoder>.Instance;
+
+			#endregion
+
+		}
+
+		//TODO: Compact!
+
+	}
+
+	public sealed class FdbRawValueCodec : IFdbValueCodec<Slice, FdbRawValue>, IFdbValueCodec<ReadOnlyMemory<byte>, FdbRawMemoryValue>
+	{
+
+		public static readonly FdbRawValueCodec Instance = new();
+
+		private FdbRawValueCodec() { }
+
+		/// <inheritdoc />
+		public FdbRawValue EncodeValue(in Slice value) => new(value);
+
+		/// <inheritdoc />
+		public Slice DecodeValue(ReadOnlySpan<byte> encoded) => Slice.FromBytes(encoded);
+
+		/// <inheritdoc />
+		public FdbRawMemoryValue EncodeValue(in ReadOnlyMemory<byte> value) => new(value);
+
+		/// <inheritdoc />
+		ReadOnlyMemory<byte> IFdbValueCodec<ReadOnlyMemory<byte>, FdbRawMemoryValue>.DecodeValue(ReadOnlySpan<byte> encoded) => Slice.FromBytes(encoded).Memory;
+
 	}
 
 	public sealed class FdbValueCodec<TValue, TEncoded> : IFdbValueCodec<TValue, TEncoded>

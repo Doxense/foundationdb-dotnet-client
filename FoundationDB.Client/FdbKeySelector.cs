@@ -115,6 +115,40 @@ namespace FoundationDB.Client
 			return new(this.Key.ToSlice(), this.OrEqual, this.Offset);
 		}
 
+		/// <summary>Adds a value to the selector's offset</summary>
+		/// <param name="selector">ex: fGE('abc')</param>
+		/// <param name="offset">ex: 7</param>
+		/// <returns><c>fGE{'abc'} + 7</c></returns>
+		public static FdbKeySelector<TKey> operator +(FdbKeySelector<TKey> selector, int offset)
+		{
+			return new(selector.Key, selector.OrEqual, checked(selector.Offset + offset));
+		}
+
+		/// <summary>Subtracts a value from the selector's offset</summary>
+		/// <param name="selector">ex: fGE('abc')</param>
+		/// <param name="offset">ex: 7</param>
+		/// <returns><c>fGE{'abc'} - 7</c></returns>
+		public static FdbKeySelector<TKey> operator -(FdbKeySelector<TKey> selector, int offset)
+		{
+			return new(selector.Key, selector.OrEqual, checked(selector.Offset - offset));
+		}
+
+		/// <summary>Increments the selector's offset</summary>
+		/// <param name="selector">ex: fGE('abc')</param>
+		/// <returns><c>fGE{'abc'} + 1</c></returns>
+		public static FdbKeySelector<TKey> operator ++(FdbKeySelector<TKey> selector)
+		{
+			return new(selector.Key, selector.OrEqual, checked(selector.Offset + 1));
+		}
+
+		/// <summary>Decrement the selector's offset</summary>
+		/// <param name="selector">ex: fGE('abc')</param>
+		/// <returns><c>fGE{'abc'} - 1</c></returns>
+		public static FdbKeySelector<TKey> operator --(FdbKeySelector<TKey> selector)
+		{
+			return new(selector.Key, selector.OrEqual, checked(selector.Offset - 1));
+		}
+
 	}
 
 }

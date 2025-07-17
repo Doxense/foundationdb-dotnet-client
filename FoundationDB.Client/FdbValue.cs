@@ -347,7 +347,7 @@ namespace FoundationDB.Client
 	public static class FdbValueExtensions
 	{
 
-		/// <summary>Returns a pre-encoded version of a value</summary>
+		/// <summary>Creates a pre-encoded version of a value that can be reused multiple times</summary>
 		/// <typeparam name="TValue">Type of the value to pre-encode</typeparam>
 		/// <param name="value">value to pre-encoded</param>
 		/// <returns>Value with a cached version of the encoded original</returns>
@@ -364,8 +364,27 @@ namespace FoundationDB.Client
 			{ // already cached!
 				return Unsafe.As<TValue, FdbRawValue>(ref value);
 			}
+			return new(ToSlice(in value));
+		}
 
-			return new(value.ToSlice());
+		/// <summary>Creates a pre-encoded version of a value that can be reused multiple times</summary>
+		/// <typeparam name="TValue">Type of the value to pre-encode</typeparam>
+		/// <param name="value">value to pre-encoded</param>
+		/// <returns>Value with a cached version of the encoded original</returns>
+		/// <remarks>This value can be used multiple times without re-encoding the original</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbRawValue Memoize<TValue>(in TValue value)
+#if NET9_0_OR_GREATER
+			where TValue : struct, ISpanEncodable, allows ref struct
+#else
+			where TValue : struct, ISpanEncodable
+#endif
+		{
+			if (typeof(TValue) == typeof(FdbRawValue))
+			{ // already cached!
+				return Unsafe.As<TValue, FdbRawValue>(ref Unsafe.AsRef(in value));
+			}
+			return new(ToSlice(in value));
 		}
 
 		/// <summary>Encodes this value into <see cref="Slice"/></summary>
@@ -378,10 +397,22 @@ namespace FoundationDB.Client
 #else
 			where TValue : struct, IFdbValue
 #endif
+			=> ToSlice(in value);
+
+		/// <summary>Encodes this value into <see cref="Slice"/></summary>
+		/// <param name="value">Value to encode</param>
+		/// <returns><see cref="Slice"/> that contains the binary representation of this value</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice ToSlice<TValue>(in TValue value)
+#if NET9_0_OR_GREATER
+			where TValue : struct, ISpanEncodable, allows ref struct
+#else
+			where TValue : struct, ISpanEncodable
+#endif
 		{
 			if (typeof(TValue) == typeof(FdbRawValue))
 			{
-				return Unsafe.As<TValue, FdbRawValue>(ref value).Data;
+				return Unsafe.As<TValue, FdbRawValue>(ref Unsafe.AsRef(in value)).Data;
 			}
 
 			if (value.TryGetSpan(out var span))
@@ -608,6 +639,7 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbRawValue Return(Slice slice) => new(slice);
 
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal FdbRawValue(Slice data)
 		{
 			this.Data = data;
@@ -627,7 +659,7 @@ namespace FoundationDB.Client
 			=> this.Data.TryFormat(destination, out charsWritten, format, provider);
 
 		/// <inheritdoc />
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span)
 		{
 			span = this.Data.Span;
@@ -635,7 +667,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint)
 		{
 			sizeHint = this.Data.Count;
@@ -643,10 +675,67 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten)
 		{
 			return this.Data.TryCopyTo(destination, out bytesWritten);
+		}
+
+	}
+
+	/// <summary>Value that wraps raw bytes</summary>
+	[PublicAPI]
+	public readonly struct FdbRawMemoryValue : IFdbValue
+	{
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbRawMemoryValue Return(ReadOnlyMemory<byte> slice) => new(slice);
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal FdbRawMemoryValue(ReadOnlyMemory<byte> data)
+		{
+			this.Data = data;
+		}
+
+		public readonly ReadOnlyMemory<byte> Data;
+
+		/// <inheritdoc />
+		public override string ToString() => this.Data.ToString();
+
+		private Slice GetSliceOrCopy()
+		{
+			return MemoryMarshal.TryGetArray(Data, out var seg) ? seg.AsSlice() : Slice.FromBytes(this.Data.Span);
+		}
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider)
+			=> GetSliceOrCopy().ToString(format, formatProvider);
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+			=> GetSliceOrCopy().TryFormat(destination, out charsWritten, format, provider);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			span = this.Data.Span;
+			return true;
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			sizeHint = this.Data.Length;
+			return true;
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			return this.Data.Span.TryCopyTo(destination, out bytesWritten);
 		}
 
 	}
