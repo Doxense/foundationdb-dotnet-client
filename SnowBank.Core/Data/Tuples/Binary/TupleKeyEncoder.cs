@@ -34,10 +34,11 @@ namespace SnowBank.Data.Tuples.Binary
 	using SnowBank.Data.Binary;
 
 	/// <summary>Encoder for variable-length elements, that uses the Tuple Binary Encoding format</summary>
+	[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 	public sealed class TupleKeyEncoder : IDynamicKeyEncoder
 	{
 
-		internal static TupleKeyEncoder Instance = new ();
+		public static TupleKeyEncoder Instance = new ();
 
 		private TupleKeyEncoder()
 		{ }

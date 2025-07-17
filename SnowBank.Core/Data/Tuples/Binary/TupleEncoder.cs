@@ -2570,7 +2570,7 @@ namespace SnowBank.Data.Tuples.Binary
 				return false;
 			}
 
-			if (!TupleParser.TryParseNext(ref reader, out var token, out error))
+			if (!TupleParser.TryParseNext(ref reader, out _, out error))
 			{
 				if (error != null)
 				{
@@ -2728,6 +2728,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return false;
 		}
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal class Encoder<T> : IKeyEncoder<T>, IValueEncoder<T>
 		{
 
@@ -2777,6 +2778,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		}
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal class CompositeEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
 		{
 
@@ -2834,6 +2836,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		}
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal class CompositeEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>
 		{
 
@@ -2895,6 +2898,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		}
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal class CompositeEncoder<T1, T2, T3, T4> : CompositeKeyEncoder<T1, T2, T3, T4>
 		{
 
@@ -2960,6 +2964,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		}
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal class CompositeEncoder<T1, T2, T3, T4, T5> : CompositeKeyEncoder<T1, T2, T3, T4, T5>
 		{
 
@@ -3029,6 +3034,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		}
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal class CompositeEncoder<T1, T2, T3, T4, T5, T6> : CompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
 		{
 

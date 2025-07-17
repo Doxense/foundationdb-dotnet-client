@@ -41,6 +41,7 @@ namespace SnowBank.Data.Tuples
 	{
 
 		/// <summary>Key encoding that uses the Tuple Binary Encoding</summary>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static IDynamicTypeSystem Encoding => TupleKeyEncoding.Instance;
 
 		#region Packing...

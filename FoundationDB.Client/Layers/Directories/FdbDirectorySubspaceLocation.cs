@@ -39,6 +39,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		Slice ISubspaceLocation.Prefix => Slice.Nil;
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		IKeyEncoding ISubspaceLocation.Encoding => TuPack.Encoding;
 
 		/// <summary>Returns <see langword="true"/> if this location points to a directory partition.</summary>
@@ -151,7 +152,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T1">Type of the key</typeparam>
 		/// <param name="item1">Key that will be appended to the current location's binary prefix</param>
 		/// <returns>A new subspace location with an additional binary suffix</returns>
-		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new(GetSafePath(), TuPack.EncodeKey(item1), TuPack.Encoding.GetDynamicKeyEncoder());
+		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new(GetSafePath(), TuPack.EncodeKey(item1));
 
 		/// <summary>Appends a pair encoded keys to the prefix of the current location</summary>
 		/// <typeparam name="T1">Type of the first key</typeparam>
@@ -159,7 +160,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">Key that will be appended first to the current location's binary prefix</param>
 		/// <param name="item2">Key that will be appended last to the current location's binary prefix</param>
 		/// <returns>A new subspace location with an additional binary suffix</returns>
-		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new(GetSafePath(), TuPack.EncodeKey(item1, item2), TuPack.Encoding.GetDynamicKeyEncoder());
+		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new(GetSafePath(), TuPack.EncodeKey(item1, item2));
 
 		#region IFdbDirectory...
 

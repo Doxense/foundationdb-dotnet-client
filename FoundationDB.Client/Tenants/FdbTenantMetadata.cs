@@ -51,9 +51,16 @@ namespace FoundationDB.Client
 		/// <summary>Raw metadata value, as stored in the database</summary>
 		public Slice Raw { get; init; }
 
-		public FdbTenantSubspace GetSubspace(IDynamicKeyEncoder? encoder = null, ISubspaceContext? context = null)
+		public FdbTenantSubspace GetSubspace(ISubspaceContext? context = null)
 		{
-			return new FdbTenantSubspace(this, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder(), context ?? SubspaceContext.Default);
+			return new FdbTenantSubspace(this, context ?? SubspaceContext.Default);
+		}
+
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public FdbTenantSubspace GetSubspace(IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
+		{
+			Contract.NotNull(encoder);
+			return new FdbTenantSubspace(this, encoder, context ?? SubspaceContext.Default);
 		}
 
 	}

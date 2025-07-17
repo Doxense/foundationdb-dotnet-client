@@ -30,6 +30,7 @@ namespace SnowBank.Data.Binary
 	/// <summary>Encoder that uses a compact binary representation for values</summary>
 	/// <remarks>This type mostly defers to the corresponding methods in <see cref="Slice"/></remarks>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public sealed class BinaryEncoding : IValueEncoding, IKeyEncoding,
 		IValueEncoder<Slice>,
 		IValueEncoder<string?>,

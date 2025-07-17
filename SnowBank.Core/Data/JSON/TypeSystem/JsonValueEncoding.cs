@@ -26,12 +26,16 @@
 
 namespace SnowBank.Data.Binary
 {
+	using System.ComponentModel;
 	using SnowBank.Data.Tuples;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Data.Json;
 	using SnowBank.Buffers;
 
-	public sealed class JsonValueEncoding : IValueEncoding, IDynamicKeyEncoding
+	public sealed class JsonValueEncoding : IValueEncoding
+#pragma warning disable CS0618 // Type or member is obsolete
+		, IDynamicKeyEncoding
+#pragma warning restore CS0618 // Type or member is obsolete
 	{
 
 		public static JsonValueEncoding Instance { get; } = new(null, null);
@@ -48,9 +52,14 @@ namespace SnowBank.Data.Binary
 
 		#region IKeyEncoding...
 
+#pragma warning disable CS0618 // Type or member is obsolete
+		[Obsolete("This method is not supported anymore")]
 		IKeyEncoder<TKey> IKeyEncoding.GetKeyEncoder<TKey>() => GetKeyEncoder<TKey>();
+#pragma warning restore CS0618 // Type or member is obsolete
 
 		[Pure]
+		[Obsolete("This method is not supported anymore", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public JsonKeyEncoder<T> GetKeyEncoder<T>()
 		{
 			if (this.Settings.Equals(CrystalJsonSettings.Json) && this.Resolver == CrystalJson.DefaultResolver)
@@ -59,6 +68,8 @@ namespace SnowBank.Data.Binary
 			}
 			return new JsonKeyEncoder<T>(this);
 		}
+
+#pragma warning disable CS0618 // Type or member is obsolete
 
 		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>()
 			=> throw new NotSupportedException();
@@ -69,17 +80,23 @@ namespace SnowBank.Data.Binary
 		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>()
 			=> throw new NotSupportedException();
 
+		[Obsolete("This method is not supported anymore")]
 		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => GetDynamicKeyEncoder();
 
+#pragma warning restore CS0618 // Type or member is obsolete
+
 		[Pure]
+		[Obsolete("This method is not supported anymore", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public JsonDynamicKeyEncoder GetDynamicKeyEncoder()
 		{
 			if (this.Settings.Equals(CrystalJsonSettings.Json) && this.Resolver == CrystalJson.DefaultResolver)
 			{
 				return JsonDynamicKeyEncoder.Instance;
 			}
-			return new JsonDynamicKeyEncoder(this);
+			return new(this);
 		}
+
 
 		#endregion
 
@@ -271,6 +288,7 @@ namespace SnowBank.Data.Binary
 
 	}
 
+	[Obsolete("This method is not supported anymore")]
 	public sealed class JsonKeyEncoder<T> : IKeyEncoder<T>
 	{
 
@@ -333,6 +351,7 @@ namespace SnowBank.Data.Binary
 
 	}
 
+	[Obsolete("This method is not supported anymore")]
 	public sealed class JsonDynamicKeyEncoder : IDynamicKeyEncoder
 	{
 

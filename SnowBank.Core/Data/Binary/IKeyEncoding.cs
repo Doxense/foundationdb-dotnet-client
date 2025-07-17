@@ -36,6 +36,7 @@ namespace SnowBank.Data.Binary
 	/// <seealso cref="IKeyEncoder{TKey}"/>
 	/// <seealso cref="IValueEncoding">For values</seealso>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface IKeyEncoding
 	{
 
@@ -78,6 +79,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Type system that only handles encoding and decoding of dynamically typed of keys</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface IDynamicKeyEncoding : IKeyEncoding
 	{
 

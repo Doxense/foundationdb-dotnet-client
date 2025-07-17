@@ -510,6 +510,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
 		/// <exception cref="System.ArgumentException">If at least on key in the result is outside <paramref name="subspace"/>.</exception>
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="subspace"/>, <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(KeySubspace subspace, IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
 		{
 			Contract.NotNull(subspace);
@@ -537,6 +538,7 @@ namespace FoundationDB.Client
 		/// <param name="valueEncoder">Instance used to decode the values of this chunk</param>
 		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
 		{
 			Contract.NotNull(keyEncoder);
@@ -578,6 +580,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace"></param>
 		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public T[] DecodeKeys<T>(KeySubspace subspace, IKeyEncoder<T> keyEncoder)
 		{
 			Contract.NotNull(subspace);
@@ -596,6 +599,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public T[] DecodeKeys<T>(IKeyEncoder<T> keyEncoder)
 		{
 			Contract.NotNull(keyEncoder);

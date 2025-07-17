@@ -33,6 +33,15 @@ namespace FoundationDB.Client
 	public class FdbDirectorySubspace : DynamicKeySubspace, IFdbDirectory
 	{
 
+		internal FdbDirectorySubspace(FdbDirectoryLayer.DirectoryDescriptor descriptor, ISubspaceContext? context, bool cached)
+			: base(descriptor.Prefix, context ?? SubspaceContext.Default)
+		{
+			Contract.Debug.Requires(descriptor != null && descriptor.Partition != null);
+			this.Descriptor = descriptor;
+			this.Cached = cached;
+		}
+
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal FdbDirectorySubspace(FdbDirectoryLayer.DirectoryDescriptor descriptor, IDynamicKeyEncoder encoder, ISubspaceContext? context, bool cached)
 			: base(descriptor.Prefix, encoder, context ?? SubspaceContext.Default)
 		{
@@ -74,7 +83,9 @@ namespace FoundationDB.Client
 
 			if (context == this.Context) return this;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 			return new(this.Descriptor, this.KeyEncoder, context, true);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Convert a path relative to this directory, into a path relative to the root of the current partition</summary>
@@ -145,7 +156,9 @@ namespace FoundationDB.Client
 			// and return the new version of the subspace
 			var changed = new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, newLayer, descriptor.Partition, descriptor.ValidationChain);
 
-			return new FdbDirectorySubspace(changed, this.KeyEncoder, this.Context, false);
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(changed, this.KeyEncoder, this.Context, false);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.

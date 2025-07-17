@@ -32,6 +32,14 @@ namespace FoundationDB.Client
 		/// <summary>Returns a slice with the ASCII string "partition"</summary>
 		public const string LayerId = "partition";
 
+		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, ISubspaceContext? context, bool cached)
+			: base(descriptor, context, cached)
+		{
+			Contract.NotNull(parent);
+			this.Parent = parent;
+		}
+
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, IDynamicKeyEncoder keyEncoder, ISubspaceContext? context, bool cached)
 			: base(descriptor, keyEncoder, context, cached)
 		{
@@ -42,7 +50,7 @@ namespace FoundationDB.Client
 		internal static FdbDirectoryLayer.DirectoryDescriptor MakePartition(FdbDirectoryLayer.DirectoryDescriptor descriptor)
 		{
 			var partition = new FdbDirectoryLayer.PartitionDescriptor(descriptor.Path, KeySubspace.CreateDynamic(descriptor.Prefix), descriptor.Partition);
-			return new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, descriptor.Layer, partition, descriptor.ValidationChain);
+			return new(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, descriptor.Layer, partition, descriptor.ValidationChain);
 		}
 
 		/// <summary>Descriptor of the partition directory in its parent partition</summary>
@@ -53,22 +61,25 @@ namespace FoundationDB.Client
 		protected override Slice GetKeyPrefix()
 		{
 			// only "/" is allowed for legacy reasons
-			if (!this.IsTopLevel) throw ThrowHelper.InvalidOperationException($"Cannot create keys in the root of directory partition {this.Path}.");
-			return base.GetKeyPrefix();
+			return this.IsTopLevel
+				? base.GetKeyPrefix()
+				: throw ThrowHelper.InvalidOperationException($"Cannot create keys in the root of directory partition {this.Path}.");
 		}
 
 		protected override KeyRange GetKeyRange()
 		{
 			// only "/" is allowed for legacy reasons
-			if (!this.IsTopLevel) throw ThrowHelper.InvalidOperationException($"Cannot create a key range in the root of directory partition {this.Path}.");
-			return base.GetKeyRange();
+			return this.IsTopLevel
+				? base.GetKeyRange()
+				: throw ThrowHelper.InvalidOperationException($"Cannot create a key range in the root of directory partition {this.Path}.");
 		}
 
 		public override bool Contains(ReadOnlySpan<byte> key)
 		{
 			// only "/" is allowed for legacy reasons
-			if (!this.IsTopLevel) throw ThrowHelper.InvalidOperationException($"Cannot check whether a key belongs to the root of directory partition {this.Path}");
-			return base.Contains(key);
+			return this.IsTopLevel
+				? base.Contains(key)
+				: throw ThrowHelper.InvalidOperationException($"Cannot check whether a key belongs to the root of directory partition {this.Path}");
 		}
 
 		internal override FdbDirectoryLayer.PartitionDescriptor GetEffectivePartition()
@@ -81,7 +92,9 @@ namespace FoundationDB.Client
 			Contract.NotNull(context);
 
 			if (context == this.Context) return this;
+#pragma warning disable CS0618 // Type or member is obsolete
 			return new FdbDirectoryPartition(this.Descriptor, this.Parent, this.KeyEncoder, context, true);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		public override bool IsPartition => true;

@@ -51,18 +51,51 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
 		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="context">If non-null, overrides the current subspace context.</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure]
+		public static IDynamicKeySubspace AsDynamic(this IKeySubspace subspace, ISubspaceContext? context = null)
+		{
+			Contract.NotNull(subspace);
+			if (subspace is IDynamicKeySubspace dyn && (context == null || context == dyn.Context))
+			{ // already a dynamic subspace
+				return dyn;
+			}
+			return new DynamicKeySubspace(subspace.GetPrefix(), context ?? subspace.Context);
+		}
+
+		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
+		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoding">If non-null, uses this specific instance of the TypeSystem. If null, uses the default instance for this particular TypeSystem</param>
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		public static IDynamicKeySubspace AsDynamic(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static IDynamicKeySubspace AsDynamic(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
-			if (subspace is IDynamicKeySubspace dyn && (context == null || context == dyn.Context) && (encoding == null || encoding == dyn.KeyEncoder.Encoding))
+			Contract.NotNull(encoding);
+
+			if (subspace is IDynamicKeySubspace dyn && (context == null || context == dyn.Context) && (encoding == dyn.KeyEncoder.Encoding))
 			{ // already a dynamic subspace
 				return dyn;
 			}
-			return new DynamicKeySubspace(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder(), context ?? subspace.Context);
+			return new DynamicKeySubspace(subspace.GetPrefix(), encoding.GetDynamicKeyEncoder(), context ?? subspace.Context);
+		}
+
+		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
+		/// <param name="context">If non-null, overrides the current subspace context.</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure]
+		public static ITypedKeySubspace<T> AsTyped<T>(this IKeySubspace subspace, ISubspaceContext? context = null)
+		{
+			Contract.NotNull(subspace);
+			if (subspace is ITypedKeySubspace<T> typed && (context == null || context == typed.Context))
+			{ // already a typed subspace
+				return typed;
+			}
+			return new TypedKeySubspace<T>(subspace.GetPrefix(), context ?? subspace.Context);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -71,14 +104,32 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		public static ITypedKeySubspace<T> AsTyped<T>(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static ITypedKeySubspace<T> AsTyped<T>(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
-			if (subspace is ITypedKeySubspace<T> typed && (context == null || context == typed.Context) && encoding == null)
+			Contract.NotNull(encoding);
+
+			if (subspace is ITypedKeySubspace<T> typed && (context == null || context == typed.Context))
 			{ // already a typed subspace
 				return typed;
 			}
-			return new TypedKeySubspace<T>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T>(), context ?? subspace.Context);
+			return new TypedKeySubspace<T>(subspace.GetPrefix(), encoding.GetKeyEncoder<T>(), context ?? subspace.Context);
+		}
+
+		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
+		/// <param name="context">If non-null, overrides the current subspace context.</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure]
+		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>(this IKeySubspace subspace, ISubspaceContext? context = null)
+		{
+			Contract.NotNull(subspace);
+			if (subspace is ITypedKeySubspace<T1, T2> typed && (context == null || context == typed.Context))
+			{ // already a typed subspace
+				return typed;
+			}
+			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), context ?? subspace.Context);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -87,14 +138,31 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
-			if (subspace is ITypedKeySubspace<T1, T2> typed && (context == null || context == typed.Context) && encoding == null)
+			Contract.NotNull(encoding);
+			if (subspace is ITypedKeySubspace<T1, T2> typed && (context == null || context == typed.Context))
 			{ // already a typed subspace
 				return typed;
 			}
-			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2>(), context ?? subspace.Context);
+			return new TypedKeySubspace<T1, T2>(subspace.GetPrefix(), encoding.GetKeyEncoder<T1, T2>(), context ?? subspace.Context);
+		}
+
+		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
+		/// <param name="subspace">Instance of a generic subspace to extend</param>
+		/// <param name="context">If non-null, overrides the current subspace context.</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure]
+		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>(this IKeySubspace subspace, ISubspaceContext? context = null)
+		{
+			Contract.NotNull(subspace);
+			if (subspace is ITypedKeySubspace<T1, T2, T3> typed && (context == null || context == typed.Context))
+			{ // already a typed subspace
+				return typed;
+			}
+			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), context ?? subspace.Context);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -103,14 +171,31 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
-			if (subspace is ITypedKeySubspace<T1, T2, T3> typed && (context == null || context == typed.Context) && encoding == null)
+			Contract.NotNull(encoding);
+			if (subspace is ITypedKeySubspace<T1, T2, T3> typed && (context == null || context == typed.Context))
 			{ // already a typed subspace
 				return typed;
 			}
-			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3>(), context ?? subspace.Context);
+			return new TypedKeySubspace<T1, T2, T3>(subspace.GetPrefix(), encoding.GetKeyEncoder<T1, T2, T3>(), context ?? subspace.Context);
+		}
+
+		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
+		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="context">If non-null, overrides the current subspace context.</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure]
+		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>(this IKeySubspace subspace, ISubspaceContext? context = null)
+		{
+			Contract.NotNull(subspace);
+			if (subspace is ITypedKeySubspace<T1, T2, T3, T4> typed && (context == null || context == typed.Context))
+			{ // already a typed subspace
+				return typed;
+			}
+			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), context ?? subspace.Context);
 		}
 
 		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
@@ -119,14 +204,16 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>(this IKeySubspace subspace, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
-			if (subspace is ITypedKeySubspace<T1, T2, T3, T4> typed && (context == null || context == typed.Context) && encoding == null)
+			Contract.NotNull(encoding);
+			if (subspace is ITypedKeySubspace<T1, T2, T3, T4> typed && (context == null || context == typed.Context))
 			{ // already a typed subspace
 				return typed;
 			}
-			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3, T4>(), context ?? subspace.Context);
+			return new TypedKeySubspace<T1, T2, T3, T4>(subspace.GetPrefix(), encoding.GetKeyEncoder<T1, T2, T3, T4>(), context ?? subspace.Context);
 		}
 
 		#endregion
@@ -139,6 +226,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static IDynamicKeySubspace UsingEncoder(this IKeySubspace subspace, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -152,6 +240,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static ITypedKeySubspace<T> UsingEncoder<T>(this IKeySubspace subspace, IKeyEncoder<T> encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -165,6 +254,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static ITypedKeySubspace<T1, T2> UsingEncoder<T1, T2>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2> encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -178,6 +268,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static ITypedKeySubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2, T3> encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -191,6 +282,7 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Encoder used to serialize the keys of this namespace.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static ITypedKeySubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2, T3, T4> encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -222,7 +314,9 @@ namespace FoundationDB.Client
 
 			if (subspace is IDynamicKeySubspace dyn)
 			{ // reuse the encoding of the original
+#pragma warning disable CS0618 // Type or member is obsolete
 				return new DynamicKeySubspace(prefix, dyn.KeyEncoder, subspace.Context);
+#pragma warning restore CS0618 // Type or member is obsolete
 			}
 
 			// no encoding
@@ -231,6 +325,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static DynamicKeySubspace Copy(this IKeySubspace subspace, IDynamicKeyEncoding encoding, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -240,12 +335,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static DynamicKeySubspace Copy(this IKeySubspace subspace, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
 			Contract.NotNull(encoder);
 			return new DynamicKeySubspace(StealPrefix(subspace), encoder, context ?? subspace.Context);
 		}
+
+#pragma warning disable CS0618 // Type or member is obsolete
 
 		/// <summary>Create a copy of a dynamic subspace, sharing the same binary prefix and encoder</summary>
 		[Pure]
@@ -286,6 +384,8 @@ namespace FoundationDB.Client
 			Contract.NotNull(subspace);
 			return new TypedKeySubspace<T1, T2, T3, T4>(StealPrefix(subspace), subspace.KeyEncoder, context ?? subspace.Context);
 		}
+
+#pragma warning restore CS0618 // Type or member is obsolete
 
 		#endregion
 

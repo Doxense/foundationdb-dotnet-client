@@ -29,6 +29,7 @@ namespace SnowBank.Data.Tuples.Binary
 	using SnowBank.Data.Binary;
 
 	/// <summary>Encoding that uses the Tuple Binary Encoding format</summary>
+	[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 	public sealed class TupleKeyEncoding : IDynamicTypeSystem
 	{
 

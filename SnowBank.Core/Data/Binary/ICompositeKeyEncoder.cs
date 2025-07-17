@@ -30,6 +30,7 @@ namespace SnowBank.Data.Binary
 	
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface ICompositeKeyEncoder<T1, T2> : IKeyEncoder<(T1, T2)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -47,6 +48,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface ICompositeKeyEncoder<T1, T2, T3> : IKeyEncoder<(T1, T2, T3)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -64,6 +66,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : IKeyEncoder<(T1, T2, T3, T4)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -82,6 +85,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5> : IKeyEncoder<(T1, T2, T3, T4, T5)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -99,6 +103,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Encoder that can serialize and deserialize composite keys using a binary encoding</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : IKeyEncoder<(T1, T2, T3, T4, T5, T6)>
 	{
 		/// <summary>Write some or all parts of a composite key</summary>
@@ -116,6 +121,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public abstract class CompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<T1, T2>
 	{
 
@@ -168,6 +174,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Wrapper for encoding and decoding a triplet with lambda functions</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public abstract class CompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2, T3>
 	{
 
@@ -219,6 +226,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Wrapper for encoding and decoding a quad with lambda functions</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2, T3, T4>
 	{
 
@@ -270,6 +278,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Wrapper for encoding and decoding five items with lambda functions</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5> : ICompositeKeyEncoder<T1, T2, T3, T4, T5>
 	{
 
@@ -321,6 +330,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Wrapper for encoding and decoding six items with lambda functions</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public abstract class CompositeKeyEncoder<T1, T2, T3, T4, T5, T6> : ICompositeKeyEncoder<T1, T2, T3, T4, T5, T6>
 	{
 

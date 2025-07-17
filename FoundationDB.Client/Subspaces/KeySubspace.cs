@@ -65,74 +65,125 @@ namespace FoundationDB.Client
 		/// <summary>Initializes a new dynamic subspace with the given binary <paramref name="prefix"/> and key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle keys of any types and size.</returns>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static IDynamicKeySubspace CreateDynamic(Slice prefix, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(encoder);
 			return new DynamicKeySubspace(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
+		/// <returns>A subspace that can handle keys of any types and size.</returns>
+		[Pure]
+		public static IDynamicKeySubspace CreateDynamic(Slice prefix, ISubspaceContext? context = null)
+		{
+			return new DynamicKeySubspace(prefix, context ?? SubspaceContext.Default);
+		}
+
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a dynamic key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle keys of any types and size.</returns>
 		[Pure]
-		public static IDynamicKeySubspace CreateDynamic(Slice prefix, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static IDynamicKeySubspace CreateDynamic(Slice prefix, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
-			return new DynamicKeySubspace(prefix, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder(), context ?? SubspaceContext.Default);
+			Contract.NotNull(encoding);
+			return new DynamicKeySubspace(prefix, encoding.GetDynamicKeyEncoder(), context ?? SubspaceContext.Default);
+		}
+
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
+		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
+		public static ITypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, ISubspaceContext? context = null)
+		{
+			return new TypedKeySubspace<T1>(prefix, context ?? SubspaceContext.Default);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
-		public static ITypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static ITypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
-			return new TypedKeySubspace<T1>(prefix, (encoding ?? TuPack.Encoding).GetKeyEncoder<T1>(), context ?? SubspaceContext.Default);
+			Contract.NotNull(encoding);
+			return new TypedKeySubspace<T1>(prefix, encoding.GetKeyEncoder<T1>(), context ?? SubspaceContext.Default);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static ITypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, IKeyEncoder<T1> encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1>(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
+		public static ITypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, ISubspaceContext? context = null)
+		{
+			return new TypedKeySubspace<T1, T2>(prefix, context ?? SubspaceContext.Default);
+		}
+
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
-		public static ITypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static ITypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
-			return new TypedKeySubspace<T1, T2>(prefix, (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2>(), context ?? SubspaceContext.Default);
+			Contract.NotNull(encoding);
+			return new TypedKeySubspace<T1, T2>(prefix, context ?? SubspaceContext.Default);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static ITypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, ICompositeKeyEncoder<T1, T2> encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2>(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		public static ITypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, ISubspaceContext? context = null)
+		{
+			return new TypedKeySubspace<T1, T2, T3>(prefix, context ?? SubspaceContext.Default);
+		}
+
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
-		public static ITypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static ITypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
-			return new TypedKeySubspace<T1, T2, T3>(prefix, (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3>(), context ?? SubspaceContext.Default);
+			Contract.NotNull(encoding);
+			return new TypedKeySubspace<T1, T2, T3>(prefix, TuPack.Encoding.GetKeyEncoder<T1, T2, T3>(), context ?? SubspaceContext.Default);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static ITypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, ICompositeKeyEncoder<T1, T2, T3> encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(encoder);
 			return new TypedKeySubspace<T1, T2, T3>(prefix, encoder, context ?? SubspaceContext.Default);
 		}
 
+		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
+		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		public static ITypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, ISubspaceContext? context = null)
+		{
+			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, context ?? SubspaceContext.Default);
+		}
+
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoding"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
-		public static ITypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, IKeyEncoding? encoding = null, ISubspaceContext? context = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static ITypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
-			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, (encoding ?? TuPack.Encoding).GetKeyEncoder<T1, T2, T3, T4>(), context ?? SubspaceContext.Default);
+			Contract.NotNull(encoding);
+			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, TuPack.Encoding.GetKeyEncoder<T1, T2, T3, T4>(), context ?? SubspaceContext.Default);
 		}
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>, that uses a typed key <paramref name="encoder"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static ITypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, ICompositeKeyEncoder<T1, T2, T3, T4> encoder, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(encoder);
@@ -259,7 +310,7 @@ namespace FoundationDB.Client
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
 		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> is the key is exactly equal to the subspace prefix). If the key is outside the subspace, returns <see cref="Slice.Nil"/></returns>
-		/// <remarks>This is the inverse operation of <see cref="P:FoundationDB.Client.IKeySubspace.Item(Slice)"/></remarks>
+		/// <remarks>This is the inverse operation of <see cref="IKeySubspace.Append"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		public virtual Slice ExtractKey(Slice absoluteKey, bool boundCheck = false)
 		{
@@ -278,7 +329,7 @@ namespace FoundationDB.Client
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
 		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> is the key is exactly equal to the subspace prefix). If the key is outside the subspace, returns <see cref="Slice.Nil"/></returns>
-		/// <remarks>This is the inverse operation of <see cref="P:FoundationDB.Client.IKeySubspace.Item(Slice)"/></remarks>
+		/// <remarks>This is the inverse operation of <see cref="IKeySubspace.Append"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		public virtual ReadOnlySpan<byte> ExtractKey(ReadOnlySpan<byte> absoluteKey, bool boundCheck = false)
 		{

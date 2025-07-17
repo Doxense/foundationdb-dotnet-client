@@ -524,7 +524,7 @@ namespace FoundationDB.Client
 			private static void SetLayer(IFdbTransaction trans, PartitionDescriptor partition, Slice prefix, string layer)
 			{
 				Contract.Debug.Requires(layer != null);
-				trans.Set(partition.Nodes.Encode(prefix, LayerAttribute), Slice.FromStringUtf8(layer));
+				trans.Set(partition.Nodes.GetKey(prefix, LayerAttribute), FdbValue.ToTextUtf8(layer));
 			}
 
 			/// <summary>Finds a node subspace, given its path, by walking the tree from the root.</summary>
@@ -552,10 +552,7 @@ namespace FoundationDB.Client
 					if (AnnotateTransactions) tr.Annotate($"Looking for child {path[i]} under node {FdbKey.Dump(current)}...");
 
 					// maybe use the node cache, if allowed
-					var key = partition.Nodes.Encode(current, SUBDIRS, path[i].Name);
-					current = await tr.GetAsync(key).ConfigureAwait(false);
-
-					//chain.Add(new(key, current));
+					current = await tr.GetAsync(partition.Nodes.GetKey(current, SUBDIRS, path[i].Name)).ConfigureAwait(false);
 
 					if (current.IsNull)
 					{
@@ -563,7 +560,7 @@ namespace FoundationDB.Client
 					}
 
 					// get the layer id of this node
-					layer = (await tr.GetAsync(partition.Nodes.Encode(current, LayerAttribute)).ConfigureAwait(false)).ToStringUtf8() ?? string.Empty;
+					layer = (await tr.GetAsync(partition.Nodes.GetKey(current, LayerAttribute)).ConfigureAwait(false)).ToStringUtf8() ?? string.Empty;
 					if (AnnotateTransactions) tr.Annotate($"Found subfolder '{path[i].Name}' at {FdbKey.Dump(current)} ({layer})");
 
 					parent = partition;
@@ -777,7 +774,7 @@ namespace FoundationDB.Client
 				if (prefix.IsNull)
 				{ // automatically allocate a new prefix inside the ContentSubspace
 					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.Partition.ByKey(partition.Nodes.GetPrefix(), HcaAttribute).AsTyped<int, long>(), this.Allocator).ConfigureAwait(false);
-					prefix = partition.Content.Encode(id);
+					prefix = partition.Content.GetKey(id).ToSlice();
 
 					// ensure that there is no data already present under this prefix
 					if (AnnotateTransactions) trans.Annotate($"Ensure that there is no data already present under prefix {prefix:K}");
@@ -807,8 +804,7 @@ namespace FoundationDB.Client
 
 				if (AnnotateTransactions) trans.Annotate($"Registering the new prefix {prefix:K} into the folder sub-tree");
 
-				var key = partition.Nodes.Encode(parentPrefix, SUBDIRS, path.Name);
-				trans.Set(key, prefix);
+				trans.Set(partition.Nodes.GetKey(parentPrefix, SUBDIRS, path.Name), prefix);
 
 				// initialize the new folder
 				SetLayer(trans, partition, prefix, layer);
@@ -902,7 +898,7 @@ namespace FoundationDB.Client
 					trans.TouchMetadataVersionKey();
 				}
 
-				trans.Set(parentPartition.Nodes.Encode(parentPrefix, SUBDIRS, newPath.Name), oldNode.PrefixInParentPartition);
+				trans.Set(parentPartition.Nodes.GetKey(parentPrefix, SUBDIRS, newPath.Name), oldNode.PrefixInParentPartition);
 
 				await RemoveFromParent(trans, oldPath).ConfigureAwait(false);
 
@@ -1093,7 +1089,7 @@ namespace FoundationDB.Client
 				var kvp = await tr
 					.GetRange(
 						partition.Nodes.ToRange().Begin,
-						partition.Nodes.Encode(key) + FdbKey.MinValue
+						partition.Nodes.GetKey(key).GetSuccessor().ToSlice()
 					)
 					.LastOrDefaultAsync()
 					.ConfigureAwait(false);
@@ -1118,12 +1114,12 @@ namespace FoundationDB.Client
 				if (layer == FdbDirectoryPartition.LayerId)
 				{
 					var descriptor = new DirectoryDescriptor(this.Layer, path, partition.Content.GetPrefix(), FdbDirectoryPartition.LayerId, partition, validationChain);
-					return new FdbDirectoryPartition(descriptor, parentPartition, TuPack.Encoding.GetDynamicKeyEncoder(), context, false);
+					return new FdbDirectoryPartition(descriptor, parentPartition, context, false);
 				}
 				else
 				{
 					var descriptor = new DirectoryDescriptor(this.Layer, path, prefix, layer, partition, validationChain);
-					return new FdbDirectorySubspace(descriptor, TuPack.Encoding.GetDynamicKeyEncoder(), context, false);
+					return new FdbDirectorySubspace(descriptor, context, false);
 				}
 			}
 
@@ -1146,7 +1142,7 @@ namespace FoundationDB.Client
 				}
 
 				// fetch the layers from the corresponding directories
-				var layers = includeLayers ? await tr.GetValuesAsync(items.Select(item => partition.Nodes.Encode(item.Prefix, LayerAttribute))).ConfigureAwait(false) : null;
+				var layers = includeLayers ? await tr.GetValuesAsync(items, item => partition.Nodes.GetKey(item.Prefix, LayerAttribute)).ConfigureAwait(false) : null;
 
 				var res = new List<(string, string?, Slice)>(items.Count);
 				for (int i = 0; i < items.Count; i++)
@@ -1187,8 +1183,8 @@ namespace FoundationDB.Client
 				tr.ClearRange(KeyRange.StartsWith(prefix));
 
 				// and all the metadata for this folder
-				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.EncodeRange(prefix)}");
-				tr.ClearRange(partition.Nodes.EncodeRange(prefix));
+				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.GetRange(prefix)}");
+				tr.ClearRange(partition.Nodes.GetRange(prefix));
 			}
 
 			private async Task<bool> IsPrefixFree(IFdbReadOnlyTransaction tr, PartitionDescriptor partition, Slice prefix)
@@ -1209,8 +1205,8 @@ namespace FoundationDB.Client
 
 				return !(await tr
 					.GetRange(
-						partition.Nodes.Encode(prefix),
-						partition.Nodes.Encode(FdbKey.Increment(prefix))
+						partition.Nodes.GetKey(prefix),
+						partition.Nodes.GetKey(prefix).Increment()
 					)
 					.AnyAsync()
 					.ConfigureAwait(false));
@@ -1222,7 +1218,7 @@ namespace FoundationDB.Client
 
 				// for a path equal to ("foo","bar","baz") and index = -1, we need to generate (parent, SUBDIRS, "baz")
 				// but since the last item of path can be of any type, we will use tuple splicing to copy the last item without changing its type
-				return partition.Nodes.Encode(prefix, SUBDIRS, segment);
+				return partition.Nodes.GetKey(prefix, SUBDIRS, segment).ToSlice();
 			}
 
 			/// <summary>Ensure that this transaction can perform mutation operations</summary>
@@ -1574,8 +1570,8 @@ namespace FoundationDB.Client
 				this.Content = content;
 				this.Nodes = content.Partition[FdbKey.DirectoryPrefixSpan];
 				var rootNode = this.Nodes.Partition.ByKey(this.Nodes.GetPrefix());
-				this.VersionKey = rootNode.Encode(VersionAttribute);
-				this.StampKey = rootNode.Encode(StampAttribute);
+				this.VersionKey = rootNode.GetKey(VersionAttribute).ToSlice();
+				this.StampKey = rootNode.GetKey(StampAttribute).ToSlice();
 			}
 
 			/// <summary>Return a child partition of the current partition</summary>

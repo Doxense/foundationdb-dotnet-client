@@ -27,6 +27,7 @@
 namespace SnowBank.Data.Binary
 {
 	/// <summary>Represents a particular encoding scheme that can convert keys and values into binary literals</summary>
+	[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 	public interface ITypeSystem : IKeyEncoding, IValueEncoding
 	{
 
@@ -36,6 +37,7 @@ namespace SnowBank.Data.Binary
 	}
 
 	/// <summary>Represents a particular encoding scheme that can convert dynamically typed keys and or values into binary literals</summary>
+	[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 	public interface IDynamicTypeSystem : ITypeSystem, IDynamicKeyEncoding
 	{
 

@@ -31,6 +31,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Base interface for all key encoders</summary>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface IKeyEncoder
 	{
 
@@ -42,6 +43,7 @@ namespace SnowBank.Data.Binary
 	/// <summary>Encoder that can serialize and deserialize keys using a binary encoding</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public interface IKeyEncoder<TKey> : IKeyEncoder
 	{
 
@@ -62,6 +64,7 @@ namespace SnowBank.Data.Binary
 	/// <summary>Encoder for a key composed of a single part</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
 	[PublicAPI]
+	[Obsolete("Use IFdbKeyCodec<T> instead")]
 	public sealed class KeyEncoder<TKey> : IKeyEncoder<TKey>, IKeyEncoding
 	{
 

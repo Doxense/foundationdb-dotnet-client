@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Encoding used to generate and parse the keys of this subspace</summary>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		IKeyEncoder<T1> KeyEncoder { get; }
 
 		/// <summary>Encode a pair of values into a key in this subspace</summary>
@@ -79,8 +80,19 @@ namespace FoundationDB.Client
 	[PublicAPI]
 	public sealed class TypedKeySubspace<T1> : KeySubspace, ITypedKeySubspace<T1>
 	{
+
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public IKeyEncoder<T1> KeyEncoder { get; }
 
+		internal TypedKeySubspace(Slice prefix, ISubspaceContext context)
+			: base(prefix, context)
+		{
+#pragma warning disable CS0618 // Type or member is obsolete
+			this.KeyEncoder = TuPack.Encoding.GetKeyEncoder<T1>();
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal TypedKeySubspace(Slice prefix, IKeyEncoder<T1> encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
@@ -104,7 +116,9 @@ namespace FoundationDB.Client
 		public Slice Encode(T1? item1)
 		{
 			var sw = this.OpenWriter(12);
+#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder.WriteKeyTo(ref sw, item1);
+#pragma warning restore CS0618 // Type or member is obsolete
 			return sw.ToSlice();
 		}
 
@@ -112,7 +126,9 @@ namespace FoundationDB.Client
 		public bool TryEncode(Span<byte> destination, out int bytesWritten, T1? item1)
 		{
 			if (!this.GetPrefix().TryCopyTo(destination, out var prefixLen)
+#pragma warning disable CS0618 // Type or member is obsolete
 			 || !KeyEncoder.TryWriteKeyTo(destination[prefixLen..], out var keyLen, item1))
+#pragma warning restore CS0618 // Type or member is obsolete
 			{
 				bytesWritten = 0;
 				return false;
@@ -124,7 +140,9 @@ namespace FoundationDB.Client
 		[Pure]
 		public T1? Decode(Slice packedKey)
 		{
+#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.DecodeKey(ExtractKey(packedKey));
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		#region Dump()
@@ -137,10 +155,12 @@ namespace FoundationDB.Client
 			//TODO: defer to the encoding itself?
 			var key = ExtractKey(packedKey, boundCheck: true);
 
+#pragma warning disable CS0618 // Type or member is obsolete
 			if (this.KeyEncoder.TryDecodeKey(key, out T1? value))
 			{
 				return STuple.Formatter.Stringify(value);
 			}
+#pragma warning restore CS0618 // Type or member is obsolete
 
 			// decoding failed, or some other non-trivial error
 			return key.PrettyPrint();
@@ -208,21 +228,27 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] Encode<T1>(this ITypedKeySubspace<T1> self, params T1[] items)
 		{
+#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Encodes a span of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice[] Encode<T1>(this ITypedKeySubspace<T1> self, params ReadOnlySpan<T1> items)
 		{
+#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Encodes a sequence of items into a sequence of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IEnumerable<Slice> Encode<T1>(this ITypedKeySubspace<T1> self, IEnumerable<T1> items)
 		{
+#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		#endregion

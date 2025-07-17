@@ -49,6 +49,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encoding used to serialize keys in this subspace</summary>
 		/// <remarks>The default is to use the <see cref="TuPack"/> encoding, but it can be any other custom encoding.</remarks>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		IKeyEncoding Encoding { get; }
 
 		/// <summary>Resolves the subspace for this location, if it exists</summary>
@@ -102,7 +103,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Default implementation of a subspace location</summary>
 	/// <typeparam name="TSubspace">Type of the concrete <see cref="IKeySubspace"/> implementation that this location will resolve to</typeparam>
-	[DebuggerDisplay("Path={Path}, Prefix={Prefix}, Encoding={Encoding}")]
+	[DebuggerDisplay("Path={Path}, Prefix={Prefix}")]
 	[PublicAPI]
 	public abstract class SubspaceLocation<TSubspace> : ISubspaceLocation<TSubspace>, IFdbLayer<TSubspace, FdbDirectoryLayer?>
 		where TSubspace : class, IKeySubspace
@@ -115,6 +116,7 @@ namespace FoundationDB.Client
 		public Slice Prefix { get; } // can be empty
 
 		/// <inheritdoc />
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public abstract IKeyEncoding Encoding { get; }
 
 		protected SubspaceLocation(FdbPath path, Slice prefix)
@@ -184,6 +186,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <inheritdoc />
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public override IKeyEncoding Encoding => BinaryEncoding.Instance;
 
 		public BinaryKeySubspaceLocation(Slice suffix) : base(default, suffix)
@@ -230,6 +233,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Instance that is used to encode keys in this subspace</summary>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		IDynamicKeyEncoder Encoder { get; }
 
 	}
@@ -241,11 +245,22 @@ namespace FoundationDB.Client
 	{
 
 		/// <inheritdoc />
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public IDynamicKeyEncoder Encoder { get; }
 
 		/// <inheritdoc />
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public override IKeyEncoding Encoding => this.Encoder.Encoding;
 
+		public DynamicKeySubspaceLocation(FdbPath path, Slice suffix)
+			: base(path, suffix)
+		{
+#pragma warning disable CS0618 // Type or member is obsolete
+			this.Encoder = TuPack.Encoding.GetDynamicKeyEncoder();
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public DynamicKeySubspaceLocation(FdbPath path, Slice suffix, IDynamicKeyEncoder encoder)
 			: base(path, suffix)
 		{
@@ -253,6 +268,7 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public DynamicKeySubspaceLocation(Slice prefix, IDynamicKeyEncoder encoder)
 			: base(default, prefix)
 		{
@@ -260,23 +276,37 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
-		public static readonly DynamicKeySubspaceLocation Root = new(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+		public static readonly DynamicKeySubspaceLocation Root
+#pragma warning disable CS0618 // Type or member is obsolete
+			= new(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+#pragma warning restore CS0618 // Type or member is obsolete
 
-		public static DynamicKeySubspaceLocation Create(Slice prefix) => new(prefix, TuPack.Encoding.GetDynamicKeyEncoder());
+		public static DynamicKeySubspaceLocation Create(Slice prefix)
+#pragma warning disable CS0618 // Type or member is obsolete
+			=> new(prefix, TuPack.Encoding.GetDynamicKeyEncoder());
+#pragma warning restore CS0618 // Type or member is obsolete
 
-		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoder? encoder)
-			=> new(prefix, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoder encoder)
+			=> new(prefix, encoder);
 
-		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoding? encoding)
-			=> new(prefix, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static DynamicKeySubspaceLocation Create(Slice prefix, IDynamicKeyEncoding encoding)
+			=> new(prefix, encoding.GetDynamicKeyEncoder());
 
 		/// <inheritdoc />
 		public override int GetHashCode() => HashCode.Combine(this.Path.GetHashCode(), this.Prefix.GetHashCode(), 0x12344321);
 
 		/// <inheritdoc />
 		public override bool Equals(ISubspaceLocation? other) =>
-			ReferenceEquals(other, this)
-			|| (other is DynamicKeySubspaceLocation dyn && dyn.Encoding == this.Encoding && dyn.Path == this.Path && dyn.Prefix == other.Prefix);
+			ReferenceEquals(other, this) ||
+			(other is DynamicKeySubspaceLocation dyn
+#pragma warning disable CS0618 // Type or member is obsolete
+			 && dyn.Encoding == this.Encoding
+#pragma warning restore CS0618 // Type or member is obsolete
+			 && dyn.Path == this.Path
+			 && dyn.Prefix == other.Prefix
+		 );
 
 		/// <inheritdoc />
 		public override ValueTask<IDynamicKeySubspace?> TryResolve(IFdbReadOnlyTransaction tr, FdbDirectoryLayer? directory = null)
@@ -285,7 +315,9 @@ namespace FoundationDB.Client
 
 			if (this.IsTopLevel)
 			{ // not contained in a directory subspace
-				return new ValueTask<IDynamicKeySubspace?>(new DynamicKeySubspace(this.Prefix, this.Encoder, SubspaceContext.Default));
+#pragma warning disable CS0618 // Type or member is obsolete
+				return new(new DynamicKeySubspace(this.Prefix, this.Encoder, SubspaceContext.Default));
+#pragma warning restore CS0618 // Type or member is obsolete
 			}
 
 			return ResolveWithDirectory(tr, directory);
@@ -296,26 +328,46 @@ namespace FoundationDB.Client
 			// located inside a directory subspace!
 			var folder = await (directory ?? tr.Context.Database.DirectoryLayer).TryOpenCachedAsync(tr, this.Path).ConfigureAwait(false);
 			if (folder == null) return null;
-			return this.Prefix.Count == 0 ? folder : new DynamicKeySubspace(folder.GetPrefix() + this.Prefix, folder.KeyEncoder, folder.Context);
+			return this.Prefix.Count == 0
+				? folder
+#pragma warning disable CS0618 // Type or member is obsolete
+				: new DynamicKeySubspace(folder.GetPrefix() + this.Prefix, folder.KeyEncoder, folder.Context);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
-		public DynamicKeySubspaceLocation this[Slice prefix] => prefix.Count != 0 ? new(this.Path, this.Prefix + prefix, this.Encoder) : this;
+		public DynamicKeySubspaceLocation this[Slice prefix]
+#pragma warning disable CS0618 // Type or member is obsolete
+			=> prefix.Count != 0 ? new(this.Path, this.Prefix + prefix, this.Encoder) : this;
+#pragma warning restore CS0618 // Type or member is obsolete
 
-		public DynamicKeySubspaceLocation this[byte[] prefix] => this[prefix.AsSlice()];
+		public DynamicKeySubspaceLocation this[byte[] prefix]
+			=> this[prefix.AsSlice()];
 
-		public DynamicKeySubspaceLocation this[ReadOnlySpan<byte> prefix] => prefix.Length != 0 ? new(this.Path, this.Prefix.Concat(prefix), this.Encoder) : this;
+#pragma warning disable CS0618 // Type or member is obsolete
 
-		public DynamicKeySubspaceLocation this[IVarTuple tuple] => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, tuple), this.Encoder);
+		public DynamicKeySubspaceLocation this[ReadOnlySpan<byte> prefix]
+			=> prefix.Length != 0 ? new(this.Path, this.Prefix.Concat(prefix), this.Encoder) : this;
 
-		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1) => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1)), this.Encoder);
+		public DynamicKeySubspaceLocation this[IVarTuple tuple]
+			=> new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, tuple), this.Encoder);
 
-		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2) => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2)), this.Encoder);
+		public DynamicKeySubspaceLocation ByKey<T1>(T1 item1)
+			=> new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1)), this.Encoder);
 
-		public DynamicKeySubspaceLocation ByKey<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2, item3)), this.Encoder);
+		public DynamicKeySubspaceLocation ByKey<T1, T2>(T1 item1, T2 item2)
+			=> new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2)), this.Encoder);
 
-		public DynamicKeySubspaceLocation ByKey<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2, item3, item4)), this.Encoder);
+		public DynamicKeySubspaceLocation ByKey<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
+			=> new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2, item3)), this.Encoder);
+
+		public DynamicKeySubspaceLocation ByKey<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+			=> new(this.Path, this.Encoding.GetDynamicKeyEncoder().Pack(this.Prefix, STuple.Create(item1, item2, item3, item4)), this.Encoder);
+
+#pragma warning restore CS0618 // Type or member is obsolete
 
 	}
+
+#pragma warning disable CS0618 // Type or member is obsolete
 
 	/// <summary>Path to a subspace that can represent keys of a specific type</summary>
 	/// <typeparam name="T1">Type of the key</typeparam>
@@ -324,11 +376,14 @@ namespace FoundationDB.Client
 	public sealed class TypedKeySubspaceLocation<T1> : SubspaceLocation<ITypedKeySubspace<T1>>
 	{
 
+
 		/// <summary>Encoder used by keys stored at that location</summary>
 		public IKeyEncoder<T1> Encoder { get; }
 
 		/// <inheritdoc/>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public override IKeyEncoding Encoding => this.Encoder.Encoding;
+
 
 		public TypedKeySubspaceLocation(Slice suffix, IKeyEncoder<T1> encoder)
 			: this(default, suffix, encoder)
@@ -387,6 +442,7 @@ namespace FoundationDB.Client
 		public ICompositeKeyEncoder<T1, T2> Encoder { get; }
 
 		/// <inheritdoc/>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public override IKeyEncoding Encoding => this.Encoder.Encoding;
 
 		public TypedKeySubspaceLocation(Slice suffix, ICompositeKeyEncoder<T1, T2> encoder)
@@ -447,6 +503,7 @@ namespace FoundationDB.Client
 		public ICompositeKeyEncoder<T1, T2, T3> Encoder { get; }
 
 		/// <inheritdoc/>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public override IKeyEncoding Encoding => this.Encoder.Encoding;
 
 		public TypedKeySubspaceLocation(Slice suffix, ICompositeKeyEncoder<T1, T2, T3> encoder)
@@ -508,6 +565,7 @@ namespace FoundationDB.Client
 		public ICompositeKeyEncoder<T1, T2, T3, T4> Encoder { get; }
 
 		/// <inheritdoc/>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public override IKeyEncoding Encoding => this.Encoder.Encoding;
 
 		public TypedKeySubspaceLocation(Slice suffix, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
@@ -557,6 +615,8 @@ namespace FoundationDB.Client
 		public TypedKeySubspaceLocation<T4> this[T1 item1, T2 item2, T3 item3] => new(this.Path, this.Prefix + this.Encoder.EncodeKeyParts(3, (item1, item2, item3, default!)), this.Encoding.GetKeyEncoder<T4>());
 	}
 
+#pragma warning restore CS0618 // Type or member is obsolete
+
 	/// <summary>Extension methods for <see cref="ISubspaceLocation"/></summary>
 	[PublicAPI]
 	public static class SubspaceLocationExtensions
@@ -575,7 +635,25 @@ namespace FoundationDB.Client
 				return bsp;
 			}
 
-			return new BinaryKeySubspaceLocation(self.Path, self.Prefix);
+			return new(self.Path, self.Prefix);
+		}
+
+		/// <summary>Return a dynamic version of the current location</summary>
+		/// <param name="self">Existing subspace location</param>
+		/// <returns>A <see cref="DynamicKeySubspaceLocation"/> that points to a <see cref="IDynamicKeySubspace">dynamic key subspace</see></returns>
+		[Pure]
+		public static DynamicKeySubspaceLocation AsDynamic(this ISubspaceLocation self)
+		{
+			Contract.NotNull(self);
+
+			if (self is DynamicKeySubspaceLocation ksp)
+			{
+				return ksp;
+			}
+
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(self.Path, self.Prefix, TupleKeyEncoder.Instance);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Return a dynamic version of the current location</summary>
@@ -583,16 +661,18 @@ namespace FoundationDB.Client
 		/// <param name="encoding">If specified, change the encoding use by the current location. If <c>null</c>, inherit the current encoding</param>
 		/// <returns>A <see cref="DynamicKeySubspaceLocation"/> that points to a <see cref="IDynamicKeySubspace">dynamic key subspace</see></returns>
 		[Pure]
-		public static DynamicKeySubspaceLocation AsDynamic(this ISubspaceLocation self, IKeyEncoding? encoding = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static DynamicKeySubspaceLocation AsDynamic(this ISubspaceLocation self, IKeyEncoding encoding)
 		{
 			Contract.NotNull(self);
+			Contract.NotNull(encoding);
 
 			if (self is DynamicKeySubspaceLocation ksp)
 			{
-				if (encoding == null || encoding == ksp.Encoding) return ksp;
+				if (encoding == ksp.Encoding) return ksp;
 			}
 
-			return new DynamicKeySubspaceLocation(self.Path, self.Prefix, (encoding ?? self.Encoding).GetDynamicKeyEncoder());
+			return new(self.Path, self.Prefix, encoding.GetDynamicKeyEncoder());
 		}
 
 		/// <summary>Return a directory version of the current location</summary>
@@ -609,8 +689,9 @@ namespace FoundationDB.Client
 				return dsl;
 			}
 
-			if (self.Prefix.Count != 0) throw new ArgumentException($"Cannot convert location '{self}' into a directory location, because it has a non-empty prefix.");
-			return new FdbDirectorySubspaceLocation(self.Path);
+			return self.Prefix.Count == 0
+				? new FdbDirectorySubspaceLocation(self.Path)
+				: throw new ArgumentException($"Cannot convert location '{self}' into a directory location, because it has a non-empty prefix.");
 		}
 
 		/// <summary>Return a dynamic version of the current path</summary>
@@ -618,6 +699,7 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Custom encoder used by subspace</param>
 		/// <returns>A <see cref="DynamicKeySubspaceLocation"/> that will encode dynamic keys</returns>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static DynamicKeySubspaceLocation UsingEncoder(this ISubspaceLocation self, IDynamicKeyEncoder encoder)
 		{
 			Contract.NotNull(self);
@@ -628,29 +710,49 @@ namespace FoundationDB.Client
 				if (encoder == ksp.Encoding.GetDynamicKeyEncoder()) return ksp;
 			}
 
-			return new DynamicKeySubspaceLocation(self.Path, self.Prefix, encoder);
+			return new(self.Path, self.Prefix, encoder);
+		}
+
+		/// <summary>Returned a typed version of the current path</summary>
+		/// <typeparam name="T1">Type of the key</typeparam>
+		/// <param name="self">Existing subspace path</param>
+		public static TypedKeySubspaceLocation<T1> AsTyped<T1>(this ISubspaceLocation self)
+		{
+			Contract.NotNull(self);
+
+			if (self is TypedKeySubspaceLocation<T1> tsp)
+			{
+				return tsp;
+			}
+
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(self.Path, self.Prefix, TuPack.Encoding.GetKeyEncoder<T1>());
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Returned a typed version of the current path</summary>
 		/// <typeparam name="T1">Type of the key</typeparam>
 		/// <param name="self">Existing subspace path</param>
 		/// <param name="encoding">If specified, change the encoding use by the current path. If <c>null</c>, inherit the current encoding</param>
-		public static TypedKeySubspaceLocation<T1> AsTyped<T1>(this ISubspaceLocation self, IKeyEncoding? encoding = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static TypedKeySubspaceLocation<T1> AsTyped<T1>(this ISubspaceLocation self, IKeyEncoding encoding)
 		{
 			Contract.NotNull(self);
+			Contract.NotNull(encoding);
 
 			if (self is TypedKeySubspaceLocation<T1> tsp)
 			{
-				if (encoding == null || encoding == tsp.Encoder.Encoding) return tsp;
+				if (encoding == tsp.Encoder.Encoding) return tsp;
 			}
 
-			return new TypedKeySubspaceLocation<T1>(self.Path, self.Prefix, (encoding ?? self.Encoding).GetKeyEncoder<T1>());
+			return new(self.Path, self.Prefix, encoding.GetKeyEncoder<T1>());
 		}
 
 		/// <summary>Returned a typed version of the current path</summary>
 		/// <typeparam name="T1">Type of the key</typeparam>
 		/// <param name="self">Existing subspace path</param>
 		/// <param name="encoder">Custom encoder used by subspace</param>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1> UsingEncoder<T1>(this ISubspaceLocation self, IKeyEncoder<T1> encoder)
 		{
 			Contract.NotNull(self);
@@ -668,17 +770,37 @@ namespace FoundationDB.Client
 		/// <typeparam name="T1">Type of the first part of the key</typeparam>
 		/// <typeparam name="T2">Type of the second part of the key</typeparam>
 		/// <param name="self">Existing subspace path</param>
-		/// <param name="encoding">If specified, change the encoding use by the current path. If <c>null</c>, inherit the current encoding</param>
-		public static TypedKeySubspaceLocation<T1, T2> AsTyped<T1, T2>(this ISubspaceLocation self, IKeyEncoding? encoding = null)
+		public static TypedKeySubspaceLocation<T1, T2> AsTyped<T1, T2>(this ISubspaceLocation self)
 		{
 			Contract.NotNull(self);
 
 			if (self is TypedKeySubspaceLocation<T1, T2> tsp)
 			{
-				if (encoding == null || encoding == tsp.Encoder.Encoding) return tsp;
+				return tsp;
 			}
 
-			return new TypedKeySubspaceLocation<T1, T2>(self.Path, self.Prefix, (encoding ?? self.Encoding).GetKeyEncoder<T1, T2>());
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(self.Path, self.Prefix, TuPack.Encoding.GetKeyEncoder<T1, T2>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		/// <summary>Returned a typed version of the current path</summary>
+		/// <typeparam name="T1">Type of the first part of the key</typeparam>
+		/// <typeparam name="T2">Type of the second part of the key</typeparam>
+		/// <param name="self">Existing subspace path</param>
+		/// <param name="encoding">If specified, change the encoding use by the current path. If <c>null</c>, inherit the current encoding</param>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static TypedKeySubspaceLocation<T1, T2> AsTyped<T1, T2>(this ISubspaceLocation self, IKeyEncoding encoding)
+		{
+			Contract.NotNull(self);
+			Contract.NotNull(encoding);
+
+			if (self is TypedKeySubspaceLocation<T1, T2> tsp)
+			{
+				if (encoding == tsp.Encoder.Encoding) return tsp;
+			}
+
+			return new(self.Path, self.Prefix, encoding.GetKeyEncoder<T1, T2>());
 		}
 
 		/// <summary>Returned a typed version of the current path</summary>
@@ -686,6 +808,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T2">Type of the second part of the key</typeparam>
 		/// <param name="self">Existing subspace path</param>
 		/// <param name="encoder">Custom encoder used by subspace</param>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1, T2> UsingEncoder<T1, T2>(this ISubspaceLocation self, ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			Contract.NotNull(self);
@@ -696,7 +819,26 @@ namespace FoundationDB.Client
 				if (encoder == tsp.Encoder) return tsp;
 			}
 
-			return new TypedKeySubspaceLocation<T1, T2>(self.Path, self.Prefix, encoder);
+			return new(self.Path, self.Prefix, encoder);
+		}
+
+		/// <summary>Returned a typed version of the current path</summary>
+		/// <typeparam name="T1">Type of the first part of the key</typeparam>
+		/// <typeparam name="T2">Type of the second part of the key</typeparam>
+		/// <typeparam name="T3">Type of the third part of the key</typeparam>
+		/// <param name="self">Existing subspace path</param>
+		public static TypedKeySubspaceLocation<T1, T2, T3> AsTyped<T1, T2, T3>(this ISubspaceLocation self)
+		{
+			Contract.NotNull(self);
+
+			if (self is TypedKeySubspaceLocation<T1, T2, T3> tsp)
+			{
+				return tsp;
+			}
+
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(self.Path, self.Prefix, TuPack.Encoding.GetKeyEncoder<T1, T2, T3>());
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Returned a typed version of the current path</summary>
@@ -705,16 +847,18 @@ namespace FoundationDB.Client
 		/// <typeparam name="T3">Type of the third part of the key</typeparam>
 		/// <param name="self">Existing subspace path</param>
 		/// <param name="encoding">If specified, change the encoding use by the current path. If <c>null</c>, inherit the current encoding</param>
-		public static TypedKeySubspaceLocation<T1, T2, T3> AsTyped<T1, T2, T3>(this ISubspaceLocation self, IKeyEncoding? encoding = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static TypedKeySubspaceLocation<T1, T2, T3> AsTyped<T1, T2, T3>(this ISubspaceLocation self, IKeyEncoding encoding)
 		{
 			Contract.NotNull(self);
+			Contract.NotNull(encoding);
 
 			if (self is TypedKeySubspaceLocation<T1, T2, T3> tsp)
 			{
-				if (encoding == null || encoding == tsp.Encoder.Encoding) return tsp;
+				if (encoding == tsp.Encoder.Encoding) return tsp;
 			}
 
-			return new TypedKeySubspaceLocation<T1, T2, T3>(self.Path, self.Prefix, (encoding ?? self.Encoding).GetKeyEncoder<T1, T2, T3>());
+			return new(self.Path, self.Prefix, encoding.GetKeyEncoder<T1, T2, T3>());
 		}
 
 		/// <summary>Returned a typed version of the current path</summary>
@@ -723,16 +867,18 @@ namespace FoundationDB.Client
 		/// <typeparam name="T3">Type of the third part of the key</typeparam>
 		/// <param name="self">Existing subspace path</param>
 		/// <param name="encoder">Custom encoder used by subspace</param>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1, T2, T3> UsingEncoder<T1, T2, T3>(this ISubspaceLocation self, ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			Contract.NotNull(self);
+			Contract.NotNull(encoder);
 
 			if (self is TypedKeySubspaceLocation<T1, T2, T3> tsp)
 			{
 				if (encoder == tsp.Encoder) return tsp;
 			}
 
-			return new TypedKeySubspaceLocation<T1, T2, T3>(self.Path, self.Prefix, encoder);
+			return new(self.Path, self.Prefix, encoder);
 		}
 
 	}
@@ -743,53 +889,99 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Represent the root directory of the Directory Layer</summary>
-		public static readonly DynamicKeySubspaceLocation Root = new(FdbPath.Root, Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+		public static readonly DynamicKeySubspaceLocation Root
+#pragma warning disable CS0618 // Type or member is obsolete
+			= new(FdbPath.Root, Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+#pragma warning restore CS0618 // Type or member is obsolete
 
 		/// <summary>Represent a location without any prefix, and outside the jurisdiction of the Directory Layer</summary>
-		public static readonly DynamicKeySubspaceLocation Empty = new(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+		public static readonly DynamicKeySubspaceLocation Empty
+#pragma warning disable CS0618 // Type or member is obsolete
+			= new(Slice.Empty, TuPack.Encoding.GetDynamicKeyEncoder());
+#pragma warning restore CS0618 // Type or member is obsolete
 
 		#region FromPath...
 
 		[Pure]
 		public static DynamicKeySubspaceLocation FromPath(FdbPath path)
 		{
-			return new DynamicKeySubspaceLocation(path, default, TuPack.Encoding.GetDynamicKeyEncoder());
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(path, default, TuPack.Encoding.GetDynamicKeyEncoder());
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static DynamicKeySubspaceLocation FromPath(FdbPath path, IDynamicKeyEncoder? encoder)
 		{
-			return new DynamicKeySubspaceLocation(path, default, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
+			return new(path, default, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
 		}
 
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static DynamicKeySubspaceLocation FromPath(FdbPath path, IDynamicKeyEncoding? encoding)
 		{
-			return new DynamicKeySubspaceLocation(path, default, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
+			return new(path, default, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
 		}
 
 		[Pure]
+		public static TypedKeySubspaceLocation<T1> FromPath<T1>(FdbPath path)
+		{
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(path, Slice.Empty, TuPack.Encoding.GetKeyEncoder<T1>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1> FromPath<T1>(FdbPath path, IKeyEncoder<T1>? encoder)
 		{
-			return new TypedKeySubspaceLocation<T1>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1>());
+			return new(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1>());
 		}
 
 		[Pure]
+		public static TypedKeySubspaceLocation<T1, T2> FromPath<T1, T2>(FdbPath path)
+		{
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(path, default, TuPack.Encoding.GetKeyEncoder<T1, T2>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1, T2> FromPath<T1, T2>(FdbPath path, ICompositeKeyEncoder<T1, T2>? encoder)
 		{
-			return new TypedKeySubspaceLocation<T1, T2>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2>());
+			return new(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2>());
 		}
 
 		[Pure]
+		public static TypedKeySubspaceLocation<T1, T2, T3> FromPath<T1, T2, T3>(FdbPath path)
+		{
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(path, default, TuPack.Encoding.GetKeyEncoder<T1, T2, T3>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1, T2, T3> FromPath<T1, T2, T3>(FdbPath path, ICompositeKeyEncoder<T1, T2, T3>? encoder)
 		{
-			return new TypedKeySubspaceLocation<T1, T2, T3>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2, T3>());
+			return new(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2, T3>());
 		}
 
 		[Pure]
+		public static TypedKeySubspaceLocation<T1, T2, T3, T4> FromPath<T1, T2, T3, T4>(FdbPath path)
+		{
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(path, default, TuPack.Encoding.GetKeyEncoder<T1, T2, T3, T4>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1, T2, T3, T4> FromPath<T1, T2, T3, T4>(FdbPath path, ICompositeKeyEncoder<T1, T2, T3, T4>? encoder)
 		{
-			return new TypedKeySubspaceLocation<T1, T2, T3, T4>(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2, T3, T4>());
+			return new(path, default, encoder ?? TuPack.Encoding.GetKeyEncoder<T1, T2, T3, T4>());
 		}
 
 		#endregion
@@ -798,73 +990,153 @@ namespace FoundationDB.Client
 
 		/// <summary>Creates a location that uses a fixed prefix given by a tuple</summary>
 		[Pure]
-		public static DynamicKeySubspaceLocation FromKey(IVarTuple items, IDynamicKeyEncoding? encoding = null)
+		public static DynamicKeySubspaceLocation FromKey(IVarTuple items)
 		{
-			var encoder = (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder();
-			return new DynamicKeySubspaceLocation(encoder.Pack(items), encoder);
+#pragma warning disable CS0618 // Type or member is obsolete
+			var encoder = TuPack.Encoding.GetDynamicKeyEncoder();
+			return new(encoder.Pack(items), encoder);
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		/// <summary>Creates a location that uses a fixed prefix given by a tuple</summary>
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static DynamicKeySubspaceLocation FromKey(IVarTuple items, IDynamicKeyEncoding encoding)
+		{
+			Contract.NotNull(encoding);
+			var encoder = encoding.GetDynamicKeyEncoder();
+			return new(encoder.Pack(items), encoder);
 		}
 
 		/// <summary>Creates a location for dynamic keys, that uses a fixed prefix given by a tuple</summary>
 		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static DynamicKeySubspaceLocation FromKey(IVarTuple items, IDynamicKeyEncoder? encoder)
 		{
 			encoder ??= TuPack.Encoding.GetDynamicKeyEncoder();
-			return new DynamicKeySubspaceLocation(encoder.Pack(items), encoder);
+			return new(encoder.Pack(items), encoder);
 		}
 
 		/// <summary>Creates a location for dynamic keys, that uses a fixed binary prefix</summary>
 		[Pure]
-		public static DynamicKeySubspaceLocation FromKey(ReadOnlySpan<byte> key, IDynamicKeyEncoding? encoding = null)
+		public static DynamicKeySubspaceLocation FromKey(ReadOnlySpan<byte> key)
 		{
-			return new DynamicKeySubspaceLocation(Slice.FromBytes(key), (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(Slice.FromBytes(key), TuPack.Encoding.GetDynamicKeyEncoder());
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Creates a location for dynamic keys, that uses a fixed binary prefix</summary>
 		[Pure]
-		public static DynamicKeySubspaceLocation FromKey(Slice key, IDynamicKeyEncoding? encoding = null)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static DynamicKeySubspaceLocation FromKey(ReadOnlySpan<byte> key, IDynamicKeyEncoding encoding)
+		{
+			Contract.NotNull(encoding);
+			return new(Slice.FromBytes(key), encoding.GetDynamicKeyEncoder());
+		}
+
+		/// <summary>Creates a location for dynamic keys, that uses a fixed binary prefix</summary>
+		[Pure]
+		public static DynamicKeySubspaceLocation FromKey(Slice key)
 		{
 			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
-			return new DynamicKeySubspaceLocation(key, (encoding ?? TuPack.Encoding).GetDynamicKeyEncoder());
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(key, TuPack.Encoding.GetDynamicKeyEncoder());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		/// <summary>Creates a location for dynamic keys, that uses a fixed binary prefix</summary>
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static DynamicKeySubspaceLocation FromKey(Slice key, IDynamicKeyEncoding encoding)
+		{
+			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
+			return new(key, encoding.GetDynamicKeyEncoder());
 		}
 
 		/// <summary>Creates a location for dynamic keys, that uses a fixed binary prefix and dynamic keys</summary>
 		[Pure]
-		public static DynamicKeySubspaceLocation FromKey(Slice key, IDynamicKeyEncoder? encoder)
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		public static DynamicKeySubspaceLocation FromKey(Slice key, IDynamicKeyEncoder encoder)
 		{
 			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
-			return new DynamicKeySubspaceLocation(key, encoder ?? TuPack.Encoding.GetDynamicKeyEncoder());
+			return new(key, encoder);
 		}
 
 		/// <summary>Creates a location for typed keys, that uses a fixed binary prefix</summary>
 		[Pure]
+		public static TypedKeySubspaceLocation<T1> FromKey<T1>(Slice key)
+		{
+			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(key, TuPack.Encoding.GetKeyEncoder<T1>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		/// <summary>Creates a location for typed keys, that uses a fixed binary prefix</summary>
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1> FromKey<T1>(Slice key, IKeyEncoder<T1> encoder)
 		{
 			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
-			return new TypedKeySubspaceLocation<T1>(key, encoder);
+			return new(key, encoder);
 		}
 
 		/// <summary>Creates a location for typed keys, that uses a fixed binary prefix</summary>
 		[Pure]
+		public static TypedKeySubspaceLocation<T1, T2> FromKey<T1, T2>(Slice key)
+		{
+			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(key, TuPack.Encoding.GetKeyEncoder<T1, T2>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		/// <summary>Creates a location for typed keys, that uses a fixed binary prefix</summary>
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1, T2> FromKey<T1, T2>(Slice key, ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
-			return new TypedKeySubspaceLocation<T1, T2>(key, encoder);
+			return new(key, encoder);
 		}
 
 		/// <summary>Creates a location for typed keys, that uses a fixed binary prefix</summary>
 		[Pure]
+		public static TypedKeySubspaceLocation<T1, T2, T3> FromKey<T1, T2, T3>(Slice key)
+		{
+			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(key, TuPack.Encoding.GetKeyEncoder<T1, T2, T3>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		/// <summary>Creates a location for typed keys, that uses a fixed binary prefix</summary>
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1, T2, T3> FromKey<T1, T2, T3>(Slice key, ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
-			return new TypedKeySubspaceLocation<T1, T2, T3>(key, encoder);
+			return new(key, encoder);
 		}
 
 		/// <summary>Creates a location for typed keys, that uses a fixed binary prefix</summary>
 		[Pure]
+		public static TypedKeySubspaceLocation<T1, T2, T3, T4> FromKey<T1, T2, T3, T4>(Slice key)
+		{
+			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
+#pragma warning disable CS0618 // Type or member is obsolete
+			return new(key, TuPack.Encoding.GetKeyEncoder<T1, T2, T3, T4>());
+#pragma warning restore CS0618 // Type or member is obsolete
+		}
+
+		/// <summary>Creates a location for typed keys, that uses a fixed binary prefix</summary>
+		[Pure]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static TypedKeySubspaceLocation<T1, T2, T3, T4> FromKey<T1, T2, T3, T4>(Slice key, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
 			if (key.IsNull) throw new ArgumentException("Key cannot be nil.", nameof(key));
-			return new TypedKeySubspaceLocation<T1, T2, T3, T4>(key, encoder);
+			return new(key, encoder);
 		}
 
 		#endregion

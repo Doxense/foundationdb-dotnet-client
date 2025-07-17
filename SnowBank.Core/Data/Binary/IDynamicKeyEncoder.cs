@@ -32,6 +32,7 @@ namespace SnowBank.Data.Binary
 
 	/// <summary>Encoder that can process keys of variable size and types</summary>
 	[PublicAPI]
+	[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 	public interface IDynamicKeyEncoder : IKeyEncoder
 	{
 

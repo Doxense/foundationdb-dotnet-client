@@ -46,6 +46,7 @@ namespace FoundationDB.Client
 		DynamicPartition Partition { get; }
 
 		/// <summary>Encoder used to generate and parse the keys of this subspace</summary>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		IDynamicKeyEncoder KeyEncoder { get; }
 
 		/// <summary>Packs a tuple into a key of this subspace</summary>
@@ -110,12 +111,26 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Encoder for the keys of this subspace</summary>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public IDynamicKeyEncoder KeyEncoder { get; }
+
+		/// <summary>Create a new subspace from a binary prefix</summary>
+		/// <param name="prefix">Prefix of the new subspace</param>
+		/// <param name="context">Context that controls the lifetime of this subspace</param>
+		internal DynamicKeySubspace(Slice prefix, ISubspaceContext context)
+			: base(prefix, context)
+		{
+#pragma warning disable CS0618 // Type or member is obsolete
+			this.KeyEncoder = TuPack.Encoding.GetDynamicKeyEncoder();
+#pragma warning restore CS0618 // Type or member is obsolete
+			this.Partition = new DynamicPartition(this);
+		}
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="prefix">Prefix of the new subspace</param>
 		/// <param name="encoder">Encoder that will be used by this subspace</param>
 		/// <param name="context">Context that controls the lifetime of this subspace</param>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal DynamicKeySubspace(Slice prefix, IDynamicKeyEncoder encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
@@ -142,7 +157,9 @@ namespace FoundationDB.Client
 			Contract.NotNull(tuple);
 
 			var sw = this.OpenWriter();
+#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder.PackKey(ref sw, tuple);
+#pragma warning restore CS0618 // Type or member is obsolete
 			return sw.ToSlice();
 		}
 
@@ -159,10 +176,12 @@ namespace FoundationDB.Client
 				goto too_small;
 			}
 
+#pragma warning disable CS0618 // Type or member is obsolete
 			if (!this.KeyEncoder.TryPackKey(destination[prefixLen..], out int tupleLen, tuple))
 			{
 				goto too_small;
 			}
+#pragma warning restore CS0618 // Type or member is obsolete
 
 			bytesWritten = prefixLen + tupleLen;
 			return true;
@@ -178,7 +197,9 @@ namespace FoundationDB.Client
 		/// <returns>Original tuple</returns>
 		public IVarTuple Unpack(Slice packedKey)
 		{
+#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.UnpackKey(ExtractKey(packedKey));
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
@@ -187,7 +208,9 @@ namespace FoundationDB.Client
 		/// <returns><see langword="true"/> if <paramref name="packedKey"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
 		public bool TryUnpack(Slice packedKey, [NotNullWhen(true)] out IVarTuple? tuple)
 		{
+#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.TryUnpackKey(ExtractKey(packedKey), out tuple);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 #if NET9_0_OR_GREATER
@@ -197,7 +220,9 @@ namespace FoundationDB.Client
 		/// <returns>Original tuple</returns>
 		public SpanTuple Unpack(ReadOnlySpan<byte> packedKey)
 		{
+#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.UnpackKey(ExtractKey(packedKey));
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
@@ -206,7 +231,9 @@ namespace FoundationDB.Client
 		/// <returns><see langword="true"/> if <paramref name="packedKey"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
 		public bool TryUnpack(ReadOnlySpan<byte> packedKey, out SpanTuple tuple)
 		{
+#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.TryUnpackKey(ExtractKey(packedKey), out tuple);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 #endif
@@ -216,10 +243,12 @@ namespace FoundationDB.Client
 		{
 			if (packedKey.IsNull) return "<null>";
 			var key = ExtractKey(packedKey, boundCheck: true);
+#pragma warning disable CS0618 // Type or member is obsolete
 			if (this.KeyEncoder.TryUnpackKey(key, out var tuple))
 			{
 				return tuple.ToString() ?? string.Empty;
 			}
+#pragma warning restore CS0618 // Type or member is obsolete
 			return key.PrettyPrint();
 		}
 
@@ -250,6 +279,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, ReadOnlySpan<TTuple> items)
 			where TTuple : IVarTuple
 		{
@@ -263,6 +293,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, TTuple[] items)
 			where TTuple : IVarTuple
 		{
@@ -276,6 +307,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, IEnumerable<TTuple> items)
 			where TTuple : IVarTuple
 		{
@@ -289,6 +321,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples extracted from each element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, ReadOnlySpan<TSource> items, Func<TSource, TTuple> selector)
 			where TTuple : IVarTuple
 		{
@@ -302,6 +335,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples extracted from each element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, TSource[] items, Func<TSource, TTuple> selector)
 			where TTuple : IVarTuple
 		{
@@ -315,6 +349,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples extracted from each element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, TTuple> selector)
 			where TTuple : IVarTuple
 		{
@@ -325,6 +360,8 @@ namespace FoundationDB.Client
 				self.KeyEncoder
 			);
 		}
+
+#pragma warning disable CS0618 // Type or member is obsolete
 
 		/// <summary>Packs a tuple which is composed of a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -375,100 +412,117 @@ namespace FoundationDB.Client
 			return self.KeyEncoder.UnpackKey(self.ExtractKey(packedKey));
 		}
 
+#pragma warning restore CS0618 // Type or member is obsolete
+
 		#region ToRange()...
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange(this IDynamicKeySubspace self, IVarTuple tuple)
 		{
 			return self.KeyEncoder.ToRange(self.GetPrefix(), tuple);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<T1>
-			(this IDynamicKeySubspace self, STuple<T1> tuple)
+		[Obsolete("Use IFdbKeyRange instead")]
+		public static KeyRange PackRange<T1>(this IDynamicKeySubspace self, STuple<T1> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2>(this IDynamicKeySubspace self, STuple<T1, T2> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3>(this IDynamicKeySubspace self, STuple<T1, T2, T3> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1>(this IDynamicKeySubspace self, ValueTuple<T1> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2>(this IDynamicKeySubspace self, (T1, T2) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3>(this IDynamicKeySubspace self, (T1, T2, T3) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, (T1, T2, T3, T4) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7, T8, T9) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8, tuple.Item9);
@@ -479,54 +533,63 @@ namespace FoundationDB.Client
 		#region ToKeyRange()...
 
 		/// <summary>Returns a key range using a single element as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1>(this IDynamicKeySubspace self, T1 item1)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1);
 		}
 
 		/// <summary>Returns a key range using 2 elements as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1, T2>(this IDynamicKeySubspace self, T1 item1, T2 item2)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2);
 		}
 
 		/// <summary>Returns a key range using 3 elements as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1, T2, T3>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3);
 		}
 
 		/// <summary>Returns a key range using 4 elements as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4);
 		}
 
 		/// <summary>Returns a key range using 5 elements as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Returns a key range using 6 elements as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Returns a key range using 7 elements as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7);
 		}
 
 		/// <summary>Returns a key range using 8 elements as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 		/// <summary>Returns a key range using 8 elements as a prefix</summary>
+		[Obsolete("Use IFdbKeyRange instead")]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7, item8, item9);
@@ -538,6 +601,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of a single element</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1>(this IDynamicKeySubspace self, T1? item1)
 		{
 			var sw = self.OpenWriter();
@@ -547,6 +611,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, ReadOnlySpan<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
@@ -559,6 +624,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, T[] items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
@@ -571,6 +637,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, IEnumerable<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
@@ -583,6 +650,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, ReadOnlySpan<TSource> items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
@@ -595,6 +663,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, TSource[] items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
@@ -607,6 +676,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a batch of keys, each one composed of a single value extracted from each element</summary>
 		[Pure]
+		[Obsolete("Use IFdbKey instead")]
 		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
@@ -619,6 +689,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a key which is composed of 2 elements</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1, T2>(this IDynamicKeySubspace self, T1? item1, T2? item2)
 		{
 			var sw = self.OpenWriter();
@@ -628,6 +699,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a key which is composed of 3 elements</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1, T2, T3>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3)
 		{
 			var sw = self.OpenWriter();
@@ -637,6 +709,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a key which is composed of 4 elements</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4)
 		{
 			var sw = self.OpenWriter();
@@ -646,6 +719,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 5 elements</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
 			var sw = self.OpenWriter();
@@ -655,6 +729,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 6 elements</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
 			var sw = self.OpenWriter();
@@ -664,6 +739,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 7 elements</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
 		{
 			var sw = self.OpenWriter();
@@ -673,6 +749,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 8 elements</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
 		{
 			var sw = self.OpenWriter();
@@ -682,6 +759,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 8 elements</summary>
 		[Pure]
+		[Obsolete("Use GetKey() instead")]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9)
 		{
 			var sw = self.OpenWriter();
@@ -718,6 +796,7 @@ namespace FoundationDB.Client
 		///		cursor = stamp;
 		/// }
 		/// </code></example>
+		[Obsolete("Use GetKey() instead")]
 		public static Slice EncodeCursor<T1>(this IDynamicKeySubspace self, T1? cursor)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
@@ -756,6 +835,7 @@ namespace FoundationDB.Client
 		///     last = (stamp, id);
 		/// }
 		/// </code></example>
+		[Obsolete("Use GetKey() instead")]
 		public static Slice EncodeCursor<T1, T2>(this IDynamicKeySubspace self, T1? cursor1, T2? cursor2)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
@@ -797,6 +877,7 @@ namespace FoundationDB.Client
 		///     last = (stamp, id, chunk);
 		/// }
 		/// </code></example>
+		[Obsolete("Use GetKey() instead")]
 		public static Slice EncodeCursor<T1, T2, T3>(this IDynamicKeySubspace self, T1? cursor1, T2? cursor2, T3? cursor3)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
@@ -809,6 +890,8 @@ namespace FoundationDB.Client
 		#endregion
 
 		#region Decode...
+
+#pragma warning disable CS0618 // Type or member is obsolete
 
 		/// <summary>Decode a key of this subspace, composed of a single element</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -994,6 +1077,8 @@ namespace FoundationDB.Client
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
 
+#pragma warning restore CS0618 // Type or member is obsolete
+
 		#endregion
 
 	}
@@ -1012,6 +1097,8 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(subspace != null);
 			this.Subspace = subspace;
 		}
+
+#pragma warning disable CS0618 // Type or member is obsolete
 
 		/// <summary>Partitions this subspace into a child subspace</summary>
 		public IDynamicKeySubspace this[Slice binarySuffix]
@@ -1099,6 +1186,8 @@ namespace FoundationDB.Client
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
+
+#pragma warning restore CS0618 // Type or member is obsolete
 
 	}
 

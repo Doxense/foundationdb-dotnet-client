@@ -34,16 +34,20 @@ namespace SnowBank.Data.Json.Binary
 
 	/// <summary>Codec that encodes <see cref="JsonValue"/> instances into either database keys (ordered) or values (unordered)</summary>
 	[PublicAPI]
-	public sealed class JsonValueCodec : IKeyEncoder<JsonValue>, IValueEncoder<JsonValue>, IKeyEncoding
+	public sealed class JsonValueCodec : IValueEncoder<JsonValue>
+#pragma warning disable CS0618 // Type or member is obsolete
+		, IKeyEncoder<JsonValue>
+		, IKeyEncoding
+#pragma warning restore CS0618 // Type or member is obsolete
 	{
 		/// <summary>Default settings</summary>
 		/// <remarks>We use a compact representation, with ISO8601 dates, and always return read-only arrays</remarks>
 		private static readonly CrystalJsonSettings s_defaultSettings = CrystalJsonSettings.JsonCompact.WithEnumAsStrings().WithIso8601Dates().AsReadOnly();
 
-		public static readonly JsonValueCodec Default = new JsonValueCodec();
+		public static readonly JsonValueCodec Default = new();
 
 		public JsonValueCodec()
-			: this(null, null)
+			: this(null)
 		{ }
 
 		public JsonValueCodec(CrystalJsonSettings? settings, ICrystalJsonTypeResolver? resolver = null)
@@ -270,9 +274,12 @@ namespace SnowBank.Data.Json.Binary
 				: CrystalJson.Parse(value);
 		}
 
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public IKeyEncoding Encoding => this;
 
 		#region IKeyEncoding...
+
+#pragma warning disable CS0618 // Type or member is obsolete
 
 		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
 
@@ -287,6 +294,8 @@ namespace SnowBank.Data.Json.Binary
 		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotSupportedException();
 
 		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
+
+#pragma warning restore CS0618 // Type or member is obsolete
 
 		#endregion
 
