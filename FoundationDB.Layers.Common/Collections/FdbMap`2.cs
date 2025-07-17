@@ -27,49 +27,107 @@
 namespace FoundationDB.Layers.Collections
 {
 
+	/// <summary>Implements a simple order dictionary of keys to values</summary>
+	/// <typeparam name="TKey">Type of the keys</typeparam>
+	/// <typeparam name="TValue">Type of the values</typeparam>
 	[DebuggerDisplay("Location={Location}")]
 	[PublicAPI]
-	public class FdbMap<TKey, TValue> : IFdbLayer<FdbMap<TKey, TValue>.State>
+	public class FdbMap<TKey, TValue> : FdbMap<TKey, TKey, TValue, FdbRawValue>
 	{
 
-		public FdbMap(ISubspaceLocation location, IValueEncoder<TValue?> valueEncoder)
-			: this(location.AsTyped<TKey>(), valueEncoder)
+		/// <summary>Constructs a map that will encode simple keys, using the specified value codec</summary>
+		/// <param name="location">Location in the database where the map will be stored</param>
+		/// <param name="valueCodec">Codec used to serialize and deserialize the values</param>
+		public FdbMap(ISubspaceLocation location, IFdbValueCodec<TValue, FdbRawValue> valueCodec)
+			: base(location, FdbIdentityKeyCodec<TKey>.Instance, valueCodec)
 		{ }
 
-		public FdbMap(TypedKeySubspaceLocation<TKey> location, IValueEncoder<TValue?> valueEncoder)
+		[Obsolete("Please use an IFdbValueCodec instead")]
+		public FdbMap(ISubspaceLocation location, IValueEncoder<TValue> valueEncoder)
+			: base(location, FdbIdentityKeyCodec<TKey>.Instance, new FdbValueEncoderCodec<TValue>(valueEncoder))
+		{ }
+
+	}
+
+	/// <summary>Implements a simple order dictionary of keys to values</summary>
+	/// <typeparam name="TKey">Type of the keys</typeparam>
+	/// <typeparam name="TValue">Type of the values</typeparam>
+	/// <typeparam name="TEncodedValue">Type of the binary representation for the values, that must implement <see cref="ISpanEncodable"/></typeparam>
+	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
+	public class FdbMap<TKey, TValue, TEncodedValue> : FdbMap<TKey, TKey, TValue, TEncodedValue>
+		where TEncodedValue : struct, ISpanEncodable
+	{
+
+		/// <summary>Constructs a map that will encode simple keys, using the specified value codec</summary>
+		/// <param name="location">Location in the database where the map will be stored</param>
+		/// <param name="valueCodec">Codec used to serialize and deserialize the values</param>
+		public FdbMap(ISubspaceLocation location, IFdbValueCodec<TValue, TEncodedValue> valueCodec)
+			: base(location, FdbIdentityKeyCodec<TKey>.Instance, valueCodec)
+		{ }
+
+	}
+
+	/// <summary>Implements a simple order dictionary of keys to values</summary>
+	/// <typeparam name="TKey">Type of the keys</typeparam>
+	/// <typeparam name="TEncodedKey">Type of the intermediate representation of keys, which can be different for composite keys.</typeparam>
+	/// <typeparam name="TValue">Type of the values</typeparam>
+	/// <typeparam name="TEncodedValue">Type of the binary representation for the values, that must implement <see cref="ISpanEncodable"/></typeparam>
+	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
+	public class FdbMap<TKey, TEncodedKey, TValue, TEncodedValue> : IFdbLayer<FdbMap<TKey, TEncodedKey, TValue, TEncodedValue>.State>
+		where TEncodedValue : struct, ISpanEncodable
+	{
+
+		/// <summary>Constructs a map that will encode simple keys, using the specified value codec</summary>
+		/// <param name="location">Location in the database where the map will be stored</param>
+		/// <param name="keyCodec">Codec used to serialize and deserialize the keys</param>
+		/// <param name="valueCodec">Codec used to serialize and deserialize the values</param>
+		public FdbMap(ISubspaceLocation location, IFdbKeyCodec<TKey, TEncodedKey> keyCodec, IFdbValueCodec<TValue, TEncodedValue> valueCodec)
 		{
-			this.Location = location ?? throw new ArgumentNullException(nameof(location));
-			this.ValueEncoder = valueEncoder ?? throw new ArgumentNullException(nameof(valueEncoder));
+			Contract.NotNull(location);
+			Contract.NotNull(keyCodec);
+			Contract.NotNull(valueCodec);
+
+			this.Location = location.AsDynamic();
+			this.KeyCodec = keyCodec;
+			this.ValueCodec = valueCodec;
 		}
 
 		#region Public Properties...
 
-		/// <summary>Subspace used to encoded the keys for the items</summary>
-		public TypedKeySubspaceLocation<TKey> Location { get; }
+		/// <summary>Subspace used to encode the keys for the items</summary>
+		public DynamicKeySubspaceLocation Location { get; }
 
-		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public IValueEncoder<TValue?> ValueEncoder { get; }
+		/// <summary>Codec used to serialize/deserializes the keys</summary>
+		public IFdbKeyCodec<TKey, TEncodedKey> KeyCodec { get; }
+
+		/// <summary>Codec used to serialize/deserialize the values</summary>
+		public IFdbValueCodec<TValue, TEncodedValue> ValueCodec { get; }
 
 		#endregion
 
+		/// <summary>Internal state that can be used inside a transaction context</summary>
 		[PublicAPI]
 		public sealed class State
 		{
 
-			public ITypedKeySubspace<TKey> Subspace { get; }
+			/// <summary>Resolved subspace of the map</summary>
+			public IDynamicKeySubspace Subspace { get; }
 
-			public IValueEncoder<TValue?> ValueEncoder { get; }
+			/// <summary>Map that resolved this state</summary>
+			public FdbMap<TKey, TEncodedKey, TValue, TEncodedValue> Parent { get; }
 
-			internal State(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue?> encoder)
+			internal State(IDynamicKeySubspace subspace, FdbMap<TKey, TEncodedKey, TValue, TEncodedValue> parent)
 			{
-				Contract.Debug.Requires(subspace is not null && encoder is not null);
+				Contract.Debug.Requires(subspace is not null && parent is not null);
 				this.Subspace = subspace;
-				this.ValueEncoder = encoder;
+				this.Parent = parent;
 			}
 
 			#region Get / Set / Remove...
 
-			/// <summary>Returns the value of an existing entry in the map</summary>
+			/// <summary>Reads the value of an existing entry in the map</summary>
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="id">Key of the entry to read from the map</param>
 			/// <returns>Value of the entry if it exists; otherwise, throws an exception</returns>
@@ -80,13 +138,17 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(id);
 
-				var data = await trans.GetAsync(this.Subspace.GetKey(id)).ConfigureAwait(false);
+				var pk = this.Parent.KeyCodec.EncodeKey(id);
 
-				if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
-				return this.ValueEncoder.DecodeValue(data)!;
+				var (data, found) = await trans.GetAsync(
+					this.Subspace.GetKey(pk),
+					(value, found) => found ? (this.Parent.ValueCodec.DecodeValue(value), true) : (default, false)
+				).ConfigureAwait(false);
+
+				return found ? data! : throw new KeyNotFoundException("The given id was not present in the map.");
 			}
 
-			/// <summary>Returns the value of an entry in the map if it exists.</summary>
+			/// <summary>Reads the value of an entry in the map if it exists.</summary>
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="id">Key of the entry to read from the map</param>
 			/// <returns>Optional with the value of the entry if it exists, or an empty result if it is not present in the map.</returns>
@@ -95,13 +157,15 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(id);
 
-				var data = await trans.GetAsync(this.Subspace.GetKey(id)).ConfigureAwait(false);
+				var pk = this.Parent.KeyCodec.EncodeKey(id);
 
-				if (data.IsNull) return (default(TValue), false);
-				return (this.ValueEncoder.DecodeValue(data), true);
+				return await trans.GetAsync(
+					this.Subspace.GetKey(pk),
+					(value, found) => found ? (this.Parent.ValueCodec.DecodeValue(value), true) : (default, false)
+				).ConfigureAwait(false);
 			}
 
-			/// <summary>Add or update an entry in the map</summary>
+			/// <summary>Adds or updates an entry in the map</summary>
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="id">Key of the entry to add or update</param>
 			/// <param name="value">New value of the entry</param>
@@ -111,10 +175,12 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(id);
 
-				trans.Set(this.Subspace.GetKey(id), this.ValueEncoder.EncodeValue(value));
+				var pk = this.Parent.KeyCodec.EncodeKey(id);
+
+				trans.Set(this.Subspace.GetKey(pk), this.Parent.ValueCodec.EncodeValue(value));
 			}
 
-			/// <summary>Remove a single entry from the map</summary>
+			/// <summary>Removes a single entry from the map</summary>
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="id">Key of the entry to remove</param>
 			/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
@@ -126,7 +192,7 @@ namespace FoundationDB.Layers.Collections
 				trans.Clear(this.Subspace.GetKey(id));
 			}
 
-			/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
+			/// <summary>Creates a query that will attempt to read all the entries in the map within a single transaction.</summary>
 			/// <param name="trans">Transaction used for the operation</param>
 			/// <param name="options"></param>
 			/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
@@ -137,7 +203,7 @@ namespace FoundationDB.Layers.Collections
 
 				return trans
 					.GetRange(this.Subspace.GetRange(), options)
-					.Select(kv => DecodeItem(this.Subspace, this.ValueEncoder, kv));
+					.Select(kv => this.Parent.DecodeItem(this.Subspace, kv));
 			}
 
 			/// <summary>Reads the values of multiple entries in the map</summary>
@@ -149,15 +215,15 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(ids);
 
-				//PERF: TODO: implement GetValuesAsync<TElement, TKey> !!
-				var kv = await trans.GetValuesAsync(ids, id => this.Subspace.GetKey(id)).ConfigureAwait(false);
+				//PERF: TODO: implement GetValuesAsync<> that also takes a value codec?
+				var kv = await trans.GetValuesAsync(ids, id => this.Subspace.GetKey(this.Parent.KeyCodec.EncodeKey(id))).ConfigureAwait(false);
 				if (kv.Length == 0) return [ ];
 
 				var result = new TValue?[kv.Length];
-				var decoder = this.ValueEncoder;
+				var decoder = this.Parent.ValueCodec;
 				for (int i = 0; i < kv.Length; i++)
 				{
-					result[i] = decoder.DecodeValue(kv[i]);
+					result[i] = decoder.DecodeValue(kv[i].Span);
 				}
 
 				return result;
@@ -167,9 +233,9 @@ namespace FoundationDB.Layers.Collections
 
 			#region Bulk Operations...
 
-			/// <summary>Clear all the entries in the map</summary>
+			/// <summary>Clears all the entries in the map</summary>
 			/// <param name="trans">Transaction used for the operation</param>
-			/// <remarks>This will delete EVERYTHING in the map!</remarks>
+			/// <remarks>This will delete <b>EVERYTHING</b> in the map!</remarks>
 			public void Clear(IFdbTransaction trans)
 			{
 				Contract.NotNull(trans);
@@ -184,7 +250,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="items">Sequence of items to import. If the item already exists in the map, its value will be overwritten.</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <remarks>
-			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map beforehand.</p>
 			/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
 			/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
 			/// </remarks>
@@ -207,7 +273,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="keySelector">Lambda that will extract the key of an element</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <remarks>
-			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map beforehand.</p>
 			/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
 			/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
 			/// </remarks>
@@ -232,7 +298,7 @@ namespace FoundationDB.Layers.Collections
 			/// <param name="valueSelector">Lambda that will return the value of an element</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <remarks>
-			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+			/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map beforehand.</p>
 			/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
 			/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
 			/// </remarks>
@@ -257,12 +323,16 @@ namespace FoundationDB.Layers.Collections
 
 		}
 
+		/// <summary>Resolves this layer for use inside a transaction</summary>
+		/// <param name="tr">Transaction used for this operation</param>
+		/// <returns><see cref="State"/> that can be used to interact with this map inside this transaction</returns>
+		/// <remarks>This state is only valid within the scope of this transaction, and <b>MUST NOT</b> be used outside the retry handler, or reused with a different transaction!</remarks>
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
 
 			//TODO: store in transaction context?
-			return new State(subspace, this.ValueEncoder);
+			return new State(subspace, this);
 		}
 
 		/// <inheritdoc />
@@ -286,10 +356,9 @@ namespace FoundationDB.Layers.Collections
 				this.Location,
 				(batch, loc, _, _) =>
 				{
-					var encoder = this.ValueEncoder;
 					foreach (var item in batch)
 					{
-						handler(DecodeItem(loc, encoder, item));
+						handler(this.DecodeItem(loc, item));
 					}
 					return Task.CompletedTask;
 				},
@@ -313,10 +382,9 @@ namespace FoundationDB.Layers.Collections
 				this.Location,
 				async (batch, loc, _, _) =>
 				{
-					var encoder = this.ValueEncoder;
 					foreach (var item in batch)
 					{
-						await handler(DecodeItem(loc, encoder, item), ct);
+						await handler(this.DecodeItem(loc, item), ct);
 					}
 				},
 				ct
@@ -341,7 +409,7 @@ namespace FoundationDB.Layers.Collections
 				{
 					if (batch.Length > 0)
 					{
-						handler(DecodeItems(loc, this.ValueEncoder, batch));
+						handler(this.DecodeItems(loc, batch));
 					}
 					return Task.CompletedTask;
 				},
@@ -363,7 +431,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(batch, loc, _, tok) => handler(DecodeItems(loc, this.ValueEncoder, batch), tok),
+				(batch, loc, _, tok) => handler(DecodeItems(loc, batch), tok),
 				ct
 			);
 		}
@@ -391,7 +459,7 @@ namespace FoundationDB.Layers.Collections
 				this.Location,
 				(batch, loc, _, _) =>
 				{
-					state = handler(state!, DecodeItems(loc, this.ValueEncoder, batch));
+					state = handler(state!, DecodeItems(loc, batch));
 					return Task.CompletedTask;
 				},
 				ct
@@ -424,7 +492,7 @@ namespace FoundationDB.Layers.Collections
 				this.Location,
 				(batch, loc, _, _) =>
 				{
-					state = handler(state!, DecodeItems(loc, this.ValueEncoder, batch));
+					state = handler(state!, DecodeItems(loc, batch));
 					return Task.CompletedTask;
 				},
 				ct
@@ -441,24 +509,24 @@ namespace FoundationDB.Layers.Collections
 			return result!;
 		}
 
-		private static KeyValuePair<TKey, TValue?> DecodeItem(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue?> valueEncoder, KeyValuePair<Slice, Slice> item)
+		private KeyValuePair<TKey, TValue?> DecodeItem(IDynamicKeySubspace subspace, KeyValuePair<Slice, Slice> item)
 		{
-			return new KeyValuePair<TKey, TValue?>(
-				subspace.Decode(item.Key)!,
-				valueEncoder.DecodeValue(item.Value)
+			return new(
+				this.KeyCodec.DecodeKey(subspace.Decode<TEncodedKey>(item.Key)!),
+				this.ValueCodec.DecodeValue(item.Value.Span)
 			);
 		}
 
-		private static KeyValuePair<TKey, TValue?>[] DecodeItems(ITypedKeySubspace<TKey> subspace, IValueEncoder<TValue?> valueEncoder, KeyValuePair<Slice, Slice>[] batch)
+		private KeyValuePair<TKey, TValue?>[] DecodeItems(IDynamicKeySubspace subspace, KeyValuePair<Slice, Slice>[] batch)
 		{
 			Contract.Debug.Requires(batch is not null);
 
 			var items = new KeyValuePair<TKey, TValue?>[batch.Length];
 			for (int i = 0; i < batch.Length; i++)
 			{
-				items[i] = new KeyValuePair<TKey, TValue?>(
-					subspace.Decode(batch[i].Key)!,
-					valueEncoder.DecodeValue(batch[i].Value)
+				items[i] = new(
+					this.KeyCodec.DecodeKey(subspace.Decode<TEncodedKey>(batch[i].Key)!),
+					this.ValueCodec.DecodeValue(batch[i].Value.Span)
 				);
 			}
 			return items;

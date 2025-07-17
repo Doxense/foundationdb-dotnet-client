@@ -26,8 +26,8 @@
 
 // ReSharper disable ReplaceAsyncWithTaskReturn
 
-//#define ENABLE_LOGGING
-//#define FULL_DEBUG
+#define ENABLE_LOGGING
+#define FULL_DEBUG
 
 namespace FoundationDB.Layers.Collections.Tests
 {
@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Collections.Tests
 	public class MapFacts : FdbTest
 	{
 
-		[Test]
+		[Test, Order(1)]
 		public async Task Test_FdbMap_Read_Write_Delete()
 		{
 			using (var db = await OpenTestPartitionAsync())
@@ -49,7 +49,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapFoos = new FdbMap<string, string>(location.ByKey("Foos"), BinaryEncoding.StringEncoder);
+				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(location.ByKey("Foos"), FdbUtf8ValueCodec.Instance);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 		}
 
-		[Test]
+		[Test, Order(2)]
 		public async Task Test_FdbMap_List()
 		{
 			using (var db = await OpenTestPartitionAsync())
@@ -124,7 +124,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapFoos = new FdbMap<string, string>(location.ByKey("Foos"), BinaryEncoding.StringEncoder);
+				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(location.ByKey("Foos"), FdbUtf8ValueCodec.Instance);
 
 				// write a bunch of keys
 				await mapFoos.WriteAsync(db, (tr, foos) =>
@@ -174,9 +174,9 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			var rules = new Dictionary<IPEndPoint, string>()
 			{
-				{ new IPEndPoint(IPAddress.Parse("172.16.12.34"), 6667), "block" },
-				{ new IPEndPoint(IPAddress.Parse("192.168.34.56"), 80), "pass" },
-				{ new IPEndPoint(IPAddress.Parse("192.168.34.56"), 443), "pass" }
+				{ new(IPAddress.Parse("172.16.12.34"), 6667), "block" },
+				{ new(IPAddress.Parse("192.168.34.56"), 80), "pass" },
+				{ new(IPAddress.Parse("192.168.34.56"), 443), "pass" }
 			};
 
 			using (var db = await OpenTestPartitionAsync())
@@ -188,7 +188,14 @@ namespace FoundationDB.Layers.Collections.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapHosts = new FdbMap<IPEndPoint, string>(location.ByKey("Hosts").AsTyped<IPEndPoint>(keyEncoder), BinaryEncoding.StringEncoder);
+				var mapHosts = new FdbMap<IPEndPoint, STuple<IPAddress, int>, string, FdbValue<string, SpanEncoders.Utf8Encoder>>(
+					location.ByKey("Hosts"),
+					FdbKeyCodec.Create<IPEndPoint, STuple<IPAddress, int>>(
+						key => STuple.Create(key.Address, key.Port),
+						encoded => new(encoded.Item1, encoded.Item2)
+					),
+					FdbValueSpanEncoderCodec<string, SpanEncoders.Utf8Encoder>.Instance
+				);
 
 				// import all the rules
 				await mapHosts.WriteAsync(db, (tr, hosts) =>
