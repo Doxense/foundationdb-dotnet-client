@@ -26,12 +26,37 @@
 
 namespace FoundationDB.Layers.Collections
 {
+	using System.Runtime.CompilerServices;
+
+	/// <summary>Provides a high-contention Queue class</summary>
+	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
+	public class FdbVector : FdbVector<Slice, FdbRawValue>
+	{
+		public FdbVector(ISubspaceLocation location)
+			: base(location, FdbValueCodec.Raw)
+		{ }
+
+	}
+
+	/// <summary>Provides a high-contention Queue class</summary>
+	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
+	public class FdbVector<TValue> : FdbVector<TValue, STuple<TValue>>
+		where TValue : notnull
+	{
+		public FdbVector(ISubspaceLocation location)
+			: base(location, FdbValueCodec.Tuples.ForKey<TValue>())
+		{ }
+
+	}
 
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
 	[DebuggerDisplay("Location={Location}, Default={DefaultValue}")]
 	[PublicAPI]
-	public class FdbVector<T> : IFdbLayer<FdbVector<T>.State>
-		where T : notnull
+	public class FdbVector<TValue, TEncoded> : IFdbLayer<FdbVector<TValue, TEncoded>.State>
+		where TValue : notnull
+		where TEncoded : struct, ISpanEncodable
 	{
 
 		// from https://apple.github.io/foundationdb/vector.html
@@ -55,32 +80,24 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="location">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
-		/// <param name="encoder">Encoder used for the values of this vector</param>
-		public FdbVector(ISubspaceLocation location, T? defaultValue = default, IValueEncoder<T>? encoder = null)
-			: this(location.AsDynamic(), defaultValue, encoder)
-		{ }
-
-		/// <summary>Create a new sparse Vector</summary>
-		/// <param name="location">Subspace where the vector will be stored</param>
-		/// <param name="defaultValue">Default value for sparse entries</param>
-		/// <param name="encoder">Encoder used for the values of this vector</param>
-		public FdbVector(DynamicKeySubspaceLocation location, T? defaultValue, IValueEncoder<T>? encoder = null)
+		/// <param name="codec">Codec used for the values of this vector</param>
+		public FdbVector(ISubspaceLocation location, IFdbValueCodec<TValue, TEncoded> codec, TValue? defaultValue = default)
 		{
 			Contract.NotNull(location);
+			Contract.NotNull(codec);
 
-			this.Location = location;
+			this.Location = location.AsDynamic();
 			this.DefaultValue = defaultValue;
-			this.Encoder = encoder ?? TuPack.Encoding.GetValueEncoder<T>();
+			this.Codec = codec;
 		}
-
 
 		/// <summary>Subspace used as a prefix for all items in this vector</summary>
 		public DynamicKeySubspaceLocation Location { get; }
 
 		/// <summary>Default value for sparse entries</summary>
-		public T? DefaultValue { get; }
+		public TValue? DefaultValue { get; }
 
-		public IValueEncoder<T> Encoder { get; }
+		public IFdbValueCodec<TValue, TEncoded> Codec { get; }
 
 		[PublicAPI]
 		public sealed class State
@@ -88,15 +105,12 @@ namespace FoundationDB.Layers.Collections
 
 			public IDynamicKeySubspace Subspace { get; }
 
-			public T? DefaultValue { get; }
+			public FdbVector<TValue, TEncoded> Parent { get; }
 
-			public IValueEncoder<T> Encoder { get; }
-
-			internal State(IDynamicKeySubspace subspace, T? defaultValue, IValueEncoder<T> encoder)
+			internal State(IDynamicKeySubspace subspace, FdbVector<TValue, TEncoded> parent)
 			{
 				this.Subspace = subspace;
-				this.DefaultValue = defaultValue;
-				this.Encoder = encoder;
+				this.Parent = parent;
 			}
 
 			/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
@@ -108,36 +122,37 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Push a single item onto the end of the Vector.</summary>
-			public async Task PushAsync(IFdbTransaction tr, T value)
+			public async Task PushAsync(IFdbTransaction tr, TValue value)
 			{
 				Contract.NotNull(tr);
 
 				var size = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
-				tr.Set(GetKeyAt(size), this.Encoder.EncodeValue(value));
+				tr.Set(GetKeyAt(size), this.Parent.Codec.EncodeValue(value));
 			}
 
 			/// <summary>Get the value of the last item in the Vector.</summary>
-			public Task<T?> BackAsync(IFdbReadOnlyTransaction tr)
+			public Task<TValue?> BackAsync(IFdbReadOnlyTransaction tr)
 			{
 				//REVIEW: rename this to "PeekLast" ?
 				Contract.NotNull(tr);
 
+				//PERF: TODO: use GetRange with value decoder!
 				return tr
 					.GetRange(this.Subspace.ToRange())
-					.Select((kvp) => this.Encoder.DecodeValue(kvp.Value)!)
+					.Select((kvp) => this.Parent.Codec.DecodeValue(kvp.Value.Span))
 					.LastOrDefaultAsync();
 			}
 
 			/// <summary>Get the value of the first item in the Vector.</summary>
-			public Task<T?> FrontAsync(IFdbReadOnlyTransaction tr)
+			public Task<TValue?> FrontAsync(IFdbReadOnlyTransaction tr)
 			{
 				//REVIEW: rename this to "Peek" ?
 				return GetAsync(tr, 0);
 			}
 
 			/// <summary>Get and pops the last item off the Vector.</summary>
-			public async Task<(T? Value, bool HasValue)> PopAsync(IFdbTransaction tr)
+			public async Task<(TValue? Value, bool HasValue)> PopAsync(IFdbTransaction tr)
 			{
 				Contract.NotNull(tr);
 
@@ -163,12 +178,12 @@ namespace FoundationDB.Layers.Collections
 				}
 				else if (lastTwo.Count == 1 || indices[0] > indices[1] + 1)
 				{ // Second to last item is being represented sparsely
-					tr.Set(GetKeyAt(indices[0] - 1), this.Encoder.EncodeValue(this.DefaultValue));
+					tr.Set(GetKeyAt(indices[0] - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
 				}
 
 				tr.Clear(lastTwo[0].Key);
 
-				return (this.Encoder.DecodeValue(lastTwo[0].Value), true);
+				return (this.Parent.Codec.DecodeValue(lastTwo[0].Value.Span), true);
 			}
 
 			/// <summary>Swap the items at positions i1 and i2.</summary>
@@ -209,7 +224,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Get the item at the specified index.</summary>
-			public async Task<T?> GetAsync(IFdbReadOnlyTransaction tr, long index)
+			public async Task<TValue?> GetAsync(IFdbReadOnlyTransaction tr, long index)
 			{
 				Contract.NotNull(tr);
 				Contract.Positive(index);
@@ -226,33 +241,23 @@ namespace FoundationDB.Layers.Collections
 				{
 					if (this.Subspace.Decode<long>(output.Key) == index)
 					{ // The requested index had an associated key
-						return this.Encoder.DecodeValue(output.Value)!;
+						return this.Parent.Codec.DecodeValue(output.Value.Span)!;
 					}
 
 					// The requested index is sparsely represented
-					return this.DefaultValue;
+					return this.Parent.DefaultValue;
 				}
 
 				// We requested a value past the end of the vector
 				throw new IndexOutOfRangeException($"Index {index} out of range");
 			}
 
-			/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>
-			public IAsyncEnumerable<T?> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
-			{
-				Contract.NotNull(tr);
-
-				//BUGBUG: implement FdbVector.GetRangeAsync() !
-
-				throw new NotImplementedException();
-			}
-
 			/// <summary>Set the value at a particular index in the Vector.</summary>
-			public void Set(IFdbTransaction tr, long index, T value)
+			public void Set(IFdbTransaction tr, long index, TValue value)
 			{
 				Contract.NotNull(tr);
 
-				tr.Set(GetKeyAt(index), this.Encoder.EncodeValue(value));
+				tr.Set(GetKeyAt(index), this.Parent.Codec.EncodeValue(value));
 			}
 
 			/// <summary>Test whether the Vector is empty.</summary>
@@ -277,12 +282,12 @@ namespace FoundationDB.Layers.Collections
 					// Check if the new end of the vector was being sparsely represented
 					if (await ComputeSizeAsync(tr).ConfigureAwait(false) < length)
 					{
-						tr.Set(GetKeyAt(length - 1), this.Encoder.EncodeValue(this.DefaultValue));
+						tr.Set(GetKeyAt(length - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
 					}
 				}
 				else if (length > currentSize)
 				{
-					tr.Set(GetKeyAt(length - 1), this.Encoder.EncodeValue(this.DefaultValue));
+					tr.Set(GetKeyAt(length - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
 				}
 			}
 
@@ -312,6 +317,7 @@ namespace FoundationDB.Layers.Collections
 				return this.Subspace.DecodeFirst<long>(lastKey) + 1;
 			}
 
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private FdbTupleKey<long> GetKeyAt(long index)
 			{
 				return this.Subspace.GetKey(index);
@@ -324,11 +330,11 @@ namespace FoundationDB.Layers.Collections
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			return new State(subspace, this.DefaultValue, this.Encoder);
+			return new State(subspace, this);
 		}
 
 		/// <inheritdoc />
-		string IFdbLayer.Name => nameof(FdbVector<>);
+		string IFdbLayer.Name => nameof(FdbVector<,>);
 
 	}
 

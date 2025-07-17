@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 					// also check directly
 					var folder = await location.Resolve(tr);
-					var data = await tr.GetAsync(folder!.Encode("Foos", "hello"));
+					var data = await tr.GetAsync(folder.Encode("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);
 
@@ -158,18 +158,13 @@ namespace FoundationDB.Layers.Collections.Tests
 		[Test]
 		public async Task Test_FdbMap_With_Custom_Key_Encoder()
 		{
-			// Use a table as a backing store for the rules of a Poor Man's firewall, where each keys are the IPEndPoint (tcp only!), and the values are "pass" or "block"
+			// Use a table as a backing store for the rules of a Poor Man's firewall, where each key are the IPEndPoint (tcp only!), and the values are "pass" or "block"
 
-			// Encode IPEndPoint as the (IP, Port,) encoded with the Tuple codec
+			// Encode IPEndPoint as the (IP, Port) encoded with the Tuple codec
 			// note: there is a much simpler way or creating composite keys, this is just a quick and dirty test!
-			var keyEncoder = new KeyEncoder<IPEndPoint>(
-				(ipe) => ipe == null ? Slice.Empty : TuPack.EncodeKey(ipe.Address, ipe.Port),
-				(packed) =>
-				{
-					if (packed.IsNullOrEmpty) return null;
-					var t = TuPack.Unpack(packed);
-					return new IPEndPoint(t.Get<IPAddress>(0)!, t.Get<int>(1));
-				}
+			var keyCodec = FdbKeyCodec.Create<IPEndPoint, STuple<IPAddress, int>>(
+				key => STuple.Create(key.Address, key.Port),
+				encoded => new(encoded.Item1, encoded.Item2)
 			);
 
 			var rules = new Dictionary<IPEndPoint, string>()
@@ -188,13 +183,10 @@ namespace FoundationDB.Layers.Collections.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapHosts = new FdbMap<IPEndPoint, STuple<IPAddress, int>, string, FdbValue<string, SpanEncoders.Utf8Encoder>>(
+				var mapHosts = new FdbMap<IPEndPoint, STuple<IPAddress, int>, string, FdbUtf8Value>(
 					location.ByKey("Hosts"),
-					FdbKeyCodec.Create<IPEndPoint, STuple<IPAddress, int>>(
-						key => STuple.Create(key.Address, key.Port),
-						encoded => new(encoded.Item1, encoded.Item2)
-					),
-					FdbValueSpanEncoderCodec<string, SpanEncoders.Utf8Encoder>.Instance
+					keyCodec,
+					FdbValueCodec.Utf8
 				);
 
 				// import all the rules

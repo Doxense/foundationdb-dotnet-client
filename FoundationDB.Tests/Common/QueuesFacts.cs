@@ -25,6 +25,7 @@
 #endregion
 
 //#define ENABLE_LOGGING
+//#define FULL_DEBUG
 
 namespace FoundationDB.Layers.Collections.Tests
 {
@@ -35,7 +36,92 @@ namespace FoundationDB.Layers.Collections.Tests
 	{
 
 		[Test]
-		public async Task Test_Queue_Fast()
+		public async Task Test_Queue_Of_Slices()
+		{
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root;
+			await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
+			var queue = new FdbQueue(location);
+
+			bool isEmpty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + isEmpty);
+			Assert.That(isEmpty, Is.True);
+
+			var a = Slice.Repeat('A', 16);
+			var b = Slice.Repeat('B', 16);
+			var c = Slice.Repeat('C', 16);
+			var d = Slice.Repeat('D', 16);
+
+			Log("Push A, B, C in separate transactions");
+			await queue.WriteAsync(db, (tr, state) => state.Push(tr, a), this.Cancellation);
+			await queue.WriteAsync(db, (tr, state) => state.Push(tr, b), this.Cancellation);
+			await queue.WriteAsync(db, (tr, state) => state.Push(tr, c), this.Cancellation);
+
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			// Empty?
+			bool empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + empty);
+			Assert.That(empty, Is.False);
+
+			var item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
+			Log($"Pop item: {item}");
+			Assert.That(item.HasValue, Is.True);
+			Assert.That(item.Value, Is.EqualTo(a));
+			item = await queue.ReadWriteAsync(db, (tr, state) => state.PeekAsync(tr), this.Cancellation);
+			Log($"Next item: {item}");
+			Assert.That(item.HasValue, Is.True);
+			Assert.That(item.Value, Is.EqualTo(b));
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
+			Log($"Pop item: {item}");
+			Assert.That(item.HasValue, Is.True);
+			Assert.That(item.Value, Is.EqualTo(b));
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
+			Log($"Pop item: {item}");
+			Assert.That(item.HasValue, Is.True);
+			Assert.That(item.Value, Is.EqualTo(c));
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + empty);
+			Assert.That(empty, Is.True);
+
+			Log("Push D");
+			await queue.WriteAsync(db, (tr, state) => state.Push(tr, d), this.Cancellation);
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			Log("Clear Queue");
+			await queue.WriteAsync(db, (tr, state) => state.Clear(tr), this.Cancellation);
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + empty);
+			Assert.That(empty, Is.True);
+		}
+
+		[Test]
+		public async Task Test_Queue_Of_Ints()
 		{
 			using var db = await OpenTestPartitionAsync();
 			var location = db.Root;
@@ -47,14 +133,16 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			var queue = new FdbQueue<int>(location);
 
-			Log("Empty? " + queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation));
+			bool isEmpty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + isEmpty);
+			Assert.That(isEmpty, Is.True);
 
 			Log("Push 10, 8, 6 in separate transactions");
 			await queue.WriteAsync(db, (tr, state) => state.Push(tr, 10), this.Cancellation);
 			await queue.WriteAsync(db, (tr, state) => state.Push(tr, 8), this.Cancellation);
 			await queue.WriteAsync(db, (tr, state) => state.Push(tr, 6), this.Cancellation);
 
-#if DEBUG
+#if FULL_DEBUG
 			await DumpSubspace(db, location);
 #endif
 
@@ -71,7 +159,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			Log($"Next item: {item}");
 			Assert.That(item.HasValue, Is.True);
 			Assert.That(item.Value, Is.EqualTo(8));
-#if DEBUG
+#if FULL_DEBUG
 			await DumpSubspace(db, location);
 #endif
 
@@ -79,7 +167,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			Log($"Pop item: {item}");
 			Assert.That(item.HasValue, Is.True);
 			Assert.That(item.Value, Is.EqualTo(8));
-#if DEBUG
+#if FULL_DEBUG
 			await DumpSubspace(db, location);
 #endif
 
@@ -87,7 +175,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			Log($"Pop item: {item}");
 			Assert.That(item.HasValue, Is.True);
 			Assert.That(item.Value, Is.EqualTo(6));
-#if DEBUG
+#if FULL_DEBUG
 			await DumpSubspace(db, location);
 #endif
 
@@ -97,13 +185,93 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			Log("Push 5");
 			await queue.WriteAsync(db, (tr, state) => state.Push(tr, 5), this.Cancellation);
-#if DEBUG
+#if FULL_DEBUG
 			await DumpSubspace(db, location);
 #endif
 
 			Log("Clear Queue");
 			await queue.WriteAsync(db, (tr, state) => state.Clear(tr), this.Cancellation);
-#if DEBUG
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + empty);
+			Assert.That(empty, Is.True);
+		}
+
+		[Test]
+		public async Task Test_Queue_Of_Strings()
+		{
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root;
+			await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
+			var queue = new FdbQueue<string, FdbUtf8Value>(location, FdbValueCodec.Utf8);
+
+			bool isEmpty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + isEmpty);
+			Assert.That(isEmpty, Is.True);
+
+			Log("Push 'foo', 'bar', 'baz' in separate transactions");
+			await queue.WriteAsync(db, (tr, state) => state.Push(tr, "foo"), this.Cancellation);
+			await queue.WriteAsync(db, (tr, state) => state.Push(tr, "bar"), this.Cancellation);
+			await queue.WriteAsync(db, (tr, state) => state.Push(tr, "baz"), this.Cancellation);
+
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			// Empty?
+			bool empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + empty);
+			Assert.That(empty, Is.False);
+
+			var item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
+			Log($"Pop item: {item}");
+			Assert.That(item.HasValue, Is.True);
+			Assert.That(item.Value, Is.EqualTo("foo"));
+			item = await queue.ReadWriteAsync(db, (tr, state) => state.PeekAsync(tr), this.Cancellation);
+			Log($"Next item: {item}");
+			Assert.That(item.HasValue, Is.True);
+			Assert.That(item.Value, Is.EqualTo("bar"));
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
+			Log($"Pop item: {item}");
+			Assert.That(item.HasValue, Is.True);
+			Assert.That(item.Value, Is.EqualTo("bar"));
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
+			Log($"Pop item: {item}");
+			Assert.That(item.HasValue, Is.True);
+			Assert.That(item.Value, Is.EqualTo("baz"));
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
+			Log("Empty? " + empty);
+			Assert.That(empty, Is.True);
+
+			Log("Push 5");
+			await queue.WriteAsync(db, (tr, state) => state.Push(tr, "jazz"), this.Cancellation);
+#if FULL_DEBUG
+			await DumpSubspace(db, location);
+#endif
+
+			Log("Clear Queue");
+			await queue.WriteAsync(db, (tr, state) => state.Clear(tr), this.Cancellation);
+#if FULL_DEBUG
 			await DumpSubspace(db, location);
 #endif
 
@@ -133,7 +301,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					state.Push(tr, i);
 				}
 			}, this.Cancellation);
-#if DEBUG
+#if FULL_DEBUG
 			await DumpSubspace(db, queue.Location);
 #endif
 
@@ -148,7 +316,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(r.Value, Is.EqualTo(i));
 				}
 			}, this.Cancellation);
-#if DEBUG
+#if FULL_DEBUG
 			await DumpSubspace(db, queue.Location);
 #endif
 

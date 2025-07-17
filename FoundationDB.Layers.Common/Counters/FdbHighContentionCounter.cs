@@ -49,23 +49,14 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Create a new High Contention counter.</summary>
 		/// <param name="location">Subspace to be used for storing the counter</param>
 		public FdbHighContentionCounter(ISubspaceLocation location)
-			: this(location.AsDynamic(), TuPack.Encoding.GetValueEncoder<long>())
-		{ }
-
-		/// <summary>Create a new High Contention counter, using a specific value encoder.</summary>
-		/// <param name="location">Location for storing the counters</param>
-		/// <param name="encoder">Encoder for the counter values</param>
-		public FdbHighContentionCounter(DynamicKeySubspaceLocation location, IValueEncoder<long> encoder)
 		{
-			this.Location = location ?? throw new ArgumentNullException(nameof(location));
-			this.Encoder = encoder ?? throw new ArgumentNullException(nameof(encoder));
+			Contract.NotNull(location);
+
+			this.Location = location.AsDynamic();
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public DynamicKeySubspaceLocation Location { get; }
-
-		/// <summary>Encoder for the integer values of the counter</summary>
-		public IValueEncoder<long> Encoder {get; }
 
 		/// <summary>Generate a new random slice</summary>
 		protected virtual Slice RandomId()
@@ -84,7 +75,7 @@ namespace FoundationDB.Layers.Counters
 				var subspace = await this.Location.Resolve(tr);
 
 				// read N writes from a random place in ID space
-				var loc = subspace.Encode(RandomId());
+				var loc = subspace.GetKey(RandomId()).ToSlice(); //PERF: TODO: optimize this!
 
 				bool right;
 				lock (this.Rng) { right = this.Rng.NextDouble() < 0.5; }
@@ -98,12 +89,12 @@ namespace FoundationDB.Layers.Counters
 					// remove read shards transaction
 					foreach (var shard in shards)
 					{
-						checked { total += this.Encoder.DecodeValue(shard.Value); }
+						checked { total += TuPack.DecodeKey<long>(shard.Value); }
 						await tr.GetAsync(shard.Key).ConfigureAwait(false); // real read for isolation
 						tr.Clear(shard.Key);
 					}
 
-					tr.Set(subspace.Encode(RandomId()), this.Encoder.EncodeValue(total));
+					tr.Set(subspace.GetKey(RandomId()), FdbValue.ToTuple(total));
 
 				}
 			}, ct);
@@ -131,10 +122,10 @@ namespace FoundationDB.Layers.Counters
 								//TODO: logging ?
 								System.Diagnostics.Debug.WriteLine($"Background Coalesce error: {x}");
 							}
-						});
+						}, ct);
 				}
 				catch (Exception)
-				{ // something went wrong starting the background coesle
+				{ // something went wrong starting the background coalesce
 					Volatile.Write(ref m_coalesceRunning, NOT_RUNNING);
 					throw;
 				}
@@ -154,7 +145,7 @@ namespace FoundationDB.Layers.Counters
 			long total = 0;
 			await trans
 				.GetRange(subspace.ToRange())
-				.ForEachAsync((kvp) => { checked { total += this.Encoder.DecodeValue(kvp.Value); } })
+				.ForEachAsync((kvp) => { checked { total += TuPack.DecodeKey<long>(kvp.Value); } })
 				.ConfigureAwait(false);
 
 			return total;
@@ -173,7 +164,7 @@ namespace FoundationDB.Layers.Counters
 			var subspace = await this.Location.TryResolve(trans);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by High Contention Counter Layer was not found.");
 
-			trans.Set(subspace.Encode(RandomId()), this.Encoder.EncodeValue(x));
+			trans.Set(subspace.GetKey(RandomId()), FdbValue.ToTuple(x));
 
 			// decide if we must coalesce
 			//note: Random() is not thread-safe so we must lock

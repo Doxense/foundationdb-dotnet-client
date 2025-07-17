@@ -30,40 +30,60 @@ namespace FoundationDB.Layers.Collections
 	/// <summary>Provides a high-contention Queue class</summary>
 	[DebuggerDisplay("Location={Location}")]
 	[PublicAPI]
-	public class FdbQueue<T> : IFdbLayer<FdbQueue<T>.State>
-		where T : notnull
+	public class FdbQueue : FdbQueue<Slice, FdbRawValue>
+	{
+		public FdbQueue(ISubspaceLocation location)
+			: base(location, FdbValueCodec.Raw)
+		{ }
+
+	}
+
+	/// <summary>Provides a high-contention Queue class</summary>
+	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
+	public class FdbQueue<TValue> : FdbQueue<TValue, STuple<TValue>>
+		where TValue : notnull
+	{
+		public FdbQueue(ISubspaceLocation location)
+			: base(location, FdbValueCodec.Tuples.ForKey<TValue>())
+		{ }
+
+	}
+
+	/// <summary>Provides a high-contention Queue class</summary>
+	[DebuggerDisplay("Location={Location}")]
+	[PublicAPI]
+	public class FdbQueue<TValue, TEncoded> : IFdbLayer<FdbQueue<TValue, TEncoded>.State>
+		where TValue : notnull
+		where TEncoded : struct, ISpanEncodable
 	{
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="location">Subspace where the queue will be stored</param>
-		/// <param name="encoder">Encoder for the values stored in this queue</param>
+		/// <param name="codec">Encoder for the values stored in this queue</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue(ISubspaceLocation location, IValueEncoder<T>? encoder = null)
-			: this(location.AsTyped<VersionStamp>(), encoder)
-		{ }
-
-		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
-		/// <param name="location">Subspace where the queue will be stored</param>
-		/// <param name="encoder">Encoder for the values stored in this queue</param>
-		public FdbQueue(TypedKeySubspaceLocation<VersionStamp> location, IValueEncoder<T>? encoder = null)
+		public FdbQueue(ISubspaceLocation location, IFdbValueCodec<TValue, TEncoded> codec)
 		{
-			this.Location = location ?? throw new ArgumentNullException(nameof(location));
-			this.Encoder = encoder ?? TuPack.Encoding.GetValueEncoder<T>();
+			Contract.NotNull(location);
+			Contract.NotNull(codec);
+
+			this.Location = location.AsTyped<VersionStamp>();
+			this.Codec = codec;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public TypedKeySubspaceLocation<VersionStamp> Location { get; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
-		public IValueEncoder<T> Encoder { get; }
+		public IFdbValueCodec<TValue, TEncoded> Codec { get; }
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.Resolve(tr);
-			return new State(subspace, this.Encoder);
+			return new State(subspace, this);
 		}
 
 		/// <inheritdoc />
-		string IFdbLayer.Name => nameof(FdbQueue<>);
+		string IFdbLayer.Name => nameof(FdbQueue<,>);
 
 		[PublicAPI]
 		public sealed class State
@@ -71,12 +91,13 @@ namespace FoundationDB.Layers.Collections
 
 			public ITypedKeySubspace<VersionStamp> Subspace { get; }
 
-			public IValueEncoder<T> Encoder { get; }
+			public FdbQueue<TValue, TEncoded> Parent { get; }
 
-			public State(ITypedKeySubspace<VersionStamp> subspace, IValueEncoder<T> encoder)
+			internal State(ITypedKeySubspace<VersionStamp> subspace, FdbQueue<TValue, TEncoded> parent)
 			{
+				Contract.Debug.Requires(subspace is not null && parent is not null);
 				this.Subspace = subspace;
-				this.Encoder = encoder;
+				this.Parent = parent;
 			}
 
 			/// <summary>Remove all items from the queue.</summary>
@@ -87,7 +108,7 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Push a single item onto the queue.</summary>
-			public void Push(IFdbTransaction tr, T value)
+			public void Push(IFdbTransaction tr, TValue value)
 			{
 				Contract.NotNull(tr);
 
@@ -96,20 +117,18 @@ namespace FoundationDB.Layers.Collections
 #endif
 
 				//BUGBUG: can be called multiple times per transaction, so need a unique stamp _per_ transaction!!
-				tr.SetVersionStampedKey(this.Subspace.GetKey(tr.CreateUniqueVersionStamp()), this.Encoder.EncodeValue(value));
+				tr.SetVersionStampedKey(this.Subspace.GetKey(tr.CreateUniqueVersionStamp()), this.Parent.Codec.EncodeValue(value));
 			}
 
-			private static readonly FdbRangeOptions SingleOptions = new() { Limit = 1, Streaming = FdbStreamingMode.Exact };
-
 			/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-			public async Task<(T? Value, bool HasValue)> PopAsync(IFdbTransaction tr)
+			public async Task<(TValue? Value, bool HasValue)> PopAsync(IFdbTransaction tr)
 			{
 				Contract.NotNull(tr);
 #if DEBUG
 				tr.Annotate("Pop()");
 #endif
 
-				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), SingleOptions);
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), FdbRangeOptions.First);
 				if (first.IsEmpty)
 				{
 #if DEBUG
@@ -122,31 +141,31 @@ namespace FoundationDB.Layers.Collections
 #if DEBUG
 				if (tr.IsLogged()) tr.Annotate($"Got key {this.Subspace.Decode(first[0].Key)} = {first[0].Value:V}");
 #endif
-				return (this.Encoder.DecodeValue(first[0].Value), true);
+				return (this.Parent.Codec.DecodeValue(first[0].Value.Span), true);
 			}
 
 			/// <summary>Test whether the queue is empty.</summary>
 			public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 			{
-				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), SingleOptions);
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), FdbRangeOptions.First);
 				return first.IsEmpty;
 			}
 
 			/// <summary>Get the value of the next item in the queue without popping it.</summary>
-			public async Task<(T? Value, bool HasValue)> PeekAsync(IFdbReadOnlyTransaction tr)
+			public async Task<(TValue? Value, bool HasValue)> PeekAsync(IFdbReadOnlyTransaction tr)
 			{
 				Contract.NotNull(tr);
 
-				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), SingleOptions);
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), FdbRangeOptions.First);
 				if (first.IsEmpty) return default;
 
-				return (this.Encoder.DecodeValue(first[0].Value), true);
+				return (this.Parent.Codec.DecodeValue(first[0].Value.Span), true);
 			}
 		}
 
 		#region Bulk Operations
 
-		public Task ExportAsync(IFdbDatabase db, Action<T, long> handler, CancellationToken ct)
+		public Task ExportAsync(IFdbDatabase db, Action<TValue, long> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db);
 			Contract.NotNull(handler);
@@ -162,7 +181,7 @@ namespace FoundationDB.Layers.Collections
 					{
 						if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-						handler(this.Encoder.DecodeValue(kv.Value)!, offset);
+						handler(this.Codec.DecodeValue(kv.Value.Span)!, offset);
 						++offset;
 					}
 					return Task.CompletedTask;
@@ -171,7 +190,7 @@ namespace FoundationDB.Layers.Collections
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Func<T, long, Task> handler, CancellationToken ct)
+		public Task ExportAsync(IFdbDatabase db, Func<TValue, long, Task> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db);
 			Contract.NotNull(handler);
@@ -187,7 +206,7 @@ namespace FoundationDB.Layers.Collections
 					{
 						if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-						await handler(this.Encoder.DecodeValue(kv.Value)!, offset);
+						await handler(this.Codec.DecodeValue(kv.Value.Span)!, offset);
 						++offset;
 					}
 				},
@@ -195,7 +214,7 @@ namespace FoundationDB.Layers.Collections
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Action<T[], long> handler, CancellationToken ct)
+		public Task ExportAsync(IFdbDatabase db, Action<TValue[], long> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db);
 			Contract.NotNull(handler);
@@ -207,14 +226,19 @@ namespace FoundationDB.Layers.Collections
 				this.Location,
 				(kvs, _, offset, _) =>
 				{
-					handler(this.Encoder.DecodeValues(kvs), offset);
+					var values = new TValue[kvs.Length];
+					for (int i = 0; i < kvs.Length; i++)
+					{
+						values[i] = this.Codec.DecodeValue(kvs[i].Value.Span)!;
+					}
+					handler(values, offset);
 					return Task.CompletedTask;
 				},
 				ct
 			);
 		}
 
-		public Task ExportAsync(IFdbDatabase db, Func<T[], long, Task> handler, CancellationToken ct)
+		public Task ExportAsync(IFdbDatabase db, Func<TValue[], long, Task> handler, CancellationToken ct)
 		{
 			Contract.NotNull(db);
 			Contract.NotNull(handler);
@@ -224,7 +248,15 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location,
-				(kvs, _, offset, _) => handler(this.Encoder.DecodeValues(kvs), offset),
+				(kvs, _, offset, _) =>
+				{
+					var values = new TValue[kvs.Length];
+					for (int i = 0; i < kvs.Length; i++)
+					{
+						values[i] = this.Codec.DecodeValue(kvs[i].Value.Span)!;
+					}
+					return handler(values, offset);
+				},
 				ct
 			);
 		}

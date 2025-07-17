@@ -28,6 +28,7 @@
 
 namespace FoundationDB.Layers.Interning
 {
+	using System.Runtime.CompilerServices;
 	using System.Security.Cryptography;
 
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
@@ -116,15 +117,11 @@ namespace FoundationDB.Layers.Interning
 
 			#region Private Helpers...
 
-			private Slice UidKey(Slice uid)
-			{
-				return this.Subspace.Encode(Uid2StringKey, uid);
-			}
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			private FdbTupleKey<Slice, Slice> UidKey(Slice uid) => this.Subspace.GetKey(Uid2StringKey, uid);
 
-			private Slice StringKey(string value)
-			{
-				return this.Subspace.Encode(String2UidKey, value);
-			}
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			private FdbTupleKey<Slice, string> StringKey(string value) => this.Subspace.GetKey(String2UidKey, value);
 
 			/// <summary>Finds a new free uid that can be used to store a new string in the table</summary>
 			/// <param name="trans">Transaction used to look for and create a new uid</param>
@@ -198,9 +195,7 @@ namespace FoundationDB.Layers.Interning
 
 			private async Task<Slice> InternSlowAsync(IFdbTransaction trans, string value)
 			{
-				var stringKey = StringKey(value);
-
-				var uid = await trans.GetAsync(stringKey).ConfigureAwait(false);
+				var uid = await trans.GetAsync(StringKey(value)).ConfigureAwait(false);
 				if (uid.IsNull)
 				{
 #if DEBUG_STRING_INTERNING
@@ -213,10 +208,10 @@ namespace FoundationDB.Layers.Interning
 					Debug.WriteLine("> using new uid " + uid.ToBase64());
 #endif
 
-					trans.Set(UidKey(uid), Slice.FromString(value));
-					trans.Set(stringKey, uid);
+					trans.Set(UidKey(uid), FdbValue.ToTextUtf8(value));
+					trans.Set(StringKey(value), uid);
 
-					//BUGBUG: if the transaction fails to commit, we will inserted a bad value in the cache!
+					//BUGBUG: if the transaction fails to commit, we will insert a bad value in the cache!
 					this.Layer.AddToCache(value, uid);
 				}
 				else
