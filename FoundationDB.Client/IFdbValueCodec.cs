@@ -55,6 +55,24 @@ namespace FoundationDB.Client
 
 	}
 
+	public sealed class FdbUtf8ValueCodec : IFdbValueCodec<string, FdbUtf8Value>
+	{
+
+		public static readonly FdbUtf8ValueCodec Instance = new();
+
+		private FdbUtf8ValueCodec() { }
+
+		/// <inheritdoc />
+		public FdbUtf8Value EncodeValue(in string value) => new(value);
+
+		/// <inheritdoc />
+		public string DecodeValue(ReadOnlySpan<byte> encoded)
+			=> SpanEncoders.Utf8Encoder.TryDecode(encoded, out string? value)
+				? value!
+				: throw new FormatException("Failed to decoded string literal");
+
+	}
+
 	public sealed class FdbValueSpanEncoderCodec<TValue, TCodec> : IFdbValueCodec<TValue, FdbValue<TValue, TCodec>>
 		where TCodec : struct, ISpanEncoder<TValue>, ISpanDecoder<TValue>
 	{
