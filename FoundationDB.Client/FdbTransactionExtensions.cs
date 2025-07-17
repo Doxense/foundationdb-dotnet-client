@@ -582,6 +582,16 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbTransaction.Set"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Set(this IFdbTransaction trans, ReadOnlySpan<byte> key, Slice value)
+			=> trans.Set(key, ToSpanValue(value));
+
+		/// <inheritdoc cref="IFdbTransaction.Set"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Set(this IFdbTransaction trans, Slice key, Slice value)
+			=> trans.Set(ToSpanKey(key), ToSpanValue(value));
+
+		/// <inheritdoc cref="IFdbTransaction.Set"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TValue>(this IFdbTransaction trans, Slice key, in TValue value)
 #if NET9_0_OR_GREATER
 			where TValue : struct, ISpanEncodable, allows ref struct
@@ -589,6 +599,12 @@ namespace FoundationDB.Client
 			where TValue : struct, ISpanEncodable
 #endif
 			=> Set<TValue>(trans, ToSpanKey(key), in value);
+
+		/// <inheritdoc cref="IFdbTransaction.Set"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void Set<TKey>(this IFdbTransaction trans, in TKey key, Slice value)
+			where TKey : struct, IFdbKey
+			=> Set(trans, in key, ToSpanValue(value));
 
 		/// <inheritdoc cref="IFdbTransaction.Set"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -697,6 +713,7 @@ namespace FoundationDB.Client
 		/// <param name="valueEncoder">Encoder used to convert <paramref name="value"/> into a binary literal.</param>
 		/// <param name="value">Argument that will be used to generate the value for the key</param>
 		[EditorBrowsable(EditorBrowsableState.Never)] //TODO: phase out IKeyEncoder/IValueEncoder
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public static void Set<TKey, TValue>(this IFdbTransaction trans, IKeyEncoder<TKey> keyEncoder, TKey key, IValueEncoder<TValue> valueEncoder, TValue value)
 		{
 			Contract.NotNull(trans);
@@ -1465,6 +1482,56 @@ namespace FoundationDB.Client
 				}
 			}
 
+		}
+
+#if NET9_0_OR_GREATER
+
+		[OverloadResolutionPriority(1)]
+		public static void SetValues<TElement>(this IFdbTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, ReadOnlySpan<byte>> keySelector, Func<TElement, ReadOnlySpan<byte>> valueSelector)
+		{
+			for (int i = 0; i < items.Length; i++)
+			{
+				trans.Set(keySelector(items[i]), valueSelector(items[i]));
+			}
+		}
+
+		public static void SetValues<TElement>(this IFdbTransaction trans, IEnumerable<TElement> items, Func<TElement, ReadOnlySpan<byte>> keySelector, Func<TElement, ReadOnlySpan<byte>> valueSelector)
+		{
+			if (items.TryGetSpan(out var span))
+			{
+				SetValues(trans, span, keySelector, valueSelector);
+				return;
+			}
+
+			foreach(var item in items)
+			{
+				trans.Set(keySelector(item), valueSelector(item));
+			}
+		}
+
+#endif
+
+		[OverloadResolutionPriority(1)]
+		public static void SetValues<TElement>(this IFdbTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, Slice> keySelector, Func<TElement, Slice> valueSelector)
+		{
+			for (int i = 0; i < items.Length; i++)
+			{
+				trans.Set(ToSpanKey(keySelector(items[i])), ToSpanValue(valueSelector(items[i])));
+			}
+		}
+
+		public static void SetValues<TElement>(this IFdbTransaction trans, IEnumerable<TElement> items, Func<TElement, Slice> keySelector, Func<TElement, Slice> valueSelector)
+		{
+			if (items.TryGetSpan(out var span))
+			{
+				SetValues(trans, span, keySelector, valueSelector);
+				return;
+			}
+
+			foreach(var item in items)
+			{
+				trans.Set(ToSpanKey(keySelector(item)), ToSpanValue(valueSelector(item)));
+			}
 		}
 
 		[OverloadResolutionPriority(1)]
@@ -2787,6 +2854,25 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value of the key. The 10 bytes starting at <paramref name="stampOffset"/> will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
 		/// <param name="stampOffset">Offset in <paramref name="value"/> where the 80-bit VersionStamp is located. Prior to API version 520, it can only be located at offset 0.</param>
+		public static void SetVersionStampedValue<TKey>(this IFdbTransaction trans, in TKey key, Slice value, int stampOffset)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				SetVersionStampedValue(trans, keySpan, ToSpanValue(value), stampOffset);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				SetVersionStampedValue(trans, keyBytes.Span, ToSpanValue(value), stampOffset);
+			}
+		}
+
+		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> at the given offset in the value with the resolved VersionStamp at commit time.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Value of the key. The 10 bytes starting at <paramref name="stampOffset"/> will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
+		/// <param name="stampOffset">Offset in <paramref name="value"/> where the 80-bit VersionStamp is located. Prior to API version 520, it can only be located at offset 0.</param>
 		public static void SetVersionStampedValue(this IFdbTransaction trans, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, int stampOffset)
 		{
 			Contract.NotNull(trans);
@@ -3327,14 +3413,23 @@ namespace FoundationDB.Client
 
 		#region GetAddressesForKeyAsync...
 
-		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key whose location is to be queried.</param>
-		/// <returns>Task that will return an array of strings, or an exception</returns>
-		/// <remarks><para>Starting from API level 630, the addresses include the port ("IP:PORT") by default. Below 630 it does not include the port, unless option <see cref="FdbTransactionOption.IncludePortInAddress"/> is set.</para></remarks>
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetAddressesForKeyAsync"/>
 		public static Task<string[]> GetAddressesForKeyAsync(this IFdbReadOnlyTransaction trans, Slice key)
 		{
 			return trans.GetAddressesForKeyAsync(ToSpanKey(key));
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetAddressesForKeyAsync"/>
+		public static Task<string[]> GetAddressesForKeyAsync<TKey>(this IFdbReadOnlyTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return trans.GetAddressesForKeyAsync(keySpan);
+			}
+
+			using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+			return trans.GetAddressesForKeyAsync(keyBytes.Span);
 		}
 
 		#endregion
@@ -3376,6 +3471,26 @@ namespace FoundationDB.Client
 		public static Task<long> GetEstimatedRangeSizeBytesAsync(this IFdbReadOnlyTransaction trans, KeyRange range)
 		{
 			return trans.GetEstimatedRangeSizeBytesAsync(ToSpanKey(range.Begin), ToSpanKey(range.End));
+		}
+
+		#endregion
+
+		#region MetadataVersion...
+
+		/// <inheritdoc cref="IFdbTransaction.TouchMetadataVersionKey"/>
+		public static void TouchMetadataVersionKey<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			// the metadata key will be stored in a cache, so we have to allocate!
+			trans.TouchMetadataVersionKey(key.ToSlice());
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetMetadataVersionKeyAsync"/>
+		public static Task<VersionStamp?> GetMetadataVersionKeyAsync<TKey>(this IFdbReadOnlyTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			// the metadata key will be stored in a cache, so we have to allocate!
+			return trans.GetMetadataVersionKeyAsync(key.ToSlice());
 		}
 
 		#endregion
@@ -3609,6 +3724,16 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
 		/// </summary>
+		public static void AddReadConflictRange<TBeginKey, TEndKey>(this IFdbTransaction trans, in TBeginKey beginKeyInclusive, in TEndKey endKeyExclusive)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			trans.AddConflictRange(in beginKeyInclusive, in endKeyExclusive, FdbConflictRangeType.Read);
+		}
+
+		/// <summary>
+		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
+		/// </summary>
 		public static void AddReadConflictRange(this IFdbTransaction trans, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Read);
@@ -3663,20 +3788,33 @@ namespace FoundationDB.Client
 			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Write);
 		}
 
+		/// <summary>
+		/// Adds a key to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
+		/// </summary>
+		public static void AddWriteConflictKey<TKey>(this IFdbTransaction trans, in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			AddConflictRange(trans, FdbKeyRange.Single(in key), FdbConflictRangeType.Write);
+		}
+
 		#endregion
 
 		#region Watch...
 
-		/// <summary>Watch a key for any change in the database.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Key to watch</param>
-		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
-		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
-		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property.</remarks>
+		/// <inheritdoc cref="IFdbTransaction.Watch"/>
 		[Pure]
 		public static FdbWatch Watch(this IFdbTransaction trans, Slice key, CancellationToken ct)
 		{
 			return trans.Watch(ToSpanKey(key), ct);
+		}
+
+		/// <inheritdoc cref="IFdbTransaction.Watch"/>
+		[Pure]
+		public static FdbWatch Watch<TKey>(this IFdbTransaction trans, in TKey key, CancellationToken ct)
+			where TKey : struct, IFdbKey
+		{
+			// unfortunately, we have to allocate the encoded key since this is an async operation
+			return trans.Watch(key.ToSlice(), ct);
 		}
 
 		#endregion
@@ -4034,6 +4172,14 @@ namespace FoundationDB.Client
 			Contract.NotNull(decoder);
 
 			return decoder.DecodeValues(await GetValuesAsync(trans, keys).ConfigureAwait(false));
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetKeyAsync(FoundationDB.Client.KeySelector)"/>
+		public static Task<Slice> GetKeyAsync<TKey>(this IFdbReadOnlyTransaction trans, FdbKeySelector<TKey> selector)
+			where TKey : struct, IFdbKey
+		{
+			//TODO: PERF: optimize this!
+			return trans.GetKeyAsync(selector.ToSelector());
 		}
 
 		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>

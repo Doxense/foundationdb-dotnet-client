@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 			/// <inheritdoc />
 			public Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
 			{
-				return m_parent.GetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: true);
+				return m_parent.PerformGetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: true);
 			}
 
 			void IFdbReadOnlyTransaction.SetReadVersion(long version)

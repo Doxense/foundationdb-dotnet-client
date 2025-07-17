@@ -396,7 +396,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key = default)
 		{
-			return GetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: false);
+			return PerformGetMetadataVersionKeyAsync(key.IsNull ? Fdb.System.MetadataVersionKey : key, snapshot: false);
 		}
 
 		/// <inheritdoc />
@@ -428,7 +428,7 @@ namespace FoundationDB.Client
 		/// <summary>Fetch and parse the metadataVersion system key</summary>
 		/// <param name="key">Key to read</param>
 		/// <param name="snapshot">If false, add a read conflict range on the key.</param>
-		internal Task<VersionStamp?> GetMetadataVersionKeyAsync(Slice key, bool snapshot)
+		internal Task<VersionStamp?> PerformGetMetadataVersionKeyAsync(Slice key, bool snapshot)
 		{
 			if (key.IsNull) throw new ArgumentNullException(nameof(key));
 

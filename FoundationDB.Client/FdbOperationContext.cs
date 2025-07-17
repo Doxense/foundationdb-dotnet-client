@@ -512,6 +512,27 @@ namespace FoundationDB.Client
 		/// <summary>Contains the tags of all the failed value checks from the previous attempt</summary>
 		private Dictionary<string, (FdbValueCheckResult Result, List<(FdbValueCheckResult Result, Slice Key, Slice Expected, Slice Actual)>)>? FailedValueCheckTags { get; set; }
 
+		/// <inheritdoc cref="AddValueCheck"/>
+		public void AddValueCheck<TKey>(string tag, in TKey key, Slice expectedValue)
+			where TKey : struct, IFdbKey
+		{
+			// unfortunately, we have to store the encoded key and value into the heap, since the check is async
+			AddValueCheck(tag, key.ToSlice(), expectedValue);
+		}
+
+		/// <inheritdoc cref="AddValueCheck"/>
+		public void AddValueCheck<TKey, TValue>(string tag, in TKey key, in TValue expectedValue)
+			where TKey : struct, IFdbKey
+#if NET9_0_OR_GREATER
+			where TValue : struct, ISpanEncodable, allows ref struct
+#else
+			where TValue : struct, ISpanEncodable
+#endif
+		{
+			// unfortunately, we have to store the encoded key and value into the heap, since the check is async
+			AddValueCheck(tag, key.ToSlice(), FdbValueExtensions.ToSlice(expectedValue));
+		}
+
 		/// <summary>Add a check on the value of the key, that will be resolved before the transaction is able to commit</summary>
 		/// <param name="tag">Application-provided tag that can be used later to decide which layer failed the check.</param>
 		/// <param name="key">Key to check</param>
