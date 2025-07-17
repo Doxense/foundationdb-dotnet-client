@@ -72,7 +72,7 @@ namespace FoundationDB.Client.Tests
 		{
 			static void Verify(Slice prefix, IVarTuple items)
 			{
-				var subspace = new DynamicKeySubspace(prefix, TuPack.Encoding.GetDynamicKeyEncoder(), SubspaceContext.Default);
+				var subspace = new DynamicKeySubspace(prefix, SubspaceContext.Default);
 				var packed = subspace.Pack(items);
 				Log($"# {prefix:x} + {items}: -> {packed:x}");
 				if (!packed.StartsWith(prefix)) throw new InvalidOperationException();
@@ -216,7 +216,7 @@ namespace FoundationDB.Client.Tests
 				so.Dispose();
 			}
 
-			var subspace = new DynamicKeySubspace(TuPack.EncodeKey(42), TuPack.Encoding.GetDynamicKeyEncoder(), SubspaceContext.Default);
+			var subspace = new DynamicKeySubspace(TuPack.EncodeKey(42), SubspaceContext.Default);
 
 			var now = DateTime.Now;
 			var vs = VersionStamp.Incomplete(0x1234);
