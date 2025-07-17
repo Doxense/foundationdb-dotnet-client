@@ -256,7 +256,7 @@ namespace FoundationDB.Client
 			return Batched<TTuple, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
-				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
+				static (ref writer, item, encoder) => encoder.PackKey(ref writer, item),
 				self.KeyEncoder
 			);
 		}
@@ -269,7 +269,7 @@ namespace FoundationDB.Client
 			return Batched<TTuple, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items.AsSpan(),
-				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
+				static (ref writer, item, encoder) => encoder.PackKey(ref writer, item),
 				self.KeyEncoder
 			);
 		}
@@ -282,7 +282,7 @@ namespace FoundationDB.Client
 			return Batched<TTuple, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
-				(ref SliceWriter writer, TTuple item, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, item),
+				static (ref writer, item, encoder) => encoder.PackKey(ref writer, item),
 				self.KeyEncoder
 			);
 		}
@@ -295,7 +295,7 @@ namespace FoundationDB.Client
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
-				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
+				(ref writer, item, encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
 				self.KeyEncoder
 			);
 		}
@@ -308,7 +308,7 @@ namespace FoundationDB.Client
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items.AsSpan(),
-				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
+				(ref writer, item, encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
 				self.KeyEncoder
 			);
 		}
@@ -321,76 +321,49 @@ namespace FoundationDB.Client
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
-				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
+				(ref writer, item, encoder) => encoder.PackKey<TTuple>(ref writer, selector(item)),
 				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Packs a tuple which is composed of a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(this IDynamicKeySubspace self, ValueTuple<T1> items)
+		public static Slice Pack<T1>(this IDynamicKeySubspace self, ValueTuple<T1> items)
 		{
 			return self.Encode<T1>(items.Item1);
 		}
 
 		/// <summary>Packs a tuple which is composed of 2 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(this IDynamicKeySubspace self, (T1, T2) items)
+		public static Slice Pack<T1, T2>(this IDynamicKeySubspace self, (T1, T2) items)
 		{
 			return self.Encode<T1, T2>(items.Item1, items.Item2);
 		}
 
 		/// <summary>Packs a tuple which is composed of 3 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(this IDynamicKeySubspace self, (T1, T2, T3) items)
+		public static Slice Pack<T1, T2, T3>(this IDynamicKeySubspace self, (T1, T2, T3) items)
 		{
 			return self.Encode<T1, T2, T3>(items.Item1, items.Item2, items.Item3);
 		}
 
 		/// <summary>Packs a tuple which is composed of 4 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4) items)
+		public static Slice Pack<T1, T2, T3, T4>(this IDynamicKeySubspace self, (T1, T2, T3, T4) items)
 		{
 			return self.Encode<T1, T2, T3, T4>(items.Item1, items.Item2, items.Item3, items.Item4);
 		}
 
 		/// <summary>Packs a tuple which is composed of 5 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) items)
+		public static Slice Pack<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) items)
 		{
 			return self.Encode<T1, T2, T3, T4, T5>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5);
 		}
 
 		/// <summary>Packs a tuple which is composed of 6 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice Pack<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) items)
+		public static Slice Pack<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) items)
 		{
 			return self.Encode<T1, T2, T3, T4, T5, T6>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6);
 		}
@@ -411,172 +384,92 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+		public static KeyRange PackRange<T1>
 			(this IDynamicKeySubspace self, STuple<T1> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(this IDynamicKeySubspace self, STuple<T1, T2> tuple)
+		public static KeyRange PackRange<T1, T2>(this IDynamicKeySubspace self, STuple<T1, T2> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(this IDynamicKeySubspace self, STuple<T1, T2, T3> tuple)
+		public static KeyRange PackRange<T1, T2, T3>(this IDynamicKeySubspace self, STuple<T1, T2, T3> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4> tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5> tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5, T6> tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(this IDynamicKeySubspace self, ValueTuple<T1> tuple)
+		public static KeyRange PackRange<T1>(this IDynamicKeySubspace self, ValueTuple<T1> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(this IDynamicKeySubspace self, (T1, T2) tuple)
+		public static KeyRange PackRange<T1, T2>(this IDynamicKeySubspace self, (T1, T2) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(this IDynamicKeySubspace self, (T1, T2, T3) tuple)
+		public static KeyRange PackRange<T1, T2, T3>(this IDynamicKeySubspace self, (T1, T2, T3) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, (T1, T2, T3, T4) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		public static KeyRange PackRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9>
-			(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7, T8, T9) tuple)
+		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7, T8, T9) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8, tuple.Item9);
 		}
@@ -586,109 +479,55 @@ namespace FoundationDB.Client
 		#region ToKeyRange()...
 
 		/// <summary>Returns a key range using a single element as a prefix</summary>
-		public static KeyRange EncodeRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(this IDynamicKeySubspace self, T1 item1)
+		public static KeyRange EncodeRange<T1>(this IDynamicKeySubspace self, T1 item1)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1);
 		}
 
 		/// <summary>Returns a key range using 2 elements as a prefix</summary>
-		public static KeyRange EncodeRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(this IDynamicKeySubspace self, T1 item1, T2 item2)
+		public static KeyRange EncodeRange<T1, T2>(this IDynamicKeySubspace self, T1 item1, T2 item2)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2);
 		}
 
 		/// <summary>Returns a key range using 3 elements as a prefix</summary>
-		public static KeyRange EncodeRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3)
+		public static KeyRange EncodeRange<T1, T2, T3>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3);
 		}
 
 		/// <summary>Returns a key range using 4 elements as a prefix</summary>
-		public static KeyRange EncodeRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4)
+		public static KeyRange EncodeRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4);
 		}
 
 		/// <summary>Returns a key range using 5 elements as a prefix</summary>
-		public static KeyRange EncodeRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Returns a key range using 6 elements as a prefix</summary>
-		public static KeyRange EncodeRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Returns a key range using 7 elements as a prefix</summary>
-		public static KeyRange EncodeRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
-			(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7);
 		}
 
 		/// <summary>Returns a key range using 8 elements as a prefix</summary>
-		public static KeyRange EncodeRange<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
-			(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 		/// <summary>Returns a key range using 8 elements as a prefix</summary>
-		public static KeyRange EncodeRange<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9>
-			(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
+		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7, item8, item9);
 		}
@@ -699,9 +538,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of a single element</summary>
 		[Pure]
-		public static Slice Encode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(this IDynamicKeySubspace self, T1? item1)
+		public static Slice Encode<T1>(this IDynamicKeySubspace self, T1? item1)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1);
@@ -710,97 +547,79 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
 		[Pure]
-		public static Slice[] EncodeMany<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
-			(this IDynamicKeySubspace self, ReadOnlySpan<T> items)
+		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, ReadOnlySpan<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
-				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
+				static (ref writer, item, encoder) => encoder.EncodeKey<T>(ref writer, item),
 				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
 		[Pure]
-		public static Slice[] EncodeMany<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
-			(this IDynamicKeySubspace self, T[] items)
+		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, T[] items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items.AsSpan(),
-				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
+				static (ref writer, item, encoder) => encoder.EncodeKey<T>(ref writer, item),
 				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
 		[Pure]
-		public static Slice[] EncodeMany<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
-			(this IDynamicKeySubspace self, IEnumerable<T> items)
+		public static Slice[] EncodeMany<T>(this IDynamicKeySubspace self, IEnumerable<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
-				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
+				static (ref writer, item, encoder) => encoder.EncodeKey<T>(ref writer, item),
 				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each element</summary>
 		[Pure]
-		public static Slice[] EncodeMany<
-			TSource,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
-			(this IDynamicKeySubspace self, ReadOnlySpan<TSource> items, Func<TSource, T> selector)
+		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, ReadOnlySpan<TSource> items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
-				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
+				(ref writer, item, encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
 				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each element</summary>
 		[Pure]
-		public static Slice[] EncodeMany<
-			TSource,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
-			(this IDynamicKeySubspace self, TSource[] items, Func<TSource, T> selector)
+		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, TSource[] items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items.AsSpan(),
-				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
+				(ref writer, item, encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
 				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Encodes a batch of keys, each one composed of a single value extracted from each element</summary>
 		[Pure]
-		public static Slice[] EncodeMany<
-			TSource,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
-			(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, T> selector)
+		public static Slice[] EncodeMany<TSource, T>(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
 				self.OpenWriter(),
 				items,
-				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
+				(ref writer, item, encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
 				self.KeyEncoder
 			);
 		}
 
 		/// <summary>Encodes a key which is composed of 2 elements</summary>
 		[Pure]
-		public static Slice Encode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(this IDynamicKeySubspace self, T1? item1, T2? item2)
+		public static Slice Encode<T1, T2>(this IDynamicKeySubspace self, T1? item1, T2? item2)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2);
@@ -809,11 +628,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a key which is composed of 3 elements</summary>
 		[Pure]
-		public static Slice Encode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3)
+		public static Slice Encode<T1, T2, T3>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3);
@@ -822,12 +637,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a key which is composed of 4 elements</summary>
 		[Pure]
-		public static Slice Encode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4)
+		public static Slice Encode<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4);
@@ -836,13 +646,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 5 elements</summary>
 		[Pure]
-		public static Slice Encode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
+		public static Slice Encode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5);
@@ -851,14 +655,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 6 elements</summary>
 		[Pure]
-		public static Slice Encode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
+		public static Slice Encode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6);
@@ -867,15 +664,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 7 elements</summary>
 		[Pure]
-		public static Slice Encode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
-			(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
+		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6, item7);
@@ -884,16 +673,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 8 elements</summary>
 		[Pure]
-		public static Slice Encode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
-			(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
+		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6, item7, item8);
@@ -902,17 +682,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 8 elements</summary>
 		[Pure]
-		public static Slice Encode<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9>
-			(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9)
+		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9)
 		{
 			var sw = self.OpenWriter();
 			self.KeyEncoder.EncodeKey(ref sw, item1, item2, item3, item4, item5, item6, item7, item8, item9);
@@ -948,9 +718,7 @@ namespace FoundationDB.Client
 		///		cursor = stamp;
 		/// }
 		/// </code></example>
-		public static Slice EncodeCursor<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(this IDynamicKeySubspace self, T1? cursor)
+		public static Slice EncodeCursor<T1>(this IDynamicKeySubspace self, T1? cursor)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
 			self.KeyEncoder.EncodeKey(ref sw, cursor);
@@ -988,10 +756,7 @@ namespace FoundationDB.Client
 		///     last = (stamp, id);
 		/// }
 		/// </code></example>
-		public static Slice EncodeCursor<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(this IDynamicKeySubspace self, T1? cursor1, T2? cursor2)
+		public static Slice EncodeCursor<T1, T2>(this IDynamicKeySubspace self, T1? cursor1, T2? cursor2)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
 			self.KeyEncoder.EncodeKey(ref sw, cursor1);
@@ -1032,11 +797,7 @@ namespace FoundationDB.Client
 		///     last = (stamp, id, chunk);
 		/// }
 		/// </code></example>
-		public static Slice EncodeCursor<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(this IDynamicKeySubspace self, T1? cursor1, T2? cursor2, T3? cursor3)
+		public static Slice EncodeCursor<T1, T2, T3>(this IDynamicKeySubspace self, T1? cursor1, T2? cursor2, T3? cursor3)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
 			self.KeyEncoder.EncodeKey(ref sw, cursor1);
@@ -1051,299 +812,185 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode a key of this subspace, composed of a single element</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(this IDynamicKeySubspace self, Slice packedKey)
+		public static T1? Decode<T1>(this IDynamicKeySubspace self, Slice packedKey)
 			=> self.KeyEncoder.DecodeKey<T1>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of a single element</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
+		public static T1? Decode<T1>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?> Decode<T1, T2>(this IDynamicKeySubspace self, Slice packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
+		public static STuple<T1?, T2?> Decode<T1, T2>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IDynamicKeySubspace self, Slice packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
+		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IDynamicKeySubspace self, Slice packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
+		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, Slice packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, Slice packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
-			(this IDynamicKeySubspace self, Slice packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, Slice packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?> Decode<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T6,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?> Decode<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
 			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, and return the element at the given index</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeAt<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)]
-			T1>(this IDynamicKeySubspace self, Slice packedKey, int index)
+		public static T1? DecodeAt<T1>(this IDynamicKeySubspace self, Slice packedKey, int index)
 			=> self.KeyEncoder.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
 
 		/// <summary>Decode a key of this subspace, and return the element at the given index</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeAt<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+		public static T1? DecodeAt<T1>
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int index)
 			=> self.KeyEncoder.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeFirst<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+		public static T1? DecodeFirst<T1>
 			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyFirst<T1>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeFirst<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+		public static T1? DecodeFirst<T1>
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyFirst<T1>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first two elements without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only two elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeFirst<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+		public static (T1?, T2?) DecodeFirst<T1, T2>
 			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyFirst<T1, T2>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first two elements without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only two elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeFirst<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+		public static (T1?, T2?) DecodeFirst<T1, T2>
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyFirst<T1, T2>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first three elements without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only three elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeFirst<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>
 			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyFirst<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first three elements without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only three elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeFirst<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1, 
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2, 
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyFirst<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeLast<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+		public static T1? DecodeLast<T1>
 			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeLast<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
+		public static T1? DecodeLast<T1>
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last two elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeLast<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+		public static (T1?, T2?) DecodeLast<T1, T2>
 			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1, T2>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last two elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?) DecodeLast<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
+		public static (T1?, T2?) DecodeLast<T1, T2>
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1, T2>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeLast<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>
 			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?) DecodeLast<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?) DecodeLast<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>
 			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static (T1?, T2?, T3?, T4?) DecodeLast<
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-				[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>
 			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
 			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
 
@@ -1396,9 +1043,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
 		[Pure]
-		public IDynamicKeySubspace ByKey<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
-			(T1? value)
+		public IDynamicKeySubspace ByKey<T1>(T1? value)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1>(value), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
@@ -1414,10 +1059,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
 		[Pure]
-		public IDynamicKeySubspace ByKey<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>
-			(T1? value1, T2? value2)
+		public IDynamicKeySubspace ByKey<T1, T2>(T1? value1, T2? value2)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2>(value1, value2), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
@@ -1434,11 +1076,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
 		/// </example>
 		[Pure]
-		public IDynamicKeySubspace ByKey<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3>
-			(T1? value1, T2? value2, T3? value3)
+		public IDynamicKeySubspace ByKey<T1, T2, T3>(T1? value1, T2? value2, T3? value3)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3>(value1, value2, value3), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
@@ -1457,12 +1095,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends", "Messages") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", "Messages", ])
 		/// </example>
 		[Pure]
-		public IDynamicKeySubspace ByKey<
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3,
-			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>
-			(T1? value1, T2? value2, T3? value3, T4? value4)
+		public IDynamicKeySubspace ByKey<T1, T2, T3, T4>(T1? value1, T2? value2, T3? value3, T4? value4)
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
