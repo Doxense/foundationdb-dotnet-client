@@ -2912,7 +2912,8 @@ namespace FoundationDB.Client
 			return trans.GetRange(sp.Begin, sp.End, options);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange"/>
+		[Pure, LinqTunnel]
 		public static IFdbKeyValueRangeQuery GetRange<TBeginKey>(this IFdbReadOnlyTransaction trans, FdbKeySelector<TBeginKey> beginKeyInclusive, KeySelector endKeyExclusive, FdbRangeOptions? options = null)
 			where TBeginKey : struct, IFdbKey
 		{
@@ -2928,7 +2929,8 @@ namespace FoundationDB.Client
 			);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange"/>
+		[Pure, LinqTunnel]
 		public static IFdbKeyValueRangeQuery GetRange<TEndKey>(this IFdbReadOnlyTransaction trans, KeySelector beginKeyInclusive, FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
 			where TEndKey : struct, IFdbKey
 		{
@@ -2944,7 +2946,8 @@ namespace FoundationDB.Client
 			);
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange"/>
+		[Pure, LinqTunnel]
 		public static IFdbKeyValueRangeQuery GetRange<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, FdbKeySelector<TBeginKey> beginKeyInclusive, FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
@@ -2962,6 +2965,50 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRange<TBeginKey, TEndKey, TState, TResult>(
+			this IFdbReadOnlyTransaction trans,
+			in FdbKeySelector<TBeginKey> beginKeyInclusive,
+			in FdbKeySelector<TEndKey> endKeyExclusive,
+			TState state,
+			FdbKeyValueDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options
+		)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			//TODO: optimize this!
+			return trans.GetRange(
+				beginKeyInclusive.ToSelector(),
+				endKeyExclusive.ToSelector(),
+				state,
+				decoder,
+				options
+			);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRange<TBeginKey, TEndKey, TState, TResult>(
+			this IFdbReadOnlyTransaction trans,
+			in TBeginKey beginKeyInclusive,
+			in TEndKey endKeyExclusive,
+			TState state,
+			FdbKeyValueDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options
+		)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			return trans.GetRange(
+				beginKeyInclusive.FirstGreaterOrEqual(),
+				endKeyExclusive.FirstGreaterOrEqual(),
+				state,
+				decoder,
+				options
+			);
+		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static IFdbKeyValueRangeQuery GetRange<TBeginKey>(this IFdbReadOnlyTransaction trans, TBeginKey beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
@@ -3113,8 +3160,24 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			var selectors = KeySelectorPair.Create(range);
 			return trans.GetRange(
-				selectors.Begin, 
-				selectors.End, 
+				selectors.Begin,
+				selectors.End,
+				new SliceBuffer(),
+				static (s, k, _) => s.Intern(k),
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<Slice> GetRangeKeys<TKeyRange>(this IFdbReadOnlyTransaction trans, TKeyRange range, FdbRangeOptions? options = null)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			Contract.NotNull(trans);
+			var selectors = KeySelectorPair.Create(range.ToKeyRange()); //PERF: TODO: Optimize this!
+			return trans.GetRange(
+				selectors.Begin,
+				selectors.End,
 				new SliceBuffer(),
 				static (s, k, _) => s.Intern(k),
 				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
@@ -3129,6 +3192,22 @@ namespace FoundationDB.Client
 			return trans.GetRange(
 				KeySelector.FirstGreaterOrEqual(beginKeyInclusive.IsNullOrEmpty ? FdbKey.MinValue : beginKeyInclusive),
 				KeySelector.FirstGreaterOrEqual(endKeyExclusive.IsNullOrEmpty ? FdbKey.MaxValue : endKeyExclusive),
+				new SliceBuffer(),
+				static (s, k, _) => s.Intern(k),
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<Slice> GetRangeKeys<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in TBeginKey beginKeyInclusive, in TEndKey endKeyExclusive, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				FdbKeySelector.FirstGreaterOrEqual(beginKeyInclusive),
+				FdbKeySelector.FirstGreaterOrEqual(endKeyExclusive),
 				new SliceBuffer(),
 				static (s, k, _) => s.Intern(k),
 				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
@@ -4201,13 +4280,54 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 			Contract.NotNull(selectors);
-
-			return selectors switch
+			if (selectors.TryGetSpan(out var span))
 			{
-				KeySelector[] arr => trans.GetKeysAsync(arr.AsSpan()),
-				List<KeySelector> list => trans.GetKeysAsync(CollectionsMarshal.AsSpan(list)),
-				_ => trans.GetKeysAsync(CollectionsMarshal.AsSpan(selectors.ToList())),
-			};
+				return trans.GetKeysAsync(span);
+			}
+			else
+			{
+				return trans.GetKeysAsync(CollectionsMarshal.AsSpan(selectors.ToList()));
+			}
+		}
+
+		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="selectors">Sequence of key selectors to resolve</param>
+		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
+		public static Task<Slice[]> GetKeysAsync<TKey>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<FdbKeySelector<TKey>> selectors)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+
+			//TODO: pooled array? stackalloc?
+			var buffer = new KeySelector[selectors.Length];
+			for(int i = 0; i < selectors.Length; i++)
+			{
+				buffer[i] = selectors[i].ToSelector(); //PERF: TODO: Optimize!
+			}
+			return trans.GetKeysAsync(buffer);
+		}
+
+		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="selectors">Sequence of key selectors to resolve</param>
+		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
+		public static Task<Slice[]> GetKeysAsync<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelector<TKey>> selectors)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(selectors);
+			if (selectors.TryGetSpan(out var span))
+			{
+				return trans.GetKeysAsync(span);
+			}
+
+			var buffer = new List<KeySelector>(selectors.TryGetNonEnumeratedCount(out var count) ? count : 0);
+			foreach(var selector in selectors)
+			{
+				buffer.Add(selector.ToSelector()); //PERF: TODO: Optimize!
+			}
+			return trans.GetKeysAsync(CollectionsMarshal.AsSpan(buffer));
 		}
 
 		/// <summary>

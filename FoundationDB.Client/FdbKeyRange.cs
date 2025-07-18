@@ -192,7 +192,7 @@ namespace FoundationDB.Client
 		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbKeySelector<FdbNextKey<TKey>> GetEndSelector()
-			=> FdbKeySelector.FirstGreaterThan(this.Prefix.Increment());
+			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNext());
 
 		/// <summary>Returns a <see cref="KeySelector"/> that will match the first key in the range (inclusive)</summary>
 		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
@@ -203,7 +203,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a <see cref="KeySelector"/> that will match the last key in the range (exclusive)</summary>
 		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
 		public KeySelector ToEndSelector()
-			=> FdbKeySelector.FirstGreaterThan(this.Prefix.Increment()).ToSelector();
+			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNext()).ToSelector();
 
 	}
 
