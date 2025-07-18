@@ -88,6 +88,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use IDynamicKeySubspace instead")]
 		public static ITypedKeySubspace<T> AsTyped<T>(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -122,6 +123,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use IDynamicKeySubspace instead")]
 		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -155,6 +157,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use IDynamicKeySubspace instead")]
 		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -188,6 +191,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
+		[Obsolete("Use IDynamicKeySubspace instead")]
 		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);

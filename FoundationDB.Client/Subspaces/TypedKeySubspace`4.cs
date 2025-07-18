@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T3">Type of the third element of the key</typeparam>
 	/// <typeparam name="T4">Type of the fourth element of the key</typeparam>
 	[PublicAPI]
+	[Obsolete("Use IDynamicKeySubspace instead")]
 	public interface ITypedKeySubspace<T1, T2, T3, T4> : IKeySubspace
 	{
 
@@ -82,18 +83,16 @@ namespace FoundationDB.Client
 	/// <typeparam name="T3">Type of the third element of the key</typeparam>
 	/// <typeparam name="T4">Type of the fourth element of the key</typeparam>
 	[PublicAPI]
+	[Obsolete("Use IDynamicKeySubspace instead")]
 	public sealed class TypedKeySubspace<T1, T2, T3, T4> : KeySubspace, ITypedKeySubspace<T1, T2, T3, T4>
 	{
 
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public ICompositeKeyEncoder<T1, T2, T3, T4> KeyEncoder { get; }
 
 		internal TypedKeySubspace(Slice prefix, ISubspaceContext context)
 			: base(prefix, context)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder = TuPack.Encoding.GetKeyEncoder<T1, T2, T3, T4>();
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
@@ -119,9 +118,7 @@ namespace FoundationDB.Client
 		public Slice Encode(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var sw = this.OpenWriter(4 * 12);
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder.WriteKeyTo(ref sw, (item1, item2, item3, item4));
-#pragma warning restore CS0618 // Type or member is obsolete
 			return sw.ToSlice();
 		}
 
@@ -130,9 +127,7 @@ namespace FoundationDB.Client
 		{
 			var sw = this.OpenWriter(24);
 			var tuple = (item1, item2, item3, default(T4)!);
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder.WriteKeyPartsTo(ref sw, 3, in tuple);
-#pragma warning restore CS0618 // Type or member is obsolete
 			return sw.ToSlice();
 		}
 
@@ -141,9 +136,7 @@ namespace FoundationDB.Client
 		{
 			var sw = this.OpenWriter(16);
 			var tuple = (item1, item2, default(T3)!, default(T4)!);
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder.WriteKeyPartsTo(ref sw, 2, in tuple);
-#pragma warning restore CS0618 // Type or member is obsolete
 			return sw.ToSlice();
 		}
 
@@ -152,9 +145,7 @@ namespace FoundationDB.Client
 		{
 			var sw = this.OpenWriter(16);
 			var tuple = (item1, default(T2)!, default(T3)!, default(T4)!);
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder.WriteKeyPartsTo(ref sw, 1, in tuple);
-#pragma warning restore CS0618 // Type or member is obsolete
 			return sw.ToSlice();
 		}
 
@@ -162,17 +153,13 @@ namespace FoundationDB.Client
 		[Pure]
 		public (T1?, T2?, T3?, T4?) Decode(Slice packedKey)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.DecodeKey(ExtractKey(packedKey));
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Decode only the first element of the key</summary>
 		public (T1?, T2?, T3?, T4?) DecodePartial(Slice packedKey, int count)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.DecodeKeyParts(count, ExtractKey(packedKey));
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Return a user-friendly string representation of a key of this subspace</summary>
@@ -182,12 +169,10 @@ namespace FoundationDB.Client
 			if (packedKey.IsNull) return "<null>";
 			var key = ExtractKey(packedKey, boundCheck: true);
 
-#pragma warning disable CS0618 // Type or member is obsolete
 			if (this.KeyEncoder.TryDecodeKey(key, out var items))
 			{
 				return items.ToSTuple().ToString();
 			}
-#pragma warning restore CS0618 // Type or member is obsolete
 
 			// decoding failed, or some other non-trivial error
 			return key.PrettyPrint();
@@ -203,66 +188,66 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static KeyRange PackRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, STuple<T1, T2, T3, T4> tuple)
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4));
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static KeyRange PackRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1, T2, T3, T4) tuple)
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4));
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified tuple</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
+		[Obsolete]
 		public static KeyRange PackPartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, STuple<T1, T2, T3> tuple)
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(tuple.Item1, tuple.Item2, tuple.Item3));
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified tuple</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
+		[Obsolete]
 		public static KeyRange PackPartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1, T2, T3) tuple)
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(tuple.Item1, tuple.Item2, tuple.Item3));
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start the specified elements</summary>
 		/// <returns>Range that encompass all keys that start with `(<paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, <paramref name="item4"/>, ...)`</returns>
+		[Obsolete]
 		public static KeyRange EncodeRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.Encode(item1, item2, item3, item4));
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start the specified elements</summary>
 		/// <returns>Range that encompass all keys that start with `(<paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, ...)`</returns>
+		[Obsolete]
 		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1 item1, T2 item2, T3 item3)
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(item1, item2, item3));
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start the specified elements</summary>
 		/// <returns>Range that encompass all keys that start with `(<paramref name="item1"/>, <paramref name="item2"/>, ...)`</returns>
+		[Obsolete]
 		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1 item1, T2 item2)
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(item1, item2));
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start the specified element</summary>
 		/// <returns>Range that encompass all keys that start with `(<paramref name="item1"/>, ...)`</returns>
+		[Obsolete]
 		public static KeyRange EncodePartialRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, T1 item1)
 		{
-			//HACKHACK: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.EncodePartial(item1));
 		}
 
@@ -271,18 +256,21 @@ namespace FoundationDB.Client
 		#region Pack()
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static Slice Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, STuple<T1, T2, T3, T4> tuple)
 		{
 			return self.Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static Slice Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, (T1, T2, T3, T4) tuple)
 		{
 			return self.Encode(tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		[Pure]
+		[Obsolete]
 		public static Slice Pack<T1, T2, T3, T4, TTuple>(this ITypedKeySubspace<T1, T2, T3, T4> self, TTuple tuple)
 			where TTuple : IVarTuple
 		{
@@ -292,29 +280,26 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes an array of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static Slice[] Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, params (T1, T2, T3, T4)[] items)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Encodes a span of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static Slice[] Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, params ReadOnlySpan<(T1, T2, T3, T4)> items)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Encodes a sequence of items into a sequence of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static IEnumerable<Slice> Pack<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, IEnumerable<(T1, T2, T3, T4)> items)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		#endregion
@@ -322,58 +307,58 @@ namespace FoundationDB.Client
 		#region Decode()
 
 		/// <summary>Decode all the elements of the key</summary>
+		[Obsolete]
 		public static void Decode<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, Slice packedKey, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 		{
 			(item1, item2, item3, item4) = self.Decode(packedKey);
 		}
 
 		/// <summary>Decode only the first, second and third elements of the key</summary>
+		[Obsolete]
 		public static void DecodePartial<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, Slice packedKey, out T1? item1, out T2? item2, out T3? item3)
 		{
 			(item1, item2, item3, _) = self.DecodePartial(packedKey, 3);
 		}
 
 		/// <summary>Decode only the first and second elements of the key</summary>
+		[Obsolete]
 		public static void DecodePartial<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, Slice packedKey, out T1? item1, out T2? item2)
 		{
 			(item1, item2, _, _) = self.DecodePartial(packedKey, 2);
 		}
 
 		/// <summary>Decode only the first element of the key</summary>
+		[Obsolete]
 		public static void DecodePartial<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, Slice packedKey, out T1? item1)
 		{
 			(item1, _, _, _) = self.DecodePartial(packedKey, 1);
 		}
 
 		/// <summary>Decode only the first element of the key</summary>
+		[Obsolete]
 		public static T1? DecodeFirst<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, Slice packedKey)
 		{
-			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
-			// => for now, we have to decode the whole tuple, and throw all items except the last one!
 			return self.DecodePartial(packedKey, 1).Item1;
 		}
 
 		/// <summary>Decode only the first element of the key</summary>
+		[Obsolete]
 		public static void DecodeFirst<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, Slice packedKey, out T1? first)
 		{
-			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
-			// => for now, we have to decode the whole tuple, and throw all items except the last one!
 			(first, _, _, _) = self.DecodePartial(packedKey, 1);
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
+		[Obsolete]
 		public static T4? DecodeLast<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, Slice packedKey)
 		{
-			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
-			// => for now, we have to decode the whole tuple, and throw all items except the last one!
 			return self.Decode(packedKey).Item4;
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
+		[Obsolete]
 		public static void DecodeLast<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> self, Slice packedKey, out T4? last)
 		{
-			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
-			// => for now, we have to decode the whole tuple, and throw all items except the last one!
 			last = self.Decode(packedKey).Item4;
 		}
 

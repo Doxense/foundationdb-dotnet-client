@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T1">Type of the first element of the key</typeparam>
 	/// <typeparam name="T2">Type of the second element of the key</typeparam>
 	[PublicAPI]
+	[Obsolete("Use IDynamicKeySubspace instead")]
 	public interface ITypedKeySubspace<T1, T2> : IKeySubspace
 	{
 
@@ -85,21 +86,18 @@ namespace FoundationDB.Client
 	/// <typeparam name="T1">Type of the first element of the key</typeparam>
 	/// <typeparam name="T2">Type of the second element of the key</typeparam>
 	[PublicAPI]
+	[Obsolete("Use IDynamicKeySubspace instead")]
 	public sealed class TypedKeySubspace<T1, T2> : KeySubspace, ITypedKeySubspace<T1, T2>
 	{
 
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		public ICompositeKeyEncoder<T1, T2> KeyEncoder { get; }
 
 		internal TypedKeySubspace(Slice prefix, ISubspaceContext context)
 			: base(prefix, context)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder = TuPack.Encoding.GetKeyEncoder<T1, T2>();
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
 		internal TypedKeySubspace(Slice prefix, ICompositeKeyEncoder<T1, T2> encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
@@ -130,9 +128,7 @@ namespace FoundationDB.Client
 		{
 			var sw = this.OpenWriter(16);
 			var tuple = (item1, default(T2));
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder.WriteKeyPartsTo(ref sw, 1, in tuple!);
-#pragma warning restore CS0618 // Type or member is obsolete
 			return sw.ToSlice();
 		}
 
@@ -140,18 +136,14 @@ namespace FoundationDB.Client
 		[Pure]
 		public (T1?, T2?) Decode(Slice packedKey)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.DecodeKey(ExtractKey(packedKey));
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <inheritdoc/>
 		[Pure]
 		public (T1?, T2?) DecodePartial(Slice packedKey, int count)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.DecodeKeyParts(count, ExtractKey(packedKey));
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <inheritdoc/>
@@ -160,12 +152,10 @@ namespace FoundationDB.Client
 			if (packedKey.IsNull) return "<null>";
 			var key = ExtractKey(packedKey, boundCheck: true);
 
-#pragma warning disable CS0618 // Type or member is obsolete
 			if (this.KeyEncoder.TryDecodeKey(key, out var items))
 			{
 				return items.ToSTuple().ToString();
 			}
-#pragma warning restore CS0618 // Type or member is obsolete
 
 			// decoding failed, or some other non-trivial error
 			return key.PrettyPrint();
@@ -197,15 +187,16 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static KeyRange EncodeRange<T1, T2>(this ITypedKeySubspace<T1, T2> self, T1 item1, T2 item2)
 		{
-			//TODO: add concept of "range" on  IKeyEncoder ?
 			return KeyRange.PrefixedBy(self.Encode(item1, item2));
 		}
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static KeyRange PackRange<T1, T2>(this ITypedKeySubspace<T1, T2> self, (T1, T2) tuple)
 		{
 			return KeyRange.PrefixedBy(self.Encode(tuple.Item1, tuple.Item2));
@@ -214,6 +205,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified pair of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static KeyRange PackRange<T1, T2, TTuple>(this ITypedKeySubspace<T1, T2> self, TTuple tuple)
 			where TTuple : IVarTuple
 		{
@@ -228,6 +220,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified first item</summary>
 		/// <returns>Range that encompass all keys that start with (item1, ...)</returns>
 		[Pure]
+		[Obsolete]
 		public static KeyRange EncodePartialRange<T1, T2>(this ITypedKeySubspace<T1, T2> self, T1 item1)
 		{
 			return KeyRange.PrefixedBy(self.EncodePartial(item1));
@@ -236,6 +229,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified first item</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static KeyRange PackPartialRange<T1, T2>(this ITypedKeySubspace<T1, T2> self, STuple<T1> tuple)
 		{
 			return KeyRange.PrefixedBy(self.EncodePartial(tuple.Item1));
@@ -250,6 +244,7 @@ namespace FoundationDB.Client
 		/// <param name="tuple">Pair of values</param>
 		/// <returns>Encoded key in this subspace</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static Slice Pack<T1, T2>(this ITypedKeySubspace<T1, T2> self, (T1, T2) tuple)
 		{
 			return self.Encode(tuple.Item1, tuple.Item2);
@@ -260,6 +255,7 @@ namespace FoundationDB.Client
 		/// <param name="tuple">Tuple that must be of size 2</param>
 		/// <returns>Encoded key in this subspace</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static Slice Pack<T1, T2, TTuple>(this ITypedKeySubspace<T1, T2> self, TTuple tuple)
 			where TTuple : IVarTuple
 		{
@@ -269,29 +265,26 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes an array of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static Slice[] Pack<T1, T2>(this ITypedKeySubspace<T1, T2> self, params (T1, T2)[] items)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Encodes a span of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static Slice[] Pack<T1, T2>(this ITypedKeySubspace<T1, T2> self, params ReadOnlySpan<(T1, T2)> items)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Encodes a sequence of items into a sequence of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static IEnumerable<Slice> Pack<T1, T2>(this ITypedKeySubspace<T1, T2> self, IEnumerable<(T1, T2)> items)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		#endregion
@@ -300,6 +293,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode a key from this subspace back into a pair of elements</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static void Decode<T1, T2>(this ITypedKeySubspace<T1, T2> self, Slice packedKey, out T1? item1, out T2? item2)
 		{
 			(item1, item2) = self.Decode(packedKey);
@@ -311,6 +305,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode only the first element of the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static T1? DecodeFirst<T1, T2>(this ITypedKeySubspace<T1, T2> self, Slice packedKey)
 		{
 			return self.DecodePartial(packedKey, 1).Item1;
@@ -318,6 +313,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode only the first element of the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static void DecodeFirst<T1, T2>(this ITypedKeySubspace<T1, T2> self, Slice packedKey, out T1? first)
 		{
 			first = self.DecodePartial(packedKey, 1).Item1;
@@ -325,19 +321,17 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode only the last element of the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static T2? DecodeLast<T1, T2>(this ITypedKeySubspace<T1, T2> self, Slice packedKey)
 		{
-			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
-			// => for now, we have to decode the whole tuple, and throw all items except the last one!
 			return self.Decode(packedKey).Item2;
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static void DecodeLast<T1, T2>(this ITypedKeySubspace<T1, T2> self, Slice packedKey, out T2? last)
 		{
-			//TODO: PERF: we need to add "DecodeLast" to key encoders because this is very frequently called (indexes!)
-			// => for now, we have to decode the whole tuple, and throw all items except the last one!
 			last = self.Decode(packedKey).Item2;
 		}
 

@@ -43,6 +43,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Helper object that knows how to create sub-partitions of this subspace</summary>
+		[Obsolete("Combine GetKey() with Append() or GetRange() to achieve the same result")]
 		DynamicPartition Partition { get; }
 
 		/// <summary>Encoder used to generate and parse the keys of this subspace</summary>
@@ -122,8 +123,8 @@ namespace FoundationDB.Client
 		{
 #pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder = TuPack.Encoding.GetDynamicKeyEncoder();
-#pragma warning restore CS0618 // Type or member is obsolete
 			this.Partition = new DynamicPartition(this);
+#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
@@ -140,6 +141,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
+		[Obsolete("Combine GetKey() with Append() or GetRange() to achieve the same result")]
 		public DynamicPartition Partition { get; }
 
 		/// <inheritdoc />

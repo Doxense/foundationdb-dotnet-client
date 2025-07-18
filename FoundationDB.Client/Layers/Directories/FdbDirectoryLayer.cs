@@ -773,7 +773,7 @@ namespace FoundationDB.Client
 
 				if (prefix.IsNull)
 				{ // automatically allocate a new prefix inside the ContentSubspace
-					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.Partition.ByKey(partition.Nodes.GetPrefix(), HcaAttribute).AsTyped<int, long>(), this.Allocator).ConfigureAwait(false);
+					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.Partition.ByKey(partition.Nodes.GetPrefix(), HcaAttribute), this.Allocator).ConfigureAwait(false);
 					prefix = partition.Content.GetKey(id).ToSlice();
 
 					// ensure that there is no data already present under this prefix
@@ -1128,11 +1128,9 @@ namespace FoundationDB.Client
 			{
 				Contract.Debug.Requires(tr != null && partition != null);
 
-				var sd = partition.Nodes.Partition.ByKey(prefix, SUBDIRS);
-
 				var items = await tr
-					.GetRange(sd.ToRange())
-					.Select(kvp => (Name: sd.Decode<string>(kvp.Key) ?? string.Empty, Prefix: kvp.Value))
+					.GetRange(partition.Nodes.GetRange(prefix, SUBDIRS))
+					.Select(kvp => (Name: partition.Nodes.DecodeLast<string>(kvp.Key) ?? string.Empty, Prefix: kvp.Value))
 					.ToListAsync()
 					.ConfigureAwait(false);
 
@@ -1206,7 +1204,7 @@ namespace FoundationDB.Client
 				return !(await tr
 					.GetRange(
 						partition.Nodes.GetKey(prefix),
-						partition.Nodes.GetKey(prefix).Increment()
+						partition.Nodes.GetKey(prefix).GetNext()
 					)
 					.AnyAsync()
 					.ConfigureAwait(false));
@@ -1434,6 +1432,7 @@ namespace FoundationDB.Client
 			public long ReadVersion { get; }
 
 			/// <summary>Version of the Directory Layer in the database</summary>
+			// ReSharper disable once MemberHidesStaticFromOuterClass
 			public Slice LayerVersion { get; set; }
 			// content of [PARTITION, "version"] key
 

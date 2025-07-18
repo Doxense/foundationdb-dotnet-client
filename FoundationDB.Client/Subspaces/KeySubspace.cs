@@ -92,6 +92,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
 		/// <returns>A subspace that can handle keys of type <typeparamref name="T1"/>.</returns>
+		[Obsolete("Use IDynamicKeySubspace instead")]
 		public static ITypedKeySubspace<T1> CreateTyped<T1>(Slice prefix, ISubspaceContext? context = null)
 		{
 			return new TypedKeySubspace<T1>(prefix, context ?? SubspaceContext.Default);
@@ -117,6 +118,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>).</returns>
+		[Obsolete("Use IDynamicKeySubspace instead")]
 		public static ITypedKeySubspace<T1, T2> CreateTyped<T1, T2>(Slice prefix, ISubspaceContext? context = null)
 		{
 			return new TypedKeySubspace<T1, T2>(prefix, context ?? SubspaceContext.Default);
@@ -142,6 +144,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		[Obsolete("Use IDynamicKeySubspace instead")]
 		public static ITypedKeySubspace<T1, T2, T3> CreateTyped<T1, T2, T3>(Slice prefix, ISubspaceContext? context = null)
 		{
 			return new TypedKeySubspace<T1, T2, T3>(prefix, context ?? SubspaceContext.Default);
@@ -167,6 +170,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
 		/// <returns>A subspace that can handle composite keys of type (<typeparamref name="T1"/>, <typeparamref name="T2"/>, <typeparamref name="T3"/>).</returns>
+		[Obsolete("Use IDynamicKeySubspace instead")]
 		public static ITypedKeySubspace<T1, T2, T3, T4> CreateTyped<T1, T2, T3, T4>(Slice prefix, ISubspaceContext? context = null)
 		{
 			return new TypedKeySubspace<T1, T2, T3, T4>(prefix, context ?? SubspaceContext.Default);

@@ -759,8 +759,8 @@ namespace FoundationDB.Client.Tests
 						var folder = await location.Resolve(tr);
 
 						var query = tr.GetRange(
-							folder.Encode(0),
-							folder.Encode(N),
+							folder.GetKey(0),
+							folder.GetKey(N),
 							folder,
 							static (f, k, v) => (Index: f.DecodeLast<int>(k), Score: v.ToInt32()),
 							new FdbRangeOptions { Limit = N / 2 }
@@ -788,8 +788,8 @@ namespace FoundationDB.Client.Tests
 
 						var query = tr
 							.GetRange(
-								folder.Encode(0),
-								folder.Encode(N),
+								folder.GetKey(0),
+								folder.GetKey(N),
 								new FdbRangeOptions { Limit = N / 2 }
 							)
 							.Decode(

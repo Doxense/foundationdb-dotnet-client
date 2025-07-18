@@ -97,22 +97,23 @@ namespace FoundationDB.Client.Tests
 			using var db = await OpenTestDatabaseAsync();
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-			using var tr = db.BeginReadOnlyTransaction(this.Cancellation);
-			Assert.That(tr, Is.Not.Null);
+			using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+			{
+				Assert.That(tr, Is.Not.Null);
 
-			var subspace = await db.Root.Resolve(tr);
+				var subspace = await db.Root.Resolve(tr);
 
-			// reading should not fail
-			await tr.GetAsync(subspace.GetKey("Hello"));
+				// reading should not fail
+				await tr.GetAsync(subspace.GetKey("Hello"));
 
-			// any attempt to recast into a writable transaction should fail!
-			var tr2 = (IFdbTransaction) tr;
-			Assert.That(tr2.IsReadOnly, Is.True, "Transaction should be marked as readonly");
-			var location = subspace.Partition.ByKey("ReadOnly");
-			Assert.That(() => tr2.Set(location.GetKey("Hello"), Slice.Empty), Throws.InvalidOperationException);
-			Assert.That(() => tr2.Clear(location.GetKey("Hello")), Throws.InvalidOperationException);
-			Assert.That(() => tr2.ClearRange(location.GetKey("ABC"), location.GetKey("DEF")), Throws.InvalidOperationException);
-			Assert.That(() => tr2.AtomicIncrement32(location.GetKey("Counter")), Throws.InvalidOperationException);
+				// any attempt to recast into a writable transaction should fail!
+				var tr2 = (IFdbTransaction)tr;
+				Assert.That(tr2.IsReadOnly, Is.True, "Transaction should be marked as readonly");
+				Assert.That(() => tr2.Set(subspace.GetKey("ReadOnly", "Hello"), Slice.Empty), Throws.InvalidOperationException);
+				Assert.That(() => tr2.Clear(subspace.GetKey("ReadOnly", "Hello")), Throws.InvalidOperationException);
+				Assert.That(() => tr2.ClearRange(subspace.GetKey("ReadOnly", "ABC"), subspace.GetKey("ReadOnly", "DEF")), Throws.InvalidOperationException);
+				Assert.That(() => tr2.AtomicIncrement32(subspace.GetKey("ReadOnly", "Counter")), Throws.InvalidOperationException);
+			}
 		}
 
 		[Test]
@@ -210,7 +211,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Cancelling_Transaction_Before_Commit_Should_Throw_Immediately()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<int>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
@@ -235,7 +236,7 @@ namespace FoundationDB.Client.Tests
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<int>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			var rnd = new Random();
@@ -275,7 +276,7 @@ namespace FoundationDB.Client.Tests
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<int>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -326,7 +327,7 @@ namespace FoundationDB.Client.Tests
 			// test that we can read and write simple keys
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -384,7 +385,7 @@ namespace FoundationDB.Client.Tests
 			// test that we can read and write encoded keys and values
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -526,7 +527,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Resolve_Key_Selector()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<int>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			#region Insert a bunch of keys ...
@@ -557,46 +558,44 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				KeySelector sel;
-
 				// >= 0
-				sel = KeySelector.FirstGreaterOrEqual(subspace.Encode(0));
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Encode(0)), "fGE(0) should return 0");
+				var sel = subspace.GetKey(0).FirstGreaterOrEqual();
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.GetKey(0)), "fGE(0) should return 0");
 				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Append(FdbKey.MinValue)), "fGE(0)-1 should return minKey");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(1)), "fGE(0)+1 should return 1");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.GetKey(1)), "fGE(0)+1 should return 1");
 
 				// > 0
-				sel = KeySelector.FirstGreaterThan(subspace.Encode(0));
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Encode(1)), "fGT(0) should return 1");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(0)), "fGT(0)-1 should return 0");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(2)), "fGT(0)+1 should return 2");
+				sel = subspace.GetKey(0).FirstGreaterThan();
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.GetKey(1)), "fGT(0) should return 1");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.GetKey(0)), "fGT(0)-1 should return 0");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.GetKey(2)), "fGT(0)+1 should return 2");
 
 				// <= 10
-				sel = KeySelector.LastLessOrEqual(subspace.Encode(10));
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Encode(10)), "lLE(10) should return 10");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(9)), "lLE(10)-1 should return 9");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(11)), "lLE(10)+1 should return 11");
+				sel = subspace.GetKey(10).LastLessOrEqual();
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.GetKey(10)), "lLE(10) should return 10");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.GetKey(9)), "lLE(10)-1 should return 9");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.GetKey(11)), "lLE(10)+1 should return 11");
 
 				// < 10
-				sel = KeySelector.LastLessThan(subspace.Encode(10));
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Encode(9)), "lLT(10) should return 9");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(8)), "lLT(10)-1 should return 8");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(10)), "lLT(10)+1 should return 10");
+				sel = subspace.GetKey(10).LastLessThan();
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.GetKey(9)), "lLT(10) should return 9");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.GetKey(8)), "lLT(10)-1 should return 8");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.GetKey(10)), "lLT(10)+1 should return 10");
 
 				// < 0
-				sel = KeySelector.LastLessThan(subspace.Encode(0));
+				sel = subspace.GetKey(0).LastLessThan();
 				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MinValue)), "lLT(0) should return minKey");
-				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Encode(0)), "lLT(0)+1 should return 0");
+				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.GetKey(0)), "lLT(0)+1 should return 0");
 
 				// >= 20
-				sel = KeySelector.FirstGreaterOrEqual(subspace.Encode(20));
+				sel = subspace.GetKey(20).FirstGreaterOrEqual();
 				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MaxValue)), "fGE(20) should return maxKey");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(19)), "fGE(20)-1 should return 19");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.GetKey(19)), "fGE(20)-1 should return 19");
 
 				// > 19
-				sel = KeySelector.FirstGreaterThan(subspace.Encode(19));
+				sel = subspace.GetKey(19).FirstGreaterThan();
 				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MaxValue)), "fGT(19) should return maxKey");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Encode(19)), "fGT(19)-1 should return 19");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.GetKey(19)), "fGT(19)-1 should return 19");
 			}
 		}
 
@@ -675,7 +674,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Get_Multiple_Values()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<int>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			var ids = new[] { 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 };
@@ -943,7 +942,7 @@ namespace FoundationDB.Client.Tests
 			const int N = 20;
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<int>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			#region Insert a bunch of keys ...
@@ -959,7 +958,7 @@ namespace FoundationDB.Client.Tests
 				tr.Set(subspace.Append(FdbKey.MinValue), Text("min"));
 				for (int i = 0; i < 20; i++)
 				{
-					tr.Set(subspace.Encode(i), Text(i.ToString()));
+					tr.Set(subspace.GetKey(i), Text(i.ToString()));
 				}
 
 				tr.Set(subspace.Append(FdbKey.MaxValue), Text("max"));
@@ -976,7 +975,7 @@ namespace FoundationDB.Client.Tests
 
 				var selectors = Enumerable
 					.Range(0, N)
-					.Select((i) => KeySelector.FirstGreaterOrEqual(subspace.Encode(i)))
+					.Select((i) => subspace.GetKey(i).FirstGreaterOrEqual())
 					.ToArray();
 
 				// GetKeysAsync([])
@@ -985,11 +984,11 @@ namespace FoundationDB.Client.Tests
 				Assert.That(results.Length, Is.EqualTo(20));
 				for (int i = 0; i < N; i++)
 				{
-					Assert.That(results[i], Is.EqualTo(subspace.Encode(i)));
+					Assert.That(results[i], Is.EqualTo(subspace.GetKey(i)));
 				}
 
 				// GetKeysAsync(cast to enumerable)
-				var results2 = await tr.GetKeysAsync((IEnumerable<KeySelector>) selectors);
+				var results2 = await tr.GetKeysAsync((IEnumerable<FdbKeySelector<FdbTupleKey<int>>>) selectors);
 				Assert.That(results2, Is.EqualTo(results));
 
 				// GetKeysAsync(real enumerable)
@@ -1002,7 +1001,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Check_Value()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1011,8 +1010,8 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace.Encode("hello"), Text("World!"));
-				tr.Set(subspace.Encode("foo"), Slice.Empty);
+				tr.Set(subspace.GetKey("hello"), Text("World!"));
+				tr.Set(subspace.GetKey("foo"), Slice.Empty);
 			}, this.Cancellation);
 
 			async Task Check(IFdbReadOnlyTransaction tr, Slice key, Slice expected, FdbValueCheckResult result, Slice actual)
@@ -1030,10 +1029,10 @@ namespace FoundationDB.Client.Tests
 				var subspace = await location.Resolve(tr);
 
 				// hello should only be equal to 'World!', not any other value, empty or nil
-				await Check(tr, subspace.Encode("hello"), Text("World!"), FdbValueCheckResult.Success, Text("World!"));
-				await Check(tr, subspace.Encode("hello"), Text("Le Monde!"), FdbValueCheckResult.Failed, Text("World!"));
-				await Check(tr, subspace.Encode("hello"), Slice.Nil, FdbValueCheckResult.Failed, Text("World!"));
-				await Check(tr, subspace.Encode("hello"), subspace.Encode("hello"), FdbValueCheckResult.Failed, Text("World!"));
+				await Check(tr, subspace.GetKey("hello").ToSlice(), Text("World!"), FdbValueCheckResult.Success, Text("World!"));
+				await Check(tr, subspace.GetKey("hello").ToSlice(), Text("Le Monde!"), FdbValueCheckResult.Failed, Text("World!"));
+				await Check(tr, subspace.GetKey("hello").ToSlice(), Slice.Nil, FdbValueCheckResult.Failed, Text("World!"));
+				await Check(tr, subspace.GetKey("hello").ToSlice(), subspace.GetKey("hello").ToSlice(), FdbValueCheckResult.Failed, Text("World!"));
 			}
 
 			// foo should only be equal to Empty, *not* Nil or any other value
@@ -1041,10 +1040,10 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				await Check(tr, subspace.Encode("foo"), Slice.Empty, FdbValueCheckResult.Success, Slice.Empty);
-				await Check(tr, subspace.Encode("foo"), Text("bar"), FdbValueCheckResult.Failed, Slice.Empty);
-				await Check(tr, subspace.Encode("foo"), Slice.Nil, FdbValueCheckResult.Failed, Slice.Empty);
-				await Check(tr, subspace.Encode("foo"), subspace.Encode("foo"), FdbValueCheckResult.Failed, Slice.Empty);
+				await Check(tr, subspace.GetKey("foo").ToSlice(), Slice.Empty, FdbValueCheckResult.Success, Slice.Empty);
+				await Check(tr, subspace.GetKey("foo").ToSlice(), Text("bar"), FdbValueCheckResult.Failed, Slice.Empty);
+				await Check(tr, subspace.GetKey("foo").ToSlice(), Slice.Nil, FdbValueCheckResult.Failed, Slice.Empty);
+				await Check(tr, subspace.GetKey("foo").ToSlice(), subspace.GetKey("foo").ToSlice(), FdbValueCheckResult.Failed, Slice.Empty);
 			}
 
 			// not_found should only be equal to Nil, *not* Empty or any other value
@@ -1052,9 +1051,9 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				await Check(tr, subspace.Encode("not_found"), Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
-				await Check(tr, subspace.Encode("not_found"), Slice.Empty, FdbValueCheckResult.Failed, Slice.Nil);
-				await Check(tr, subspace.Encode("not_found"), subspace.Encode("not_found"), FdbValueCheckResult.Failed, Slice.Nil);
+				await Check(tr, subspace.GetKey("not_found").ToSlice(), Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
+				await Check(tr, subspace.GetKey("not_found").ToSlice(), Slice.Empty, FdbValueCheckResult.Failed, Slice.Nil);
+				await Check(tr, subspace.GetKey("not_found").ToSlice(), subspace.GetKey("not_found").ToSlice(), FdbValueCheckResult.Failed, Slice.Nil);
 			}
 
 			// checking, changing and checking again: 2nd check should see the modified value!
@@ -1063,16 +1062,16 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				await Check(tr, subspace.Encode("hello"), Text("World!"), FdbValueCheckResult.Success, Text("World!"));
-				await Check(tr, subspace.Encode("not_found"), Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
+				await Check(tr, subspace.GetKey("hello").ToSlice(), Text("World!"), FdbValueCheckResult.Success, Text("World!"));
+				await Check(tr, subspace.GetKey("not_found").ToSlice(), Slice.Nil, FdbValueCheckResult.Success, Slice.Nil);
 
-				tr.Set(subspace.Encode("hello"), Text("Le Monde!"));
-				await Check(tr, subspace.Encode("hello"), Text("Le Monde!"), FdbValueCheckResult.Success, Text("Le Monde!"));
-				await Check(tr, subspace.Encode("hello"), Text("World!"), FdbValueCheckResult.Failed, Text("Le Monde!"));
+				tr.Set(subspace.GetKey("hello"), Text("Le Monde!"));
+				await Check(tr, subspace.GetKey("hello").ToSlice(), Text("Le Monde!"), FdbValueCheckResult.Success, Text("Le Monde!"));
+				await Check(tr, subspace.GetKey("hello").ToSlice(), Text("World!"), FdbValueCheckResult.Failed, Text("Le Monde!"));
 
-				tr.Set(subspace.Encode("not_found"), Text("Surprise!"));
-				await Check(tr, subspace.Encode("not_found"), Text("Surprise!"), FdbValueCheckResult.Success, Text("Surprise!"));
-				await Check(tr, subspace.Encode("not_found"), Slice.Nil, FdbValueCheckResult.Failed, Text("Surprise!"));
+				tr.Set(subspace.GetKey("not_found"), Text("Surprise!"));
+				await Check(tr, subspace.GetKey("not_found").ToSlice(), Text("Surprise!"), FdbValueCheckResult.Success, Text("Surprise!"));
+				await Check(tr, subspace.GetKey("not_found").ToSlice(), Slice.Nil, FdbValueCheckResult.Failed, Text("Surprise!"));
 
 				//note: don't commit!
 			}
@@ -1082,7 +1081,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Get_Converted_Value()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1091,7 +1090,7 @@ namespace FoundationDB.Client.Tests
 			Slice rnd = Slice.Random(Random.Shared, 1024);
 			long ticks = DateTime.UtcNow.Ticks;
 
-			Task<TResult> Read<TResult>(Func<IFdbReadOnlyTransaction, ITypedKeySubspace<string>, Task<TResult>> handler)
+			Task<TResult> Read<TResult>(Func<IFdbReadOnlyTransaction, IDynamicKeySubspace, Task<TResult>> handler)
 			{
 				return db.ReadAsync<TResult>(async tr =>
 				{
@@ -1104,10 +1103,10 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 
-				tr.Set(subspace.Encode("hello"), Text("World!"));
-				tr.Set(subspace.Encode("timestamp"), Slice.FromInt64(ticks));
-				tr.Set(subspace.Encode("blob"), rnd);
-				tr.Set(subspace.Encode("json"), """{ "hello": "world", "foo": "bar", "level": 9001 }"""u8);
+				tr.Set(subspace.GetKey("hello"), Text("World!"));
+				tr.Set(subspace.GetKey("timestamp"), Slice.FromInt64(ticks));
+				tr.Set(subspace.GetKey("blob"), rnd);
+				tr.Set(subspace.GetKey("json"), """{ "hello": "world", "foo": "bar", "level": 9001 }"""u8);
 
 			}, this.Cancellation);
 
@@ -1116,7 +1115,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var res = await Read((tr, subspace) =>
 					tr.GetAsync(
-						subspace.Encode("hello"),
+						subspace.GetKey("hello"),
 						(buffer, exists) => exists ? buffer.ToStringUtf8() : "<not_found>"
 					)
 				);
@@ -1125,7 +1124,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var res = await Read((tr, subspace) =>
 					tr.GetAsync(
-						subspace.Encode("hello"), "some_state",
+						subspace.GetKey("hello"), "some_state",
 						(state, buffer, exists) => exists ? state + ":" + buffer.ToStringUtf8() : "<not_found>"
 					)
 				);
@@ -1134,7 +1133,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var res = await Read((tr, subspace) =>
 					tr.GetAsync(
-						subspace.Encode("json"),
+						subspace.GetKey("json"),
 						(buffer, exists) => exists ? System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(buffer) : null
 					)
 				);
@@ -1264,7 +1263,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_AtomicAdd32()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1318,7 +1317,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_AtomicIncrement32()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1364,7 +1363,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_AtomicAdd64()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1416,7 +1415,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_AtomicIncrement64()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1462,7 +1461,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_AtomicCompareAndClear()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1508,7 +1507,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_AppendIfFits()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			// setup
@@ -1552,7 +1551,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Snapshot_Read()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -1678,7 +1677,7 @@ namespace FoundationDB.Client.Tests
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			await db.WriteAsync(async (tr) =>
@@ -1717,7 +1716,7 @@ namespace FoundationDB.Client.Tests
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -2010,7 +2009,7 @@ namespace FoundationDB.Client.Tests
 			// T1 should see A == 1, because it was started before T2
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
@@ -2090,7 +2089,7 @@ namespace FoundationDB.Client.Tests
 			// - Snapshot reads never see the writes made since the transaction read version, but will see the writes made by the transaction itself
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			// Reads (before and after):
@@ -2152,7 +2151,7 @@ namespace FoundationDB.Client.Tests
 			// In API 300, this can be emulated by setting the SnapshotReadYourWriteDisable options
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.AsTyped<string>();
+			var location = db.Root.AsDynamic();
 			await CleanLocation(db, location);
 
 			// Reads (before and after):
@@ -2297,7 +2296,7 @@ namespace FoundationDB.Client.Tests
 			// * tr3 will SetReadVersion(TR1.CommittedVersion) and we expect it to read 1 (and not 2)
 
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.ByKey("test").AsTyped<string>();
+			var location = db.Root.ByKey("test").AsDynamic();
 			await CleanLocation(db, location);
 
 			long committedVersion;
@@ -2549,7 +2548,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Add_Read_Conflict_Range()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root.ByKey("conflict").AsTyped<int>();
+			var location = db.Root.ByKey("conflict").AsDynamic();
 			await CleanLocation(db, location);
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));

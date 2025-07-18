@@ -29,30 +29,31 @@ namespace FoundationDB.Layers.Allocators
 	using FoundationDB.Client;
 
 	/// <summary>Custom allocator that generates unique integer values with low probability of conflicts</summary>
-	[DebuggerDisplay("Location={" + nameof(Location) + "}")]
+	[DebuggerDisplay("Location={Location}")]
 	public sealed class FdbHighContentionAllocator : IFdbLayer<FdbHighContentionAllocator.State>
 	{
 		private const int COUNTERS = 0;
 		private const int RECENT = 1;
 
-		private readonly Random m_rnd = new();
-
 		/// <summary>Create an allocator operating under a specific location</summary>
-		public FdbHighContentionAllocator(ISubspaceLocation location)
+		public FdbHighContentionAllocator(ISubspaceLocation location, Random? rng = null)
 		{
 			Contract.NotNull(location);
 
-			this.Location = location.AsTyped<int, long>();
+			this.Location = location.AsDynamic();
+			this.Rng = rng ?? new();
 		}
 
 		/// <summary>Location of the allocator</summary>
-		public TypedKeySubspaceLocation<int, long> Location { get; }
+		public DynamicKeySubspaceLocation Location { get; }
+
+		private Random Rng { get; }
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
 			var subspace = await this.Location.TryResolve(tr).ConfigureAwait(false);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location}' referenced by this high contention allocator was not found.");
-			return new State(subspace, m_rnd);
+			return new State(subspace, this);
 		}
 
 		/// <inheritdoc />
@@ -62,14 +63,14 @@ namespace FoundationDB.Layers.Allocators
 		public sealed class State
 		{
 			/// <summary>Location of the allocator</summary>
-			public ITypedKeySubspace<int, long> Subspace { get; }
+			public IDynamicKeySubspace Subspace { get; }
 
-			private Random Rng { get; }
+			public FdbHighContentionAllocator Parent { get; }
 
-			public State(ITypedKeySubspace<int, long> subspace, Random rng)
+			public State(IDynamicKeySubspace subspace, FdbHighContentionAllocator parent)
 			{
 				this.Subspace = subspace;
-				this.Rng = rng;
+				this.Parent = parent;
 			}
 
 			/// <summary>Returns a 64-bit integer that
@@ -79,12 +80,12 @@ namespace FoundationDB.Layers.Allocators
 			/// </summary>
 			public Task<long> AllocateAsync(IFdbTransaction trans)
 			{
-				return FdbHighContentionAllocator.AllocateAsync(trans, this.Subspace, this.Rng);
+				return FdbHighContentionAllocator.AllocateAsync(trans, this.Subspace, this.Parent.Rng);
 			}
 
 		}
 
-		public static async Task<long> AllocateAsync(IFdbTransaction trans, ITypedKeySubspace<int, long> subspace, Random rng)
+		public static async Task<long> AllocateAsync(IFdbTransaction trans, IDynamicKeySubspace subspace, Random rng)
 		{
 			Contract.NotNull(trans);
 
@@ -92,13 +93,13 @@ namespace FoundationDB.Layers.Allocators
 			long start = 0, count = 0;
 			var kv = await trans
 				.Snapshot
-				.GetRange(subspace.EncodePartialRange(COUNTERS))
+				.GetRange(subspace.GetRange(COUNTERS))
 				.LastOrDefaultAsync()
 				.ConfigureAwait(false);
 
 			if (kv.Key.Count != 0)
 			{
-				start = subspace.DecodeLast(kv.Key);
+				start = subspace.DecodeLast<long>(kv.Key);
 				count = kv.Value.ToInt64();
 			}
 
@@ -147,14 +148,13 @@ namespace FoundationDB.Layers.Allocators
 
 		}
 
-		private static int GetWindowSize(long start)
+		private static int GetWindowSize(long start) => start switch
 		{
-			if (start < 0) throw new ArgumentOutOfRangeException(nameof(start), start, "Start offset must be a positive integer");
-
-			if (start < 255) return 64;
-			if (start < 65535) return 1024;
-			return 8192;
-		}
+			< 0 => throw new ArgumentOutOfRangeException(nameof(start), start, "Start offset must be a positive integer"),
+			< 255 => 64,
+			< 65535 => 1024,
+			_ => 8192
+		};
 
 	}
 

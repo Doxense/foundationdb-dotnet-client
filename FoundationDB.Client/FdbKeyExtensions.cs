@@ -685,6 +685,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a key in this subspace</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="item1">First part of the key</param>
+		[Obsolete]
 		public static FdbTupleKey<T1> GetKey<T1>(this ITypedKeySubspace<T1> subspace, T1 item1) => new(subspace, item1);
 
 		// T1, T2
@@ -693,22 +694,26 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
+		[Obsolete]
 		public static FdbTupleKey<T1, T2> GetKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
 
 		/// <summary>Returns a key in this subspace</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="items">Parts of the key</param>
+		[Obsolete]
 		public static FdbTupleKey<T1, T2> GetKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, in ValueTuple<T1, T2> items) => new(subspace, in items);
 
 		/// <summary>Returns a key in this subspace</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="items">Parts of the key</param>
+		[Obsolete]
 		public static FdbTupleKey<T1, T2> GetKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, in STuple<T1, T2> items) => new(subspace, in items);
 
 		/// <summary>Returns a partial key that matches all the elements in this subspace first the given <typeparamref name="T1"/> value</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1> GetPartialKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1) => new(subspace, item1);
 
 		// T1, T2, T3
@@ -719,24 +724,28 @@ namespace FoundationDB.Client
 		/// <param name="item2">Second part of the key</param>
 		/// <param name="item3">Third part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3> GetKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2, T3 item3) => new(subspace, item1, item2, item3);
 
 		/// <summary>Returns a key in this subspace</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="items">Parts of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3> GetKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, in ValueTuple<T1, T2, T3> items) => new(subspace, in items);
 
 		/// <summary>Returns a key in this subspace</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="items">Parts of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3> GetKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, in STuple<T1, T2, T3> items) => new(subspace, in items);
 
 		/// <summary>Returns a partial key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/> value</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1> GetPartialKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1) => new(subspace, item1);
 
 		/// <summary>Returns a partial key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
@@ -744,23 +753,28 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2> GetPartialKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
 
 		// T1, T2, T3, T4
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3, T4> GetKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3, T4 item4) => new(subspace, item1, item2, item3, item4);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3, T4> GetKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, in ValueTuple<T1, T2, T3, T4> items) => new(subspace, in items);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3, T4> GetKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, in STuple<T1, T2, T3, T4> items) => new(subspace, in items);
 
 		/// <summary>Returns a key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/> value</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1> GetPartialKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1) => new(subspace, item1);
 
 		/// <summary>Returns a key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
@@ -768,6 +782,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2> GetPartialKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
 
 		/// <summary>Returns a key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/>, <typeparamref name="T2"/> and <typeparamref name="T3"/> values</summary>
@@ -776,6 +791,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Second part of the key</param>
 		/// <param name="item3">Third part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3> GetPartialKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3) => new(subspace, item1, item2, item3);
 
 		#endregion
@@ -788,6 +804,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbKeyRange<FdbTupleKey<T1>> GetRange<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		// T1, T2, T3
@@ -796,6 +813,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbKeyRange<FdbTupleKey<T1>> GetRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
@@ -803,6 +821,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbKeyRange<FdbTupleKey<T1, T2>> GetRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
 
 		// T1, T2, T3, T4
@@ -811,6 +830,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbKeyRange<FdbTupleKey<T1>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
@@ -818,6 +838,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		/// <param name="item2">Second part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbKeyRange<FdbTupleKey<T1, T2>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/>, <typeparamref name="T2"/> and <typeparamref name="T3"/> values</summary>
@@ -826,6 +847,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Second part of the key</param>
 		/// <param name="item3">Third part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete]
 		public static FdbKeyRange<FdbTupleKey<T1, T2, T3>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3) => new(new(subspace, item1, item2, item3), excluded: true);
 
 		#endregion
