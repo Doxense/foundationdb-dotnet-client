@@ -33,13 +33,16 @@ namespace FoundationDB.Samples.Benchmarks
 	public class LeakTest : IAsyncTest
 	{
 
-		public LeakTest(int k, int m, int n, TimeSpan delay)
+		public LeakTest(ISubspaceLocation location, int k, int m, int n, TimeSpan delay)
 		{
+			this.Location = location.AsDynamic();
 			this.K = k;
 			this.M = m;
 			this.N = n;
 			this.Delay = delay;
 		}
+
+		public DynamicKeySubspaceLocation Location { get; }
 
 		public int K { get; }
 
@@ -49,17 +52,15 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public TimeSpan Delay { get; }
 
-		public IDynamicKeySubspace? Subspace { get; private set; }
-
 		/// <summary>
 		/// Setup the initial state of the database
 		/// </summary>
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
-			this.Subspace = await db.ReadWriteAsync(async tr =>
+			await db.ReadWriteAsync(async tr =>
 			{
 				// open the folder where we will store everything
-				var subspace = await db.Root["Benchmarks"]["LeakTest"].CreateOrOpenAsync(tr);
+				var subspace = await db.DirectoryLayer.CreateOrOpenAsync(tr, this.Location.Path);
 
 				// clear all previous values
 				await db.ClearRangeAsync(subspace, ct);
@@ -86,8 +87,6 @@ namespace FoundationDB.Samples.Benchmarks
 				values[i] = "initial_value_" + rnd.Next();
 			}
 
-			var location = this.Subspace!.Partition.ByKey(student);
-
 			for (int i = 0; i < 1/*this.N*/ && !ct.IsCancellationRequested; i++)
 			{
 				// randomly mutate values
@@ -100,12 +99,13 @@ namespace FoundationDB.Samples.Benchmarks
 				long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
 				// write everything
 
-				await db.WriteAsync((tr) =>
+				await db.WriteAsync(async (tr) =>
 				{
 					if (tr.Context.Retries > 0) Console.Write("!");
+					var subspace = await this.Location.Resolve(tr);
 					for (int j = 0; j < values.Length; j++)
 					{
-						tr.Set(location.Encode(j, now), Slice.FromString(values[j] + new string('A', 100)));
+						tr.Set(subspace.GetKey(student, j, now), Slice.FromString(values[j] + new string('A', 100)));
 					}
 				}, ct);
 				Console.Write(".");

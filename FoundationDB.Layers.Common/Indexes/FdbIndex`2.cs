@@ -35,18 +35,15 @@ namespace FoundationDB.Layers.Indexing
 	public class FdbIndex<TId, TValue> : IFdbLayer<FdbIndex<TId, TValue>.State>
 	{
 
-		public FdbIndex(ISubspaceLocation path, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
-			: this(path.AsTyped<TValue?, TId>(), valueComparer, indexNullValues)
-		{ }
-
-		public FdbIndex(TypedKeySubspaceLocation<TValue?, TId> subspace, IEqualityComparer<TValue>? valueComparer, bool indexNullValues)
+		public FdbIndex(ISubspaceLocation location, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
 		{
-			this.Location = subspace ?? throw new ArgumentNullException(nameof(subspace));
+			Contract.NotNull(location);
+			this.Location = location.AsDynamic();
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
 		}
 
-		public TypedKeySubspaceLocation<TValue?, TId> Location { get; }
+		public DynamicKeySubspaceLocation Location { get; }
 
 		public IEqualityComparer<TValue> ValueComparer { get; }
 
@@ -61,9 +58,9 @@ namespace FoundationDB.Layers.Indexing
 			public FdbIndex<TId, TValue> Schema { get; }
 
 			/// <summary>Resolved subspace containing the index</summary>
-			public ITypedKeySubspace<TValue?, TId> Subspace { get; }
+			public IDynamicKeySubspace Subspace { get; }
 
-			public State(FdbIndex<TId, TValue> schema, ITypedKeySubspace<TValue?, TId> subspace)
+			public State(FdbIndex<TId, TValue> schema, IDynamicKeySubspace subspace)
 			{
 				this.Schema = schema;
 				this.Subspace = subspace;
@@ -113,7 +110,7 @@ namespace FoundationDB.Layers.Indexing
 			{
 				return trans
 					.GetRange(this.Subspace.GetRange(value), reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
-					.Select((kvp) => this.Subspace.Decode(kvp.Key).Item2!);
+					.Select((kvp) => this.Subspace.DecodeLast<TId>(kvp.Key)!);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value greater than (or equal) a specified <paramref name="value"/></summary>
@@ -124,49 +121,45 @@ namespace FoundationDB.Layers.Indexing
 				if (orEqual)
 				{ // (>= "abc", *) => (..., "abc") < x < (..., <FF>)
 					query = trans.GetRange(
-						FdbKeySelector.FirstGreaterThan(this.Subspace.GetPartialKey(value)),
+						this.Subspace.GetKey(value).FirstGreaterThan(),
 						this.Subspace.GetRange().GetEndSelector(),
 						FdbRangeOptions.Reversed
 					);
 				}
 				else
-				{ // (> "abc", *) => (..., "abd") < x < (... <FF>)
+				{ // (> "abc", *) => (..., "abd") < x < (..., <FF>)
 					query = trans.GetRange(
-						FdbKeySelector.FirstGreaterThan(this.Subspace.GetPartialKey(value).Increment()),
+						this.Subspace.GetKey(value).GetNext().FirstGreaterThan(),
 						this.Subspace.GetRange().GetEndSelector(),
 						FdbRangeOptions.Reversed
 					);
 				}
 
-				return query.Select((kvp) => this.Subspace.DecodeLast(kvp.Key)!);
+				return query.Select((kvp) => this.Subspace.DecodeLast<TId>(kvp.Key)!);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value lesser than (or equal) a specified <paramref name="value"/></summary>
 			public IFdbRangeQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
-				var begin = this.Subspace.GetRange().ToBeginSelector();
-
 				IFdbKeyValueRangeQuery query;
 				if (orEqual)
 				{
-					var end = this.Subspace.GetPartialKey(value).Increment();
 					query = trans.GetRange(
-						begin,
-						FdbKeySelector.FirstGreaterThan(end),
+						this.Subspace.GetRange().ToBeginSelector(),
+						this.Subspace.GetKey(value).GetNext().FirstGreaterThan(),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}
 				else
 				{
-					var end = this.Subspace.GetPartialKey(value);
 					query = trans.GetRange(
-						begin,
-						FdbKeySelector.FirstGreaterThan(end),
+						this.Subspace.GetRange().ToBeginSelector(),
+						this.Subspace.GetKey(value).FirstGreaterThan(),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}
 
-				return query.Select((kvp) => this.Subspace.DecodeLast(kvp.Key)!);
+				return query.Select((kvp) => this.Subspace.DecodeLast<TId>(kvp.Key)!);
 			}
 
 		}

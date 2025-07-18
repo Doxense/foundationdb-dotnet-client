@@ -42,15 +42,12 @@ namespace FoundationDB.Layers.Collections
 		private const int MAX_LEVELS = 6;
 		private const int LEVEL_FAN_POW = 4; // 2^X per level
 
-		public FdbRankedSet(ISubspaceLocation? location)
-			: this(location?.AsDynamic())
-		{ }
-
 		/// <summary>Initializes a new ranked set at a given location</summary>
 		/// <param name="location">Subspace where the set will be stored</param>
-		public FdbRankedSet(DynamicKeySubspaceLocation? location)
+		public FdbRankedSet(ISubspaceLocation location)
 		{
-			this.Location = location ?? throw new ArgumentNullException(nameof(location));
+			Contract.NotNull(location);
+			this.Location = location.AsDynamic();
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
@@ -87,7 +84,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				return trans
-					.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).ToRange())
+					.GetRange(this.Subspace.GetRange(MAX_LEVELS - 1))
 					.Select(kv => DecodeCount(kv.Value))
 					.SumAsync();
 			}
@@ -178,15 +175,15 @@ namespace FoundationDB.Layers.Collections
 				var rankKey = Slice.Empty;
 				for(int level = MAX_LEVELS - 1; level >= 0; level--)
 				{
-					var lss = this.Subspace.Partition.ByKey(level);
+					var lss = this.Subspace.GetKey(level);
 					long lastCount = 0;
 					var kcs = await trans.GetRange(
-						FdbKeySelector.FirstGreaterOrEqual(lss.GetKey(rankKey)),
-						FdbKeySelector.FirstGreaterThan(lss.GetKey(key))
+						FdbKeySelector.FirstGreaterOrEqual(lss.Append(rankKey)),
+						FdbKeySelector.FirstGreaterThan(lss.Append(key))
 					).ToListAsync().ConfigureAwait(false);
 					foreach (var kc in kcs)
 					{
-						rankKey = lss.Decode<Slice>(kc.Key);
+						rankKey = this.Subspace.DecodeLast<Slice>(kc.Key);
 						lastCount = DecodeCount(kc.Value);
 						r += lastCount;
 					}
@@ -207,14 +204,14 @@ namespace FoundationDB.Layers.Collections
 				var key = Slice.Empty;
 				for (int level = MAX_LEVELS - 1; level >= 0; level--)
 				{
-					var lss = this.Subspace.Partition.ByKey(level);
-					var kcs = await trans.GetRange(lss.GetKey(key), lss.GetRange().End).ToListAsync().ConfigureAwait(false);
+					var lss = this.Subspace.GetKey(level);
+					var kcs = await trans.GetRange(lss.Append(key), lss.GetNext()).ToListAsync().ConfigureAwait(false);
 
 					if (kcs.Count == 0) break;
 
 					foreach(var kc in kcs)
 					{
-						key = lss.Decode<Slice>(kc.Key);
+						key = this.Subspace.DecodeLast<Slice>(kc.Key);
 						long count = DecodeCount(kc.Value);
 						if (key.IsPresent && r == 0)
 						{

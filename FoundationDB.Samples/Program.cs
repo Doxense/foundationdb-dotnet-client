@@ -311,26 +311,27 @@ namespace FoundationDB.Samples
 
 							case "msg":
 							{
+								var location = Db.Root["Samples"]["MessageQueueTest"];
 								switch(prm.ToLowerInvariant())
 								{
 									case "producer":
 									{ // Queue Producer
-										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Producer, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(200)), go.Token);
+										RunAsyncTest(new MessageQueueRunner(location, PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Producer, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(200)), go.Token);
 										break;
 									}
 									case "worker":
 									{ // Queue Worker
-										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Worker, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(10)), go.Token);
+										RunAsyncTest(new MessageQueueRunner(location, PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Worker, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(10)), go.Token);
 										break;
 									}
 									case "clear":
 									{ // Queue Clear
-										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Clear, TimeSpan.Zero, TimeSpan.Zero), go.Token);
+										RunAsyncTest(new MessageQueueRunner(location, PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Clear, TimeSpan.Zero, TimeSpan.Zero), go.Token);
 										break;
 									}
 									case "status":
 									{ // Queue Status
-										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Status, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)), go.Token);
+										RunAsyncTest(new MessageQueueRunner(location, PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Status, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)), go.Token);
 										break;
 									}
 								}
@@ -339,12 +340,13 @@ namespace FoundationDB.Samples
 
 							case "leak":
 							{ // LeastTest
+								var location = Db.Root["Benchmarks"]["LeakTest"];
 								switch(prm.ToLowerInvariant())
 								{
-									case "fast": RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(0)), go.Token); break;
-									case "slow": RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)), go.Token); break;
-									default: RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(1)), go.Token); break;
-								}							
+									case "fast": RunAsyncTest(new LeakTest(location, 100, 100, 1000, TimeSpan.FromSeconds(0)), go.Token); break;
+									case "slow": RunAsyncTest(new LeakTest(location, 100, 100, 1000, TimeSpan.FromSeconds(30)), go.Token); break;
+									default: RunAsyncTest(new LeakTest(location, 100, 100, 1000, TimeSpan.FromSeconds(1)), go.Token); break;
+								}
 								break;
 							}
 

@@ -47,7 +47,9 @@ namespace FoundationDB.Layers.Messaging
 
 				using (var db = await Fdb.OpenAsync(options, cts.Token))
 				{
-					var location = await db.ReadWriteAsync(async tr =>
+					var location = db.Root["T"]["WorkerPool"];
+
+					await db.ReadWriteAsync(async tr =>
 					{
 						var subspace = await db.Root["T"]["WorkerPool"].CreateOrOpenAsync(tr);
 						tr.ClearRange(subspace);
@@ -80,7 +82,7 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task RunAsync(IFdbDatabase db, IDynamicKeySubspace location, CancellationToken ct, Action done, int N, int K, int W)
+		private async Task RunAsync(IFdbDatabase db, ISubspaceLocation location, CancellationToken ct, Action done, int N, int K, int W)
 		{
 			if (db == null) throw new ArgumentNullException(nameof(db));
 
@@ -95,7 +97,7 @@ namespace FoundationDB.Layers.Messaging
 			{
 
 				var workerPool = new FdbWorkerPool(location);
-				Console.WriteLine($"workerPool at {location.GetPrefix():P}");
+				Console.WriteLine($"workerPool at {location:P}");
 
 				var workerSignal = new AsyncCancelableMutex(ct);
 				var clientSignal = new AsyncCancelableMutex(ct);
@@ -156,14 +158,15 @@ namespace FoundationDB.Layers.Messaging
 
 				Func<string, Task> dump = async (label) =>
 				{
-					Console.WriteLine($"<dump label=\'{label}\' key=\'{location.GetPrefix():P}\'>");
+					Console.WriteLine($"<dump label=\'{label}\' key=\'{location}\'>");
 					using (var tr = db.BeginTransaction(ct))
 					{
+						var subspace = await location.Resolve(tr);
 						await tr.Snapshot
-							.GetRange(KeyRange.StartsWith(location.GetPrefix()))
+							.GetRange(subspace.GetRange())
 							.ForEachAsync((kvp) =>
 							{
-								Console.WriteLine($" - {location.PrettyPrint(kvp.Key)} = {kvp.Value:V}");
+								Console.WriteLine($" - {subspace.PrettyPrint(kvp.Key)} = {kvp.Value:V}");
 							}).ConfigureAwait(false);
 					}
 					Console.WriteLine("</dump>");

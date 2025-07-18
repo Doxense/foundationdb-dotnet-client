@@ -26,8 +26,10 @@
 
 namespace FoundationDB.Layers.Messaging
 {
+	using System;
 	using System.Security.Cryptography;
 	using System.Threading;
+
 	using FoundationDB.Layers.Counters;
 
 	public class FdbWorkerMessage
@@ -38,31 +40,36 @@ namespace FoundationDB.Layers.Messaging
 		public DateTimeOffset Received { get; internal set; }
 	}
 
-	public class FdbWorkerPool
+	public class FdbWorkerPool : IFdbLayer<FdbWorkerPool.State>
 	{
-		/// <summary>Size of the randomly generate id. Range will be 0..(2^(8*N))-1</summary>
+		/// <summary>Size of the randomly generate id. Range will be 0...(2^(8*N))-1</summary>
 		/// <remarks>Should be in the same scale as the hashcode generated from the queue names !</remarks>
 		private const int RANDOM_ID_BYTES = 4;
+
+		public const char COUNTERS = 'C';
+		public const char TASKS = 'T';
+		public const char IDLE = 'I';
+		public const char BUSY = 'B';
+		public const char UNASSIGNED = 'U';
 
 		private const int COUNTER_TOTAL_TASKS = 0;
 		private const int COUNTER_IDLE = 1;
 		private const int COUNTER_BUSY = 2;
 		private const int COUNTER_UNASSIGNED = 3;
 		private const int COUNTER_PENDING_TASKS = 4;
-
 		private const int TASK_META_SCHEDULED = 0;
 
 		private readonly RandomNumberGenerator m_rng = RandomNumberGenerator.Create();
 
-		public IDynamicKeySubspace Subspace { get; }
+		public DynamicKeySubspaceLocation Location { get; }
 
-		internal IDynamicKeySubspace TaskStore { get; }
+		//internal IDynamicKeySubspace TaskStore { get; }
 
-		internal IDynamicKeySubspace IdleRing { get; }
+		//internal IDynamicKeySubspace IdleRing { get; }
 
-		internal IDynamicKeySubspace BusyRing { get; }
+		//internal IDynamicKeySubspace BusyRing { get; }
 
-		internal IDynamicKeySubspace UnassignedTaskRing { get; }
+		//internal IDynamicKeySubspace UnassignedTaskRing { get; }
 
 		internal FdbCounterMap<int> Counters { get; }
 
@@ -97,89 +104,109 @@ namespace FoundationDB.Layers.Messaging
 
 		#endregion
 
-		public FdbWorkerPool(IKeySubspace subspace)
+		public FdbWorkerPool(ISubspaceLocation location)
 		{
-			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
+			Contract.NotNull(location);
 
-			this.Subspace = subspace.AsDynamic();
-
-			this.TaskStore = this.Subspace.Partition.ByKey(Slice.FromChar('T'));
-			this.IdleRing = this.Subspace.Partition.ByKey(Slice.FromChar('I'));
-			this.BusyRing = this.Subspace.Partition.ByKey(Slice.FromChar('B'));
-			this.UnassignedTaskRing = this.Subspace.Partition.ByKey(Slice.FromChar('U'));
-
-			this.Counters = new FdbCounterMap<int>(this.Subspace.Partition.ByKey(Slice.FromChar('C')));
+			this.Location = location.AsDynamic();
+			this.Counters = new(this.Location.WithPrefix(TuPack.EncodeKey(COUNTERS)));
 		}
 
-		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, IDynamicKeySubspace ring)
+		/// <inheritdoc />
+		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			var range = ring.ToRange();
+			var subspace = await this.Location.Resolve(tr).ConfigureAwait(false);
+			return new(subspace, this);
+		}
 
-			// start from a random position around the ring
-			var key = ring.Encode(GetRandomId());
+		/// <inheritdoc />
+		string IFdbLayer.Name => nameof(FdbWorkerPool);
 
-			// We want to find the next item in the clockwise direction. If we reach the end of the ring, we "wrap around" by starting again from the start
-			// => So we do find_next(key <= x < MAX) and if that does not produce any result, we do a find_next(MIN <= x < key)
+		public sealed class State
+		{
 
-			// When the ring only contains a few items (or is empty), there is more than 50% change that we wont find anything in the first read.
-			// To reduce the latency for this case, we will issue both range reads at the same time, and discard the second one if the first returned something.
-			// This should reduce the latency in half when the ring is empty, or when it contains only items before the random key.
+			public IDynamicKeySubspace Subspace { get; }
 
-			var candidate = await tr.GetRange(key, range.End).FirstOrDefaultAsync();
+			public FdbWorkerPool Parent { get; }
 
-			if (!candidate.Key.IsPresent)
+			public State(IDynamicKeySubspace subspace, FdbWorkerPool parent)
 			{
-				candidate = await tr.GetRange(range.Begin, key).FirstOrDefaultAsync();
+				this.Subspace = subspace;
+				this.Parent = parent;
 			}
 
-			return candidate;
-		}
-
-		private Slice GetRandomId()
-		{
-			lock (m_rng)
+			internal async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, char ring)
 			{
-				return Slice.Random(m_rng, RANDOM_ID_BYTES, nonZeroBytes: false);
+				var range = this.Subspace.GetRange(ring);
+
+				// start from a random position around the ring
+				var key = this.Subspace.GetKey(ring, GetRandomId());
+
+				// We want to find the next item in the clockwise direction. If we reach the end of the ring, we "wrap around" by starting again from the start
+				// => So we do find_next(key <= x < MAX) and if that does not produce any result, we do a find_next(MIN <= x < key)
+
+				// When the ring only contains a few items (or is empty), there is more than 50% change that we won't find anything in the first read.
+				// To reduce the latency for this case, we will issue both range reads at the same time, and discard the second one if the first returned something.
+				// This should reduce the latency in half when the ring is empty, or when it contains only items before the random key.
+
+				var candidate = await tr.GetRange(key.FirstGreaterOrEqual(), range.GetEndSelector()).FirstOrDefaultAsync();
+
+				if (!candidate.Key.IsPresent)
+				{
+					candidate = await tr.GetRange(range.GetBeginSelector(), key.FirstGreaterOrEqual()).FirstOrDefaultAsync();
+				}
+
+				return candidate;
 			}
-		}
 
-		private async Task PushQueueAsync(IFdbTransaction tr, IDynamicKeySubspace queue, Slice taskId)
-		{
-			//TODO: use a high contention algo ?
-			// - must support Push and Pop
-			// - an empty queue must correspond to an empty subspace
+			internal Slice GetRandomId()
+			{
+				lock (this.Parent.m_rng)
+				{
+					return Slice.Random(this.Parent.m_rng, RANDOM_ID_BYTES, nonZeroBytes: false);
+				}
+			}
 
-			// get the current size of the queue
-			var range = queue.ToRange();
-			var lastKey = await tr.Snapshot.GetKeyAsync(KeySelector.LastLessThan(range.End)).ConfigureAwait(false);
-			int count = lastKey < range.Begin ? 0 : queue.DecodeFirst<int>(lastKey) + 1;
+			internal async Task PushQueueAsync(IFdbTransaction tr, char queue, Slice taskId)
+			{
+				//TODO: use a high contention algo ?
+				// - must support Push and Pop
+				// - an empty queue must correspond to an empty subspace
 
-			// set the value
-			tr.Set(queue.Encode(count, GetRandomId()), taskId);
-		}
+				// get the current size of the queue
+				var lastKey = await tr.Snapshot.GetKeyAsync(this.Subspace.GetKey(queue).GetNext().LastLessThan()).ConfigureAwait(false);
+				//PERF: TODO: implement '<' between FdbTupleKey and Slice ?
+				int count = lastKey < this.Subspace.GetKey(queue).ToSlice() ? 0 : this.Subspace.DecodeAt<int>(lastKey, 1) + 1;
 
-		private void StoreTask(IFdbTransaction tr, Slice taskId, DateTime scheduledUtc, Slice taskBody)
-		{
-			tr.Annotate($"Writing task {taskId:P}");
+				// set the value
+				tr.Set(this.Subspace.GetKey(queue, count, GetRandomId()), taskId);
+			}
 
-			var prefix = this.TaskStore.Partition.ByKey(taskId);
+			internal void StoreTask(IFdbTransaction tr, Slice taskId, DateTime scheduledUtc, Slice taskBody)
+			{
+				tr.Annotate($"Writing task {taskId:P}");
 
-			// store task body and timestamp
-			tr.Set(prefix.GetPrefix(), taskBody);
-			tr.Set(prefix.Encode(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
-			// increment total and pending number of tasks
-			this.Counters.Increment(tr, COUNTER_TOTAL_TASKS);
-			this.Counters.Increment(tr, COUNTER_PENDING_TASKS);
-		}
+				var prefix = this.Subspace.GetKey(TASKS, taskId);
 
-		private void ClearTask(IFdbTransaction tr, Slice taskId)
-		{
-			tr.Annotate($"Deleting task {taskId:P}");
+				// store task body and timestamp
+				tr.Set(prefix, taskBody);
+				tr.Set(prefix.Append(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
+				// increment total and pending number of tasks
 
-			// clear all metadata about the task
-			tr.ClearRange(KeyRange.StartsWith(this.TaskStore.Encode(taskId)));
-			// decrement pending number of tasks
-			this.Counters.Decrement(tr, COUNTER_PENDING_TASKS);
+				tr.AtomicIncrement64(this.Subspace.GetKey(COUNTERS, COUNTER_TOTAL_TASKS));
+				tr.AtomicIncrement64(this.Subspace.GetKey(COUNTERS, COUNTER_PENDING_TASKS));
+			}
+
+			internal void ClearTask(IFdbTransaction tr, Slice taskId)
+			{
+				tr.Annotate($"Deleting task {taskId:P}");
+
+				// clear all metadata about the task
+				tr.ClearRange(this.Subspace.GetRange(TASKS, taskId));
+				// decrement pending number of tasks
+				tr.AtomicDecrement64(this.Subspace.GetKey(COUNTERS, COUNTER_PENDING_TASKS));
+			}
+
 		}
 
 		/// <summary>Add and Schedule a new Task in the worker pool</summary>
@@ -201,32 +228,34 @@ namespace FoundationDB.Layers.Messaging
 #endif
 				tr.Annotate($"I want to schedule {taskId:P}");
 
+				var state = await Resolve(tr).ConfigureAwait(false);
+
 				// find a random worker from the idle ring
-				var randomWorkerKey = await FindRandomItem(tr, this.IdleRing).ConfigureAwait(false);
+				var randomWorkerKey = await state.FindRandomItem(tr, IDLE).ConfigureAwait(false);
 
 				if (!randomWorkerKey.Key.IsNull)
 				{
-					Slice workerId = this.IdleRing.Decode<Slice>(randomWorkerKey.Key);
+					Slice workerId = state.Subspace.DecodeLast<Slice>(randomWorkerKey.Key);
 
 					tr.Annotate($"Assigning {taskId:P} to {workerId:P}");
 
 					// remove worker from the idle ring
-					tr.Clear(this.IdleRing.Encode(workerId));
-					this.Counters.Decrement(tr, COUNTER_IDLE);
+					tr.Clear(state.Subspace.GetKey(IDLE, workerId));
+					tr.AtomicDecrement64(state.Subspace.GetKey(COUNTERS, COUNTER_IDLE));
 
 					// assign task to the worker
-					tr.Set(this.BusyRing.Encode(workerId), taskId);
-					this.Counters.Increment(tr, COUNTER_BUSY);
+					tr.Set(state.Subspace.GetKey(BUSY, workerId), taskId);
+					tr.AtomicIncrement64(state.Subspace.GetKey(COUNTERS, COUNTER_BUSY));
 				}
 				else
 				{
 					tr.Annotate($"Queueing {taskId:P}");
 
-					await PushQueueAsync(tr, this.UnassignedTaskRing, taskId).ConfigureAwait(false);
+					await state.PushQueueAsync(tr, UNASSIGNED, taskId).ConfigureAwait(false);
 				}
 
 				// store the task in the db
-				StoreTask(tr, taskId, now, taskBody);
+				state.StoreTask(tr, taskId, now, taskBody);
 			}, 
 			success: (tr) =>
 			{
@@ -256,100 +285,98 @@ namespace FoundationDB.Layers.Messaging
 					ct.ThrowIfCancellationRequested();
 
 					var myId = Slice.Nil;
-					await db.WriteAsync(
-						async (tr) =>
-						{
-							tr.Annotate($"I'm worker #{num} with id {workerId:P}");
+					await db.WriteAsync(async (tr) =>
+					{
+						tr.Annotate($"I'm worker #{num} with id {workerId:P}");
 
-							myId = workerId;
-							watch = null;
-							msg = new FdbWorkerMessage();
+						var state = await Resolve(tr).ConfigureAwait(false);
 
-							if (!previousTaskId.IsNull)
-							{ // we need to clean up the previous task
-								ClearTask(tr, previousTaskId);
-							}
-							else if (myId.IsPresent)
-							{ // look for an already assigned task
-								tr.Annotate("Look for already assigned task");
-								msg.Id = await tr.GetAsync(this.BusyRing.Encode(myId)).ConfigureAwait(false);
-							}
+						myId = workerId;
+						watch = null;
+						msg = new FdbWorkerMessage();
 
-							if (!msg.Id.IsPresent)
-							{ // We aren't already assigned a task, so get an item from a random queue
+						if (!previousTaskId.IsNull)
+						{ // we need to clean up the previous task
+							state.ClearTask(tr, previousTaskId);
+						}
+						else if (myId.IsPresent)
+						{ // look for an already assigned task
+							tr.Annotate("Look for already assigned task");
+							msg.Id = await tr.GetAsync(state.Subspace.GetKey(BUSY, myId)).ConfigureAwait(false);
+						}
 
-								tr.Annotate("Look for next queued item");
-								
-								// Find the next task on the queue
-								var item = await tr.GetRange(this.UnassignedTaskRing.ToRange()).FirstOrDefaultAsync().ConfigureAwait(false);
+						if (!msg.Id.IsPresent)
+						{ // We aren't already assigned a task, so get an item from a random queue
 
-								if (!item.Key.IsNull)
-								{ // pop the Task from the queue
-									msg.Id = item.Value;
-									tr.Clear(item.Key);
-								}
+							tr.Annotate("Look for next queued item");
+							
+							// Find the next task on the queue
+							var item = await tr.GetRange(state.Subspace.GetRange(UNASSIGNED)).FirstOrDefaultAsync().ConfigureAwait(false);
 
-								if (msg.Id.IsPresent)
-								{ // mark this worker as busy
-									// note: we need a random id so generate one if it is the first time...
-									if (!myId.IsPresent) myId = GetRandomId();
-									tr.Annotate($"Found {msg.Id:P}, switch to busy with id {myId:P}");
-									tr.Set(this.BusyRing.Encode(myId), msg.Id);
-									this.Counters.Increment(tr, COUNTER_BUSY);
-								}
-								else if (myId.IsPresent)
-								{ // remove ourselves from the busy ring
-									tr.Annotate($"Found nothing, switch to idle with id {myId:P}");
-									//tr.Clear(this.BusyRing.Pack(myId));
-								}
+							if (!item.Key.IsNull)
+							{ // pop the Task from the queue
+								msg.Id = item.Value;
+								tr.Clear(item.Key);
 							}
 
 							if (msg.Id.IsPresent)
-							{ // get the task body
-
-								tr.Annotate($"Fetching body for task {msg.Id:P}");
-								var prefix = this.TaskStore.Partition.ByKey(msg.Id);
-								//TODO: replace this with a get_range ?
-								var data = await tr.GetValuesAsync(
-								[
-									prefix.GetPrefix(),
-									prefix.Encode(TASK_META_SCHEDULED)
-								]).ConfigureAwait(false);
-
-								msg.Body = data[0];
-								msg.Scheduled = new DateTime(data[1].ToInt64(), DateTimeKind.Utc);
-								msg.Received = DateTime.UtcNow;
+							{ // mark this worker as busy
+								// note: we need a random id so generate one if it is the first time...
+								if (!myId.IsPresent) myId = state.GetRandomId();
+								tr.Annotate($"Found {msg.Id:P}, switch to busy with id {myId:P}");
+								tr.Set(state.Subspace.GetKey(BUSY, myId), msg.Id);
+								tr.AtomicIncrement64(state.Subspace.GetKey(COUNTERS, COUNTER_BUSY));
 							}
-							else
-							{ // There are no unassigned task, so enter the idle_worker_ring and wait for a task to be asssigned to us
+							else if (myId.IsPresent)
+							{ // remove ourselves from the busy ring
+								tr.Annotate($"Found nothing, switch to idle with id {myId:P}");
+								//tr.Clear(this.BusyRing.Pack(myId));
+							}
+						}
 
-								// remove us from the busy ring
-								if (myId.IsPresent)
-								{
-									tr.Clear(this.BusyRing.Encode(myId));
-									this.Counters.Decrement(tr, COUNTER_BUSY);
-								}
+						if (msg.Id.IsPresent)
+						{ // get the task body
 
-								// choose a new random position on the idle ring
-								myId = GetRandomId();
+							tr.Annotate($"Fetching body for task {msg.Id:P}");
+							var prefix = state.Subspace.GetKey(TASKS, msg.Id);
+							//TODO: replace this with a get_range ?
+							var data = await tr.GetValuesAsync(
+							[
+								prefix.ToSlice(), //TODO: PERF: optimize!
+								prefix.Append(TASK_META_SCHEDULED).ToSlice() //TODO: PERF: optimize!
+							]).ConfigureAwait(false);
 
-								// the idle key will also be used as the watch key to wake us up
-								var watchKey = this.IdleRing.Encode(myId);
-								tr.Annotate($"Will start watching on key {watchKey:P} with id {myId:P}");
-								tr.Set(watchKey, Slice.Empty);
-								this.Counters.Increment(tr, COUNTER_IDLE);
+							msg.Body = data[0];
+							msg.Scheduled = new DateTime(data[1].ToInt64(), DateTimeKind.Utc);
+							msg.Received = DateTime.UtcNow;
+						}
+						else
+						{ // There are no unassigned task, so enter the idle_worker_ring and wait for a task to be assigned to us
 
-								watch = tr.Watch(watchKey, ct);
+							// remove us from the busy ring
+							if (myId.IsPresent)
+							{
+								tr.Clear(state.Subspace.GetKey(BUSY, myId));
+								tr.AtomicDecrement64(state.Subspace.GetKey(COUNTERS, COUNTER_BUSY));
 							}
 
-						},
-						success: (tr) =>
-						{ // we have successfully acquired some work, or got a watch
-							previousTaskId = Slice.Nil;
-							workerId = myId;
-						},
-						ct: ct
-					).ConfigureAwait(false);
+							// choose a new random position on the idle ring
+							myId = state.GetRandomId();
+
+							// the idle key will also be used as the watch key to wake us up
+							var watchKey = state.Subspace.GetKey(IDLE, myId);
+							tr.Annotate($"Will start watching on key {watchKey:P} with id {myId:P}");
+							tr.Set(watchKey, Slice.Empty);
+							tr.AtomicIncrement64(state.Subspace.GetKey(COUNTERS, COUNTER_IDLE));
+
+							watch = tr.Watch(watchKey, ct);
+						}
+					},
+					success: (tr) =>
+					{ // we have successfully acquired some work, or got a watch
+						previousTaskId = Slice.Nil;
+						workerId = myId;
+					}, ct: ct).ConfigureAwait(false);
 
 					if (msg!.Id.IsNullOrEmpty)
 					{ // wait for someone to wake us up...

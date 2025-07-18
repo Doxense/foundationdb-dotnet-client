@@ -24,6 +24,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+//#define ENABLE_LOGGING
+//#define FULL_DEBUG
+
 namespace FoundationDB.Layers.Collections.Tests
 {
 
@@ -40,6 +43,10 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var location = db.Root;
 				await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
 
 				var mapFoos = new FdbMultiMap<string, string>(location.ByKey("Foos"), allowNegativeValues: false);
 
@@ -61,7 +68,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					foos.Add(tr, "foo", "baz");
 				}, this.Cancellation);
 
-#if DEBUG
+#if FULL_DEBUG
 				await DumpSubspace(db, location);
 #endif
 
@@ -70,17 +77,31 @@ namespace FoundationDB.Layers.Collections.Tests
 				{
 					long? count = await foos.GetCountAsync(tr, "hello", "world");
 					Assert.That(count, Is.EqualTo(1), "hello:world");
+
+					Assert.That(await foos.ContainsAsync(tr, "hello", "world"), Is.True);
+					Assert.That(await foos.ContainsAsync(tr, "hello", "WORLD"), Is.False);
+
 					count = await foos.GetCountAsync(tr, "foo", "bar");
 					Assert.That(count, Is.EqualTo(1), "foo:bar");
+
 					count = await foos.GetCountAsync(tr, "foo", "baz");
 					Assert.That(count, Is.EqualTo(1), "foo:baz");
+
+					Assert.That(await foos.ContainsAsync(tr, "foo", "bar"), Is.True);
+					Assert.That(await foos.ContainsAsync(tr, "foo", "baz"), Is.True);
+					Assert.That(await foos.ContainsAsync(tr, "foo", "jazz"), Is.False);
+					Assert.That(await foos.ContainsAnyAsync(tr, "foo", ["one", "two", "three"]), Is.False);
+					Assert.That(await foos.ContainsAnyAsync(tr, "foo", ["one", "bar", "three"]), Is.True);
+
+					Assert.That(await foos.ContainsAsync(tr, "world", "hello"), Is.False);
+					Assert.That(await foos.ContainsAnyAsync(tr, "world", ["bar", "baz"]), Is.False);
 				}, this.Cancellation);
 
 				// directly read the value, behind the table's back
 				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
 					var loc = foos.Subspace.AsDynamic();
-					var value = await tr.GetAsync(loc.Encode("hello", "world"));
+					var value = await tr.GetAsync(loc.GetKey("hello", "world"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToInt64(), Is.EqualTo(1));
 				}, this.Cancellation);
@@ -99,7 +120,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 					// also check directly
 					var loc = foos.Subspace.AsDynamic();
-					var data = await tr.GetAsync(loc.Encode("hello", "world"));
+					var data = await tr.GetAsync(loc.GetKey("hello", "world"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);
 

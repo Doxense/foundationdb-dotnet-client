@@ -41,8 +41,9 @@ namespace FoundationDB.Samples.Tutorials
 			Status
 		}
 
-		public MessageQueueRunner(string id, AgentRole role, TimeSpan delayMin, TimeSpan delayMax)
+		public MessageQueueRunner(ISubspaceLocation location, string id, AgentRole role, TimeSpan delayMin, TimeSpan delayMax)
 		{
+			this.Location = location.AsDynamic();
 			this.Id = id;
 			this.Role = role;
 			this.DelayMin = delayMin;
@@ -60,6 +61,8 @@ namespace FoundationDB.Samples.Tutorials
 					return false;
 				}
 			);
+
+			this.WorkerPool = new FdbWorkerPool(this.Location);
 		}
 
 		public string Id { get; }
@@ -76,15 +79,15 @@ namespace FoundationDB.Samples.Tutorials
 
 		public RobustTimeLine TimeLine { get; }
 
+		public DynamicKeySubspaceLocation Location { get; }
+
 		/// <summary>
 		/// Setup the initial state of the database
 		/// </summary>
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.ReadWriteAsync(tr => db.Root["Samples"]["MessageQueueTest"].CreateOrOpenAsync(tr), ct);
-
-			this.WorkerPool = new FdbWorkerPool(this.Subspace);
+			await db.ReadWriteAsync(tr => db.DirectoryLayer.CreateOrOpenAsync(tr, this.Location.Path), ct);
 		}
 
 		/// <summary>
@@ -145,50 +148,65 @@ namespace FoundationDB.Samples.Tutorials
 		public async Task RunClear(IFdbDatabase db, CancellationToken ct)
 		{
 			// clear everything
-			await db.ClearRangeAsync(this.WorkerPool!.Subspace, ct);
+			await db.WriteAsync(async tr =>
+			{
+				var subspace = await this.Location.Resolve(tr);
+				tr.ClearRange(subspace.GetRange());
+			}, ct);
 		}
 
 		public async Task RunStatus(IFdbDatabase db, CancellationToken ct)
 		{
-			var countersLocation = this.WorkerPool!.Subspace.Partition.ByKey(Slice.FromChar('C'));
-			var idleLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('I'));
-			var busyLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('B'));
-			var tasksLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('T'));
-			var unassignedLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('U'));
+			//var countersLocation = this.WorkerPool!.Location.Partition.ByKey(Slice.FromChar('C'));
+			//var idleLocation = this.WorkerPool.Location.Partition.ByKey(Slice.FromChar('I'));
+			//var busyLocation = this.WorkerPool.Location.Partition.ByKey(Slice.FromChar('B'));
+			//var tasksLocation = this.WorkerPool.Location.Partition.ByKey(Slice.FromChar('T'));
+			//var unassignedLocation = this.WorkerPool.Location.Partition.ByKey(Slice.FromChar('U'));
 
-			using(var tr = db.BeginTransaction(ct))
+			await db.ReadAsync(async tr =>
 			{
-				var counters = await tr.Snapshot.GetRange(countersLocation.ToRange()).Select(kvp => new KeyValuePair<string, long>(countersLocation.DecodeLast<string>(kvp.Key)!, kvp.Value.ToInt64())).ToListAsync().ConfigureAwait(false);
+				var subspace = await this.Location.Resolve(tr);
+
+				var counters = await tr.Snapshot
+					.GetRange(subspace.GetRange(FdbWorkerPool.COUNTERS))
+					.Select(kvp => new KeyValuePair<string, long>(subspace.DecodeLast<string>(kvp.Key)!, kvp.Value.ToInt64()))
+					.ToListAsync()
+					.ConfigureAwait(false);
 
 				Console.WriteLine("Status at " + DateTimeOffset.Now.ToString("O"));
-				foreach(var counter in counters)
+				foreach (var counter in counters)
 				{
 					Console.WriteLine(" - " + counter.Key + " = " + counter.Value);
 				}
 
 				Console.WriteLine("Dump:");
+
 				Console.WriteLine("> Idle");
-				await tr.Snapshot.GetRange(idleLocation.ToRange()).ForEachAsync((kvp) =>
+				await foreach(var kvp in tr.Snapshot.GetRange(subspace.GetRange(FdbWorkerPool.IDLE)))
 				{
-					Console.WriteLine($"- Idle.{idleLocation.Unpack(kvp.Key)} = {kvp.Value:V}");
-				});
+					Console.WriteLine($"- Idle.{subspace.Unpack(kvp.Key)[1..]} = {kvp.Value:V}");
+				}
+
 				Console.WriteLine("> Busy");
-				await tr.Snapshot.GetRange(busyLocation.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(subspace.GetRange(FdbWorkerPool.BUSY)).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine($"- Busy.{busyLocation.Unpack(kvp.Key)} = {kvp.Value:V}");
+					Console.WriteLine($"- Busy.{subspace.Unpack(kvp.Key)[1..]} = {kvp.Value:V}");
 				});
+
 				Console.WriteLine("> Unassigned");
-				await tr.Snapshot.GetRange(unassignedLocation.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(subspace.GetRange(FdbWorkerPool.UNASSIGNED)).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine($"- Unassigned.{unassignedLocation.Unpack(kvp.Key)} = {kvp.Value:V}");
+					Console.WriteLine($"- Unassigned.{subspace.Unpack(kvp.Key)[1..]} = {kvp.Value:V}");
 				});
+
 				Console.WriteLine("> Tasks");
-				await tr.Snapshot.GetRange(tasksLocation.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(subspace.GetRange(FdbWorkerPool.TASKS)).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine($"- Tasks.{tasksLocation.Unpack(kvp.Key)} = {kvp.Value:V}");
+					Console.WriteLine($"- Tasks.{subspace.Unpack(kvp.Key)[1..]} = {kvp.Value:V}");
 				});
+
 				Console.WriteLine("<");
-			}
+			}, ct);
 		}
 
 		#region IAsyncTest...
