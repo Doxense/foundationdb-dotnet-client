@@ -622,7 +622,7 @@ namespace FoundationDB.Client
 	public static class SubspaceLocationExtensions
 	{
 
-		/// <summary>Return a binary version of the current path</summary>
+		/// <summary>Returns a binary version of the current location</summary>
 		/// <param name="self">Existing subspace path</param>
 		/// <returns>A <see cref="BinaryKeySubspaceLocation"/> that points to a <see cref="IBinaryKeySubspace">binary key subspace</see>.</returns>
 		[Pure]
@@ -638,7 +638,18 @@ namespace FoundationDB.Client
 			return new(self.Path, self.Prefix);
 		}
 
-		/// <summary>Return a dynamic version of the current location</summary>
+		/// <summary>Returns a location that will always add the given prefix to all the keys, relative to the current location</summary>
+		/// <param name="self">Existing subspace path</param>
+		/// <param name="prefix">Prefix added between the resolved path prefix, and the rest of the key</param>
+		/// <remarks>
+		/// <para>If, for example, location <c>"/Foo/Bar"</c> will resolve to the prefix <c>(123,)</c>, call <c>WithPrefix(TuPack.EncodeKey(0))</c> will create a new location that will use <c>(123, 0)</c> for all keys, without having to explicitly repeat <c>subspace.GetKey(0, ...)</c> everytime.</para>
+		/// </remarks>
+		public static BinaryKeySubspaceLocation WithPrefix(this ISubspaceLocation self, Slice prefix)
+		{
+			return prefix.Count == 0 ? self.AsBinary() : new(self.Path, self.Prefix + prefix);
+		}
+
+		/// <summary>Returns a dynamic version of the current location</summary>
 		/// <param name="self">Existing subspace location</param>
 		/// <returns>A <see cref="DynamicKeySubspaceLocation"/> that points to a <see cref="IDynamicKeySubspace">dynamic key subspace</see></returns>
 		[Pure]
