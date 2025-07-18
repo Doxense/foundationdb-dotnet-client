@@ -230,7 +230,7 @@ namespace MyWebApp.Pages
 
 In real-world usage, it is __strongly encouraged__ to the __Directory Layer__ to generate shorter prefixes for the keys, instead of the very long `("Tenant", "ACME", "MySuperApp", "v1", "Documents", "Books", "BOOK_123")`.
 
-This layer emulates a tree of "Directories", and maintains a mapping of paths to short integer prefixes. Each directory can be seen as the equivalent of a folder in a disk volume, where the file system would allocate a cluster or inode number: applications will think using paths and folder names, while the file system will use integeres to point to location on the disk.
+This layer emulates a tree of "Directories", and maintains a mapping of paths to short integer prefixes. Each directory can be seen as the equivalent of a folder in a disk volume, where the file system would allocate a cluster or inode number: applications will think using paths and folder names, while the file system will use integers to point to location on the disk.
 
 In your AppHost:
 ```csharp
@@ -409,7 +409,6 @@ With this simple class, we have created an abstraction that resembles a `Diction
 Update your main startup logic to register `BooksProvider` with the DI:
 
 ```csharp
-
 builder.Services
     .AddSingleton<BooksProvider>()
     .Configure<BooksProviderOptions>(options =>
@@ -417,7 +416,6 @@ builder.Services
         options.BasePath = FdbPath.Relative("Documents", "Books");
         // other settings...
     });
-
 ```
 
 Now that we have a `BooksProvider`, we can simplify our Razor Page as follows:
@@ -455,24 +453,24 @@ This is because, if the transaction is handled by the controller itself, it can 
 For example, you might update a book in a Document Collection (with indexes), queue a background job using to Worker Pool, and publish an event to a PubSub channel, all within the same transaction.
 
 ```csharp
-    public async Task OnPost(Book book, CancellationToken ct)
+public async Task OnPost(Book book, CancellationToken ct)
+{
+    // perform some model validation, ACL checks, ...
+
+    await this.Db.WriteAsync(async tr =>
     {
-        // perform some model validation, ACL checks, ...
+            // insert the new book in the collection
+            await this.Books.InsertAsync(book)
 
-        await this.Db.WriteAsync(async tr =>
-        {
-             // insert the new book in the collection
-             await this.Books.InsertAsync(book)
+            // instruct a worker to start converting the various thumbnails for the book
+            await this.WorkerPool.QueueWorkItemAsync(new GenerateThumbnailsForNewBook() { Id = book.Id, /* args ... */ });
 
-             // instruct a worker to start converting the various thumbnails for the book
-             await this.WorkerPool.QueueWorkItemAsync(new GenerateThumbnailsForNewBook() { Id = book.Id, /* args ... */ });
+            // push an event notifying subscribers that a new book was created
+            await this.PubSub.Notify(new BookCreationEvent { Id = book.Id, /* args... */});
+    }, ct);
 
-             // push an event notifying subscribers that a new book was created
-             await this.PubSub.Notify(new BookCreationEvent { Id = book.Id, /* args... */});
-        }, ct);
-
-        // handle post-processing, logging, redirecting to the landing page for the new book...
-    }
+    // handle post-processing, logging, redirecting to the landing page for the new book...
+}
 ```
 
 This layered approach ensures __atomicity__: if any step fails, or if the transaction fails to commit for any reason, it will be as if the request never happened: no document was added, no work item was queued, and no event was published.
@@ -481,7 +479,7 @@ This layered approach ensures __atomicity__: if any step fails, or if the transa
 
 ## Docker containers
 
-The easiest way to deploy is to use one of the [ASP.NET Core Runtime docker images](https://hub.docker.com/r/microsoft/dotnet-aspnet/) provided by Microsoft, such as `mcr.microsoft.com/dotnet/aspnet:8.0` or newer.
+The easiest way to deploy is to use one of the [ASP.NET Core Runtime docker images](https://hub.docker.com/r/microsoft/dotnet-aspnet/) provided by Microsoft, such as `mcr.microsoft.com/dotnet/aspnet:9.0` or newer.
 
 In order to function, the FoundationDB Native client library (`fdb_c.dll` on Windows, `libfdb_c.so`) needs to be present in the container image. The easiest way is to simply copy them from the [FoundationDB Docker image](https://hub.docker.com/r/foundationdb/foundationdb) that contains these files.
 
@@ -489,12 +487,12 @@ Example of a `Dockerfile` that will grab v7.3.x binaries and inject them into yo
 
 ```Dockerfile
 # Version of the FoundationDB Client Library
-ARG FDB_VERSION=7.3.38
+ARG FDB_VERSION=7.3.53
 
 # We will need the official fdb docker image to obtain the client binaries
 FROM foundationdb/foundationdb:${FDB_VERSION} as fdb
 
-FROM mcr.microsoft.com/dotnet/aspnet:7.0
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
 
 # copy the binary from the official fdb image into our target image.
 COPY --from=fdb /usr/lib/libfdb_c.so /usr/lib
