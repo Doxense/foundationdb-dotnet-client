@@ -832,7 +832,8 @@ namespace FoundationDB.Filters.Logging
 					0 => "<empty>",
 					1 => $"[1] {{ {res[0]:P} }}",
 					2 => $"[2] {{ {res[0]:P}, {res[1]:P} }}",
-					_ => $"[{res.Length:N0}] {{ {res[0]:P}, ..., {res[^1]:P} }}"
+					3 => $"[3] {{ {res[0]:P}, {res[1]:P}, {res[2]:P} }}",
+					_ => $"[{res.Length:N0}] {{ {res[0]:P}, {res[1]:P}, ..., {res[^1]:P} }}"
 				};
 			}
 
@@ -891,7 +892,8 @@ namespace FoundationDB.Filters.Logging
 					0 => "<empty>",
 					1 => string.Create(CultureInfo.InvariantCulture, $"[1] {{ {this.Values.Span[0]} }}"),
 					2 => string.Create(CultureInfo.InvariantCulture, $"[2] {{ {this.Values.Span[0]}, {this.Values.Span[1]} }}"),
-					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, ..., {this.Values.Span[^1]} }}")
+					3 => string.Create(CultureInfo.InvariantCulture, $"[3] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, {this.Values.Span[2]} }}"),
+					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, ..., {this.Values.Span[^1]} }}")
 				};
 			}
 
@@ -953,7 +955,8 @@ namespace FoundationDB.Filters.Logging
 					0 => "<empty>",
 					1 => string.Create(CultureInfo.InvariantCulture, $"[1] {{ {this.Values.Span[0]} }}"),
 					2 => string.Create(CultureInfo.InvariantCulture, $"[2] {{ {this.Values.Span[0]}, {this.Values.Span[1]} }}"),
-					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, ..., {this.Values.Span[^1]} }}")
+					3 => string.Create(CultureInfo.InvariantCulture, $"[3] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, {this.Values.Span[2]} }}"),
+					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, ..., {this.Values.Span[^1]} }}")
 				};
 			}
 
@@ -1010,7 +1013,8 @@ namespace FoundationDB.Filters.Logging
 					0 => "<empty>",
 					1 => $"[1] {{ {resolver.Resolve(res[0])} }}",
 					2 => $"[2] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])} }}",
-					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, ..., {resolver.Resolve(res[^1])} }}"
+					3 => $"[3] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])}, {resolver.Resolve(res[2])} }}",
+					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])}, ..., {resolver.Resolve(res[^1])} }}"
 				};
 			}
 
@@ -1304,7 +1308,8 @@ namespace FoundationDB.Filters.Logging
 					case 0: return "<empty>";
 					case 1: return $"[1] {{ {value[0]} }}";
 					case 2: return $"[2] {{ {value[0]}, {value[1]} }}";
-					default: return $"[{value.Length}] {{ {value[0]}, ..., {value[^1]} }}";
+					case 3: return $"[3] {{ {value[0]}, {value[1]}, {value[2]} }}";
+					default: return $"[{value.Length}] {{ {value[0]}, {value[1]}, ..., {value[^1]} }}";
 				}
 			}
 
@@ -1341,7 +1346,8 @@ namespace FoundationDB.Filters.Logging
 					0 => "[0] { }",
 					1 => $"[1] {{ {resolver.Resolve(res[0])} }}",
 					2 => $"[2] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])} }}",
-					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, ..., {resolver.Resolve(res[^1])} }}"
+					3 => $"[3] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])}, {resolver.Resolve(res[2])} }}",
+					_ => $"[{res.Length:N0}] {{ {resolver.Resolve(res[0])}, {resolver.Resolve(res[1])}, ..., {resolver.Resolve(res[^1])} }}"
 				};
 			}
 
