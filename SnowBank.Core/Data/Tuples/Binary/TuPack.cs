@@ -243,6 +243,25 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
 		}
 
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8, T9>(in (T1, T2, T3, T4, T5, T6, T7, T8, T9) tuple)
+		{
+			return TupleEncoder.Pack(default, in tuple);
+		}
+
+		/// <summary>Packs a tuple into a destination buffer</summary>
+		/// <param name="destination">Destination buffer</param>
+		/// <param name="bytesWritten">Number of bytes written to the buffer</param>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		/// <remarks><c>true</c> if the operation was successful and the buffer large enough, or <c>false</c> if it was too small.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Span<byte> destination, out int bytesWritten, in (T1, T2, T3, T4, T5, T6, T7, T8, T9) tuple)
+		{
+			return TupleEncoder.TryPackTo(destination, out bytesWritten, default, in tuple);
+		}
+
 		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
@@ -705,11 +724,25 @@ namespace SnowBank.Data.Tuples
 			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
-		/// <summary>Pack a 8-tuple directly into a slice</summary>
+		/// <summary>Pack an 8-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2, item3, item4, item5, item6, item7, item8);
+		}
+
+		/// <summary>Pack an 9-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
+		{
+			return TupleEncoder.EncodeKey(prefix: default, item1, item2, item3, item4, item5, item6, item7, item8, item9);
+		}
+
+		/// <summary>Pack a 9-tuple directly into a slice</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Span<byte> destination, out int bytesWritten, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
+		{
+			return TupleEncoder.TryEncodeKey(destination, out bytesWritten, default, item1, item2, item3, item4, item5, item6, item7, item8, item9);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -974,7 +1007,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>TuPack.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<TTuple>(TTuple tuple)
@@ -990,7 +1023,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1>(STuple<T1> tuple)
@@ -1005,7 +1038,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1>(ValueTuple<T1> tuple)
@@ -1020,7 +1053,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1>(T1 item1)
@@ -1033,7 +1066,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1>(Slice prefix, T1 item1)
@@ -1046,7 +1079,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified element, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1>(ReadOnlySpan<byte> prefix, T1 item1)
@@ -1059,7 +1092,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>(STuple<T1, T2> tuple)
@@ -1074,7 +1107,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>((T1, T2) tuple)
 		{
@@ -1088,7 +1121,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToKeyRange("a", "b") includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2>(T1 item1, T2 item2)
@@ -1101,7 +1134,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToPrefixedKeyRange(..., "a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
@@ -1114,7 +1147,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>ToPrefixedKeyRange(..., "a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2)
@@ -1127,7 +1160,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>(STuple<T1, T2, T3> tuple)
 		{
@@ -1141,7 +1174,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>((T1, T2, T3) tuple)
 		{
@@ -1153,7 +1186,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
@@ -1165,7 +1198,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
@@ -1177,7 +1210,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3)
 		{
@@ -1189,7 +1222,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>(STuple<T1, T2, T3, T4> tuple)
 		{
@@ -1203,7 +1236,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>((T1, T2, T3, T4) tuple)
 		{
@@ -1215,7 +1248,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
@@ -1227,7 +1260,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
@@ -1239,7 +1272,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
@@ -1251,7 +1284,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>(STuple<T1, T2, T3, T4, T5> tuple)
 		{
@@ -1265,7 +1298,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) tuple)
 		{
@@ -1277,7 +1310,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
@@ -1289,7 +1322,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
@@ -1301,7 +1334,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
@@ -1313,7 +1346,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>(STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
@@ -1327,7 +1360,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) tuple)
 		{
@@ -1339,7 +1372,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
@@ -1351,7 +1384,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
@@ -1363,7 +1396,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
@@ -1375,7 +1408,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
@@ -1389,7 +1422,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) tuple)
 		{
@@ -1401,7 +1434,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
@@ -1413,7 +1446,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
@@ -1425,7 +1458,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
@@ -1437,7 +1470,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>(STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
 		{
@@ -1451,7 +1484,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>((T1, T2, T3, T4, T5, T6, T7, T8) tuple)
 		{
@@ -1463,7 +1496,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
@@ -1475,7 +1508,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
@@ -1487,7 +1520,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
@@ -1499,7 +1532,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>((T1, T2, T3, T4, T5, T6, T7, T8, T9) tuple)
 		{
@@ -1511,7 +1544,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
 		{
@@ -1523,7 +1556,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
 		{
@@ -1535,7 +1568,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified items, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToPrefixedKeyRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
 		{
@@ -1547,7 +1580,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>TuPack.ToRange(Slice.FromInt32(42), STuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
 		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
 		[Pure]
@@ -1564,7 +1597,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>TuPack.ToRange(Slice.FromInt32(42), STuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
 		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
 		[Pure]
@@ -1581,7 +1614,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>TuPack.ToRange(STuple.Create("a")) includes all tuples ("a", ...), but not the tuple ("a") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1>(Slice prefix, STuple<T1> tuple)
@@ -1596,7 +1629,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>TuPack.ToRange(STuple.Create("a")) includes all tuples ("a", ...), but not the tuple ("a") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1>(ReadOnlySpan<byte> prefix, STuple<T1> tuple)
@@ -1611,7 +1644,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>TuPack.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>(Slice prefix, STuple<T1, T2> tuple)
@@ -1626,7 +1659,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		/// <example>TuPack.ToRange(STuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2>(ReadOnlySpan<byte> prefix, STuple<T1, T2> tuple)
@@ -1641,7 +1674,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>(Slice prefix, STuple<T1, T2, T3> tuple)
 		{
@@ -1655,7 +1688,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3> tuple)
 		{
@@ -1669,7 +1702,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>(Slice prefix, STuple<T1, T2, T3, T4> tuple)
 		{
@@ -1683,7 +1716,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4> tuple)
 		{
@@ -1697,7 +1730,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>(Slice prefix, STuple<T1, T2, T3, T4, T5> tuple)
 		{
@@ -1711,7 +1744,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5> tuple)
 		{
@@ -1725,7 +1758,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
@@ -1739,7 +1772,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
@@ -1753,7 +1786,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
@@ -1767,7 +1800,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7> tuple)
 		{
@@ -1781,7 +1814,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
 		{
@@ -1795,7 +1828,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: <c>packed(tuple)+`\x00`</c> &lt;= <c>k</c> &lt; <c>packed(tuple)+`\xFF`</c></summary>
 		[Pure]
 		public static (Slice Begin, Slice End) ToRange<T1, T2, T3, T4, T5, T6, T7, T8>(ReadOnlySpan<byte> prefix, STuple<T1, T2, T3, T4, T5, T6, T7, T8> tuple)
 		{

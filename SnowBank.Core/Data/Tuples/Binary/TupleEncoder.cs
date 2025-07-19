@@ -709,7 +709,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public static bool TryEncodeKey<T1, T2, T3, T4, T5>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
-			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3, item4, item5))
+			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3) || !TryWriteKeysTo(ref tw, item4, item5))
 			{
 				bytesWritten = 0;
 				return false;
@@ -792,7 +792,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
-			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3, item4, item5, item6))
+			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3) || !TryWriteKeysTo(ref tw, item4, item5, item6))
 			{
 				bytesWritten = 0;
 				return false;
@@ -879,7 +879,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6, T7>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
-			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3, item4, item5, item6, item7))
+			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3, item4) || !TryWriteKeysTo(ref tw, item5, item6, item7))
 			{
 				bytesWritten = 0;
 				return false;
@@ -965,12 +965,12 @@ namespace SnowBank.Data.Tuples.Binary
 			return sw.ToSlice();
 		}
 
-		/// <summary>Pack a 7-tuple directly into a destination buffer</summary>
+		/// <summary>Pack an 8-tuple directly into a destination buffer</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			var tw = new TupleSpanWriter(destination, 0);
-			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3, item4, item5, item6, item7))
+			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3, item4) || !TryWriteKeysTo(ref tw, item5, item6, item7, item8))
 			{
 				bytesWritten = 0;
 				return false;
@@ -1060,6 +1060,20 @@ namespace SnowBank.Data.Tuples.Binary
 			return sw.ToSlice();
 		}
 
+		/// <summary>Pack an 8-tuple directly into a destination buffer</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryEncodeKey<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix) || !TryWriteKeysTo(ref tw, item1, item2, item3) || !TryWriteKeysTo(ref tw, item4, item5, item6) || !TryWriteKeysTo(ref tw, item7, item8, item9))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
 		/// <summary>Efficiently concatenates a prefix with the packed representation of an 9-tuple</summary>
 		public static Slice Pack<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7, T8, T9) items)
 		{
@@ -1077,6 +1091,31 @@ namespace SnowBank.Data.Tuples.Binary
 			TuplePackers.SerializeTo(tw, items.Item9);
 			return sw.ToSlice();
 		}
+
+		/// <summary>Efficiently concatenates a prefix with the packed representation of an 9-tuple</summary>
+		[Pure]
+		public static bool TryPackTo<T1, T2, T3, T4, T5, T6, T7, T8, T9>(Span<byte> destination, out int bytesWritten, ReadOnlySpan<byte> prefix, in (T1, T2, T3, T4, T5, T6, T7, T8, T9) items)
+		{
+			var tw = new TupleSpanWriter(destination, 0);
+			if (!tw.TryWriteLiteral(prefix)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item1)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item2)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item3)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item4)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item5)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item6)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item7)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item8)
+			 || !TuplePackers.TrySerializeTo(ref tw, items.Item9))
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			bytesWritten = tw.BytesWritten;
+			return true;
+		}
+
 
 		// SliceOwner/ArrayPool
 
@@ -1407,12 +1446,6 @@ namespace SnowBank.Data.Tuples.Binary
 			TuplePackers.SerializeTo(tw, item1);
 		}
 
-		/// <summary>Packs a 1-tuple directly into a slice</summary>
-		public static bool TryWriteKeysTo<T1>(ref TupleSpanWriter writer, T1 item1)
-		{
-			return TuplePackers.TrySerializeTo(ref writer, item1);
-		}
-
 		/// <summary>Packs a 2-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2)
 		{
@@ -1475,16 +1508,6 @@ namespace SnowBank.Data.Tuples.Binary
 			TuplePackers.SerializeTo(tw, item5);
 		}
 
-		/// <summary>Packs a 5-tuple directly into a slice</summary>
-		public static bool TryWriteKeysTo<T1, T2, T3, T4, T5>(ref TupleSpanWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
-		{
-			return TuplePackers.TrySerializeTo(ref writer, item1)
-				&& TuplePackers.TrySerializeTo(ref writer, item2)
-				&& TuplePackers.TrySerializeTo(ref writer, item3)
-				&& TuplePackers.TrySerializeTo(ref writer, item4)
-				&& TuplePackers.TrySerializeTo(ref writer, item5);
-		}
-
 		/// <summary>Packs a 6-tuple directly into a slice</summary>
 		public static void WriteKeysTo<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
@@ -1495,68 +1518,6 @@ namespace SnowBank.Data.Tuples.Binary
 			TuplePackers.SerializeTo(tw, item4);
 			TuplePackers.SerializeTo(tw, item5);
 			TuplePackers.SerializeTo(tw, item6);
-		}
-
-		/// <summary>Packs a 6-tuple directly into a slice</summary>
-		public static bool TryWriteKeysTo<T1, T2, T3, T4, T5, T6>(ref TupleSpanWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
-		{
-			return TuplePackers.TrySerializeTo(ref writer, item1)
-				&& TuplePackers.TrySerializeTo(ref writer, item2)
-				&& TuplePackers.TrySerializeTo(ref writer, item3)
-				&& TuplePackers.TrySerializeTo(ref writer, item4)
-				&& TuplePackers.TrySerializeTo(ref writer, item5)
-				&& TuplePackers.TrySerializeTo(ref writer, item6);
-		}
-
-		/// <summary>Packs a 6-tuple directly into a slice</summary>
-		public static void WriteKeysTo<T1, T2, T3, T4, T5, T6, T7>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
-		{
-			var tw = new TupleWriter(ref writer);
-			TuplePackers.SerializeTo(tw, item1);
-			TuplePackers.SerializeTo(tw, item2);
-			TuplePackers.SerializeTo(tw, item3);
-			TuplePackers.SerializeTo(tw, item4);
-			TuplePackers.SerializeTo(tw, item5);
-			TuplePackers.SerializeTo(tw, item6);
-			TuplePackers.SerializeTo(tw, item7);
-		}
-
-		/// <summary>Packs a 7-tuple directly into a slice</summary>
-		public static bool TryWriteKeysTo<T1, T2, T3, T4, T5, T6, T7>(ref TupleSpanWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
-		{
-			return TuplePackers.TrySerializeTo(ref writer, item1)
-				&& TuplePackers.TrySerializeTo(ref writer, item2)
-				&& TuplePackers.TrySerializeTo(ref writer, item3)
-				&& TuplePackers.TrySerializeTo(ref writer, item4)
-				&& TuplePackers.TrySerializeTo(ref writer, item5)
-				&& TuplePackers.TrySerializeTo(ref writer, item6)
-				&& TuplePackers.TrySerializeTo(ref writer, item7);
-		}
-
-		/// <summary>Packs a 6-tuple directly into a slice</summary>
-		public static void WriteKeysTo<T1, T2, T3, T4, T5, T6, T7, T8>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
-		{
-			var tw = new TupleWriter(ref writer);
-			TuplePackers.SerializeTo(tw, item1);
-			TuplePackers.SerializeTo(tw, item2);
-			TuplePackers.SerializeTo(tw, item3);
-			TuplePackers.SerializeTo(tw, item4);
-			TuplePackers.SerializeTo(tw, item5);
-			TuplePackers.SerializeTo(tw, item6);
-			TuplePackers.SerializeTo(tw, item7);
-			TuplePackers.SerializeTo(tw, item8);
-		}
-		/// <summary>Packs a 8-tuple directly into a slice</summary>
-		public static bool TryWriteKeysTo<T1, T2, T3, T4, T5, T6, T7, T8>(ref TupleSpanWriter writer, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
-		{
-			return TuplePackers.TrySerializeTo(ref writer, item1)
-				&& TuplePackers.TrySerializeTo(ref writer, item2)
-				&& TuplePackers.TrySerializeTo(ref writer, item3)
-				&& TuplePackers.TrySerializeTo(ref writer, item4)
-				&& TuplePackers.TrySerializeTo(ref writer, item5)
-				&& TuplePackers.TrySerializeTo(ref writer, item6)
-				&& TuplePackers.TrySerializeTo(ref writer, item7)
-				&& TuplePackers.TrySerializeTo(ref writer, item8);
 		}
 
 		/// <summary>Merges a sequence of keys with a same prefix, all sharing the same buffer</summary>
