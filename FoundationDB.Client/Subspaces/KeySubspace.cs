@@ -29,7 +29,7 @@ namespace FoundationDB.Client
 	/// <summary>Adds a prefix on every key, to group them inside a common subspace</summary>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
-	public class KeySubspace : IKeySubspace, IEquatable<IKeySubspace>, IComparable<IKeySubspace>
+	public class KeySubspace : IKeySubspace, IEquatable<IKeySubspace>, IComparable<IKeySubspace>, IFormattable
 	{
 
 		/// <summary>Prefix common to all keys in this subspace</summary>
@@ -476,9 +476,37 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Printable representation of this subspace</summary>
-		public override string ToString()
+		public override string ToString() => ToString(null);
+
+		public virtual string ToString(string? format, IFormatProvider? provider = null)
 		{
-			return $"Subspace({FdbKey.Dump(this.Key)})";
+			switch (format ?? "")
+			{
+				case "" or "D" or "d":
+				{
+					return $"`{FdbKey.Dump(this.Key)}`";
+				}
+				case "K" or "k":
+				{
+					return FdbKey.Dump(this.Key);
+				}
+				case "X" or "x":
+				{
+					return this.Key.ToString(format);
+				}
+				case "P" or "p":
+				{
+					return "/"; // this is not _technically_, but the end result is the same
+				}
+				case "G" or "G":
+				{
+					return $"{this.GetType().Name}(prefix={FdbKey.Dump(this.Key)})";
+				}
+				default:
+				{
+					throw new FormatException("Unsupported format");
+				}
+			}
 		}
 
 		#endregion

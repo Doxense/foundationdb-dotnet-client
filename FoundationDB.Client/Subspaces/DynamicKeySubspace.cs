@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="prefix">Prefix of the new subspace</param>
 		/// <param name="context">Context that controls the lifetime of this subspace</param>
-		internal DynamicKeySubspace(Slice prefix, ISubspaceContext context)
+		public DynamicKeySubspace(Slice prefix, ISubspaceContext context)
 			: base(prefix, context)
 		{
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -127,12 +127,13 @@ namespace FoundationDB.Client
 #pragma warning restore CS0618 // Type or member is obsolete
 		}
 
+
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="prefix">Prefix of the new subspace</param>
 		/// <param name="encoder">Encoder that will be used by this subspace</param>
 		/// <param name="context">Context that controls the lifetime of this subspace</param>
 		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		internal DynamicKeySubspace(Slice prefix, IDynamicKeyEncoder encoder, ISubspaceContext context)
+		public DynamicKeySubspace(Slice prefix, IDynamicKeyEncoder encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
 			Contract.Debug.Requires(encoder != null);

@@ -490,9 +490,31 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a user-friendly description of this directory</summary>
-		public override string ToString()
+		public override string ToString(string? format, IFormatProvider? provider = null)
 		{
-			return $"DirectorySubspace(path={this.Path.ToString()}, prefix={FdbKey.Dump(GetPrefixUnsafe())})";
+			switch (format ?? "")
+			{
+				case "" or "D" or "d" or "P" or "p":
+				{
+					return this.Path.ToString();
+				}
+				case "K" or "k":
+				{
+					return FdbKey.Dump(this.GetPrefixUnsafe());
+				}
+				case "X" or "x":
+				{
+					return this.GetPrefixUnsafe().ToString(format);
+				}
+				case "G" or "g":
+				{
+					return $"DirectorySubspace(path={this.Path.ToString()}, prefix={FdbKey.Dump(GetPrefixUnsafe())})";
+				}
+				default:
+				{
+					throw new FormatException("Unsupported format");
+				}
+			}
 		}
 
 		//note: Equals() and GetHashcode() are already implemented in FdbSubspace, and don't need to be overriden here
