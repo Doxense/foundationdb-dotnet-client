@@ -98,10 +98,10 @@ namespace FoundationDB.Layers.Blobs
 
 			/// <summary>Returns the key for data chunk at the specified offset</summary>
 			/// <returns>123 => (subspace, 'D', "             123")</returns>
-			private Slice DataKey(long offset)
+			private FdbTupleKey<Slice, string> DataKey(long offset)
 			{
 				//note: python code uses "%16d" % offset, which pads the value with spaces... Not sure why ?
-				return this.Subspace.Encode(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
+				return this.Subspace.GetKey(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
 			}
 
 			private long DataKeyOffset(Slice key)
@@ -111,9 +111,9 @@ namespace FoundationDB.Layers.Blobs
 				return offset;
 			}
 
-			private Slice SizeKey()
+			private FdbTupleKey<Slice> SizeKey()
 			{
-				return this.Subspace.Encode(SizeSuffix);
+				return this.Subspace.GetKey(SizeSuffix);
 			}
 
 			#region Internal Helpers...
@@ -122,13 +122,13 @@ namespace FoundationDB.Layers.Blobs
 			{
 				Contract.Debug.Requires(trans != null && offset >= 0);
 
-				var chunkKey = await trans.GetKeyAsync(KeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
+				var chunkKey = await trans.GetKeyAsync(DataKey(offset).LastLessOrEqual()).ConfigureAwait(false);
 				if (chunkKey.IsNull || !this.Subspace.Contains(chunkKey))
 				{ // nothing before (sparse)
 					return default(Chunk);
 				}
 
-				if (chunkKey < DataKey(0))
+				if (DataKey(0).CompareTo(chunkKey) > 0)
 				{ // off beginning
 					return default(Chunk);
 				}
@@ -261,8 +261,8 @@ namespace FoundationDB.Layers.Blobs
 
 				await trans
 					.GetRange(
-						KeySelector.LastLessOrEqual(DataKey(offset)),
-						KeySelector.FirstGreaterOrEqual(DataKey(offset + n))
+						DataKey(offset).LastLessOrEqual(),
+						DataKey(offset + n).FirstGreaterOrEqual()
 					)
 					.ForEachAsync((chunk) =>
 					{

@@ -66,12 +66,12 @@ namespace FoundationDB.Layers.Collections
 			Contract.NotNull(location);
 			Contract.NotNull(codec);
 
-			this.Location = location.AsTyped<VersionStamp>();
+			this.Location = location.AsDynamic();
 			this.Codec = codec;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public TypedKeySubspaceLocation<VersionStamp> Location { get; }
+		public DynamicKeySubspaceLocation Location { get; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
 		public IFdbValueCodec<TValue, TEncoded> Codec { get; }
@@ -89,11 +89,11 @@ namespace FoundationDB.Layers.Collections
 		public sealed class State
 		{
 
-			public ITypedKeySubspace<VersionStamp> Subspace { get; }
+			public IDynamicKeySubspace Subspace { get; }
 
 			public FdbQueue<TValue, TEncoded> Parent { get; }
 
-			internal State(ITypedKeySubspace<VersionStamp> subspace, FdbQueue<TValue, TEncoded> parent)
+			internal State(IDynamicKeySubspace subspace, FdbQueue<TValue, TEncoded> parent)
 			{
 				Contract.Debug.Requires(subspace is not null && parent is not null);
 				this.Subspace = subspace;
@@ -138,10 +138,11 @@ namespace FoundationDB.Layers.Collections
 				}
 
 				tr.Clear(first[0].Key);
+				var value = this.Parent.Codec.DecodeValue(first[0].Value.Span);
 #if DEBUG
-				if (tr.IsLogged()) tr.Annotate($"Got key {this.Subspace.Decode(first[0].Key)} = {first[0].Value:V}");
+				if (tr.IsLogged()) tr.Annotate($"Got key {first[0].Key:P} = {value}");
 #endif
-				return (this.Parent.Codec.DecodeValue(first[0].Value.Span), true);
+				return (value, true);
 			}
 
 			/// <summary>Test whether the queue is empty.</summary>
@@ -159,8 +160,13 @@ namespace FoundationDB.Layers.Collections
 				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), FdbRangeOptions.First);
 				if (first.IsEmpty) return default;
 
-				return (this.Parent.Codec.DecodeValue(first[0].Value.Span), true);
+				var value = this.Parent.Codec.DecodeValue(first[0].Value.Span);
+#if DEBUG
+				if (tr.IsLogged()) tr.Annotate($"Peeked key {first[0].Key:P} = {value}");
+#endif
+				return (value, true);
 			}
+
 		}
 
 		#region Bulk Operations
