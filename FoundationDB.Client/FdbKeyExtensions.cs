@@ -128,14 +128,101 @@ namespace FoundationDB.Client
 			return new(key.ToSlice());
 		}
 
-		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		public static int CompareTo(IKeySubspace? subspace, IKeySubspace? other)
+		{
+			return ReferenceEquals(subspace, other)
+				? 0
+				: (other?.GetPrefix() ?? Slice.Empty).CompareTo(subspace?.GetPrefix() ?? Slice.Empty);
+		}
+
+		/// <inheritdoc cref="CompareTo{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
+		public static int CompareTo<TKey>(in TKey key, Slice expectedBytes)
+			where TKey : struct, IFdbKey
+			=> CompareTo(in key, expectedBytes.Span);
+
+		/// <summary>Compares a key with a specific encoded binary representation</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
-		/// <param name="key">Key to test</param>
-		/// <param name="expectedBytes">Expected encoded bytes</param>
-		/// <returns><c>true</c> if the key encodes to the exact same bytes; otherwise, <c>false</c></returns>
+		/// <param name="key">Key being compared</param>
+		/// <param name="expectedBytes">Encoded bytes to compare with</param>
+		/// <returns><c>0</c> if the key encodes to the exact same bytes, a negative number if it would be sorted before, or a positive number if it would be sorted after</returns>
 		/// <remarks>
 		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
 		/// </remarks>
+		public static int CompareTo<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var span))
+			{
+				return span.SequenceCompareTo(expectedBytes);
+			}
+
+			using var bytes = Encode(in key, ArrayPool<byte>.Shared);
+			return bytes.Span.SequenceCompareTo(expectedBytes);
+		}
+
+		/// <summary>Compares two keys by their encoded binary representation</summary>
+		/// <typeparam name="TKey">Type of the first key</typeparam>
+		/// <typeparam name="TOtherKey">Type of the second key</typeparam>
+		/// <param name="key">First key to compare</param>
+		/// <param name="other">Second key to compare</param>
+		/// <returns><c>0</c> if both keys are equal, a negative number if <paramref name="key"/> would be sorted before <paramref name="other"/>, or a positive number if <paramref name="key"/> would be sorted after <paramref name="other"/></returns>
+		/// <remarks>
+		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static int CompareTo<TKey, TOtherKey>(in TKey key, in TOtherKey other)
+			where TKey : struct, IFdbKey
+			where TOtherKey : struct, IFdbKey
+		{
+			if (other.TryGetSpan(out var otherSpan))
+			{
+				return CompareTo(in key, otherSpan);
+			}
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return CompareTo(in other, keySpan);
+			}
+			return CompareToIncompatible(in key, in other);
+
+			static int CompareToIncompatible(in TKey key, in TOtherKey other)
+			{
+				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
+				using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
+				return keyBytes.Span.SequenceCompareTo(otherBytes.Span);
+			}
+		}
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TKey">Type of the first key</typeparam>
+		/// <typeparam name="TOtherKey">Type of the second key</typeparam>
+		/// <param name="key">First key to test</param>
+		/// <param name="other">Second key to test</param>
+		/// <returns><c>true</c> if the both key encodes to the exact same bytes; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool Equals<TKey, TOtherKey>(in TKey key, in TOtherKey other)
+			where TKey : struct, IFdbKey
+			where TOtherKey : struct, IFdbKey
+		{
+			if (other.TryGetSpan(out var otherSpan))
+			{
+				return Equals(in key, otherSpan);
+			}
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return Equals(in other, keySpan);
+			}
+			return EqualsIncompatible(in key, in other);
+
+			static bool EqualsIncompatible(in TKey key, in TOtherKey other)
+			{
+				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
+				using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
+				return keyBytes.Span.SequenceEqual(otherBytes.Span);
+			}
+		}
+
+		/// <inheritdoc cref="Equals{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
 		public static bool Equals<TKey>(in TKey key, Slice expectedBytes)
 			where TKey : struct, IFdbKey
 			=> Equals(in key, expectedBytes.Span);
@@ -407,6 +494,91 @@ namespace FoundationDB.Client
 		#endregion
 
 		#region TSubspace Keys...
+
+		/// <summary>Returns a new subspace that will use this key as its prefix</summary>
+		/// <typeparam name="TKey"></typeparam>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public static IDynamicKeySubspace ToPartition<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+		{
+			var parent = key.GetSubspace();
+			if (parent is null)
+			{ // the key is not tied to a subspace
+				return new DynamicKeySubspace(key.ToSlice(), SubspaceContext.Default);
+			}
+
+			parent.Context.EnsureIsValid();
+			return new DynamicKeySubspace(parent.GetPrefix() + key.ToSlice(), parent.Context);
+		}
+
+		/// <summary>Returns a new subspace with an additional prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="prefix">Prefix to be added to the parent subspace prefix</param>
+		/// <returns>Subspace that will append both prefixes to all the keys</returns>
+		/// <remarks>
+		/// <para>For example, if the <paramref name="subspace "/> has the prefix <c>(42,)</c> (<c>`\x15\x2A`</c>) and <paramref name="prefix"/> is <c>`\x15\x7B`</c>),
+		/// then the new subspace will have the prefix <c>(42, 123)</c> (<c>`\x15\x2A\x15\x7B`</c>)</para>
+		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
+		/// </remarks>
+		public static IDynamicKeySubspace WithPrefix(this IDynamicKeySubspace subspace, ReadOnlySpan<byte> prefix)
+		{
+			Contract.NotNull(subspace);
+			subspace.Context.EnsureIsValid();
+			return prefix.Length == 0
+				? subspace
+				: new DynamicKeySubspace(subspace.GetPrefix().Concat(prefix), subspace.Context);
+		}
+
+		/// <summary>Returns a new subspace with an additional prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="prefix">Prefix to be added to the parent subspace prefix</param>
+		/// <returns>Subspace that will append both prefixes to all the keys</returns>
+		/// <remarks>
+		/// <para>For example, if the <paramref name="subspace "/> has the prefix <c>(42,)</c> (<c>`\x15\x2A`</c>) and <paramref name="prefix"/> is <c>`\x15\x7B`</c>),
+		/// then the new subspace will have the prefix <c>(42, 123)</c> (<c>`\x15\x2A\x15\x7B`</c>)</para>
+		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
+		/// </remarks>
+		public static IDynamicKeySubspace WithPrefix(this IDynamicKeySubspace subspace, Slice prefix)
+		{
+			Contract.NotNull(subspace);
+			subspace.Context.EnsureIsValid();
+			return prefix.Count == 0
+				? subspace
+				: new DynamicKeySubspace(subspace.GetPrefix() + prefix, subspace.Context);
+		}
+
+		/// <summary>Returns a new subspace with an additional prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="prefix">Tuple that will be packed and added to the parent subspace prefix</param>
+		/// <returns>Subspace that will append both prefixes to all the keys</returns>
+		/// <remarks>
+		/// <para>For example, if the <paramref name="subspace "/> has the prefix <c>(42,)</c> (<c>`\x15\x2A`</c>) and <paramref name="prefix"/> is <c>("abc", 123)</c> (<c>`\x02abc\x00\x15\x7B`</c>),
+		/// then the new subspace will have the prefix <c>(42, "abc", 123)</c> (<c>`\x15\x2A\x02abc\x00\x15\x7B`</c>)</para>
+		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
+		/// </remarks>
+		public static IDynamicKeySubspace WithPrefix<TTuple>(this IDynamicKeySubspace subspace, TTuple prefix)
+			where TTuple: IVarTuple
+		{
+			Contract.NotNull(subspace);
+			Contract.NotNull(prefix);
+			subspace.Context.EnsureIsValid();
+			return prefix is STuple || prefix.Count == 0
+				? subspace
+				: new DynamicKeySubspace(TupleEncoder.Pack(subspace.GetPrefix().Span, prefix), subspace.Context);
+		}
+
+		public static IDynamicKeySubspace WithPrefix<T1>(this IDynamicKeySubspace subspace, ValueTuple<T1> prefix)
+			=> WithPrefix(subspace, prefix.ToSTuple());
+
+		public static IDynamicKeySubspace WithPrefix<T1, T2>(this IDynamicKeySubspace subspace, ValueTuple<T1, T2> prefix)
+			=> WithPrefix(subspace, prefix.ToSTuple());
+
+		public static IDynamicKeySubspace WithPrefix<T1, T2, T3>(this IDynamicKeySubspace subspace, ValueTuple<T1, T2, T3> prefix)
+			=> WithPrefix(subspace, prefix.ToSTuple());
+
+		public static IDynamicKeySubspace WithPrefix<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, ValueTuple<T1, T2, T3, T4> prefix)
+			=> WithPrefix(subspace, prefix.ToSTuple());
 
 		#region IDynamicKeySubspace.GetKey(...)...
 

@@ -174,6 +174,64 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Prefix.GetSubspace();
 
+		/// <summary>Tests if a key is contained in this range</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns><c>true</c> if the key would be matched by this range</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(Slice key) => Contains(key.Span);
+
+		/// <summary>Tests if a key is contained in this range</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns><c>true</c> if the key would be matched by this range</returns>
+		[Pure]
+		public bool Contains(ReadOnlySpan<byte> key)
+		{
+			if (this.Prefix.TryGetSpan(out var span))
+			{
+				return key.StartsWith(span) && (!this.Excluded || key.Length != span.Length);
+			}
+			using var prefixBytes = FdbKeyExtensions.Encode(in Prefix, ArrayPool<byte>.Shared);
+			return key.StartsWith(prefixBytes.Span) && (!this.Excluded || key.Length != prefixBytes.Count);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool IsBefore(Slice key) => IsBefore(key.Span);
+
+		[Pure]
+		public bool IsBefore(ReadOnlySpan<byte> key)
+		{
+			if (this.Prefix.TryGetSpan(out var span))
+			{
+				int cmp = span.SequenceCompareTo(key);
+				return (cmp > 0) || (cmp == 0 && this.Excluded);
+			}
+			else
+			{
+				using var prefixBytes = FdbKeyExtensions.Encode(in Prefix, ArrayPool<byte>.Shared);
+				int cmp = prefixBytes.Span.SequenceCompareTo(key);
+				return (cmp > 0) || (cmp == 0 && this.Excluded);
+			}
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool IsAfter(Slice key) => IsAfter(key.Span);
+
+		[Pure]
+		public bool IsAfter(ReadOnlySpan<byte> key)
+		{
+			if (this.Prefix.TryGetSpan(out var span))
+			{
+				int cmp = span.SequenceCompareTo(key);
+				return cmp < 0 && (key.Length <= span.Length || !key[..span.Length].SequenceEqual(span));
+			}
+			else
+			{
+				using var prefixBytes = FdbKeyExtensions.Encode(in Prefix, ArrayPool<byte>.Shared);
+				int cmp = prefixBytes.Span.SequenceCompareTo(key);
+				return cmp < 0 && (key.Length <= prefixBytes.Count || !key[..prefixBytes.Count].SequenceEqual(prefixBytes.Span));
+			}
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToKeyRange() => this.Excluded
 			//PERF: TODO: optimize this!
