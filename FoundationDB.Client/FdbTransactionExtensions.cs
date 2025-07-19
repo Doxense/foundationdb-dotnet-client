@@ -2914,7 +2914,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange"/>
 		[Pure, LinqTunnel]
-		public static IFdbKeyValueRangeQuery GetRange<TBeginKey>(this IFdbReadOnlyTransaction trans, FdbKeySelector<TBeginKey> beginKeyInclusive, KeySelector endKeyExclusive, FdbRangeOptions? options = null)
+		public static IFdbKeyValueRangeQuery GetRange<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginKeyInclusive, KeySelector endKeyExclusive, FdbRangeOptions? options = null)
 			where TBeginKey : struct, IFdbKey
 		{
 			Contract.NotNull(trans);
@@ -2931,7 +2931,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange"/>
 		[Pure, LinqTunnel]
-		public static IFdbKeyValueRangeQuery GetRange<TEndKey>(this IFdbReadOnlyTransaction trans, KeySelector beginKeyInclusive, FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
+		public static IFdbKeyValueRangeQuery GetRange<TEndKey>(this IFdbReadOnlyTransaction trans, KeySelector beginKeyInclusive, in FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
 			where TEndKey : struct, IFdbKey
 		{
 			Contract.NotNull(trans);
@@ -2948,7 +2948,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange"/>
 		[Pure, LinqTunnel]
-		public static IFdbKeyValueRangeQuery GetRange<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, FdbKeySelector<TBeginKey> beginKeyInclusive, FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
+		public static IFdbKeyValueRangeQuery GetRange<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginKeyInclusive, in FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
 		{
@@ -3206,8 +3206,24 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 			return trans.GetRange(
-				FdbKeySelector.FirstGreaterOrEqual(beginKeyInclusive),
-				FdbKeySelector.FirstGreaterOrEqual(endKeyExclusive),
+				beginKeyInclusive.FirstGreaterOrEqual(),
+				endKeyExclusive.FirstGreaterOrEqual(),
+				new SliceBuffer(),
+				static (s, k, _) => s.Intern(k),
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<Slice> GetRangeKeys<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginKeyInclusive, in FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				in beginKeyInclusive,
+				in endKeyExclusive,
 				new SliceBuffer(),
 				static (s, k, _) => s.Intern(k),
 				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
@@ -3269,6 +3285,38 @@ namespace FoundationDB.Client
 			return trans.GetRange(
 				KeySelector.FirstGreaterOrEqual(beginKeyInclusive.IsNullOrEmpty ? FdbKey.MinValue : beginKeyInclusive),
 				KeySelector.FirstGreaterOrEqual(endKeyExclusive.IsNullOrEmpty ? FdbKey.MaxValue : endKeyExclusive),
+				new SliceBuffer(),
+				static (s, _, v) => s.Intern(v),
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<Slice> GetRangeValues<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in TBeginKey beginKeyInclusive, in TEndKey endKeyExclusive, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				beginKeyInclusive.FirstGreaterOrEqual(),
+				endKeyExclusive.FirstGreaterOrEqual(),
+				new SliceBuffer(),
+				static (s, _, v) => s.Intern(v),
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<Slice> GetRangeValues<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginKeyInclusive, in FdbKeySelector<TEndKey> endKeyExclusive, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				in beginKeyInclusive,
+				in endKeyExclusive,
 				new SliceBuffer(),
 				static (s, _, v) => s.Intern(v),
 				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
@@ -3427,6 +3475,15 @@ namespace FoundationDB.Client
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
 		}
 
+		/// <inheritdoc cref="GetRangeAsync(IFdbReadOnlyTransaction,Slice,Slice,FdbRangeOptions?,int)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in TBeginKey beginInclusive, in TEndKey endExclusive, FdbRangeOptions? options = null, int iteration = 0)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			return trans.GetRangeAsync(beginInclusive.FirstGreaterOrEqual(), endExclusive.FirstGreaterOrEqual(), options, iteration);
+		}
+
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
 		/// which have a key lexicographically greater than or equal to the key resolved by the Begin key selector
@@ -3442,8 +3499,45 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
 		{
-			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
-			return trans.GetRangeAsync<TState, TResult>(range.Begin, range.End, state, decoder, options, iteration);
+			return trans.GetRangeAsync<TState, TResult>(
+				KeySelector.FirstGreaterOrEqual(beginInclusive),
+				KeySelector.FirstGreaterOrEqual(endExclusive),
+				state,
+				decoder,
+				options,
+				iteration
+			);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRangeAsync(KeySelector,KeySelector,FdbRangeOptions?,int)"/>
+		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TBeginKey, TEndKey, TState, TResult>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, in FdbKeySelector<TEndKey> endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			return trans.GetRangeAsync(
+				beginInclusive.ToSelector(), //PERF: TODO: optimize!
+				endExclusive.ToSelector(),   //PERF: TODO: optimize!
+				state,
+				decoder,
+				options,
+				iteration
+			);
+		}
+
+		/// <inheritdoc cref="GetRangeAsync(FoundationDB.Client.IFdbReadOnlyTransaction,Slice,Slice,FdbRangeOptions?,int)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TBeginKey, TEndKey, TState, TResult>(this IFdbReadOnlyTransaction trans, in TBeginKey beginInclusive, in TEndKey endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			return trans.GetRangeAsync(
+				beginInclusive.FirstGreaterOrEqual(),
+				endExclusive.FirstGreaterOrEqual(),
+				state,
+				decoder,
+				options,
+				iteration
+			);
 		}
 
 		#endregion
@@ -3482,6 +3576,38 @@ namespace FoundationDB.Client
 			return trans.VisitRangeAsync(
 				KeySelector.FirstGreaterOrEqual(beginInclusive),
 				KeySelector.FirstGreaterOrEqual(endExclusive),
+				state,
+				visitor,
+				options
+			);
+		}
+
+		/// <inheritdoc cref="VisitRangeAsync{TState}(IFdbReadOnlyTransaction,Slice,Slice,TState,FdbKeyValueAction{TState},FdbRangeOptions?)"/>
+		public static Task VisitRangeAsync<TBeginKey, TEndKey, TState>(this IFdbReadOnlyTransaction trans, in TBeginKey beginInclusive, in TEndKey endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+
+			return trans.VisitRangeAsync(
+				beginInclusive.FirstGreaterOrEqual(),
+				endExclusive.FirstGreaterOrEqual(),
+				state,
+				visitor,
+				options
+			);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.VisitRangeAsync{TState}"/>
+		public static Task VisitRangeAsync<TBeginKey, TEndKey, TState>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, in FdbKeySelector<TEndKey> endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+
+			return trans.VisitRangeAsync(
+				beginInclusive.ToSelector(), //PERF: TODO: optimize!
+				endExclusive.ToSelector(),   //PERF: TODO: optimize!
 				state,
 				visitor,
 				options
@@ -3726,7 +3852,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">Range of the keys specifying the conflict range. The end key is excluded</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		public static void AddConflictRange<TKeyRange>(this IFdbTransaction trans, TKeyRange range, FdbConflictRangeType type)
+		public static void AddConflictRange<TKeyRange>(this IFdbTransaction trans, in TKeyRange range, FdbConflictRangeType type)
 			where TKeyRange : struct, IFdbKeyRange
 		{
 			trans.AddConflictRange(range.ToKeyRange(), type);
@@ -3784,25 +3910,26 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>
-		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
-		/// </summary>
+		/// <inheritdoc cref="AddReadConflictRange(IFdbTransaction,KeyRange)"/>
+		public static void AddReadConflictRange<TKeyRange>(this IFdbTransaction trans, in TKeyRange range)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			AddConflictRange<TKeyRange>(trans, in range, FdbConflictRangeType.Read);
+		}
+
+		/// <summary>Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.</summary>
 		public static void AddReadConflictRange(this IFdbTransaction trans, KeyRange range)
 		{
 			AddConflictRange(trans, range, FdbConflictRangeType.Read);
 		}
 
-		/// <summary>
-		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
-		/// </summary>
+		/// <inheritdoc cref="AddReadConflictRange(IFdbTransaction,ReadOnlySpan{byte},ReadOnlySpan{byte})"/>
 		public static void AddReadConflictRange(this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Read);
 		}
 
-		/// <summary>
-		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
-		/// </summary>
+		/// <inheritdoc cref="AddReadConflictRange(IFdbTransaction,ReadOnlySpan{byte},ReadOnlySpan{byte})"/>
 		public static void AddReadConflictRange<TBeginKey, TEndKey>(this IFdbTransaction trans, in TBeginKey beginKeyInclusive, in TEndKey endKeyExclusive)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
@@ -3810,17 +3937,13 @@ namespace FoundationDB.Client
 			trans.AddConflictRange(in beginKeyInclusive, in endKeyExclusive, FdbConflictRangeType.Read);
 		}
 
-		/// <summary>
-		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
-		/// </summary>
+		/// <summary>Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.</summary>
 		public static void AddReadConflictRange(this IFdbTransaction trans, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Read);
 		}
 
-		/// <summary>
-		/// Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
-		/// </summary>
+		/// <summary>Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.</summary>
 		public static void AddReadConflictKey(this IFdbTransaction trans, Slice key)
 		{
 			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Read);
@@ -3835,25 +3958,34 @@ namespace FoundationDB.Client
 			AddConflictRange(trans, FdbKeyRange.Single(in key), FdbConflictRangeType.Read);
 		}
 
-		/// <summary>
-		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
-		/// </summary>
+		/// <inheritdoc cref="AddWriteConflictRange(IFdbTransaction,KeyRange)"/>
+		public static void AddWriteConflictRange<TKeyRange>(this IFdbTransaction trans, in TKeyRange range)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			AddConflictRange<TKeyRange>(trans, in range, FdbConflictRangeType.Write);
+		}
+
+		/// <summary>Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.</summary>
 		public static void AddWriteConflictRange(this IFdbTransaction trans, KeyRange range)
 		{
 			AddConflictRange(trans, range, FdbConflictRangeType.Write);
 		}
 
-		/// <summary>
-		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
-		/// </summary>
+		/// <inheritdoc cref="AddWriteConflictRange(IFdbTransaction,ReadOnlySpan{byte},ReadOnlySpan{byte})"/>
 		public static void AddWriteConflictRange(this IFdbTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Write);
 		}
 
-		/// <summary>
-		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
-		/// </summary>
+		/// <inheritdoc cref="AddWriteConflictRange(IFdbTransaction,ReadOnlySpan{byte},ReadOnlySpan{byte})"/>
+		public static void AddWriteConflictRange<TBeginKey, TEndKey>(this IFdbTransaction trans, in TBeginKey beginKeyInclusive, in TEndKey endKeyExclusive)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			trans.AddConflictRange(in beginKeyInclusive, in endKeyExclusive, FdbConflictRangeType.Write);
+		}
+
+		/// <summary>Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.</summary>
 		public static void AddWriteConflictRange(this IFdbTransaction trans, ReadOnlySpan<byte> beginKeyInclusive, ReadOnlySpan<byte> endKeyExclusive)
 		{
 			trans.AddConflictRange(beginKeyInclusive, endKeyExclusive, FdbConflictRangeType.Write);
@@ -4254,7 +4386,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetKeyAsync(FoundationDB.Client.KeySelector)"/>
-		public static Task<Slice> GetKeyAsync<TKey>(this IFdbReadOnlyTransaction trans, FdbKeySelector<TKey> selector)
+		public static Task<Slice> GetKeyAsync<TKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TKey> selector)
 			where TKey : struct, IFdbKey
 		{
 			//TODO: PERF: optimize this!
