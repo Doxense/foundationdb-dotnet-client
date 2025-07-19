@@ -44,11 +44,11 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("AAA"), Text("111"));
-					tr.Set(subspace.Encode("BBB"), Text("222"));
-					tr.Set(subspace.Encode("CCC"), Text("333"));
-					tr.Set(subspace.Encode("DDD"), Text("444"));
-					tr.Set(subspace.Encode("EEE"), Text("555"));
+					tr.Set(subspace.GetKey("AAA"), Text("111"));
+					tr.Set(subspace.GetKey("BBB"), Text("222"));
+					tr.Set(subspace.GetKey("CCC"), Text("333"));
+					tr.Set(subspace.GetKey("DDD"), Text("444"));
+					tr.Set(subspace.GetKey("EEE"), Text("555"));
 					await tr.CommitAsync();
 				}
 			}
@@ -62,12 +62,12 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.ClearRange(subspace.Encode("AAA"), Text("ZZZ"));
-					tr.Set(subspace.Encode("AAA"), Text("111"));
-					tr.Set(subspace.Encode("BBB"), Text("222"));
-					tr.Set(subspace.Encode("CCC"), Text("333"));
-					tr.Set(subspace.Encode("DDD"), Text("444"));
-					tr.Set(subspace.Encode("EEE"), Text("555"));
+					tr.ClearRange(subspace.GetKey("AAA"), Text("ZZZ"));
+					tr.Set(subspace.GetKey("AAA"), Text("111"));
+					tr.Set(subspace.GetKey("BBB"), Text("222"));
+					tr.Set(subspace.GetKey("CCC"), Text("333"));
+					tr.Set(subspace.GetKey("DDD"), Text("444"));
+					tr.Set(subspace.GetKey("EEE"), Text("555"));
 					await tr.CommitAsync();
 				}
 			}
@@ -81,9 +81,9 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.ClearRange(subspace.Encode("AAA"), Text("BBB"));
-					tr.ClearRange(subspace.Encode("BBB"), Text("CCC"));
-					tr.ClearRange(subspace.Encode("CCC"), Text("DDD"));
+					tr.ClearRange(subspace.GetKey("AAA"), Text("BBB"));
+					tr.ClearRange(subspace.GetKey("BBB"), Text("CCC"));
+					tr.ClearRange(subspace.GetKey("CCC"), Text("DDD"));
 					// should be merged into a single AAA...DDD
 					await tr.CommitAsync();
 				}
@@ -105,20 +105,20 @@ namespace FoundationDB.Client.Tests
 					// C: 255
 					// D: none
 					// E: none
-					tr.Set(subspace.Encode("BBB"), Slice.FromFixed32(0));
-					tr.Set(subspace.Encode("CCC"), Slice.FromFixed32(255));
+					tr.Set(subspace.GetKey("BBB"), Slice.FromFixed32(0));
+					tr.Set(subspace.GetKey("CCC"), Slice.FromFixed32(255));
 
 					// add 1 to everybody
-					tr.AtomicAdd32(subspace.Encode("AAA"), 1);
-					tr.AtomicAdd32(subspace.Encode("BBB"), -1);
-					tr.AtomicAdd32(subspace.Encode("CCC"), 1U);
-					tr.AtomicAdd64(subspace.Encode("DDD"), 1L);
-					tr.AtomicAdd64(subspace.Encode("EEE"), 1UL);
+					tr.AtomicAdd32(subspace.GetKey("AAA"), 1);
+					tr.AtomicAdd32(subspace.GetKey("BBB"), -1);
+					tr.AtomicAdd32(subspace.GetKey("CCC"), 1U);
+					tr.AtomicAdd64(subspace.GetKey("DDD"), 1L);
+					tr.AtomicAdd64(subspace.GetKey("EEE"), 1UL);
 
 					// overwrite DDD with a fixed value
-					tr.Set(subspace.Encode("DDD"), Slice.FromFixed32(5));
+					tr.Set(subspace.GetKey("DDD"), Slice.FromFixed32(5));
 					// double add on EEE
-					tr.AtomicAdd32(subspace.Encode("EEE"), 1);
+					tr.AtomicAdd32(subspace.GetKey("EEE"), 1);
 
 					await tr.CommitAsync();
 				}
@@ -154,17 +154,17 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await db.Root.Resolve(tr);
 
-					tr.AtomicMax(subspace.Encode("MAXMAX1"), Text("EEE"));
-					tr.AtomicMax(subspace.Encode("MAXMAX1"), Text("FFF"));
+					tr.AtomicMax(subspace.GetKey("MAXMAX1"), Text("EEE"));
+					tr.AtomicMax(subspace.GetKey("MAXMAX1"), Text("FFF"));
 
-					tr.AtomicMax(subspace.Encode("MAXMAX2"), Text("FFF"));
-					tr.AtomicMax(subspace.Encode("MAXMAX2"), Text("EEE"));
+					tr.AtomicMax(subspace.GetKey("MAXMAX2"), Text("FFF"));
+					tr.AtomicMax(subspace.GetKey("MAXMAX2"), Text("EEE"));
 
-					tr.AtomicMin(subspace.Encode("MINMIN1"), Text("111"));
-					tr.AtomicMin(subspace.Encode("MINMIN1"), Text("222"));
+					tr.AtomicMin(subspace.GetKey("MINMIN1"), Text("111"));
+					tr.AtomicMin(subspace.GetKey("MINMIN1"), Text("222"));
 
-					tr.AtomicMin(subspace.Encode("MINMIN2"), Text("222"));
-					tr.AtomicMin(subspace.Encode("MINMIN2"), Text("111"));
+					tr.AtomicMin(subspace.GetKey("MINMIN2"), Text("222"));
+					tr.AtomicMin(subspace.GetKey("MINMIN2"), Text("111"));
 
 					await tr.CommitAsync();
 				}
@@ -184,13 +184,13 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await db.Root.Resolve(tr);
 
-					tr.Set(subspace.Encode("AAA"), init);
-					tr.Set(subspace.Encode("BBB"), init);
-					tr.Set(subspace.Encode("CCC"), init);
-					tr.Set(subspace.Encode("DDD"), init);
-					tr.Set(subspace.Encode("EEE"), init);
-					tr.Set(subspace.Encode("FFF"), init);
-					tr.Set(subspace.Encode("GGG"), init);
+					tr.Set(subspace.GetKey("AAA"), init);
+					tr.Set(subspace.GetKey("BBB"), init);
+					tr.Set(subspace.GetKey("CCC"), init);
+					tr.Set(subspace.GetKey("DDD"), init);
+					tr.Set(subspace.GetKey("EEE"), init);
+					tr.Set(subspace.GetKey("FFF"), init);
+					tr.Set(subspace.GetKey("GGG"), init);
 
 					await tr.CommitAsync();
 				}
@@ -199,13 +199,13 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await db.Root.Resolve(tr);
 
-					tr.Set(subspace.Encode("AAA"), mask);
-					tr.AtomicAdd(subspace.Encode("BBB"), mask);
-					tr.AtomicAnd(subspace.Encode("CCC"), mask);
-					tr.AtomicOr(subspace.Encode("DDD"), mask);
-					tr.AtomicXor(subspace.Encode("EEE"), mask);
-					tr.AtomicMin(subspace.Encode("FFF"), mask);
-					tr.AtomicMax(subspace.Encode("GGG"), mask);
+					tr.Set(subspace.GetKey("AAA"), mask);
+					tr.AtomicAdd(subspace.GetKey("BBB"), mask);
+					tr.AtomicAnd(subspace.GetKey("CCC"), mask);
+					tr.AtomicOr(subspace.GetKey("DDD"), mask);
+					tr.AtomicXor(subspace.GetKey("EEE"), mask);
+					tr.AtomicMin(subspace.GetKey("FFF"), mask);
+					tr.AtomicMax(subspace.GetKey("GGG"), mask);
 
 					await tr.CommitAsync();
 				}
@@ -283,7 +283,7 @@ namespace FoundationDB.Client.Tests
 					{
 						for (int j = 0; j < commands.Length; j++)
 						{
-							var key = subspace.Encode(commands[i].Op + "_" + commands[j].Op);
+							var key = subspace.GetKey(commands[i].Op + "_" + commands[j].Op).ToSlice();
 							Log($"{i};{j} = {key}");
 							Apply(tr, commands[i].Op, key, commands[i].Left);
 							Apply(tr, commands[j].Op, key, commands[j].Right);
@@ -304,10 +304,10 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999\x00"));
+					tr.ClearRange(subspace.GetKey("K0000"), subspace.GetKey("K9999\x00"));
 					for (int i = 0; i < 1000; i++)
 					{
-						tr.Set(subspace.Encode("K" + i.ToString("D4")), Slice.FromFixedU32BE((uint)i));
+						tr.Set(subspace.GetKey($"K{i:D4}"), FdbValue.ToFixed32BigEndian(i));
 					}
 				}, this.Cancellation);
 
@@ -316,7 +316,7 @@ namespace FoundationDB.Client.Tests
 					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
 						var subspace = await db.Root.Resolve(tr);
-						var res = await tr.GetAsync(subspace.Encode("K" + i.ToString("D4")));
+						var res = await tr.GetAsync(subspace.GetKey($"K{i:D4}"));
 						Dump(res);
 					}
 				}
@@ -334,31 +334,31 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async (tr) =>
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
+					tr.ClearRange(subspace.GetKey("K0000"), subspace.GetKey("K9999Z"));
 				}, this.Cancellation);
 
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("K0123"), Text("V0123"));
+					tr.Set(subspace.GetKey("K0123"), Text("V0123"));
 				}, this.Cancellation);
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("K0789"), Text("V0789"));
+					tr.Set(subspace.GetKey("K0789"), Text("V0789"));
 				}, this.Cancellation);
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					await tr.GetValuesAsync(subspace.EncodeMany([ "K0123", "K0234", "K0456", "K0567", "K0789" ]));
+					await tr.GetValuesAsync([ "K0123", "K0234", "K0456", "K0567", "K0789" ], subspace, (s, k) => s.GetKey(k));
 				}
 
 				// once more with feelings
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					await tr.GetValuesAsync(subspace.EncodeMany([ "K0123", "K0234", "K0456", "K0567", "K0789" ]));
+					await tr.GetValuesAsync([ "K0123", "K0234", "K0456", "K0567", "K0789" ], subspace, (s, k) => s.GetKey(k));
 				}
 			}
 		}
@@ -374,22 +374,22 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
+					tr.ClearRange(subspace.GetKey("K0000"), subspace.GetKey("K9999Z"));
 					for (int i = 0; i < 100; i++)
 					{
-						tr.Set(subspace.Encode("K" + i.ToString("D4")), Text("V" + i.ToString("D4")));
+						tr.Set(subspace.GetKey("K" + i.ToString("D4")), Text("V" + i.ToString("D4")));
 					}
 				}, this.Cancellation);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.ClearRange(subspace.Encode("K0010"), subspace.Encode("K0020"));
-					tr.ClearRange(subspace.Encode("K0050"), subspace.Encode("K0060"));
+					tr.ClearRange(subspace.GetKey("K0010"), subspace.GetKey("K0020"));
+					tr.ClearRange(subspace.GetKey("K0050"), subspace.GetKey("K0060"));
 
 					_ = await tr.GetRangeAsync(
-						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0000")),
-						KeySelector.LastLessOrEqual(subspace.Encode("K9999")),
+						subspace.GetKey("K0000").FirstGreaterOrEqual(),
+						subspace.GetKey("K9999").LastLessOrEqual(),
 						FdbRangeOptions.WantAllReversed
 					);
 
@@ -411,10 +411,10 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
-					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K9999Z"));
+					tr.ClearRange(subspace.GetKey("K0000"), subspace.GetKey("K9999Z"));
 					for (int i = 0; i < 100; i++)
 					{
-						tr.Set(subspace.Encode("K" + i.ToString("D4")), Text("V" + i.ToString("D4")));
+						tr.Set(subspace.GetKey($"K{i:D4}"), Text($"V{i:D4}"));
 					}
 				}, this.Cancellation);
 
@@ -422,19 +422,19 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await location.Resolve(tr);
 
-					tr.ClearRange(subspace.Encode("K0010"), subspace.Encode("K0020"));
-					tr.ClearRange(subspace.Encode("K0050"), subspace.Encode("K0060"));
-					tr.Set(subspace.Encode("K0021"), Slice.Empty);
-					tr.Set(subspace.Encode("K0042"), Slice.Empty);
+					tr.ClearRange(subspace.GetKey("K0010"), subspace.GetKey("K0020"));
+					tr.ClearRange(subspace.GetKey("K0050"), subspace.GetKey("K0060"));
+					tr.Set(subspace.GetKey("K0021"), Slice.Empty);
+					tr.Set(subspace.GetKey("K0042"), Slice.Empty);
 
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0005")));
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0010")));
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0015")));
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0022")));
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0049")));
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0050")));
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0055")));
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0061")));
+					await tr.GetKeyAsync(subspace.GetKey("K0005").FirstGreaterOrEqual());
+					await tr.GetKeyAsync(subspace.GetKey("K0010").FirstGreaterOrEqual());
+					await tr.GetKeyAsync(subspace.GetKey("K0015").FirstGreaterOrEqual());
+					await tr.GetKeyAsync(subspace.GetKey("K0022").FirstGreaterOrEqual());
+					await tr.GetKeyAsync(subspace.GetKey("K0049").FirstGreaterOrEqual());
+					await tr.GetKeyAsync(subspace.GetKey("K0050").FirstGreaterOrEqual());
+					await tr.GetKeyAsync(subspace.GetKey("K0055").FirstGreaterOrEqual());
+					await tr.GetKeyAsync(subspace.GetKey("K0061").FirstGreaterOrEqual());
 
 					//no commit
 				}
@@ -444,13 +444,13 @@ namespace FoundationDB.Client.Tests
 					var subspace = await location.Resolve(tr);
 
 					//tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0000"))); // equal=false, offset=1
-					await tr.GetKeyAsync(KeySelector.FirstGreaterThan(subspace.Encode("K0011")));    // equal=true, offset=1
-					await tr.GetKeyAsync(KeySelector.LastLessOrEqual(subspace.Encode("K0022")));	 // equal=true, offset=0
-					await tr.GetKeyAsync(KeySelector.LastLessThan(subspace.Encode("K0033")));		 // equal=false, offset=0
+					await tr.GetKeyAsync(subspace.GetKey("K0000").FirstGreaterOrEqual()); // equal=false, offset=1
+					await tr.GetKeyAsync(subspace.GetKey("K0011").FirstGreaterThan());    // equal=true, offset=1
+					await tr.GetKeyAsync(subspace.GetKey("K0022").LastLessOrEqual());	 // equal=true, offset=0
+					await tr.GetKeyAsync(subspace.GetKey("K0033").LastLessThan());		 // equal=false, offset=0
 
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("K0040")) + 1000); // equal=false, offset=7 ?
-					await tr.GetKeyAsync(KeySelector.LastLessThan(subspace.Encode("K0050")) + 1000); // equal=false, offset=6 ?
+					await tr.GetKeyAsync(subspace.GetKey("K0040").FirstGreaterOrEqual() + 1000); // equal=false, offset=7 ?
+					await tr.GetKeyAsync(subspace.GetKey("K0050").LastLessThan() + 1000); // equal=false, offset=6 ?
 				}
 			}
 		}
@@ -467,10 +467,10 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
-					await tr.GetAsync(subspace.Encode("KGET"));
-					tr.AddReadConflictRange(subspace.Encode("KRC0"), subspace.Encode("KRC0"));
-					tr.AddWriteConflictRange(subspace.Encode("KWRITECONFLICT0"), subspace.Encode("KWRITECONFLICT1"));
-					tr.Set(subspace.Encode("KWRITE"), Slice.Empty);
+					await tr.GetAsync(subspace.GetKey("KGET"));
+					tr.AddReadConflictRange(subspace.GetKey("KRC0"), subspace.GetKey("KRC0"));
+					tr.AddWriteConflictRange(subspace.GetKey("KWRITECONFLICT0"), subspace.GetKey("KWRITECONFLICT1"));
+					tr.Set(subspace.GetKey("KWRITE"), Slice.Empty);
 					await tr.CommitAsync();
 				}
 
@@ -479,14 +479,14 @@ namespace FoundationDB.Client.Tests
 				{
 					var subspace = await location.Resolve(tr);
 					tr.Options.WithReadYourWritesDisable();
-					await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Encode("KGETKEY")));
+					await tr.GetKeyAsync(subspace.GetKey("KGETKEY").FirstGreaterOrEqual());
 				}
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
-					tr.AddReadConflictRange(subspace.Encode("KRC0"), subspace.Encode("KRC1"));
-					tr.Set(subspace.Encode("KWRITE"), Slice.Empty);
+					tr.AddReadConflictRange(subspace.GetKey("KRC0"), subspace.GetKey("KRC1"));
+					tr.Set(subspace.GetKey("KWRITE"), Slice.Empty);
 					await tr.CommitAsync();
 				}
 			}
@@ -505,31 +505,31 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async (tr) =>
 				{
 					var subspace = await location.Resolve(tr);
-					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
-					tr.Set(subspace.Encode("K000"), Text("BEGIN"));
+					tr.ClearRange(subspace.GetKey("K0000"), subspace.GetKey("K~~~~"));
+					tr.Set(subspace.GetKey("K000"), Text("BEGIN"));
 					for (int i = 0; i < 5; i++)
 					{
-						tr.Set(subspace.Encode("K" + i + "A"), Text("V111"));
-						tr.Set(subspace.Encode("K" + i + "B"), Text("V222"));
-						tr.Set(subspace.Encode("K" + i + "C"), Text("V333"));
-						tr.Set(subspace.Encode("K" + i + "D"), Text("V444"));
-						tr.Set(subspace.Encode("K" + i + "E"), Text("V555"));
-						tr.Set(subspace.Encode("K" + i + "F"), Text("V666"));
-						tr.Set(subspace.Encode("K" + i + "G"), Text("V777"));
-						tr.Set(subspace.Encode("K" + i + "H"), Text("V888"));
+						tr.Set(subspace.GetKey("K" + i + "A"), Text("V111"));
+						tr.Set(subspace.GetKey("K" + i + "B"), Text("V222"));
+						tr.Set(subspace.GetKey("K" + i + "C"), Text("V333"));
+						tr.Set(subspace.GetKey("K" + i + "D"), Text("V444"));
+						tr.Set(subspace.GetKey("K" + i + "E"), Text("V555"));
+						tr.Set(subspace.GetKey("K" + i + "F"), Text("V666"));
+						tr.Set(subspace.GetKey("K" + i + "G"), Text("V777"));
+						tr.Set(subspace.GetKey("K" + i + "H"), Text("V888"));
 					}
-					tr.Set(subspace.Encode("K~~~"), Text("END"));
+					tr.Set(subspace.GetKey("K~~~"), Text("END"));
 				}, this.Cancellation);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
-					tr.Set(subspace.Encode("KZZZ"), Text("V999"));
+					tr.Set(subspace.GetKey("KZZZ"), Text("V999"));
 
 					_ = await tr.GetRangeAsync(
-						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0B")),
-						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0G"))
+						subspace.GetKey("K0B").FirstGreaterOrEqual(),
+						subspace.GetKey("K0G").FirstGreaterOrEqual()
 					);
 
 					await tr.CommitAsync();
@@ -550,20 +550,20 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
-					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
-					tr.SetValues(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(subspace.Encode("K" + i.ToString("D4")), Text("V" + i.ToString("D4")))));
-					tr.Set(subspace.Encode("K~~~"), Text("END"));
+					tr.ClearRange(subspace.GetKey("K0000"), subspace.GetKey("K~~~~"));
+					tr.SetValues(Enumerable.Range(0, 100), i => subspace.GetKey($"K{i:D4}"), i => Text($"V{i:D4}"));
+					tr.Set(subspace.GetKey("K~~~"), Text("END"));
 				}, this.Cancellation);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await location.Resolve(tr);
 
-					tr.ClearRange(subspace.Encode("K0042"), Text("K0069"));
+					tr.ClearRange(subspace.GetKey("K0042"), Text("K0069"));
 
 					var r = await tr.GetRangeAsync(
-						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0040")),
-						KeySelector.FirstGreaterOrEqual(subspace.Encode("K0080")),
+						subspace.GetKey("K0040").FirstGreaterOrEqual(),
+						subspace.GetKey("K0080").FirstGreaterOrEqual(),
 						FdbRangeOptions.WantAll
 					);
 					// T 1
@@ -590,11 +590,11 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
-					tr.ClearRange(subspace.Encode("K0000"), subspace.Encode("K~~~~"));
-					tr.Set(subspace.Encode("KAAA"), Text("V111"));
-					tr.Set(subspace.Encode("KBBB"), Text("V222"));
-					tr.Set(subspace.Encode("KCCC"), Text("V333"));
-					tr.Set(subspace.Encode("K~~~"), Text("END"));
+					tr.ClearRange(subspace.GetKey("K0000"), subspace.GetKey("K~~~~"));
+					tr.Set(subspace.GetKey("KAAA"), Text("V111"));
+					tr.Set(subspace.GetKey("KBBB"), Text("V222"));
+					tr.Set(subspace.GetKey("KCCC"), Text("V333"));
+					tr.Set(subspace.GetKey("K~~~"), Text("END"));
 				}, this.Cancellation);
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -602,12 +602,12 @@ namespace FoundationDB.Client.Tests
 					var subspace = await location.Resolve(tr);
 
 					// set a key, then read it, and check if it could conflict on it (it should not!)
-					tr.Set(subspace.Encode("KBBB"), Text("V222b"));
-					await tr.GetAsync(subspace.Encode("KBBB"));
+					tr.Set(subspace.GetKey("KBBB"), Text("V222b"));
+					await tr.GetAsync(subspace.GetKey("KBBB"));
 
 					// read a key, then set it, and check if it could conflict on it (it should!)
-					await tr.GetAsync(subspace.Encode("KCCC"));
-					tr.Set(subspace.Encode("KCCC"), Text("V333b"));
+					await tr.GetAsync(subspace.GetKey("KCCC"));
+					tr.Set(subspace.GetKey("KCCC"), Text("V333b"));
 
 					await tr.CommitAsync();
 				}
@@ -626,14 +626,14 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					tr.Set(subspace.Encode("KAAA"), Text("VALUE_AAA"));
+					tr.Set(subspace.GetKey("KAAA"), Text("VALUE_AAA"));
 					await tr.CommitAsync();
 				}
 				// set the key
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var subspace = await db.Root.Resolve(tr);
-					await tr.GetAsync(subspace.Encode("KAAA"));
+					await tr.GetAsync(subspace.GetKey("KAAA"));
 				}
 
 				await Task.Delay(500);
@@ -647,8 +647,8 @@ namespace FoundationDB.Client.Tests
 					var subspace1 = await db.Root.Resolve(tr1);
 					var subspace2 = await db.Root.Resolve(tr2);
 
-					tr1.Set(subspace1.Encode("KBBB"), Text("VALUE_BBB_111"));
-					tr2.Set(subspace2.Encode("KCCC"), Text("VALUE_CCC_111"));
+					tr1.Set(subspace1.GetKey("KBBB"), Text("VALUE_BBB_111"));
+					tr2.Set(subspace2.GetKey("KCCC"), Text("VALUE_CCC_111"));
 					var task1 = tr1.CommitAsync();
 					var task2 = tr2.CommitAsync();
 
@@ -665,12 +665,12 @@ namespace FoundationDB.Client.Tests
 					var subspace2 = await db.Root.Resolve(tr2);
 
 					await Task.WhenAll(
-						tr1.GetAsync(subspace1.Encode("KAAA")),
-						tr2.GetAsync(subspace2.Encode("KAAA"))
+						tr1.GetAsync(subspace1.GetKey("KAAA")),
+						tr2.GetAsync(subspace2.GetKey("KAAA"))
 					);
 
-					tr1.Set(subspace1.Encode("KBBB"), Text("VALUE_BBB_222"));
-					tr2.Set(subspace2.Encode("KCCC"), Text("VALUE_CCC_222"));
+					tr1.Set(subspace1.GetKey("KBBB"), Text("VALUE_BBB_222"));
+					tr2.Set(subspace2.GetKey("KCCC"), Text("VALUE_CCC_222"));
 					var task1 = tr1.CommitAsync();
 					var task2 = tr2.CommitAsync();
 
@@ -687,11 +687,11 @@ namespace FoundationDB.Client.Tests
 					var subspace2 = await db.Root.Resolve(tr2);
 
 					await Task.WhenAll(
-						tr1.GetAsync(subspace1.Encode("KCCC")),
-						tr2.GetAsync(subspace2.Encode("KBBB"))
+						tr1.GetAsync(subspace1.GetKey("KCCC")),
+						tr2.GetAsync(subspace2.GetKey("KBBB"))
 					);
-					tr1.Set(subspace1.Encode("KBBB"), Text("VALUE_BBB_333"));
-					tr2.Set(subspace2.Encode("KCCC"), Text("VALUE_CCC_333"));
+					tr1.Set(subspace1.GetKey("KBBB"), Text("VALUE_BBB_333"));
+					tr2.Set(subspace2.GetKey("KCCC"), Text("VALUE_CCC_333"));
 					var task1 = tr1.CommitAsync();
 					var task2 = tr2.CommitAsync();
 
