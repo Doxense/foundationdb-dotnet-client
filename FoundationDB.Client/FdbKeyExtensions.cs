@@ -852,28 +852,71 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region IBinaryKeySubspace.AppendKey(...)
+		#region IKeySubspace.AppendBytes(...)
 
-		[Pure]
-		public static FdbSuffixKey AppendKey(this IBinaryKeySubspace subspace, Slice relativeKey)
+		/// <summary>Returns a key that adds a binary suffix to the subspace's prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="relativeKey">Binary suffix</param>
+		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey AppendBytes(this IKeySubspace subspace, ReadOnlySpan<byte> relativeKey)
 		{
 			Contract.NotNull(subspace);
+
+			return new(subspace, Slice.FromBytes(relativeKey));
+		}
+
+		/// <summary>Returns a key that adds a binary suffix to the subspace's prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="relativeKey">Binary suffix</param>
+		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey AppendBytes(this IKeySubspace subspace, Slice relativeKey)
+		{
+			Contract.NotNull(subspace);
+
 			return new(subspace, relativeKey);
 		}
 
-		[Pure]
-		public static FdbSuffixKey AppendKey(this IBinaryKeySubspace subspace, byte[]? relativeKey)
+		/// <summary>Returns a key that adds a binary suffix to the subspace's prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="relativeKey">Binary suffix</param>
+		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey AppendBytes(this IKeySubspace subspace, byte[]? relativeKey)
 		{
 			Contract.NotNull(subspace);
+
 			return new(subspace, relativeKey.AsSlice());
 		}
 
+		/// <summary>Returns a key that adds a tuple as a binary suffix to the subspace's prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="tuple">Tuple that will be added as a suffix</param>
+		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
 		[Pure]
-		public static FdbVarTupleKey AppendTuple(this IBinaryKeySubspace subspace, IVarTuple items)
+		public static FdbVarTupleKey AppendBytes(this IKeySubspace subspace, IVarTuple tuple)
 		{
 			Contract.NotNull(subspace);
-			return new(subspace, items);
+			Contract.NotNull(tuple);
+
+			return new(subspace, tuple);
 		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey<TKey> AppendBytes<TKey>(this TKey key, Slice suffix)
+			where TKey : struct, IFdbKey
+			=> new(key, suffix);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey<TKey> AppendBytes<TKey>(this TKey key, byte[] suffix)
+			where TKey : struct, IFdbKey
+			=> new(key, suffix.AsSlice());
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey<TKey> AppendBytes<TKey>(this TKey key, ReadOnlySpan<byte> suffix)
+			where TKey : struct, IFdbKey
+			=> new(key, Slice.FromBytes(suffix));
 
 		#endregion
 

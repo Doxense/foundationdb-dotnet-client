@@ -78,6 +78,10 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbRawKey ToBytes(byte[] key, int start, int length) => new(key.AsSlice(start, length));
 
+		/// <summary>Returns a key that wraps a copy of a span of bytes</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbRawKey ToBytes(ReadOnlySpan<byte> key) => new(Slice.FromBytes(key));
+
 		#endregion
 
 		#region With Subspace...
@@ -96,6 +100,11 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbSuffixKey ToBytes(IKeySubspace subspace, byte[] relativeKey, int start, int length)
 			=> new(subspace, relativeKey.AsSlice(start, length));
+
+		/// <summary>Returns a key that wraps a pre-encoded binary suffix inside a <see cref="IBinaryKeySubspace"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey ToBytes(IKeySubspace subspace, ReadOnlySpan<byte> relativeKey)
+			=> new(subspace, Slice.FromBytes(relativeKey));
 
 		#endregion
 
@@ -381,6 +390,114 @@ namespace FoundationDB.Client
 			 && this.Suffix.TryCopyTo(destination[prefixLen..], out var dataLen))
 			{
 				bytesWritten = prefixLen + dataLen;
+				return true;
+			}
+
+			bytesWritten = 0;
+			return false;
+		}
+
+	}
+
+	/// <summary>Wraps a <see cref="Slice"/> that wraps a pre-encoded binary suffix, relative to a subspace</summary>
+	public readonly struct FdbSuffixKey<TKey> : IFdbKey
+		, IEquatable<FdbSuffixKey<TKey>>, IEquatable<FdbRawKey>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
+		where TKey : struct, IFdbKey
+	{
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[SkipLocalsInit]
+		internal FdbSuffixKey(in TKey parent, Slice suffix)
+		{
+			this.Parent = parent;
+			this.Suffix = suffix;
+		}
+
+		public readonly TKey Parent;
+
+		public readonly Slice Suffix;
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbSuffixKey<TKey> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key),
+				Slice bytes => this.Equals(bytes),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Suffix.GetHashCode(); //BUGBUG: TODO: this breaks the contracts for equality
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbSuffixKey<TKey> other) => this.Parent.Equals(other.Parent) && this.Suffix.Equals(other.Suffix);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+
+		#endregion
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null)
+			=> string.Create(formatProvider, $"{this.Parent} + `{this.Suffix}`");
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+			=> destination.TryWrite(provider, $"{this.Parent} + `{this.Suffix}`", out charsWritten);
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			span = default;
+			return false;
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			if (!this.Parent.TryGetSizeHint(out var size))
+			{
+				sizeHint = 0;
+				return false;
+			}
+			sizeHint = checked(size  + this.Suffix.Count);
+			return true;
+		}
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			if (this.Parent.TryEncode(destination, out var parentLen)
+			 && this.Suffix.TryCopyTo(destination[parentLen..], out var dataLen))
+			{
+				bytesWritten = parentLen + dataLen;
 				return true;
 			}
 

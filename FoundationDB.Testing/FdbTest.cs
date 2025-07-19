@@ -293,7 +293,7 @@ namespace FoundationDB.Client.Tests
 					var subspace = await db.DirectoryLayer.CreateOrOpenAsync(tr, location.Path);
 
 					// get and clear subspace
-					tr.ClearRange(subspace.AppendKey(location.Prefix).GetRange());
+					tr.ClearRange(subspace.AppendBytes(location.Prefix).GetRange());
 				}
 			}, this.Cancellation);
 		}
