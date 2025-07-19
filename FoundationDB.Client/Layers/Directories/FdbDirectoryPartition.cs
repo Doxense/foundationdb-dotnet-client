@@ -29,8 +29,11 @@ namespace FoundationDB.Client
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 
-		/// <summary>Returns a slice with the ASCII string "partition"</summary>
+		/// <summary><c>"partition"</c></summary>
 		public const string LayerId = "partition";
+
+		/// <summary>Slice with the ASCII string "partition"</summary>
+		internal static readonly Slice LayerIdBytes = Slice.FromBytes("partition"u8);
 
 		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, ISubspaceContext? context, bool cached)
 			: base(descriptor, context, cached)

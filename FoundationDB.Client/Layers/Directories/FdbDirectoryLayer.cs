@@ -524,7 +524,7 @@ namespace FoundationDB.Client
 			private static void SetLayer(IFdbTransaction trans, PartitionDescriptor partition, Slice prefix, string layer)
 			{
 				Contract.Debug.Requires(layer != null);
-				trans.Set(partition.Nodes.GetKey(prefix, LayerAttribute), FdbValue.ToTextUtf8(layer));
+				trans.Set(partition.GetLayerIdKey(prefix), FdbValue.ToTextUtf8(layer));
 			}
 
 			/// <summary>Finds a node subspace, given its path, by walking the tree from the root.</summary>
@@ -541,7 +541,7 @@ namespace FoundationDB.Client
 
 				//TODO: maybe cache this?
 				var partitionMetadataValue = await partition.GetStampValue(tr).ConfigureAwait(false);
-				chain.Add(new(partition.StampKey, partitionMetadataValue));
+				chain.Add(new(partition.GetStampKey().ToSlice(), partitionMetadataValue));
 
 				int i = 0;
 				var layer = FdbDirectoryPartition.LayerId; // the root is by convention a "partition"
@@ -560,7 +560,13 @@ namespace FoundationDB.Client
 					}
 
 					// get the layer id of this node
-					layer = (await tr.GetAsync(partition.Nodes.GetKey(current, LayerAttribute)).ConfigureAwait(false)).ToStringUtf8() ?? string.Empty;
+					layer = await tr.GetAsync(
+						partition.GetLayerIdKey(current),
+						(value, found)
+							=> value.Length == 0 ? ""
+							 : value.SequenceEqual("partition"u8) ? FdbDirectoryPartition.LayerId
+							 : Encoding.UTF8.GetString(value)
+					).ConfigureAwait(false);
 					if (AnnotateTransactions) tr.Annotate($"Found subfolder '{path[i].Name}' at {FdbKey.Dump(current)} ({layer})");
 
 					parent = partition;
@@ -572,7 +578,7 @@ namespace FoundationDB.Client
 						current = partition.Nodes.GetPrefix();
 
 						partitionMetadataValue = await partition.GetStampValue(tr).ConfigureAwait(false);
-						chain.Add(new(partition.StampKey, partitionMetadataValue));
+						chain.Add(new(partition.GetStampKey().ToSlice(), partitionMetadataValue));
 					}
 
 					++i;
@@ -773,7 +779,7 @@ namespace FoundationDB.Client
 
 				if (prefix.IsNull)
 				{ // automatically allocate a new prefix inside the ContentSubspace
-					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.Partition.ByKey(partition.Nodes.GetPrefix(), HcaAttribute), this.Allocator).ConfigureAwait(false);
+					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.WithPrefix((partition.Nodes.GetPrefix(), HcaAttribute)), this.Allocator).ConfigureAwait(false);
 					prefix = partition.Content.GetKey(id).ToSlice();
 
 					// ensure that there is no data already present under this prefix
@@ -1034,7 +1040,7 @@ namespace FoundationDB.Client
 			{
 				//TODO: we could defer the check using the cache context!
 
-				var value = await trans.GetAsync(this.Partition.VersionKey).ConfigureAwait(false);
+				var value = await trans.GetAsync(this.Partition.GetVersionKey()).ConfigureAwait(false);
 				if (!value.IsNullOrEmpty)
 				{
 					CheckVersion(value, false);
@@ -1056,14 +1062,14 @@ namespace FoundationDB.Client
 			private void InitializePartition(IFdbTransaction trans, PartitionDescriptor partition)
 			{
 				// Set the version key
-				trans.Set(partition.VersionKey, MakeVersionValue());
-				trans.Set(partition.StampKey, FdbValue.Zero32);
+				trans.Set(partition.GetVersionKey(), MakeVersionValue());
+				trans.Set(partition.GetStampKey(), FdbValue.Zero32);
 			}
 
 			private static void TouchPartitionMetadataKey(IFdbTransaction trans, PartitionDescriptor partition)
 			{
 				trans.Annotate($"Bump the stamp key of partition {partition.Path}");
-				trans.AtomicIncrement32(partition.StampKey);
+				trans.AtomicIncrement32(partition.GetStampKey());
 			}
 
 			private static Slice MakeVersionValue()
@@ -1140,14 +1146,15 @@ namespace FoundationDB.Client
 				}
 
 				// fetch the layers from the corresponding directories
-				var layers = includeLayers ? await tr.GetValuesAsync(items, item => partition.Nodes.GetKey(item.Prefix, LayerAttribute)).ConfigureAwait(false) : null;
+				var layers = includeLayers
+					? await tr.GetValuesAsync(items, partition, static (p, item) => p.GetLayerIdKey(item.Prefix)).ConfigureAwait(false)
+					: null;
 
 				var res = new List<(string, string?, Slice)>(items.Count);
 				for (int i = 0; i < items.Count; i++)
 				{
 					res.Add((items[i].Name, layers != null ? (layers[i].ToStringUtf8() ?? string.Empty) : null, items[i].Prefix));
 				}
-
 				return res;
 			}
 
@@ -1558,10 +1565,6 @@ namespace FoundationDB.Client
 
 			public IDynamicKeySubspace Nodes { get; }
 
-			public Slice VersionKey { get; }
-
-			public Slice StampKey { get; }
-
 			private Slice CachedStampValue { get; set; }
 
 			public PartitionDescriptor(FdbPath path, IDynamicKeySubspace content, PartitionDescriptor? parent)
@@ -1577,11 +1580,17 @@ namespace FoundationDB.Client
 				this.Path = path;
 				this.Parent = parent;
 				this.Content = content;
-				this.Nodes = content.Partition[FdbKey.DirectoryPrefixSpan];
-				var rootNode = this.Nodes.Partition.ByKey(this.Nodes.GetPrefix());
-				this.VersionKey = rootNode.GetKey(VersionAttribute).ToSlice();
-				this.StampKey = rootNode.GetKey(StampAttribute).ToSlice();
+				this.Nodes = content.WithPrefix(FdbKey.DirectoryPrefixSpan);
 			}
+
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public FdbTupleKey<Slice, Slice> GetVersionKey() => this.Nodes.GetKey(this.Nodes.GetPrefix(), VersionAttribute);
+
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public FdbTupleKey<Slice, Slice> GetStampKey() => this.Nodes.GetKey(this.Nodes.GetPrefix(), StampAttribute);
+
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public FdbTupleKey<Slice, Slice> GetLayerIdKey(Slice prefix) => this.Nodes.GetKey(prefix, LayerAttribute);
 
 			/// <summary>Return a child partition of the current partition</summary>
 			public PartitionDescriptor CreateChild(FdbPath path, Slice prefix)
@@ -1603,7 +1612,7 @@ namespace FoundationDB.Client
 
 			private async ValueTask<Slice> ReadStampValue(IFdbReadOnlyTransaction tr)
 			{
-				var value = await tr.GetAsync(this.StampKey).ConfigureAwait(false);
+				var value = await tr.GetAsync(this.GetStampKey()).ConfigureAwait(false);
 				this.CachedStampValue = value;
 				return value;
 			}

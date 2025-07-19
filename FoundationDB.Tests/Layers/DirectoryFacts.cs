@@ -135,7 +135,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(foo.Descriptor.Layer, Is.EqualTo(string.Empty));
 			Assert.That(foo.Descriptor.ValidationChain, Is.Not.Null);
 			DumpValidationChange(foo);
-			Assert.That(foo.Descriptor.ValidationChain[0].Key, Is.EqualTo(foo.Descriptor.Partition.StampKey));
+			Assert.That(foo.Descriptor.ValidationChain[0].Key, Is.EqualTo(foo.Descriptor.Partition.GetStampKey()));
 			Assert.That(foo.Descriptor.ValidationChain, Has.Count.EqualTo(1));
 
 			// second call should return the same subspace
@@ -269,7 +269,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(foo.Descriptor.ValidationChain, Is.Not.Null);
 			DumpValidationChange(foo);
 			Assert.That(foo.Descriptor.ValidationChain, Has.Count.EqualTo(1));
-			Assert.That(foo.Descriptor.ValidationChain[0].Key, Is.EqualTo(foo.Descriptor.Partition.StampKey));
+			Assert.That(foo.Descriptor.ValidationChain[0].Key, Is.EqualTo(foo.Descriptor.Partition.GetStampKey()));
 
 			var bar = await db.ReadAsync(tr => dl.OpenAsync(tr, FdbPath.Parse("/Foo/Bar")), this.Cancellation);
 			Assert.That(bar, Is.Not.Null);
@@ -1089,12 +1089,24 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition.Partition.ByKey(123, "hello", false));
 				ShouldFail(() => partition.Partition.ByKey(123, "hello", false, "world"));
 
+				// With Prefix
+				ShouldFail(() => partition.WithPrefix(TuPack.EncodeKey(123)));
+				ShouldFail(() => partition.WithPrefix(STuple.Create(123)));
+				ShouldFail(() => partition.WithPrefix(STuple.Create(123, "hello")));
+				ShouldFail(() => partition.WithPrefix(STuple.Create(123, "hello", false)));
+				ShouldFail(() => partition.WithPrefix(STuple.Create(123, "hello", false, "world")));
+
+				ShouldFail(() => partition.WithPrefix(ValueTuple.Create(123)));
+				ShouldFail(() => partition.WithPrefix((123, "hello")));
+				ShouldFail(() => partition.WithPrefix((123, "hello", false)));
+				ShouldFail(() => partition.WithPrefix((123, "hello", false, "world")));
+
 				// Keys
 
 				ShouldFail(() => partition.Append(Slice.FromString("hello")));
 				var subspace = await location.Resolve(tr, dl);
 
-				ShouldFail(() => partition.Append(subspace!.GetPrefix()));
+				ShouldFail(() => partition.Append(subspace.GetPrefix()));
 				ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
 				ShouldFail(() => partition.ToRange());
@@ -1124,6 +1136,21 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition.ToRange());
 				ShouldFail(() => partition.ToRange(Slice.FromString("hello")));
 				ShouldFail(() => partition.PackRange(STuple.Create("hello")));
+
+				// GetKey
+
+				// GetKey() itself should not fail, but attempting to render the bytes should!
+				ShouldPass(() => partition.GetKey(123));
+				ShouldPass(() => partition.GetKey(123, "hello"));
+				ShouldPass(() => partition.GetKey(123, "hello", false));
+				ShouldPass(() => partition.GetKey(123, "hello", false, "world"));
+				ShouldPass(() => partition.GetKey<object>(123));
+
+				ShouldFail(() => partition.GetKey(123).ToSlice());
+				ShouldFail(() => partition.GetKey(123, "hello").ToSlice());
+				ShouldFail(() => partition.GetKey(123, "hello", false).ToSlice());
+				ShouldFail(() => partition.GetKey(123, "hello", false, "world").ToSlice());
+				ShouldFail(() => partition.GetKey<object>(123).ToSlice());
 
 			}, this.Cancellation);
 		}
@@ -1214,16 +1241,16 @@ namespace FoundationDB.Client.Tests
 						tr2.GetReadVersionAsync()
 					);
 
-					var subspace1 = await location.TryResolve(tr1, dl);
+					var subspace1 = await location.Resolve(tr1, dl);
 					Assert.That(subspace1, Is.Not.Null);
 
-					var subspace2 = await location.TryResolve(tr2, dl);
+					var subspace2 = await location.Resolve(tr2, dl);
 					Assert.That(subspace2, Is.Not.Null);
 
-					var first = await dl.RegisterAsync(tr1, FdbPath.Absolute("First"), subspace1!.Encode("abc"));
+					var first = await dl.RegisterAsync(tr1, FdbPath.Absolute("First"), subspace1.GetKey("abc").ToSlice());
 					tr1.Set(first.GetPrefix(), Text("This belongs to the first directory"));
 
-					var second = await dl.RegisterAsync(tr2, FdbPath.Absolute("Second"), subspace2!.Encode("def"));
+					var second = await dl.RegisterAsync(tr2, FdbPath.Absolute("Second"), subspace2.GetKey("def").ToSlice());
 					tr2.Set(second.GetPrefix(), Text("This belongs to the second directory"));
 
 					Log("Committing T1...");
@@ -1447,7 +1474,7 @@ namespace FoundationDB.Client.Tests
 				var folder = await dl.TryOpenCachedAsync(tr, FdbPath.Absolute("Foo"));
 				Assert.That(folder, Is.Not.Null);
 				Assert.That(folder!.Context, Is.InstanceOf<FdbDirectoryLayer.State>(), $"Unexpected context for cached directory {folder.Path}");
-				return folder!;
+				return folder;
 			}, this.Cancellation);
 
 			// the fooCached instance should be dead outside the transaction!
@@ -1506,7 +1533,7 @@ namespace FoundationDB.Client.Tests
 				Log("Resolving " + dir);
 				var subspace = await dir.Resolve(tr, directoryLayer);
 				Assert.That(subspace, Is.Not.Null);
-				Assert.That(subspace!.Path, Is.EqualTo(dir.Path), ".Path");
+				Assert.That(subspace.Path, Is.EqualTo(dir.Path), ".Path");
 				Log("> Found under " + subspace.GetPrefix());
 				Assert.That(subspace.GetPrefix(), Is.EqualTo(prefix), ".Prefix");
 			}, this.Cancellation);
