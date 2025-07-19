@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 	/// </code>
 	/// </example>
 	[PublicAPI]
-	public interface IKeySubspace
+	public interface IKeySubspace : ISpanEncodable
 	{
 		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitioning and concatenation
 

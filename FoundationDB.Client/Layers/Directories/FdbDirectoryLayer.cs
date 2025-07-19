@@ -1372,8 +1372,13 @@ namespace FoundationDB.Client
 
 			private CacheContext? Context;
 
+			/// <inheritdoc />
 			string ISubspaceContext.Name => this.Context?.DirectoryLayer.FullName ?? "<invalid>";
 
+			/// <inheritdoc />
+			bool ISubspaceContext.IsValid => Volatile.Read(ref this.Status) != STATUS_DEAD;
+
+			/// <inheritdoc />
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			void ISubspaceContext.EnsureIsValid()
 			{
@@ -1527,8 +1532,13 @@ namespace FoundationDB.Client
 				}
 			}
 
+			/// <inheritdoc />
 			public string Name => this.DirectoryLayer.FullName;
 
+			/// <inheritdoc />
+			public bool IsValid => true;
+
+			/// <inheritdoc />
 			public void EnsureIsValid()
 			{
 				//TODO?

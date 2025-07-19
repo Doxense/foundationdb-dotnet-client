@@ -511,6 +511,47 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region ISpanEncodable...
+
+		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			if (!this.Context.IsValid)
+			{
+				span = default;
+				return false;
+			}
+			span = this.Key.Span;
+			return true;
+		}
+
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
+		{
+			if (!this.Context.IsValid)
+			{
+				sizeHint = 0;
+				return false;
+			}
+			sizeHint = this.Key.Count;
+			return true;
+		}
+
+		bool ISpanEncodable.TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			var prefix = GetPrefix(); // throws if context is not valid anymore
+			var span = prefix.Span;
+			if (destination.Length < span.Length)
+			{
+				bytesWritten = 0;
+				return false;
+			}
+
+			span.CopyTo(destination);
+			bytesWritten = span.Length;
+			return true;
+		}
+
+		#endregion
+
 	}
 
 }

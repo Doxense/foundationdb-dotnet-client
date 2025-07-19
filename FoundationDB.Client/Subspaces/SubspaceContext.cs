@@ -30,12 +30,16 @@ namespace FoundationDB.Client
 	public interface ISubspaceContext
 	{
 
+		/// <summary>Checks if this context is still valid for use</summary>
+		bool IsValid { get; }
+
 		/// <summary>Check if this context is still valid for use</summary>
 		/// <remarks>Should throw an exception if the context is in an invalid state</remarks>
 		void EnsureIsValid();
 
 		/// <summary>User-friendly name of this context</summary>
 		string Name { get; }
+
 	}
 
 	/// <summary>Context for key subspaces that are always valid</summary>
@@ -46,11 +50,16 @@ namespace FoundationDB.Client
 		/// <summary>Key subspace context that never expires</summary>
 		public static readonly ISubspaceContext Default = new SubspaceContext();
 
+		/// <inheritdoc />
 		public void EnsureIsValid()
 		{
 			// the default context is always valid
 		}
 
+		/// <inheritdoc />
+		public bool IsValid => true;
+
+		/// <inheritdoc />
 		public string Name => string.Empty;
 
 	}
