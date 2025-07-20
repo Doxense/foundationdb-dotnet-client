@@ -128,17 +128,22 @@ namespace FoundationDB.Client
 			return new(key.ToSlice());
 		}
 
+		/// <summary>Compares the prefix of two subspaces for equality</summary>
+		public static bool Equals(IKeySubspace? subspace, IKeySubspace? other)
+		{
+			return (subspace ?? KeySubspace.Empty).Equals(other ?? KeySubspace.Empty);
+		}
+
+		/// <summary>Compares the prefix of two subspaces</summary>
 		public static int CompareTo(IKeySubspace? subspace, IKeySubspace? other)
 		{
-			return ReferenceEquals(subspace, other)
-				? 0
-				: (other?.GetPrefix() ?? Slice.Empty).CompareTo(subspace?.GetPrefix() ?? Slice.Empty);
+			return (subspace ?? KeySubspace.Empty).CompareTo(other ?? KeySubspace.Empty);
 		}
 
 		/// <inheritdoc cref="CompareTo{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
 		public static int CompareTo<TKey>(in TKey key, Slice expectedBytes)
 			where TKey : struct, IFdbKey
-			=> CompareTo(in key, expectedBytes.Span);
+			=> !expectedBytes.IsNull ? CompareTo(in key, expectedBytes.Span) : +1;
 
 		/// <summary>Compares a key with a specific encoded binary representation</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
@@ -218,6 +223,35 @@ namespace FoundationDB.Client
 			{
 				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
 				using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
+				return keyBytes.Span.SequenceEqual(otherBytes.Span);
+			}
+		}
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TKey">Type of the first key</typeparam>
+		/// <param name="key">First key to test</param>
+		/// <param name="other">Second key to test</param>
+		/// <returns><c>true</c> if the both key encodes to the exact same bytes; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool Equals<TKey>(in TKey key, IFdbKey other)
+			where TKey : struct, IFdbKey
+		{
+			if (other.TryGetSpan(out var otherSpan))
+			{
+				return Equals(in key, otherSpan);
+			}
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return other.Equals(keySpan);
+			}
+			return EqualsIncompatible(in key, other);
+
+			static bool EqualsIncompatible(in TKey key, IFdbKey other)
+			{
+				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
+				using var otherBytes = Encode(other, ArrayPool<byte>.Shared);
 				return keyBytes.Span.SequenceEqual(otherBytes.Span);
 			}
 		}
@@ -347,6 +381,64 @@ namespace FoundationDB.Client
 			return key.TryGetSpan(out var span)
 				? SliceOwner.Copy(span, pool)
 				: Encode(in key, pool);
+		}
+
+		[MustDisposeResource, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static SliceOwner Encode(IFdbKey key, ArrayPool<byte>? pool, int? sizeHint = null)
+		{
+			Contract.Debug.Requires(pool != null);
+
+			int capacity;
+			if (sizeHint is not null)
+			{
+				capacity = sizeHint.Value;
+			}
+			else if (!key.TryGetSizeHint(out capacity))
+			{
+				capacity = 0;
+			}
+			if (capacity <= 0)
+			{
+				capacity = 128;
+			}
+
+			byte[]? tmp = null;
+			try
+			{
+				while (true)
+				{
+					tmp = pool.Rent(capacity);
+					if (key.TryEncode(tmp, out int bytesWritten))
+					{
+						if (bytesWritten == 0)
+						{
+							pool.Return(tmp);
+							tmp = null;
+							return SliceOwner.Empty;
+						}
+
+						return SliceOwner.Create(tmp.AsSlice(0, bytesWritten), pool);
+					}
+
+					pool.Return(tmp);
+					tmp = null;
+
+					if (capacity >= FdbKey.MaxSize)
+					{
+						// it would be too large anyway!
+						throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+					}
+					capacity *= 2;
+				}
+			}
+			catch(Exception)
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				throw;
+			}
 		}
 
 		[MustDisposeResource, MethodImpl(MethodImplOptions.NoInlining)]

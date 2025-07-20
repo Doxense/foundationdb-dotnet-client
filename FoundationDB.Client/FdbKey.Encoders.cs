@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Numerics;
 
 	public static partial class FdbKey
 	{
@@ -108,6 +109,26 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Special Keys...
+
+		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		/// <param name="suffix"></param>
+		/// <returns></returns>
+		public static FdbSystemKey CreateSystem(Slice suffix)
+		{
+			return new(special: false, suffix);
+		}
+
+		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		/// <param name="suffix"></param>
+		/// <returns></returns>
+		public static FdbSystemKey CreateSpecial(Slice suffix)
+		{
+			return new(special: true, suffix);
+		}
+
+		#endregion
+
 		#endregion
 
 		#region Tuples...
@@ -184,7 +205,9 @@ namespace FoundationDB.Client
 	/// <para>For example, a <see cref="FdbTupleKey{string,int}"/> will wrap the items <c>("hello", 123)</c>, which will be later converted into bytes using the Tuple Encoding</para>
 	/// <para>Keys that are reused multiple times can be converted into a <see cref="FdbRawKey"/> using the <see cref="FdbKeyExtensions.Memoize{TKey}"/> method, which wraps the complete key in a <see cref="Slice"/>.</para>
 	/// </remarks>
-	public interface IFdbKey : ISpanEncodable, ISpanFormattable, IEquatable<Slice>, IComparable<Slice>
+	public interface IFdbKey : ISpanEncodable, ISpanFormattable
+		, IEquatable<FdbRawKey>, IComparable<FdbRawKey>
+		, IEquatable<Slice>, IComparable<Slice>
 	{
 
 		/// <summary>Optional subspace that contains this key</summary>
@@ -192,16 +215,30 @@ namespace FoundationDB.Client
 		[Pure]
 		IKeySubspace? GetSubspace();
 
+		/// <inheritdoc cref="IEquatable{T}.Equals(T?)"/>
+		[Pure]
+		bool Equals<TOtherKey>(in TOtherKey key) where TOtherKey : struct, IFdbKey;
+
+		/// <inheritdoc cref="IComparable{T}.CompareTo(T?)"/>
+		[Pure]
+		int CompareTo<TOtherKey>(in TOtherKey key) where TOtherKey : struct, IFdbKey;
+
+		/// <inheritdoc cref="IEquatable{T}.Equals(T?)"/>
+		[Pure]
+		bool Equals(ReadOnlySpan<byte> other);
+
+		/// <inheritdoc cref="IComparable{T}.CompareTo(T?)"/>
+		[Pure]
+		int CompareTo(ReadOnlySpan<byte> other);
+
 	}
 
 	#region Binary Keys...
 
 	/// <summary>Wraps a <see cref="Slice"/> that contains a pre-encoded key in the database</summary>
 	public readonly struct FdbRawKey : IFdbKey
-		, IEquatable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IComparisonOperators<FdbRawKey, FdbRawKey, bool>
+		, IComparisonOperators<FdbRawKey, Slice, bool>
 	{
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -233,6 +270,7 @@ namespace FoundationDB.Client
 				FdbRawKey key => this.Equals(key.Data),
 				FdbVarTupleKey key => key.Equals(this),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -253,30 +291,93 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<byte> other) => this.Data.Equals(other);
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 		{
 			if (typeof(TOtherKey) == typeof(FdbRawKey))
 			{
-				return this.Data.Equals(((FdbRawKey)(object)other).Data);
+				return this.Data.Equals(((FdbRawKey) (object) other).Data);
 			}
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other) => this.Data.CompareTo(other.Data);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other) => this.Data.CompareTo(other);
 
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other) => this.Data.Span.SequenceCompareTo(other);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 		{
 			if (typeof(TOtherKey) == typeof(FdbRawKey))
 			{
-				return this.Data.CompareTo(((FdbRawKey)(object)other).Data);
+				return this.Data.CompareTo(((FdbRawKey) (object) other).Data);
 			}
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
+
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbRawKey left, FdbRawKey right) => left.Data.Equals(right.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbRawKey left, Slice right) => left.Data.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbRawKey left, FdbRawKey right) => !left.Data.Equals(right.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbRawKey left, Slice right) => !left.Data.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbRawKey left, FdbRawKey right) => left.Data.CompareTo(right.Data) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbRawKey left, Slice right) => left.Data.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbRawKey left, FdbRawKey right) => left.Data.CompareTo(right.Data) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbRawKey left, Slice right) => left.Data.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbRawKey left, FdbRawKey right) => left.Data.CompareTo(right.Data) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbRawKey left, Slice right) => left.Data.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbRawKey left, FdbRawKey right) => left.Data.CompareTo(right.Data) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbRawKey left, Slice right) => left.Data.CompareTo(right) >= 0;
+
+		#endregion
 
 		#endregion
 
@@ -321,10 +422,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Wraps a <see cref="Slice"/> that wraps a pre-encoded binary suffix, relative to a subspace</summary>
 	public readonly struct FdbSuffixKey : IFdbKey
-		, IEquatable<FdbSuffixKey>, IEquatable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbSuffixKey>, IComparable<FdbSuffixKey>
 	{
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -352,6 +450,7 @@ namespace FoundationDB.Client
 				FdbSuffixKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -362,7 +461,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbSuffixKey other) => Equals(this.Subspace, other.Subspace) && this.Suffix.Equals(other.Suffix);
+		public bool Equals(FdbSuffixKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Suffix.Equals(other.Suffix);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -376,10 +475,46 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbSuffixKey))
+			{
+				return FdbKeyExtensions.Equals(this.Subspace, ((FdbSuffixKey) (object) other).Subspace) && this.Suffix.Equals(((FdbSuffixKey) (object) other).Suffix);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return FdbKeyExtensions.Equals(in this, ((FdbRawKey) (object) other).Data);
+			}
+			return FdbKeyExtensions.Equals(in this, in other);
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbSuffixKey other)
+		{
+			var cmp = FdbKeyExtensions.CompareTo(this.Subspace, other.Subspace);
+			if (cmp == 0) cmp = this.Suffix.CompareTo(other.Suffix);
+			return cmp;
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other) => FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
 			=> FdbKeyExtensions.CompareTo(in this, other);
 
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
@@ -392,7 +527,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null)
-			=> string.Create(formatProvider, $"[{this.Subspace}] `{this.Suffix}`");
+			=> string.Create(formatProvider, $"{this}");
 
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
@@ -430,12 +565,10 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Wraps a <see cref="Slice"/> that wraps a pre-encoded binary suffix, relative to a subspace</summary>
+	/// <summary>Wraps another <see cref="IFdbKey"/>, with an added binary suffix</summary>
+	/// <typeparam name="TKey">Type of the parent key</typeparam>
 	public readonly struct FdbSuffixKey<TKey> : IFdbKey
-		, IEquatable<FdbSuffixKey<TKey>>, IEquatable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbSuffixKey<TKey>>, IComparable<FdbSuffixKey<TKey>>
 		where TKey : struct, IFdbKey
 	{
 
@@ -447,8 +580,10 @@ namespace FoundationDB.Client
 			this.Suffix = suffix;
 		}
 
+		/// <summary>Parent key</summary>
 		public readonly TKey Parent;
 
+		/// <summary>Suffix added after the key</summary>
 		public readonly Slice Suffix;
 
 		/// <inheritdoc />
@@ -464,6 +599,7 @@ namespace FoundationDB.Client
 				FdbSuffixKey<TKey> key => this.Equals(key),
 				FdbRawKey key => this.Equals(key),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -488,6 +624,22 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbSuffixKey<TKey>))
+			{
+				return this.Suffix.Equals(((FdbSuffixKey<TKey>) (object) other).Suffix) && this.Parent.Equals(((FdbSuffixKey<TKey>) (object) other));
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return FdbKeyExtensions.Equals(in this, ((FdbRawKey) (object) other).Data);
+			}
+			return FdbKeyExtensions.Equals(in this, in other);
+		}
+
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbSuffixKey<TKey> other)
 		{
@@ -496,14 +648,22 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
 			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
 			=> FdbKeyExtensions.CompareTo(in this, other);
 
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
@@ -516,7 +676,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null)
-			=> string.Create(formatProvider, $"{this.Parent} + `{this.Suffix}`");
+			=> string.Create(formatProvider, $"{this}");
 
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
@@ -559,6 +719,168 @@ namespace FoundationDB.Client
 
 	}
 
+	/// <summary>Wraps a <see cref="Slice"/> that wraps a pre-encoded binary suffix, relative to a subspace</summary>
+	public readonly struct FdbSystemKey : IFdbKey
+		, IEquatable<FdbSystemKey>, IComparable<FdbSystemKey>
+	{
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[SkipLocalsInit]
+		internal FdbSystemKey(bool special, Slice suffix)
+		{
+			this.IsSpecial = special;
+			this.Suffix = suffix;
+		}
+
+		public readonly bool IsSpecial;
+
+		public readonly Slice Suffix;
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => null;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbSystemKey key => this.Equals(key),
+				FdbRawKey key => this.Equals(key),
+				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
+				_ => false,
+			};
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Suffix.GetHashCode(); //BUGBUG: TODO: this breaks the contracts for equality
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbSystemKey other) => this.IsSpecial == other.IsSpecial && this.Suffix.Equals(other.Suffix);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => Equals(other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => !other.IsNull && Equals(other.Span);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other)
+		{
+			return this.IsSpecial
+				? other.Length >= 2 && other[0] == 0xFF && other[1] == 0xFF && other[2..].SequenceEqual(this.Suffix.Span)
+				: other.Length >= 1 && other[0] == 0xFF && other[1..].SequenceEqual(this.Suffix.Span);
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbSystemKey))
+			{
+				return this.IsSpecial == ((FdbSystemKey) (object) other).IsSpecial && this.Suffix.Equals(((FdbSystemKey) (object) other).Suffix);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return Equals(((FdbRawKey) (object) other).Data);
+			}
+			return FdbKeyExtensions.Equals(in this, in other);
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbSystemKey other) => this.IsSpecial == other.IsSpecial
+			? this.Suffix.CompareTo(other.Suffix)
+			: FdbKeyExtensions.CompareTo(in this, in other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other)
+			=> !this.IsSpecial && other.Data.StartsWith(0xFF)
+				? Suffix.CompareTo(other.Data.Span[1..])
+				: FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyExtensions.CompareTo(in this, in other);
+
+		#endregion
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null)
+			=> string.Create(formatProvider, $"{this}");
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+			=> destination.TryWrite(provider, $"`{(this.IsSpecial ? "<FF><FF>" : "<FF>")}{this.Suffix}`", out charsWritten);
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			span = default;
+			return false;
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			sizeHint = (this.IsSpecial ? 2 : 1) + this.Suffix.Count;
+			return true;
+		}
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			if (this.IsSpecial)
+			{
+				if (destination.Length > 2 && this.Suffix.TryCopyTo(destination[2..], out var dataLen))
+				{
+					destination[0] = 0xFF;
+					destination[1] = 0xFF;
+					bytesWritten = 2 + dataLen;
+					return true;
+				}
+			}
+			else
+			{
+				if (destination.Length > 1 && this.Suffix.TryCopyTo(destination[1..], out var dataLen))
+				{
+					destination[0] = 0xFF;
+					bytesWritten = 1 + dataLen;
+					return true;
+				}
+			}
+			bytesWritten = 0;
+			return false;
+		}
+
+	}
+
 	#endregion
 
 	#region Encoded Keys...
@@ -566,7 +888,7 @@ namespace FoundationDB.Client
 	/// <summary>Wraps a value that will be encoded to get the corresponding key, relative to a subspace</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
 	[DebuggerDisplay("Data={Data}")]
-	public readonly struct FdbKey<TKey>: IFdbKey, IEquatable<FdbKey<TKey>>
+	public readonly struct FdbKey<TKey> : IFdbKey, IEquatable<FdbKey<TKey>>, IComparable<FdbKey<TKey>>
 		where TKey : struct, ISpanEncodable
 	{
 
@@ -588,27 +910,74 @@ namespace FoundationDB.Client
 
 		#region Equals(...)
 
-		public bool Equals(FdbKey<TKey> other) => ReferenceEquals(this.Subspace, other.Subspace) && EqualityComparer<TKey>.Default.Equals(this.Data, other.Data);
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other)
+		{
+			return other switch
+			{
+				FdbKey<TKey> key => this.Equals(key),
+				FdbRawKey key => this.Equals(key),
+				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
+				_ => false,
+			};
+		}
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override int GetHashCode() => this.Data.GetHashCode(); //BUGBUG: TODO: this breaks the contracts for equality
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbKey<TKey> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && EqualityComparer<TKey>.Default.Equals(this.Data, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => FdbKeyExtensions.Equals(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc cref="Equals(Slice)"/>
 		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc cref="Equals(FdbKey{TKey})" />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 		{
 			if (typeof(TOtherKey) == typeof(FdbKey<TKey>))
 			{
-				return Equals((FdbKey<TKey>) (object) other);
+				return FdbKeyExtensions.Equals(this.Subspace, ((FdbKey<TKey>) (object) other).Subspace) && EqualityComparer<TKey>.Default.Equals(this.Data, ((FdbKey<TKey>) (object) other).Data);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return FdbKeyExtensions.Equals(in this, ((FdbRawKey) (object) other).Data);
 			}
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbKey<TKey> other)
+			=> FdbKeyExtensions.CompareTo(in this, in other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other)
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
 			=> FdbKeyExtensions.CompareTo(in this, other);
 
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(FdbKey{TKey})" />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
@@ -677,7 +1046,8 @@ namespace FoundationDB.Client
 	/// <typeparam name="TKey">Type of the key</typeparam>
 	/// <typeparam name="TEncoder">Type of the <see cref="ISpanEncoder{TValue}"/> that can convert this key into a binary representation</typeparam>
 	[DebuggerDisplay("Data={Data}")]
-	public readonly struct FdbKey<TKey, TEncoder>: IFdbKey, IEquatable<FdbKey<TKey, TEncoder>>
+	public readonly struct FdbKey<TKey, TEncoder>: IFdbKey
+		, IEquatable<FdbKey<TKey, TEncoder>>, IComparable<FdbKey<TKey, TEncoder>>
 		where TEncoder: struct, ISpanEncoder<TKey>
 	{
 
@@ -699,16 +1069,59 @@ namespace FoundationDB.Client
 
 		#region Equals(...)
 
-		public bool Equals(FdbKey<TKey, TEncoder> other) => ReferenceEquals(this.Subspace, other.Subspace) && EqualityComparer<TKey>.Default.Equals(this.Data, other.Data);
+		/// <inheritdoc />
+		public bool Equals(FdbKey<TKey, TEncoder> other)
+			=> FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && EqualityComparer<TKey>.Default.Equals(this.Data, other.Data);
 
-		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+		/// <inheritdoc />
+		public bool Equals(FdbRawKey other)
+			=> FdbKeyExtensions.Equals(in this, other.Data);
 
-		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+		/// <inheritdoc />
+		public bool Equals(Slice other)
+			=> FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc cref="Equals(Slice)" />
+		public bool Equals(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbKey<TKey, TEncoder>))
+			{
+				return FdbKeyExtensions.Equals(this.Subspace, ((FdbKey<TKey, TEncoder>) (object) other).Subspace) && EqualityComparer<TKey>.Default.Equals(this.Data, ((FdbKey<TKey, TEncoder>) (object) other).Data);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return FdbKeyExtensions.Equals(in this, ((FdbRawKey) (object) other).Data);
+			}
+			return FdbKeyExtensions.Equals(in this, in other);
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbKey<TKey, TEncoder> other)
+			=> FdbKeyExtensions.CompareTo(in this, in other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other)
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
 			=> FdbKeyExtensions.CompareTo(in this, other);
 
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
@@ -773,7 +1186,8 @@ namespace FoundationDB.Client
 
 	}
 
-	public readonly struct FdbSuccessorKey<TKey> : IFdbKey, IEquatable<FdbSuccessorKey<TKey>>
+	public readonly struct FdbSuccessorKey<TKey> : IFdbKey
+		, IEquatable<FdbSuccessorKey<TKey>>, IComparable<FdbSuccessorKey<TKey>>
 		where TKey : struct, IFdbKey
 	{
 
@@ -800,16 +1214,63 @@ namespace FoundationDB.Client
 
 		#region Equals(...)
 
-		public bool Equals(FdbSuccessorKey<TKey> other) => FdbKeyExtensions.Equals(in this.Parent, in other.Parent);
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbSuccessorKey<TKey> other)
+			=> FdbKeyExtensions.Equals(in this.Parent, in other.Parent);
 
-		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other)
+			=> FdbKeyExtensions.Equals(in this, other.Data);
 
-		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other)
+			=> FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc cref="Equals(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbSuccessorKey<TKey>))
+			{
+				return FdbKeyExtensions.Equals(in this.Parent, in Unsafe.As<TOtherKey, FdbSuccessorKey<TKey>>(ref Unsafe.AsRef(in other)).Parent);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return FdbKeyExtensions.Equals(in this, ((FdbRawKey) (object) other).Data);
+			}
+			return FdbKeyExtensions.Equals(in this, in other);
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbSuccessorKey<TKey> other)
+			=> FdbKeyExtensions.CompareTo(in this.Parent, in other.Parent);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other)
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
 			=> FdbKeyExtensions.CompareTo(in this, other);
 
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
@@ -859,6 +1320,7 @@ namespace FoundationDB.Client
 	}
 
 	public readonly struct FdbNextKey<TKey> : IFdbKey
+		, IEquatable<FdbNextKey<TKey>>, IComparable<FdbNextKey<TKey>>
 		where TKey : struct, IFdbKey
 	{
 
@@ -885,16 +1347,63 @@ namespace FoundationDB.Client
 
 		#region Equals(...)
 
-		public bool Equals(FdbSuccessorKey<TKey> other) => FdbKeyExtensions.Equals(in this.Parent, in other.Parent);
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbNextKey<TKey> other)
+			=> FdbKeyExtensions.Equals(in this.Parent, in other.Parent);
 
-		public bool Equals(Slice other) => FdbKeyExtensions.Equals(in this, other);
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other)
+			=> FdbKeyExtensions.Equals(in this, other.Data);
 
-		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other)
+			=> FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc cref="Equals(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.Equals(in this, other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbNextKey<TKey>))
+			{
+				return FdbKeyExtensions.Equals(in this.Parent, in Unsafe.As<TOtherKey, FdbNextKey<TKey>>(ref Unsafe.AsRef(in other)).Parent);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return FdbKeyExtensions.Equals(in this, ((FdbRawKey) (object) other).Data);
+			}
+			return FdbKeyExtensions.Equals(in this, in other);
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbNextKey<TKey> other)
+			=> FdbKeyExtensions.CompareTo(in this.Parent, in other.Parent);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other)
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
 			=> FdbKeyExtensions.CompareTo(in this, other);
 
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
@@ -968,10 +1477,10 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbVarTupleKey : IFdbKey
-		, IEquatable<FdbVarTupleKey>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbVarTupleKey, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbVarTupleKey, FdbRawKey, bool>
+		, IComparisonOperators<FdbVarTupleKey, Slice, bool>
 	{
 
 		[SkipLocalsInit]
@@ -994,8 +1503,8 @@ namespace FoundationDB.Client
 			{
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -1006,11 +1515,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1024,51 +1529,157 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 		{
 			if (typeof(TOtherKey) == typeof(FdbVarTupleKey))
 			{
-				return Equals((FdbRawKey)(object)other);
+				return Equals((FdbRawKey) (object) other);
 			}
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbVarTupleKey other)
+		{
+			int cmp = FdbKeyExtensions.CompareTo(this.Subspace, other.Subspace);
+			if (cmp == 0) cmp = this.Items.CompareTo(other.Items);
+			return cmp;
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other)
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
 			=> FdbKeyExtensions.CompareTo(in this, other);
 
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 			=> FdbKeyExtensions.CompareTo(in this, in other);
 
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbVarTupleKey left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbVarTupleKey left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbVarTupleKey left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbVarTupleKey left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbVarTupleKey left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbVarTupleKey left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbVarTupleKey left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbVarTupleKey left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbVarTupleKey left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbVarTupleKey left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbVarTupleKey left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbVarTupleKey left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbVarTupleKey left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbVarTupleKey left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbVarTupleKey left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbVarTupleKey left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbVarTupleKey left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbVarTupleKey left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
 		#endregion
 
+		#endregion
+
+		/// <summary>Appends an element to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbVarTupleKey Append<T1>(T1 item1) => new(this.Subspace, this.Items.Append(item1));
 
+		/// <summary>Appends two elements to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbVarTupleKey Append<T1, T2>(T1 item1, T2 item2) => new(this.Subspace, this.Items.Append(item1, item2));
+		public FdbVarTupleKey Append<T1, T2>(T1 item1, T2 item2) => new(this.Subspace, STuple.Concat(this.Items, STuple.Create(item1, item2)));
 
+		/// <summary>Appends three elements to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbVarTupleKey Append<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new(this.Subspace, this.Items.Append(item1, item2, item3));
+		public FdbVarTupleKey Append<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new(this.Subspace, STuple.Concat(this.Items, STuple.Create(item1, item2, item3)));
 
+		/// <summary>Appends four elements to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbVarTupleKey Append<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4));
+		public FdbVarTupleKey Append<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => new(this.Subspace, STuple.Concat(this.Items, STuple.Create(item1, item2, item3, item4)));
 
+		/// <summary>Appends five elements to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbVarTupleKey Append<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4, item5));
+		public FdbVarTupleKey Append<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => new(this.Subspace, STuple.Concat(this.Items, STuple.Create(item1, item2, item3, item4, item5)));
 
+		/// <summary>Appends six elements to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4, item5, item6));
+		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Concat(this.Items, STuple.Create(item1, item2, item3, item4, item5, item6)));
 
+		/// <summary>Appends seven elements to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4, item5, item6, item7));
+		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Concat(this.Items, STuple.Create(item1, item2, item3, item4, item5, item6, item7)));
 
+		/// <summary>Appends eight elements to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, this.Items.Append(item1, item2, item3, item4, item5, item6, item7, item8));
+		public FdbVarTupleKey Append<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Concat(this.Items, STuple.Create(item1, item2, item3, item4, item5, item6, item7, item8)));
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => this.Items.ToString()!;
@@ -1100,11 +1711,12 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1> : IFdbKey
-		, IEquatable<FdbTupleKey<T1>>, IEquatable<STuple<T1>>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>, IEquatable<FdbVarTupleKey>
-		, IComparable<FdbTupleKey<T1>>, IComparable<FdbVarTupleKey>, IComparable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbTupleKey<T1>>, IComparable<FdbTupleKey<T1>>
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbTupleKey<T1>, FdbTupleKey<T1>, bool>
+		, IComparisonOperators<FdbTupleKey<T1>, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1>, FdbRawKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1>, Slice, bool>
 	{
 
 		[SkipLocalsInit]
@@ -1142,8 +1754,8 @@ namespace FoundationDB.Client
 				FdbTupleKey<T1> key => this.Equals(key),
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -1154,19 +1766,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbTupleKey<T1> other) => Equals(this.Subspace, other.Subspace) && EqualityComparer<T1>.Default.Equals(this.Item1, other.Item1);
+		public bool Equals(FdbTupleKey<T1> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && EqualityComparer<T1>.Default.Equals(this.Item1, other.Item1);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && STuple.Create(this.Item1).Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1> other) => STuple.Create(this.Item1).Equals(other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => STuple.Create(this.Item1).Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && STuple.Create(this.Item1).Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1180,6 +1784,7 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyExtensions.Equals(in this, other);
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
@@ -1195,10 +1800,7 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(Slice other)
-			=> FdbKeyExtensions.CompareTo(in this, other);
-
+		/// <inheritdoc />
 		public int CompareTo(FdbTupleKey<T1> other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(Subspace, other.Subspace);
@@ -1206,6 +1808,7 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		public int CompareTo(FdbVarTupleKey other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(Subspace, other.Subspace);
@@ -1213,20 +1816,132 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 		{
 			if (typeof(TOtherKey) == typeof(FdbTupleKey<T1>))
 			{
-				return CompareTo((FdbTupleKey<T1>)(object)other);
+				return CompareTo((FdbTupleKey<T1>) (object) other);
 			}
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
+
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1> left, FdbTupleKey<T1> right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1> left, FdbTupleKey<T1> right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1> left, FdbTupleKey<T1> right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1> left, FdbTupleKey<T1> right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1> left, FdbTupleKey<T1> right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1> left, FdbTupleKey<T1> right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1> left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1> left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1> left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1> left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1> left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1> left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1> left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1> left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1> left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1> left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1> left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1> left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1> left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1> left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1> left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1> left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1> left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1> left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
+		#endregion
 
 		#endregion
 
@@ -1297,11 +2012,12 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2> : IFdbKey
-		, IEquatable<FdbTupleKey<T1, T2>>, IEquatable<STuple<T1, T2>>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>, IEquatable<FdbVarTupleKey>
-		, IComparable<FdbTupleKey<T1, T2>>, IComparable<FdbVarTupleKey>, IComparable<FdbRawKey>
-	#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-	#endif
+		, IEquatable<FdbTupleKey<T1, T2>>, IComparable<FdbTupleKey<T1, T2>>
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbTupleKey<T1, T2>, FdbTupleKey<T1, T2>, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2>, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2>, FdbRawKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2>, Slice, bool>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1339,8 +2055,8 @@ namespace FoundationDB.Client
 				FdbTupleKey<T1, T2> tuple => this.Equals(tuple),
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -1351,19 +2067,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbTupleKey<T1, T2> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+		public bool Equals(FdbTupleKey<T1, T2> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2> other) => this.Items.Equals(other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1392,10 +2100,6 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(Slice other)
-			=> FdbKeyExtensions.CompareTo(in this, other);
-
 		public int CompareTo(FdbTupleKey<T1, T2> other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(this.Subspace, other.Subspace);
@@ -1410,9 +2114,20 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
@@ -1428,6 +2143,106 @@ namespace FoundationDB.Client
 			}
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
+
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2> left, FdbTupleKey<T1, T2> right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2> left, FdbTupleKey<T1, T2> right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2> left, FdbTupleKey<T1, T2> right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2> left, FdbTupleKey<T1, T2> right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2> left, FdbTupleKey<T1, T2> right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2> left, FdbTupleKey<T1, T2> right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2> left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2> left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2> left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2> left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2> left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2> left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2> left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2> left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2> left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2> left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2> left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2> left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2> left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2> left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2> left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2> left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2> left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2> left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
+		#endregion
 
 		#endregion
 
@@ -1496,11 +2311,12 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3> : IFdbKey
-		, IEquatable<FdbTupleKey<T1, T2, T3>>, IEquatable<STuple<T1, T2, T3>>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>, IEquatable<FdbVarTupleKey>
-		, IComparable<FdbTupleKey<T1, T2, T3>>, IComparable<FdbVarTupleKey>, IComparable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbTupleKey<T1, T2, T3>>, IComparable<FdbTupleKey<T1, T2, T3>>
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3>, FdbTupleKey<T1, T2, T3>, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3>, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3>, FdbRawKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3>, Slice, bool>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1538,8 +2354,8 @@ namespace FoundationDB.Client
 				FdbTupleKey<T1, T2, T3> key => this.Equals(key),
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -1550,19 +2366,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbTupleKey<T1, T2, T3> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+		public bool Equals(FdbTupleKey<T1, T2, T3> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2, T3> other) => this.Items.Equals(other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1591,10 +2399,6 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(Slice other)
-			=> FdbKeyExtensions.CompareTo(in this, other);
-
 		public int CompareTo(FdbTupleKey<T1, T2, T3> other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(Subspace, other.Subspace);
@@ -1609,9 +2413,20 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
@@ -1627,6 +2442,106 @@ namespace FoundationDB.Client
 			}
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
+
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3> left, FdbTupleKey<T1, T2, T3> right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3> left, FdbTupleKey<T1, T2, T3> right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3> left, FdbTupleKey<T1, T2, T3> right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3> left, FdbTupleKey<T1, T2, T3> right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3> left, FdbTupleKey<T1, T2, T3> right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3> left, FdbTupleKey<T1, T2, T3> right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3> left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3> left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3> left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3> left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3> left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3> left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3> left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3> left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3> left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3> left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3> left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3> left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3> left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3> left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3> left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3> left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3> left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3> left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
+		#endregion
 
 		#endregion
 
@@ -1693,11 +2608,12 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4> : IFdbKey
-		, IEquatable<FdbTupleKey<T1, T2, T3, T4>>, IEquatable<STuple<T1, T2, T3, T4>>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>, IEquatable<FdbVarTupleKey>
-		, IComparable<FdbTupleKey<T1, T2, T3, T4>>, IComparable<FdbVarTupleKey>, IComparable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4>>, IComparable<FdbTupleKey<T1, T2, T3, T4>>
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4>, FdbTupleKey<T1, T2, T3, T4>, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4>, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4>, FdbRawKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4>, Slice, bool>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1735,8 +2651,8 @@ namespace FoundationDB.Client
 				FdbTupleKey<T1, T2, T3, T4> key => this.Equals(key),
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -1747,19 +2663,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbTupleKey<T1, T2, T3, T4> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2, T3, T4> other) => this.Items.Equals(other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1788,10 +2696,6 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(Slice other)
-			=> FdbKeyExtensions.CompareTo(in this, other);
-
 		public int CompareTo(FdbTupleKey<T1, T2, T3, T4> other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(Subspace, other.Subspace);
@@ -1806,9 +2710,20 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
@@ -1824,6 +2739,106 @@ namespace FoundationDB.Client
 			}
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
+
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4> left, FdbTupleKey<T1, T2, T3, T4> right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4> left, FdbTupleKey<T1, T2, T3, T4> right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4> left, FdbTupleKey<T1, T2, T3, T4> right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4> left, FdbTupleKey<T1, T2, T3, T4> right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4> left, FdbTupleKey<T1, T2, T3, T4> right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4> left, FdbTupleKey<T1, T2, T3, T4> right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4> left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4> left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4> left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4> left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4> left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4> left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4> left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4> left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4> left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4> left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4> left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4> left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4> left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4> left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4> left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4> left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4> left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4> left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
+		#endregion
 
 		#endregion
 
@@ -1888,11 +2903,12 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5> : IFdbKey
-		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5>>, IEquatable<STuple<T1, T2, T3, T4, T5>>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>, IEquatable<FdbVarTupleKey>
-		, IComparable<FdbTupleKey<T1, T2, T3, T4, T5>>, IComparable<FdbVarTupleKey>, IComparable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5>>, IComparable<FdbTupleKey<T1, T2, T3, T4, T5>>
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5>, FdbTupleKey<T1, T2, T3, T4, T5>, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5>, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5>, FdbRawKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5>, Slice, bool>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1930,8 +2946,8 @@ namespace FoundationDB.Client
 				FdbTupleKey<T1, T2, T3, T4, T5> key => this.Equals(key),
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -1942,19 +2958,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2, T3, T4, T5> other) => this.Items.Equals(other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1983,10 +2991,6 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(Slice other)
-			=> FdbKeyExtensions.CompareTo(in this, other);
-
 		public int CompareTo(FdbTupleKey<T1, T2, T3, T4, T5> other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(Subspace, other.Subspace);
@@ -2001,9 +3005,20 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
@@ -2019,6 +3034,106 @@ namespace FoundationDB.Client
 			}
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
+
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbTupleKey<T1, T2, T3, T4, T5> right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbTupleKey<T1, T2, T3, T4, T5> right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbTupleKey<T1, T2, T3, T4, T5> right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbTupleKey<T1, T2, T3, T4, T5> right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbTupleKey<T1, T2, T3, T4, T5> right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbTupleKey<T1, T2, T3, T4, T5> right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5> left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5> left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5> left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5> left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5> left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5> left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5> left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
+		#endregion
 
 		#endregion
 
@@ -2081,11 +3196,12 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6> : IFdbKey
-		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6>>, IEquatable<STuple<T1, T2, T3, T4, T5, T6>>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>, IEquatable<FdbVarTupleKey>
-		, IComparable<FdbTupleKey<T1, T2, T3, T4, T5, T6>>, IComparable<FdbVarTupleKey>, IComparable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6>>, IComparable<FdbTupleKey<T1, T2, T3, T4, T5, T6>>
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6>, FdbTupleKey<T1, T2, T3, T4, T5, T6>, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6>, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6>, FdbRawKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6>, Slice, bool>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2123,8 +3239,8 @@ namespace FoundationDB.Client
 				FdbTupleKey<T1, T2, T3, T4, T5, T6> key => this.Equals(key),
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -2135,19 +3251,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2, T3, T4, T5, T6> other) => this.Items.Equals(other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2176,10 +3284,6 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(Slice other)
-			=> FdbKeyExtensions.CompareTo(in this, other);
-
 		public int CompareTo(FdbTupleKey<T1, T2, T3, T4, T5, T6> other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(Subspace, other.Subspace);
@@ -2194,9 +3298,20 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
@@ -2212,6 +3327,106 @@ namespace FoundationDB.Client
 			}
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
+
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbTupleKey<T1, T2, T3, T4, T5, T6> right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbTupleKey<T1, T2, T3, T4, T5, T6> right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbTupleKey<T1, T2, T3, T4, T5, T6> right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbTupleKey<T1, T2, T3, T4, T5, T6> right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbTupleKey<T1, T2, T3, T4, T5, T6> right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbTupleKey<T1, T2, T3, T4, T5, T6> right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6> left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
+		#endregion
 
 		#endregion
 
@@ -2272,11 +3487,12 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> : IFdbKey
-		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>>, IEquatable<STuple<T1, T2, T3, T4, T5, T6, T7>>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>, IEquatable<FdbVarTupleKey>
-		, IComparable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>>, IComparable<FdbVarTupleKey>, IComparable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>>, IComparable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>>
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>, FdbRawKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>, Slice, bool>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2314,8 +3530,8 @@ namespace FoundationDB.Client
 				FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> key => this.Equals(key),
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -2326,19 +3542,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7> other) => this.Items.Equals(other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2367,10 +3575,6 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(Slice other)
-			=> FdbKeyExtensions.CompareTo(in this, other);
-
 		public int CompareTo(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(Subspace, other.Subspace);
@@ -2385,9 +3589,20 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
@@ -2403,6 +3618,106 @@ namespace FoundationDB.Client
 			}
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
+
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
+		#endregion
 
 		#endregion
 
@@ -2461,11 +3776,12 @@ namespace FoundationDB.Client
 
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> : IFdbKey
-		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>>, IEquatable<STuple<T1, T2, T3, T4, T5, T6, T7, T8>>, IEquatable<IVarTuple>, IEquatable<FdbRawKey>, IEquatable<FdbVarTupleKey>
-		, IComparable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>>, IComparable<FdbVarTupleKey>, IComparable<FdbRawKey>
-#if NET9_0_OR_GREATER
-		, IEquatable<ReadOnlySpan<byte>>
-#endif
+		, IEquatable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>>, IComparable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>>
+		, IEquatable<FdbVarTupleKey>, IComparable<FdbVarTupleKey>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>, FdbVarTupleKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>, FdbRawKey, bool>
+		, IComparisonOperators<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>, Slice, bool>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2503,8 +3819,8 @@ namespace FoundationDB.Client
 				FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> key => this.Equals(key),
 				FdbVarTupleKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key.Data),
-				IVarTuple tuple => this.Equals(tuple),
 				Slice bytes => this.Equals(bytes),
+				IFdbKey key => FdbKeyExtensions.Equals(in this, key),
 				_ => false,
 			};
 		}
@@ -2515,19 +3831,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
+		public bool Equals(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbVarTupleKey other) => Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7, T8> other) => this.Items.Equals(other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(IVarTuple? other) => this.Items.Equals(other);
+		public bool Equals(FdbVarTupleKey other) => FdbKeyExtensions.Equals(this.Subspace, other.Subspace) && this.Items.Equals(other.Items);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2556,10 +3864,6 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.Equals(in this, in other);
 		}
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(Slice other)
-			=> FdbKeyExtensions.CompareTo(in this, other);
-
 		public int CompareTo(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> other)
 		{
 			int cmp = FdbKeyExtensions.CompareTo(Subspace, other.Subspace);
@@ -2574,9 +3878,20 @@ namespace FoundationDB.Client
 			return cmp;
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyExtensions.CompareTo(in this, other.Data.Span);
+			=> FdbKeyExtensions.CompareTo(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyExtensions.CompareTo(in this, other);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo<TOtherKey>(in TOtherKey other)
@@ -2593,6 +3908,105 @@ namespace FoundationDB.Client
 			return FdbKeyExtensions.CompareTo(in this, in other);
 		}
 
+		#region Operators...
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbVarTupleKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbVarTupleKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbVarTupleKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbVarTupleKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbVarTupleKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbVarTupleKey right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, Slice right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, Slice right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, Slice right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, Slice right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, Slice right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, Slice right) => left.CompareTo(right) >= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator ==(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbRawKey right) => left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator !=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbRawKey right) => !left.Equals(right);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbRawKey right) => left.CompareTo(right) < 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator <=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbRawKey right) => left.CompareTo(right) <= 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbRawKey right) => left.CompareTo(right) > 0;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool operator >=(FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> left, FdbRawKey right) => left.CompareTo(right.Data) >= 0;
+
+		#endregion
 		#endregion
 
 		/// <inheritdoc />

@@ -29,7 +29,7 @@ namespace FoundationDB.Client
 	/// <summary>Adds a prefix on every key, to group them inside a common subspace</summary>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
-	public class KeySubspace : IKeySubspace, IEquatable<IKeySubspace>, IComparable<IKeySubspace>, IFormattable
+	public class KeySubspace : IKeySubspace, IFormattable
 	{
 
 		/// <summary>Prefix common to all keys in this subspace</summary>
@@ -42,7 +42,8 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		public static IKeySubspace Empty => new KeySubspace(Slice.Empty, SubspaceContext.Default);
+		/// <summary>Subspace with no prefix</summary>
+		public static readonly IDynamicKeySubspace Empty = new DynamicKeySubspace(Slice.Empty, SubspaceContext.Default);
 
 		#region FromKey...
 
@@ -366,19 +367,25 @@ namespace FoundationDB.Client
 		/// <summary>Compare this subspace with another subspace</summary>
 		public int CompareTo(IKeySubspace? other)
 		{
-			if (other == null) return +1;
 			if (object.ReferenceEquals(this, other)) return 0;
-			if (other is KeySubspace sub) return this.Key.CompareTo(sub.Key);
-			return this.Key.CompareTo(other.GetPrefix());
+			return other switch
+			{
+				null => +1,
+				KeySubspace sub => this.Key.CompareTo(sub.Key),
+				_ => this.Key.CompareTo(other.GetPrefix())
+			};
 		}
 
 		/// <summary>Test if both subspaces have the same prefix</summary>
 		public bool Equals(IKeySubspace? other)
 		{
-			if (other == null) return false;
 			if (object.ReferenceEquals(this, other)) return true;
-			if (other is KeySubspace sub) return this.Key.Equals(sub.Key);
-			return this.Key.Equals(other.GetPrefix());
+			return other switch
+			{
+				null => false,
+				KeySubspace sub => this.Key.Equals(sub.Key),
+				_ => this.Key.Equals(other.GetPrefix())
+			};
 		}
 
 		/// <summary>Test if an object is a subspace with the same prefix</summary>

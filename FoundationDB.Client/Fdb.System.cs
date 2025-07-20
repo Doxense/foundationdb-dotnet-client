@@ -98,7 +98,7 @@ namespace FoundationDB.Client
 			{
 				Contract.NotNull(trans);
 
-				var data = await trans.GetAsync(StatusJsonKey).ConfigureAwait(false);
+				var data = await trans.GetAsync(StatusJsonKey.Span).ConfigureAwait(false);
 
 				if (data.IsNullOrEmpty) return null;
 
@@ -167,7 +167,7 @@ namespace FoundationDB.Client
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
-			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
+			/// <remarks>Since the list of coordinators may change at any time, the results may already be obsolete once this method completes!</remarks>
 			public static async Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbDatabase db, CancellationToken ct)
 			{
 				Contract.NotNull(db);
@@ -178,7 +178,7 @@ namespace FoundationDB.Client
 					tr.Options.WithPrioritySystemImmediate();
 					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
-					return tr.GetAsync(Fdb.System.Coordinators);
+					return tr.GetAsync(Fdb.System.Coordinators.Span);
 				}, ct).ConfigureAwait(false);
 
 				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");
@@ -189,7 +189,7 @@ namespace FoundationDB.Client
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
-			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
+			/// <remarks>Since the list of coordinators may change at any time, the results may already be obsolete once this method completes!</remarks>
 			public static async Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbDatabaseProvider db, CancellationToken ct)
 			{
 				return await GetCoordinatorsAsync(await db.GetDatabase(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
