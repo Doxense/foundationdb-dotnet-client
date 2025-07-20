@@ -6005,7 +6005,7 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(JsonValue.FromValue(new ListTuple<string>(["foo", "bar", "baz"])).ToJsonText(), Is.EqualTo("[ \"foo\", \"bar\", \"baz\" ]"));
 			Assert.That(JsonValue.FromValue(new ListTuple<object>(["hello world", 123, false])).ToJsonText(), Is.EqualTo("[ \"hello world\", 123, false ]"));
 			Assert.That(JsonValue.FromValue(new LinkedTuple<int>(STuple.Create(1, 2), 3)).ToJsonText(), Is.EqualTo("[ 1, 2, 3 ]"));
-			Assert.That(JsonValue.FromValue(new JoinedTuple(STuple.Create(1, 2), STuple.Create(3))).ToJsonText(), Is.EqualTo("[ 1, 2, 3 ]"));
+			Assert.That(JsonValue.FromValue(new JoinedTuple<STuple<int, int>, STuple<int>>(STuple.Create(1, 2), STuple.Create(3))).ToJsonText(), Is.EqualTo("[ 1, 2, 3 ]"));
 		}
 
 		[Test]

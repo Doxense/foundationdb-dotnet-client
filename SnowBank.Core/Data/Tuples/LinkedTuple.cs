@@ -130,7 +130,7 @@ namespace SnowBank.Data.Tuples
 
 		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(TItem value)
 		{
-			return new JoinedTuple(this.Head, new STuple<T, TItem>(this.Tail, value));
+			return STuple.Concat(this.Head, new STuple<T, TItem>(this.Tail, value));
 		}
 
 		public IVarTuple Concat(IVarTuple tuple)
@@ -184,7 +184,7 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Returns a human-readable representation of this tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <summary>Returns a human-readable representation of this tuple</summary>
 		[Pure]

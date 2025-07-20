@@ -29,6 +29,7 @@
 // ReSharper disable InlineOutVariableDeclaration
 // ReSharper disable ConvertToUsingDeclaration
 // ReSharper disable JoinDeclarationAndInitializer
+// ReSharper disable RedundantArgumentDefaultValue
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
 namespace SnowBank.Data.Tuples.Tests
@@ -123,19 +124,19 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(t1.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world")));
 			Assert.That((STuple<string>) Tuple.Create("hello world"), Is.EqualTo(t1));
 
-			Assert.That(t1.Append(123), Is.InstanceOf<STuple<string, int>>().And.EqualTo(STuple.Create("hello world", 123)));
-			Assert.That(t1.Append(123, false), Is.InstanceOf<STuple<string, int, bool>>().And.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t1.Append(123), Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t1.Append(123, false), Is.EqualTo(STuple.Create("hello world", 123, false)));
 
-			Assert.That(t1.Concat(STuple.Create(123)), Is.InstanceOf<STuple<string, int>>().And.EqualTo(STuple.Create("hello world", 123)));
-			Assert.That(t1.Concat(STuple.Create(123, false)), Is.InstanceOf<STuple<string, int, bool>>().And.EqualTo(STuple.Create("hello world", 123, false)));
-			Assert.That(t1.Concat(STuple.Create(123, false, 1234L)), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
-			Assert.That(t1.Concat(STuple.Create(123, false, 1234L, -1234)), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t1.Concat(STuple.Create(123)), Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t1.Concat(STuple.Create(123, false)), Is.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t1.Concat(STuple.Create(123, false, 1234L)), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t1.Concat(STuple.Create(123, false, 1234L, -1234)), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
 
-			Assert.That(t1.Concat(ValueTuple.Create(123)), Is.InstanceOf<STuple<string, int>>().And.EqualTo(STuple.Create("hello world", 123)));
-			Assert.That(t1.Concat((123, false)), Is.InstanceOf<STuple<string, int, bool>>().And.EqualTo(STuple.Create("hello world", 123, false)));
-			Assert.That(t1.Concat((123, false, 1234L)), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
-			Assert.That(t1.Concat((123, false, 1234L, -1234)), Is.InstanceOf<STuple<string, int, bool, long, int>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
-			Assert.That(t1.Concat((123, false, 1234L, -1234, Math.PI)), Is.InstanceOf<STuple<string, int, bool, long, int, double>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
+			Assert.That(t1.Concat(ValueTuple.Create(123)), Is.EqualTo(STuple.Create("hello world", 123)));
+			Assert.That(t1.Concat((123, false)), Is.EqualTo(STuple.Create("hello world", 123, false)));
+			Assert.That(t1.Concat((123, false, 1234L)), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t1.Concat((123, false, 1234L, -1234)), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t1.Concat((123, false, 1234L, -1234, Math.PI)), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
 
 			Assert.Multiple(() =>
 			{
@@ -318,9 +319,9 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(t3.ToValueTuple(), Is.EqualTo(ValueTuple.Create("hello world", 123, false)));
 			Assert.That((STuple<string, int, bool>) Tuple.Create("hello world", 123, false), Is.EqualTo(t3));
 
-			Assert.That(t3.Append(1234L), Is.InstanceOf<STuple<string, int, bool, long>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
-			Assert.That(t3.Append(1234L, -1234), Is.InstanceOf<STuple<string, int, bool, long, int>>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
-			Assert.That(t3.Append(1234L, -1234, Math.PI), Is.InstanceOf<JoinedTuple>().And.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
+			Assert.That(t3.Append(1234L), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L)));
+			Assert.That(t3.Append(1234L, -1234), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234)));
+			Assert.That(t3.Append(1234L, -1234, Math.PI), Is.EqualTo(STuple.Create("hello world", 123, false, 1234L, -1234, Math.PI)));
 
 			Assert.Multiple(() =>
 			{
@@ -1171,7 +1172,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			Assert.Multiple(() =>
 			{
-				var t = new JoinedTuple(STuple.Create("Hello", 123), STuple.Create(true, "World"));
+				var t = new JoinedTuple<STuple<string, int>, STuple<bool, string>>(STuple.Create("Hello", 123), STuple.Create(true, "World"));
 				Assert.That(t.Count, Is.EqualTo(4));
 
 				Assert.That(t[0], Is.EqualTo("Hello"));
@@ -1650,7 +1651,7 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			IVarTuple tuple;
 
-			tuple = STuple.CreateBoxed(default);
+			tuple = STuple.CreateBoxed(null);
 			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple[0], Is.Null);
@@ -1778,19 +1779,19 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(t123.CompareTo(STuple.Create(1.0d, 2.0d, 3.1d)), Is.LessThan(0));
 				Assert.That(t123.CompareTo(STuple.Create(1.0d, 2.0d, 2.9d)), Is.GreaterThan(0));
 
-				var tabc = STuple.Create("a", "b", "c");
-				Assert.That(tabc.CompareTo(tabc), Is.Zero);
-				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "d")), Is.LessThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "b")), Is.GreaterThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "cc")), Is.LessThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("a", "bb", "c")), Is.LessThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("aa", "bb", "c")), Is.LessThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("aa")), Is.LessThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("`")), Is.GreaterThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("a", "ba")), Is.LessThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("a", "a")), Is.GreaterThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "ca")), Is.LessThan(0));
-				Assert.That(tabc.CompareTo(STuple.Create("a", "b", "b")), Is.GreaterThan(0));
+				var tAbc = STuple.Create("a", "b", "c");
+				Assert.That(tAbc.CompareTo(tAbc), Is.Zero);
+				Assert.That(tAbc.CompareTo(STuple.Create("a", "b", "d")), Is.LessThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("a", "b", "b")), Is.GreaterThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("a", "b", "cc")), Is.LessThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("a", "bb", "c")), Is.LessThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("aa", "bb", "c")), Is.LessThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("aa")), Is.LessThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("`")), Is.GreaterThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("a", "ba")), Is.LessThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("a", "a")), Is.GreaterThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("a", "b", "ca")), Is.LessThan(0));
+				Assert.That(tAbc.CompareTo(STuple.Create("a", "b", "b")), Is.GreaterThan(0));
 
 				// ints after null
 				Assert.That(t123.CompareTo(STuple.Create(null, 2, 3)), Is.GreaterThan(0));
@@ -2765,7 +2766,7 @@ namespace SnowBank.Data.Tuples.Tests
 			tuples[8] = STuple.Create("A", "B", "C", "D", "E", "F", "G", "H");
 			tuples[9] = STuple.Create("A", "B", "C", "D", "E", "F", "G", "H", "I");
 			tuples[10]= STuple.Create("A", "B", "C", "D", "E", "F", "G", "H", "I", "J");
-			tuples[11] = new JoinedTuple(tuples[6], STuple.Create("G", "H", "I", "J", "K"));
+			tuples[11] = new JoinedTuple<IVarTuple, STuple<string, string, string, string, string>>(tuples[6], STuple.Create("G", "H", "I", "J", "K"));
 			tuples[12] = new LinkedTuple<string>(tuples[11], "L");
 			tuples[13] = new LinkedTuple<string>(STuple.Create("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"), "M");
 
@@ -2911,7 +2912,7 @@ namespace SnowBank.Data.Tuples.Tests
 
 			var t5 = STuple.Create(1).Append(2);
 			Log(t5);
-			// multi step
+			// multistep
 			AssertEquality(t1, t5);
 		}
 

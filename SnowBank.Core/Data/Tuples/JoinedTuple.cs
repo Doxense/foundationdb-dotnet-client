@@ -36,20 +36,22 @@ namespace SnowBank.Data.Tuples
 	[ImmutableObject(true), DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
 	[DebuggerNonUserCode]
-	public sealed class JoinedTuple : IVarTuple, IComparable, ITupleFormattable
+	public sealed class JoinedTuple<THead, TTail> : IVarTuple, IComparable, ITupleFormattable
+		where THead : IVarTuple
+		where TTail : IVarTuple
 	{
 		// Uses cases: joining a 'subspace' tuple (customerId, 'Users', ) with a 'key' tuple (userId, 'Contacts', 123, )
 
 		/// <summary>First tuple (first N items)</summary>
-		public readonly IVarTuple Head;
+		public readonly THead Head;
 
 		/// <summary>Second tuple (last M items)</summary>
-		public readonly IVarTuple Tail;
+		public readonly TTail Tail;
 
 		/// <summary>Offset at which the Tail tuple starts. Items are in Head tuple if index &lt; split. Items are in Tail tuple if index &gt;= split.</summary>
 		private readonly int HeadCount;
 
-		public JoinedTuple(IVarTuple head, IVarTuple tail)
+		public JoinedTuple(THead head, TTail tail)
 		{
 			Contract.NotNull(head);
 			Contract.NotNull(tail);
@@ -163,7 +165,9 @@ namespace SnowBank.Data.Tuples
 					return this.Head[begin, end];
 				}
 				// selected items are both in head and tail
-				return new JoinedTuple(this.Head[begin, null], this.Tail[null, end - p]);
+				var head = this.Head[begin, null];
+				var tail = this.Tail[null, end - p];
+				return new JoinedTuple<IVarTuple, IVarTuple>(head, tail);
 			}
 		}
 

@@ -283,7 +283,7 @@ namespace SnowBank.Data.Tuples
 		{
 			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will lose type information.
 			// but, by returning a LinkedTuple<T5>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
-			return new JoinedTuple(this, new STuple<T9, T10>(value1, value2));
+			return STuple.Concat(this, new STuple<T9, T10>(value1, value2));
 		}
 
 		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
@@ -409,7 +409,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? provider = null)

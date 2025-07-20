@@ -2190,7 +2190,7 @@ namespace SnowBank.Data.Json.Tests
 			CheckSerialize(new ListTuple<string>([ "foo", "bar", "baz" ]), default, """[ "foo", "bar", "baz" ]""");
 			CheckSerialize(new ListTuple<object>([ "hello world", 123, false ]), default, """[ "hello world", 123, false ]""");
 			CheckSerialize(new LinkedTuple<int>(STuple.Create(1, 2), 3), default, "[ 1, 2, 3 ]");
-			CheckSerialize(new JoinedTuple(STuple.Create(1, 2), STuple.Create(3)), default, "[ 1, 2, 3 ]");
+			CheckSerialize(new JoinedTuple<STuple<int, int>, STuple<int>>(STuple.Create(1, 2), STuple.Create(3)), default, "[ 1, 2, 3 ]");
 		}
 
 		[Test]

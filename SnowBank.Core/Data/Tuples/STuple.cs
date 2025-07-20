@@ -517,7 +517,21 @@ namespace SnowBank.Data.Tuples
 
 			return tail.Count == 0 ? head
 			     : head.Count == 0 ? tail
-			     : new JoinedTuple(head, tail);
+			     : new JoinedTuple<IVarTuple, IVarTuple>(head, tail);
+		}
+
+		/// <summary>Concatenates two tuples together</summary>
+		[Pure]
+		public static IVarTuple Concat<THead, TTail>(in THead head, in TTail tail)
+			where THead : IVarTuple
+			where TTail : IVarTuple
+		{
+			Contract.NotNull(head);
+			Contract.NotNull(tail);
+
+			return tail.Count == 0 ? head
+				: head.Count == 0 ? tail
+				: new JoinedTuple<THead, TTail>(head, tail);
 		}
 
 		/// <summary>Concatenates two tuples together</summary>
