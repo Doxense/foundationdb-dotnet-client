@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable StringLiteralTypo
+
 namespace FoundationDB.Linq.Tests
 {
 	using FoundationDB.Layers.Indexing;
@@ -45,8 +47,8 @@ namespace FoundationDB.Linq.Tests
 				await db.WriteAsync(async (tr) =>
 				{
 					var subspace = await location.Resolve(tr);
-					tr.Set(subspace.Encode("Hello"), Text("World!"));
-					tr.Set(subspace.Encode("Narf"), Text("Zort"));
+					tr.Set(subspace.GetKey("Hello"), Text("World!"));
+					tr.Set(subspace.GetKey("Narf"), Text("Zort"));
 				}, this.Cancellation);
 
 				await db.ReadAsync(async tr =>

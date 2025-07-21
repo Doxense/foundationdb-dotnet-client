@@ -3132,6 +3132,46 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeKeys<TResult>(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeDecoder<TResult> decoder, FdbRangeOptions? options = null)
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				KeySelector.FirstGreaterOrEqual(range.Begin),
+				KeySelector.FirstGreaterOrEqual(range.End),
+				decoder,
+				static (fn, k, _) => fn(k),
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeKeys<TState, TResult>(this IFdbReadOnlyTransaction trans, KeyRange range, TState state, FdbRangeDecoder<TState, TResult> decoder, FdbRangeOptions? options = null)
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				KeySelector.FirstGreaterOrEqual(range.Begin),
+				KeySelector.FirstGreaterOrEqual(range.End),
+				(State: state, Decoder: decoder),
+				static (s, k, _) => s.Decoder(s.State, k),
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeKeys<TKeyRange, TResult>(this IFdbReadOnlyTransaction trans, in TKeyRange range, FdbRangeDecoder<TResult> decoder, FdbRangeOptions? options = null)
+			where TKeyRange : struct, IFdbKeyRange
+			=> trans.GetRangeKeys(range.ToKeyRange(), decoder, options);
+
+		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeKeys<TKeyRange, TState, TResult>(this IFdbReadOnlyTransaction trans, in TKeyRange range, TState state, FdbRangeDecoder<TState, TResult> decoder, FdbRangeOptions? options = null)
+			where TKeyRange : struct, IFdbKeyRange
+			=> trans.GetRangeKeys(range.ToKeyRange(), state, decoder, options);
+
+		/// <summary>Create a new range query that will read the keys of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
 		public static IFdbRangeQuery<Slice> GetRangeKeys<TKeyRange>(this IFdbReadOnlyTransaction trans, TKeyRange range, FdbRangeOptions? options = null)
 			where TKeyRange : struct, IFdbKeyRange
 		{
@@ -3142,6 +3182,50 @@ namespace FoundationDB.Client
 				selectors.End,
 				new SliceBuffer(),
 				static (s, k, _) => s.Intern(k),
+				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
+			);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeKeys<TBeginKey, TEndKey, TState, TResult>(
+			this IFdbReadOnlyTransaction trans,
+			in FdbKeySelector<TBeginKey> beginKeyInclusive,
+			in FdbKeySelector<TEndKey> endKeyExclusive,
+			TState state,
+			FdbRangeDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options
+		)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			//TODO: optimize this!
+			return trans.GetRangeKeys(
+				beginKeyInclusive.ToSelector(),
+				endKeyExclusive.ToSelector(),
+				state,
+				decoder,
+				options
+			);
+		}
+
+		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeKeys<TState, TResult>(
+			this IFdbReadOnlyTransaction trans,
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			TState state,
+			FdbRangeDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options = null
+		)
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				beginInclusive,
+				endExclusive,
+				(State: state, Decoder: decoder),
+				(s, _, v) => s.Decoder(s.State, v),
 				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
 			);
 		}
@@ -3229,12 +3313,39 @@ namespace FoundationDB.Client
 		public static IFdbRangeQuery<Slice> GetRangeValues(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans);
-			var selectors = KeySelectorPair.Create(range);
 			return trans.GetRange(
-				selectors.Begin,
-				selectors.End,
+				KeySelector.FirstGreaterOrEqual(range.Begin),
+				KeySelector.FirstGreaterOrEqual(range.End),
 				new SliceBuffer(),
 				static (s, _, v) => s.Intern(v),
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeValues<TResult>(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeDecoder<TResult> decoder, FdbRangeOptions? options = null)
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				KeySelector.FirstGreaterOrEqual(range.Begin),
+				KeySelector.FirstGreaterOrEqual(range.End),
+				decoder,
+				static (fn, _, v) => fn(v),
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
+			);
+		}
+
+		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeValues<TState, TResult>(this IFdbReadOnlyTransaction trans, KeyRange range, TState state, FdbRangeDecoder<TState, TResult> decoder, FdbRangeOptions? options = null)
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				KeySelector.FirstGreaterOrEqual(range.Begin),
+				KeySelector.FirstGreaterOrEqual(range.End),
+				(State: state, Decoder: decoder),
+				static (s, _, v) => s.Decoder(s.State, v),
 				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
 			);
 		}
@@ -3244,6 +3355,67 @@ namespace FoundationDB.Client
 		public static IFdbRangeQuery<Slice> GetRangeValues<TKeyRange>(this IFdbReadOnlyTransaction trans, in TKeyRange range, FdbRangeOptions? options = null)
 			where TKeyRange : struct, IFdbKeyRange
 			=> trans.GetRangeValues(range.ToKeyRange(), options); //PERF: TODO: optimize!
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeValues<TKeyRange, TState, TResult>(this IFdbReadOnlyTransaction trans, in TKeyRange range, TState state, FdbRangeDecoder<TState, TResult> decoder, FdbRangeOptions? options = null)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			//TODO: optimize this!
+			return trans.GetRangeValues(range.ToKeyRange(), state, decoder, options);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeValues<TKeyRange, TResult>(this IFdbReadOnlyTransaction trans, in TKeyRange range, FdbRangeDecoder<TResult> decoder, FdbRangeOptions? options = null)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			//TODO: optimize this!
+			return trans.GetRangeValues(range.ToKeyRange(), decoder, options);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeValues<TBeginKey, TEndKey, TState, TResult>(
+			this IFdbReadOnlyTransaction trans,
+			in FdbKeySelector<TBeginKey> beginKeyInclusive,
+			in FdbKeySelector<TEndKey> endKeyExclusive,
+			TState state,
+			FdbRangeDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options
+		)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			//TODO: optimize this!
+			return trans.GetRangeValues(
+				beginKeyInclusive.ToSelector(),
+				endKeyExclusive.ToSelector(),
+				state,
+				decoder,
+				options
+			);
+		}
+
+		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeValues<TState, TResult>(
+			this IFdbReadOnlyTransaction trans,
+			KeySelector beginInclusive,
+			KeySelector endExclusive,
+			TState state,
+			FdbRangeDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options = null)
+		{
+			Contract.NotNull(trans);
+			return trans.GetRange(
+				beginInclusive,
+				endExclusive,
+				(State: state, Decoder: decoder),
+				(s, _, v) => s.Decoder(s.State, v),
+				options?.OnlyValues() ?? FdbRangeOptions.ValuesOnly
+			);
+		}
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, LinqTunnel]
@@ -4395,6 +4567,210 @@ namespace FoundationDB.Client
 				span = keys.ToArray();
 			}
 			return trans.GetValuesAsync<TKey, TState, TValue>(span, results, state, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of elements to be looked up in the database</param>
+		/// <param name="keySelector">Function that generate the key for each element</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="items"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="items"/>.</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="items"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TElement, TKey, TValue>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, TKey> keySelector, Memory<TValue> results, FdbValueDecoder<TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			//TODO: pooled!
+			var keys = new Slice[items.Length]; 
+			for (int i = 0; i < items.Length; i++)
+			{
+				keys[i] = FdbKeyHelpers.ToSlice(keySelector(items[i])); //TODO: pooled
+			}
+			return trans.GetValuesAsync(keys.AsSpan(), results, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of keys to be looked up in the database</param>
+		/// <param name="keySelector">Function that generate the key for each element</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="items"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="items"/>.</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="items"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TElement, TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TElement> items, Func<TElement, TKey> keySelector, Memory<TValue> results, FdbValueDecoder<TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			if (items.TryGetSpan(out var span))
+			{
+				return trans.GetValuesAsync(span, keySelector, results, decoder);
+			}
+
+			//TODO: pooled!
+			var keys = new List<Slice>(items.TryGetNonEnumeratedCount(out var count) ? count : 0);
+			foreach (var item in items)
+			{
+				keys.Add(FdbKeyHelpers.ToSlice(keySelector(item))); //TODO: pooled
+			}
+			return trans.GetValuesAsync(CollectionsMarshal.AsSpan(keys), results, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of elements to be looked up in the database</param>
+		/// <param name="keyState">Opaque state forwarded to <paramref name="keySelector"/></param>
+		/// <param name="keySelector">Function that generate the key for each element</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="items"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="items"/>.</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="items"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TElement, TKeyState, TKey, TValue>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TElement> items, TKeyState keyState, Func<TKeyState, TElement, TKey> keySelector, Memory<TValue> results, FdbValueDecoder<TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			//TODO: pooled!
+			var keys = new Slice[items.Length]; 
+			for (int i = 0; i < items.Length; i++)
+			{
+				keys[i] = FdbKeyHelpers.ToSlice(keySelector(keyState, items[i])); //TODO: pooled
+			}
+			return trans.GetValuesAsync(keys.AsSpan(), results, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of keys to be looked up in the database</param>
+		/// <param name="keyState">Opaque state forwarded to <paramref name="keySelector"/></param>
+		/// <param name="keySelector">Function that generate the key for each element</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="items"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="items"/>.</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="items"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TElement, TKeyState, TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TElement> items, TKeyState keyState, Func<TKeyState, TElement, TKey> keySelector, Memory<TValue> results, FdbValueDecoder<TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			if (items.TryGetSpan(out var span))
+			{
+				return trans.GetValuesAsync(span, keyState, keySelector, results, decoder);
+			}
+
+			//TODO: pooled!
+			var keys = new List<Slice>(items.TryGetNonEnumeratedCount(out var count) ? count : 0);
+			foreach (var item in items)
+			{
+				keys.Add(FdbKeyHelpers.ToSlice(keySelector(keyState, item))); //TODO: pooled
+			}
+			return trans.GetValuesAsync(CollectionsMarshal.AsSpan(keys), results, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of elements to be looked up in the database</param>
+		/// <param name="keySelector">Function that generate the key for each element</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="items"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="items"/>.</param>
+		/// <param name="state">State forwarded to the decoder</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="items"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TElement, TKey, TState, TValue>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, TKey> keySelector, Memory<TValue> results, TState state, FdbValueDecoder<TState, TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			//TODO: pooled!
+			var keys = new Slice[items.Length]; 
+			for (int i = 0; i < items.Length; i++)
+			{
+				keys[i] = FdbKeyHelpers.ToSlice(keySelector(items[i])); //TODO: pooled
+			}
+			return trans.GetValuesAsync(keys.AsSpan(), results, state, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of keys to be looked up in the database</param>
+		/// <param name="keySelector">Function that generate the key for each element</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="items"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="items"/>.</param>
+		/// <param name="state">State forwarded to the decoder</param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="items"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TElement, TKey, TState, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TElement> items, Func<TElement, TKey> keySelector, Memory<TValue> results, TState state, FdbValueDecoder<TState, TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			if (items.TryGetSpan(out var span))
+			{
+				return trans.GetValuesAsync(span, keySelector, results, state, decoder);
+			}
+
+			//TODO: pooled!
+			var keys = new List<Slice>(items.TryGetNonEnumeratedCount(out var count) ? count : 0);
+			foreach (var item in items)
+			{
+				keys.Add(FdbKeyHelpers.ToSlice(keySelector(item))); //TODO: pooled
+			}
+			return trans.GetValuesAsync(CollectionsMarshal.AsSpan(keys), results, state, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of elements to be looked up in the database</param>
+		/// <param name="keyState">Opaque state forwarded to <paramref name="keySelector"/></param>
+		/// <param name="keySelector">Function that generate the key for each element</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="items"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="items"/>.</param>
+		/// <param name="valueState">Opaque state forwarded to <paramref name="decoder"/></param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="items"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TElement, TKeyState, TKey, TValueState, TValue>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TElement> items, TKeyState keyState, Func<TKeyState, TElement, TKey> keySelector, Memory<TValue> results, TValueState valueState, FdbValueDecoder<TValueState, TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			//TODO: pooled!
+			var keys = new Slice[items.Length]; 
+			for (int i = 0; i < items.Length; i++)
+			{
+				keys[i] = FdbKeyHelpers.ToSlice(keySelector(keyState, items[i])); //TODO: pooled
+			}
+			return trans.GetValuesAsync(keys.AsSpan(), results, valueState, decoder);
+		}
+
+		/// <summary>Reads several values from the database snapshot represented by the current transaction.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="items">Sequence of keys to be looked up in the database</param>
+		/// <param name="keyState">Opaque state forwarded to <paramref name="keySelector"/></param>
+		/// <param name="keySelector">Function that generate the key for each element</param>
+		/// <param name="results">Buffer where the results will be written to (must be at least as large as <paramref name="items"/>). Each entry will contain the decoded value of the key at the same index in <paramref name="items"/>.</param>
+		/// <param name="valueState">State forwarded to <paramref name="decoder"/></param>
+		/// <param name="decoder">Decoder used to decode the results into values of type <typeparamref name="TValue"/></param>
+		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its corresponding key in <paramref name="items"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
+		public static Task GetValuesAsync<TElement, TKeyState, TKey, TValueState, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TElement> items, TKeyState keyState, Func<TKeyState, TElement, TKey> keySelector, Memory<TValue> results, TValueState valueState, FdbValueDecoder<TValueState, TValue> decoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			if (items.TryGetSpan(out var span))
+			{
+				return trans.GetValuesAsync(span, keyState, keySelector, results, valueState, decoder);
+			}
+
+			//TODO: pooled!
+			var keys = new List<Slice>(items.TryGetNonEnumeratedCount(out var count) ? count : 0);
+			foreach (var item in items)
+			{
+				keys.Add(FdbKeyHelpers.ToSlice(keySelector(keyState, item))); //TODO: pooled
+			}
+			return trans.GetValuesAsync(CollectionsMarshal.AsSpan(keys), results, valueState, decoder);
 		}
 
 		/// <summary>

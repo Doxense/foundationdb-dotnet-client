@@ -50,14 +50,6 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 			=> new(prefix, excluded: true);
 
-		public static FdbHeadKeyRange<TKey> Head<TKey>(in TKey cursor, bool excluded)
-			where TKey : struct, IFdbKey
-			=> new(cursor, excluded);
-
-		public static FdbTailKeyRange<TKey> Tail<TKey>(in TKey cursor, bool excluded)
-			where TKey : struct, IFdbKey
-			=> new(cursor, excluded);
-
 		public static FdbSingleKeyRange<TKey> Single<TKey>(in TKey cursor)
 			where TKey : struct, IFdbKey
 			=> new(cursor);
@@ -303,7 +295,7 @@ namespace FoundationDB.Client
 		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbKeySelector<FdbNextKey<TKey>> GetEndSelector()
-			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNext());
+			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNextSibling());
 
 		/// <summary>Returns a <see cref="KeySelector"/> that will match the first key in the range (inclusive)</summary>
 		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
@@ -314,70 +306,197 @@ namespace FoundationDB.Client
 		/// <summary>Returns a <see cref="KeySelector"/> that will match the last key in the range (exclusive)</summary>
 		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
 		public KeySelector ToEndSelector()
-			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNext()).ToSelector();
+			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNextSibling()).ToSelector();
 
 	}
 
-	/// <summary>Range that maps all the keys from a cursor key, up to the end of its subspace</summary>
+	/// <summary>Range that splits a range of keys into two parts using a cursor</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
-	public readonly struct FdbTailKeyRange<TKey> : IFdbKeyRange
+	/// <typeparam name="TTuple">Type of the cursor</typeparam>
+	/// <remarks>This can be used to read either the <i>head</i> of the <i>tail</i> of a queue or log of events.</remarks>
+	public readonly struct FdbBetweenRange<TKey, TTuple> : IFdbKeyRange
 		where TKey : struct, IFdbKey
+		where TTuple : IVarTuple
 	{
 
-		public FdbTailKeyRange(in TKey cursor, bool excluded)
+		public FdbBetweenRange(in TKey parent, TTuple from, bool fromInclusive, TTuple to, bool toInclusive)
 		{
-			Contract.Debug.Requires(cursor.GetSubspace() is not null);
-			this.Cursor = cursor;
-			this.Excluded = excluded;
+			this.Parent = parent;
+			this.From = from;
+			this.To = to;
+			this.FromInclusive = fromInclusive;
+			this.ToInclusive = toInclusive;
 		}
 
-		public readonly TKey Cursor;
+		/// <summary>Parent key, that is used as the prefix for all eligible keys</summary>
+		public readonly TKey Parent;
 
-		public readonly bool Excluded;
+		public readonly TTuple From;
+		public readonly TTuple To;
+
+		public readonly bool FromInclusive;
+		public readonly bool ToInclusive;
 
 		/// <inheritdoc />
-		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Cursor.GetSubspace();
+		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Parent.GetSubspace();
+
+		/// <summary>Returns the encoded Begin key (inclusive) for this range</summary>
+		[Pure]
+		public Slice GetBegin() => (this.From, this.FromInclusive) switch
+		{
+			(null, _) => this.Parent.ToSlice(),
+			(_, true) => this.Parent.Append(this.From).ToSlice(), //PERF: TODO: Optimize!
+			(_, false) => this.Parent.Append(this.From).GetSuccessor().ToSlice(), //PERF: TODO: Optimize!
+		};
+
+		/// <summary>Returns the encoded Begin key (inclusive) for this range</summary>
+		[Pure]
+		public KeySelector GetBeginSelector() => (this.From, this.FromInclusive) switch
+		{
+			(null, _) => this.Parent.FirstGreaterOrEqual().ToSelector(),
+			(_, true) => this.Parent.Append(this.From).FirstGreaterOrEqual().ToSelector(), //PERF: TODO: Optimize!
+			(_, false) => this.Parent.Append(this.From).FirstGreaterThan().ToSelector(), //PERF: TODO: Optimize!
+		};
+
+		/// <summary>Returns the encoded End key (exclusive) for this range</summary>
+		[Pure]
+		public Slice GetEnd() => (this.To, this.ToInclusive) switch
+		{
+			(null, _) => this.Parent.GetNextSibling().ToSlice(),
+			(_, true) => this.Parent.Append(this.To).GetSuccessor().ToSlice(), //PERF: TODO: Optimize!
+			(_, false) => this.Parent.Append(this.To).ToSlice(), //PERF: TODO: Optimize!
+		};
+
+		/// <summary>Returns the encoded End key (exclusive) for this range</summary>
+		[Pure]
+		public KeySelector GetEndSelector() => (this.To, this.ToInclusive) switch
+		{
+			(null, _) => this.Parent.GetNextSibling().FirstGreaterOrEqual().ToSelector(),
+			(_, true) => this.Parent.Append(this.To).FirstGreaterThan().ToSelector(), //PERF: TODO: Optimize!
+			(_, false) => this.Parent.Append(this.To).FirstGreaterOrEqual().ToSelector(), //PERF: TODO: Optimize!
+		};
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToKeyRange()
-		{
-			var cursorBytes = FdbKeyHelpers.ToSlice(in this.Cursor);
-			var endBytes = FdbKey.Increment(this.Cursor.GetSubspace()!.GetPrefix());
-			return new(cursorBytes, endBytes);
-		}
+		public KeyRange ToKeyRange() => KeyRange.Create(GetBegin(), GetEnd());
 
 	}
 
-	/// <summary>Range that maps all the keys from the start of a subspace up to the specified cursor</summary>
+	/// <summary>Range that splits a range of keys into two parts using a cursor</summary>
 	/// <typeparam name="TKey">Type of the key</typeparam>
-	public readonly struct FdbHeadKeyRange<TKey> : IFdbKeyRange
+	/// <typeparam name="TTuple">Type of the cursor</typeparam>
+	/// <remarks>This can be used to read either the <i>head</i> of the <i>tail</i> of a queue or log of events.</remarks>
+	public readonly struct FdbTailRange<TKey, TTuple> : IFdbKeyRange
 		where TKey : struct, IFdbKey
+		where TTuple : IVarTuple
 	{
 
-		public FdbHeadKeyRange(TKey cursor, bool excluded)
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTailRange(in TKey parent, TTuple from, bool fromInclusive)
 		{
-			Contract.Debug.Requires(cursor.GetSubspace() is not null);
-			this.Cursor = cursor;
-			this.Excluded = excluded;
+			this.Parent = parent;
+			this.From = from;
+			this.FromInclusive = fromInclusive;
 		}
 
-		public readonly TKey Cursor;
+		/// <summary>Parent key, that is used as the prefix for all eligible keys</summary>
+		public readonly TKey Parent;
 
-		public readonly bool Excluded;
+		public readonly TTuple From;
+
+		public readonly bool FromInclusive;
 
 		/// <inheritdoc />
-		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Cursor.GetSubspace();
+		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Parent.GetSubspace();
+
+		/// <summary>Includes the cursor in the range</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbHeadRange<TKey, TTuple> Inclusive() => new(this.Parent, this.From, true);
+
+		/// <summary>Excludes the cursor in the range</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbHeadRange<TKey, TTuple> Exclusive() => new(this.Parent, this.From, true);
+
+		/// <summary>Returns the encoded Begin key (inclusive) for this range</summary>
+		[Pure]
+		public Slice GetBegin() => this.FromInclusive switch
+		{
+			true => this.Parent.Append(this.From).ToSlice(), //PERF: TODO: Optimize!
+			false => this.Parent.Append(this.From).GetSuccessor().ToSlice(), //PERF: TODO: Optimize!
+		};
+
+		public KeySelector GetBeginSelector() => this.FromInclusive
+			? this.Parent.Append(this.From).FirstGreaterOrEqual().ToSelector() //PERF: TODO: Optimize!
+			: this.Parent.Append(this.From).FirstGreaterThan().ToSelector(); //PERF: TODO: Optimize!
+
+		/// <summary>Returns the encoded End key (exclusive) for this range</summary>
+		[Pure]
+		public Slice GetEnd() => this.Parent.GetNextSibling().ToSlice();
+
+		[Pure]
+		public KeySelector GetEndSelector() => this.Parent.GetNextSibling().FirstGreaterOrEqual().ToSelector();
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToKeyRange()
+		public KeyRange ToKeyRange() => KeyRange.Create(GetBegin(), GetEnd());
+
+	}
+
+	/// <summary>Range that splits a range of keys into two parts using a cursor</summary>
+	/// <typeparam name="TKey">Type of the key</typeparam>
+	/// <typeparam name="TTuple">Type of the cursor</typeparam>
+	/// <remarks>This can be used to read either the <i>head</i> of the <i>tail</i> of a queue or log of events.</remarks>
+	public readonly struct FdbHeadRange<TKey, TTuple> : IFdbKeyRange
+		where TKey : struct, IFdbKey
+		where TTuple : IVarTuple
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbHeadRange(in TKey parent, TTuple to, bool toInclusive)
 		{
-			var beginBytes = this.Cursor.GetSubspace()!.GetPrefix();
-
-			var cursorBytes = FdbKeyHelpers.ToSlice(in this.Cursor);
-			if (!this.Excluded) cursorBytes = FdbKey.Increment(cursorBytes);
-
-			return new(beginBytes, cursorBytes);
+			this.Parent = parent;
+			this.To = to;
+			this.ToInclusive = toInclusive;
 		}
+
+		/// <summary>Parent key, that is used as the prefix for all eligible keys</summary>
+		public readonly TKey Parent;
+
+		public readonly TTuple To;
+
+		public readonly bool ToInclusive;
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Parent.GetSubspace();
+
+		/// <summary>Includes the cursor in the range</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbHeadRange<TKey, TTuple> Inclusive() => new(this.Parent, this.To, true);
+
+		/// <summary>Excludes the cursor in the range</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbHeadRange<TKey, TTuple> Exclusive() => new(this.Parent, this.To, true);
+
+		/// <summary>Returns the encoded Begin key (inclusive) for this range</summary>
+		[Pure]
+		public Slice GetBegin() => this.Parent.ToSlice();
+
+		/// <summary>Returns the encoded Begin key (inclusive) for this range</summary>
+		[Pure]
+		public KeySelector GetBeginSelector() => this.Parent.FirstGreaterOrEqual().ToSelector();
+
+		/// <summary>Returns the encoded End key (exclusive) for this range</summary>
+		[Pure]
+		public Slice GetEnd() => this.ToInclusive
+			? this.Parent.Append(this.To).GetSuccessor().ToSlice() //PERF: TODO: Optimize!
+			: this.Parent.Append(this.To).ToSlice(); //PERF: TODO: Optimize!
+
+		/// <summary>Returns the encoded End key (exclusive) for this range</summary>
+		[Pure]
+		public KeySelector GetEndSelector() => this.ToInclusive
+			? this.Parent.Append(this.To).FirstGreaterThan().ToSelector() //PERF: TODO: Optimize!
+			: this.Parent.Append(this.To).FirstGreaterOrEqual().ToSelector(); //PERF: TODO: Optimize!
+
+		[Pure]
+		public KeyRange ToKeyRange() => KeyRange.Create(GetBegin(), GetEnd());
 
 	}
 

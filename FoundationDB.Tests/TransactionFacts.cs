@@ -857,10 +857,10 @@ namespace FoundationDB.Client.Tests
 				var results = new int[ids.Length];
 
 				await tr.GetValuesAsync(
-					subspace.EncodeMany(ids),
+					ids,
+					subspace, static (s, id) => s.GetKey(id),
 					results.AsMemory(),
-					state: 7,
-					decoder: (state, value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * state : -1
+					7, (state, value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * state : -1
 				);
 				
 				Log(string.Join(", ", results));
@@ -879,7 +879,8 @@ namespace FoundationDB.Client.Tests
 				var results = new int[ids.Length];
 
 				await tr.GetValuesAsync(
-					subspace.EncodeMany(ids),
+					ids,
+					subspace, static (s, id) => s.GetKey(id),
 					results.AsMemory(),
 					decoder: (value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * 2 : -1
 				);
@@ -900,10 +901,10 @@ namespace FoundationDB.Client.Tests
 				var results = new int[ids.Length];
 
 				await tr.GetValuesAsync(
-					subspace.PackKeys(ids, (id) => STuple.Create(id)),
+					ids,
+					subspace, static (s, id) => s.GetKey(id),
 					results.AsMemory(),
-					9,
-					decoder: (state, value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * state : -1
+					9, (state, value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * state : -1
 				);
 				
 				Log(string.Join(", ", results));
@@ -1760,68 +1761,360 @@ namespace FoundationDB.Client.Tests
 
 			db.SetDefaultLogHandler(log => Log(log.GetTimingsReport(true)));
 
-			// we will read the first key from [0, 100), expected 50
-			// but another transaction will insert 42, in effect changing the result of our range
-			// => this should conflict the GetRange
-
-			using (var tr1 = db.BeginTransaction(this.Cancellation))
+			Log("# Limit=1, Forward, Conflict");
 			{
-				var subspace = await location.Resolve(tr1);
+				// we will read the first key from [0, 100), expected 50
+				// but another transaction will insert 42, in effect changing the result of our range
+				// => this should conflict the GetRange
 
-				// [0, 100) limit 1 => 50
-				var kvp = await tr1
-					.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
-					.FirstOrDefaultAsync();
-				Assert.That(kvp.Key, Is.EqualTo(subspace.GetKey("foo", 50)));
-
-				// 42 < 50 > conflict !!!
-				using (var tr2 = db.BeginTransaction(this.Cancellation))
+				// setup
+				await db.WriteAsync(async (tr) =>
 				{
-					var subspace2 = await location.Resolve(tr2);
-					tr2.Set(subspace2.GetKey("foo", 42), Text("forty-two"));
-					await tr2.CommitAsync();
+					var subspace = await location.Resolve(tr);
+					tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
+				}, this.Cancellation);
+
+				// check
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr1);
+
+					// [0, 100) limit 1 => 50
+					var kvp = await tr1
+						.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
+						.FirstOrDefaultAsync();
+					Assert.That(kvp.Key, Is.EqualTo(subspace.GetKey("foo", 50)));
+
+					// 42 < 50 > conflict !!!
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						var subspace2 = await location.Resolve(tr2);
+						tr2.Set(subspace2.GetKey("foo", 42), Text("forty-two"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+
+					Assert.That(
+						async () => await tr1.CommitAsync(),
+						Throws.InstanceOf<FdbException>().With.Property(nameof(FdbException.Code)).EqualTo(FdbError.NotCommitted),
+						"The Set(42) in TR2 should have conflicted with the GetRange(0, 100) in TR1"
+					);
 				}
-
-				// we need to write something to force a conflict
-				tr1.Set(subspace.GetKey("bar"), Slice.Empty);
-
-				await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(42) in TR2 should have conflicted with the GetRange(0, 100) in TR1");
 			}
 
-			// if the other transaction insert something AFTER 50, then the result of our GetRange would not change (because of the implied limit = 1)
-			// => this should NOT conflict the GetRange
-			// note that if we write something in the range (0, 100) but AFTER 50, it should not conflict because we are doing a limit=1
-
-			await db.WriteAsync(async (tr) =>
+			Log("# Limit=1, Forward, No Conflict");
 			{
-				var subspace = await location.Resolve(tr);
-				tr.ClearRange(subspace);
-				tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
-			}, this.Cancellation);
+				// if the other transaction insert something AFTER 50, then the result of our GetRange would not change (because of the implied limit = 1)
+				// => this should NOT conflict the GetRange
+				// note that if we write something in the range (0, 100) but AFTER 50, it should not conflict because we are doing a limit=1
 
-			using (var tr1 = db.BeginTransaction(this.Cancellation))
-			{
-				var subspace = await location.Resolve(tr1);
-
-				// [0, 100) limit 1 => 50
-				var kvp = await tr1
-					.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
-					.FirstOrDefaultAsync();
-				Assert.That(kvp.Key, Is.EqualTo(subspace.GetKey("foo", 50)));
-
-				// 77 > 50 => no conflict
-				using (var tr2 = db.BeginTransaction(this.Cancellation))
+				// setup
+				await db.WriteAsync(async (tr) =>
 				{
-					var subspace2 = await location.Resolve(tr2);
-					tr2.Set(subspace2.GetKey("foo", 77), Text("docm"));
-					await tr2.CommitAsync();
+					var subspace = await location.Resolve(tr);
+					tr.ClearRange(subspace);
+					tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
+				}, this.Cancellation);
+
+				// check
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr1);
+
+					// [0, 100) limit 1 => 50
+					var kvp = await tr1
+						.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
+						.FirstOrDefaultAsync();
+					Assert.That(kvp.Key, Is.EqualTo(subspace.GetKey("foo", 50)));
+
+					// 77 > 50 => no conflict
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						var subspace2 = await location.Resolve(tr2);
+						tr2.Set(subspace2.GetKey("foo", 77), Text("docm"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+
+					// should not conflict!
+					Assert.That(async () => await tr1.CommitAsync(), Throws.Nothing, "Transaction should not conflict because the change does not change the result of the GetRange!");
+				}
+			}
+
+			Log("# Limit=1, Reverse, Conflict");
+			{
+				// check that reverse the range does conflict as expected
+
+				// setup
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = await location.Resolve(tr);
+					tr.ClearRange(subspace);
+					tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
+				}, this.Cancellation);
+
+				// check
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr1);
+
+					// [0, 100) limit 1 => 50
+					var kvp = await tr1
+						.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
+						.LastOrDefaultAsync();
+
+					Assert.That(kvp.Key, Is.EqualTo(subspace.GetKey("foo", 50)));
+
+					// 37 < 50 => no conflict
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						var subspace2 = await location.Resolve(tr2);
+						tr2.Set(subspace2.GetKey("foo", 77), Text("docm"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+
+					// should not conflict!
+					Assert.That(
+						async () => await tr1.CommitAsync(),
+						Throws.InstanceOf<FdbException>().With.Property(nameof(FdbException.Code)).EqualTo(FdbError.NotCommitted),
+						"Transaction should conflict because the change does not change the result of the GetRange!"
+					);
+				}
+			}
+
+			Log("# Limit=1, Reverse, No Conflict");
+			{
+				// same thing but the mutation if before the result range
+
+				// setup
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = await location.Resolve(tr);
+					tr.ClearRange(subspace);
+					tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
+				}, this.Cancellation);
+
+				// check
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr1);
+
+					// [0, 100) limit 1 => 50
+					var kvp = await tr1
+						.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
+						.LastOrDefaultAsync();
+
+					Assert.That(kvp.Key, Is.EqualTo(subspace.GetKey("foo", 50)));
+
+					// 37 < 50 => no conflict
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						var subspace2 = await location.Resolve(tr2);
+						tr2.Set(subspace2.GetKey("foo", 37), Text("totally_random_number"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+
+					// should not conflict!
+					Assert.That(async () => await tr1.CommitAsync(), Throws.Nothing, "Transaction should not conflict because the change does not change the result of the GetRange!");
+				}
+			}
+
+			Log("# Limit=3, Forward, Conflict");
+			{
+				// setup
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = await location.Resolve(tr);
+					tr.ClearRange(subspace);
+					tr.Set(subspace.GetKey("foo", 49), Text("forty nine"));
+					tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
+					tr.Set(subspace.GetKey("foo", 51), Text("fifty one"));
+				}, this.Cancellation);
+
+				// check conflict
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr1);
+
+					// [0, 100) limit 1 => 50
+					var kvps = await tr1
+						.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
+						.Take(3)
+						.ToListAsync();
+
+					Assert.That(kvps.Count, Is.EqualTo(3));
+					Assert.That(kvps[0].Key, Is.EqualTo(subspace.GetKey("foo", 49)));
+					Assert.That(kvps[1].Key, Is.EqualTo(subspace.GetKey("foo", 50)));
+					Assert.That(kvps[2].Key, Is.EqualTo(subspace.GetKey("foo", 51)));
+
+					// 77 > 50 => no conflict
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						var subspace2 = await location.Resolve(tr2);
+						tr2.Set(subspace2.GetKey("foo", 37), Text("totally_random_number"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+
+					// should not conflict!
+					Assert.That(
+						async () => await tr1.CommitAsync(), 
+						Throws.InstanceOf<FdbException>().With.Property(nameof(FdbException.Code)).EqualTo(FdbError.NotCommitted),
+						"Transaction should conflict because the mutation would change the result of the GetRange!"
+					);
 				}
 
-				// we need to write something to force a conflict
-				tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+			}
 
-				// should not conflict!
-				await tr1.CommitAsync();
+			Log("# Limit=3, Forward, No Conflict");
+			{
+				// setup
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = await location.Resolve(tr);
+					tr.ClearRange(subspace);
+					tr.Set(subspace.GetKey("foo", 49), Text("forty nine"));
+					tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
+					tr.Set(subspace.GetKey("foo", 51), Text("fifty one"));
+				}, this.Cancellation);
+
+				// check no conflict
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr1);
+
+					// [0, 100) limit 1 => 50
+					var kvps = await tr1
+						.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
+						.Take(3)
+						.ToListAsync();
+
+					Assert.That(kvps.Count, Is.EqualTo(3));
+					Assert.That(kvps[0].Key, Is.EqualTo(subspace.GetKey("foo", 49)));
+					Assert.That(kvps[1].Key, Is.EqualTo(subspace.GetKey("foo", 50)));
+					Assert.That(kvps[2].Key, Is.EqualTo(subspace.GetKey("foo", 51)));
+
+					// 77 > 50 => no conflict
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						var subspace2 = await location.Resolve(tr2);
+						tr2.Set(subspace2.GetKey("foo", 77), Text("docm"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+
+					// should not conflict!
+					Assert.That(async () => await tr1.CommitAsync(), Throws.Nothing, "Transaction should not conflict because the mutation does not change the result of the GetRange!");
+				}
+			}
+
+			Log("# Limit=3, Reverse, Conflict");
+			{
+				// setup
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = await location.Resolve(tr);
+					tr.ClearRange(subspace);
+					tr.Set(subspace.GetKey("foo", 49), Text("forty nine"));
+					tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
+					tr.Set(subspace.GetKey("foo", 51), Text("fifty one"));
+				}, this.Cancellation);
+
+				// check conflict
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr1);
+
+					// [0, 100) limit 1 => 50
+					var kvps = await tr1
+						.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
+						.Reverse()
+						.Take(3)
+						.ToListAsync();
+
+					Assert.That(kvps.Count, Is.EqualTo(3));
+					Assert.That(kvps[0].Key, Is.EqualTo(subspace.GetKey("foo", 51)));
+					Assert.That(kvps[1].Key, Is.EqualTo(subspace.GetKey("foo", 50)));
+					Assert.That(kvps[2].Key, Is.EqualTo(subspace.GetKey("foo", 49)));
+
+					// 77 > 50 => no conflict
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						var subspace2 = await location.Resolve(tr2);
+						tr2.Set(subspace2.GetKey("foo", 77), Text("conflict"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+
+					// should not conflict!
+					Assert.That(
+						async () => await tr1.CommitAsync(),
+						Throws.InstanceOf<FdbException>().With.Property(nameof(FdbException.Code)).EqualTo(FdbError.NotCommitted),
+						"Transaction should conflict because the mutation would change the result of the GetRange!"
+					);
+				}
+
+			}
+
+			Log("# Limit=3, Reverse, No Conflict");
+			{
+				// setup
+				await db.WriteAsync(async (tr) =>
+				{
+					var subspace = await location.Resolve(tr);
+					tr.ClearRange(subspace);
+					tr.Set(subspace.GetKey("foo", 49), Text("forty nine"));
+					tr.Set(subspace.GetKey("foo", 50), Text("fifty"));
+					tr.Set(subspace.GetKey("foo", 51), Text("fifty one"));
+				}, this.Cancellation);
+
+				// check no conflict
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
+				{
+					var subspace = await location.Resolve(tr1);
+
+					// [0, 100) limit 1 => 50
+					var kvps = await tr1
+						.GetRange(subspace.GetKey("foo"), subspace.GetKey("foo", 100))
+						.Reverse()
+						.Take(3)
+						.ToListAsync();
+
+					Assert.That(kvps.Count, Is.EqualTo(3));
+					Assert.That(kvps[0].Key, Is.EqualTo(subspace.GetKey("foo", 51)));
+					Assert.That(kvps[1].Key, Is.EqualTo(subspace.GetKey("foo", 50)));
+					Assert.That(kvps[2].Key, Is.EqualTo(subspace.GetKey("foo", 49)));
+
+					// 77 > 50 => no conflict
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						var subspace2 = await location.Resolve(tr2);
+						tr2.Set(subspace2.GetKey("foo", 37), Text("totally_random_number"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(subspace.GetKey("bar"), Slice.Empty);
+
+					// should not conflict!
+					Assert.That(async () => await tr1.CommitAsync(), Throws.Nothing, "Transaction should not conflict because the mutation does not change the result of the GetRange!");
+				}
 			}
 		}
 
@@ -2233,7 +2526,7 @@ namespace FoundationDB.Client.Tests
 				var data = await tr.GetAsync(subspace.GetKey("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"));
 					
-				var res = await tr.GetRange(subspace.GetRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+				var res = await tr.GetRange(subspace.ToRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]));
 
 				tr.Set(subspace.GetKey("a"), Text("aa"));
@@ -2241,7 +2534,7 @@ namespace FoundationDB.Client.Tests
 
 				data = await tr.GetAsync(subspace.GetKey("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should be visible by default");
-				res = await tr.GetRange(subspace.GetRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+				res = await tr.GetRange(subspace.ToRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "PRINT \"WORLD\"", "GOTO 10" ]), "The transaction own writes should be visible by default");
 
 				//note: don't commit
@@ -2270,7 +2563,7 @@ namespace FoundationDB.Client.Tests
 
 				var data = await tr.GetAsync(subspace.GetKey("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"));
-				var res = await tr.GetRange(subspace.GetRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+				var res = await tr.GetRange(subspace.ToRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]));
 
 				tr.Set(subspace.GetKey("a"), Text("aa"));
@@ -2278,7 +2571,7 @@ namespace FoundationDB.Client.Tests
 
 				data = await tr.GetAsync(subspace.GetKey("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
-				res = await tr.GetRange(subspace.GetRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+				res = await tr.GetRange(subspace.ToRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
 
 				//note: don't commit!
@@ -3143,7 +3436,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 				{
-					var foo = await tr.GetRange(subspace.GetRange("foo")).SingleAsync();
+					var foo = await tr.GetRange(subspace.ToRange("foo")).SingleAsync();
 					Log("> Found 1 result under (foo,)");
 					Log($"- {subspace.ExtractKey(foo.Key):K} = {foo.Value:V}");
 					Assert.That(foo.Value.ToString(), Is.EqualTo("Hello, World!"));
@@ -3161,7 +3454,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				{
-					var items = await tr.GetRange(subspace.GetRange("bar")).ToListAsync();
+					var items = await tr.GetRange(subspace.ToRange("bar")).ToListAsync();
 					Log($"> Found {items.Count} results under (bar,)");
 					foreach (var item in items)
 					{

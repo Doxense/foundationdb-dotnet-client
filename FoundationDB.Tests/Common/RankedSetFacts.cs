@@ -71,7 +71,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			for (int l = 0; l < 6; l++)
 			{
 				sb.Append($"Level {l}:\r\n");
-				await tr.GetRange(rs.Subspace.GetKey(l).GetRange()).ForEachAsync((kvp) =>
+				await tr.GetRange(rs.Subspace.GetKey(l).StartsWith()).ForEachAsync((kvp) =>
 				{
 					sb.Append($"\t{rs.Subspace.Unpack(kvp.Key)} = {kvp.Value.ToInt64()}\r\n");
 				});

@@ -139,8 +139,11 @@ namespace FoundationDB.Layers.Collections
 
 				//PERF: TODO: use GetRange with value decoder!
 				return tr
-					.GetRange(this.Subspace.ToRange())
-					.Select((kvp) => this.Parent.Codec.DecodeValue(kvp.Value.Span))
+					.GetRangeValues(
+						this.Subspace.ToRange(),
+						this.Parent.Codec,
+						(codec, bytes) => codec.DecodeValue(bytes)
+					)
 					.LastOrDefaultAsync();
 			}
 

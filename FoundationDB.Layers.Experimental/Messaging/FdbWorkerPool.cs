@@ -137,7 +137,7 @@ namespace FoundationDB.Layers.Messaging
 
 			internal async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, char ring)
 			{
-				var range = this.Subspace.GetRange(ring);
+				var range = this.Subspace.ToRange(ring);
 
 				// start from a random position around the ring
 				var key = this.Subspace.GetKey(ring, GetRandomId());
@@ -174,7 +174,7 @@ namespace FoundationDB.Layers.Messaging
 				// - an empty queue must correspond to an empty subspace
 
 				// get the current size of the queue
-				var lastKey = await tr.Snapshot.GetKeyAsync(this.Subspace.GetKey(queue).GetNext().LastLessThan()).ConfigureAwait(false);
+				var lastKey = await tr.Snapshot.GetKeyAsync(this.Subspace.GetKey(queue).GetNextSibling().LastLessThan()).ConfigureAwait(false);
 				//PERF: TODO: implement '<' between FdbTupleKey and Slice ?
 				int count = lastKey < this.Subspace.GetKey(queue).ToSlice() ? 0 : this.Subspace.DecodeAt<int>(lastKey, 1) + 1;
 
@@ -190,7 +190,7 @@ namespace FoundationDB.Layers.Messaging
 
 				// store task body and timestamp
 				tr.Set(prefix, taskBody);
-				tr.Set(prefix.Append(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
+				tr.Set(prefix.AppendKey(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
 				// increment total and pending number of tasks
 
 				tr.AtomicIncrement64(this.Subspace.GetKey(COUNTERS, COUNTER_TOTAL_TASKS));
@@ -202,7 +202,7 @@ namespace FoundationDB.Layers.Messaging
 				tr.Annotate($"Deleting task {taskId:P}");
 
 				// clear all metadata about the task
-				tr.ClearRange(this.Subspace.GetRange(TASKS, taskId));
+				tr.ClearRange(this.Subspace.ToRange(TASKS, taskId));
 				// decrement pending number of tasks
 				tr.AtomicDecrement64(this.Subspace.GetKey(COUNTERS, COUNTER_PENDING_TASKS));
 			}
@@ -311,7 +311,7 @@ namespace FoundationDB.Layers.Messaging
 							tr.Annotate("Look for next queued item");
 							
 							// Find the next task on the queue
-							var item = await tr.GetRange(state.Subspace.GetRange(UNASSIGNED)).FirstOrDefaultAsync().ConfigureAwait(false);
+							var item = await tr.GetRange(state.Subspace.ToRange(UNASSIGNED)).FirstOrDefaultAsync().ConfigureAwait(false);
 
 							if (!item.Key.IsNull)
 							{ // pop the Task from the queue
@@ -343,7 +343,7 @@ namespace FoundationDB.Layers.Messaging
 							var data = await tr.GetValuesAsync(
 							[
 								prefix.ToSlice(), //TODO: PERF: optimize!
-								prefix.Append(TASK_META_SCHEDULED).ToSlice() //TODO: PERF: optimize!
+								prefix.AppendKey(TASK_META_SCHEDULED).ToSlice() //TODO: PERF: optimize!
 							]).ConfigureAwait(false);
 
 							msg.Body = data[0];

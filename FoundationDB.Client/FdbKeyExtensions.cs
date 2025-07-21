@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 		/// <para>Please note that <c>subspace.GetKey("abc", 123).GetRange()</c> is equivalent to <c>subspace.GetRange("abc", 123)</c></para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<TKey> GetRange<TKey>(this TKey key, bool excluded = false)
+		public static FdbKeyPrefixRange<TKey> ToRange<TKey>(this TKey key, bool excluded = false)
 			where TKey : struct, IFdbKey
 		{
 			return excluded
@@ -67,21 +67,136 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 			=> new(key);
 
-		/// <summary>Returns a key that increments the last byte to get the key that is immediately after all the keys in the database that have the current key has a prefix (ex: <c>`abc`</c> => <c>`abd`</c>)</summary>
+		/// <summary>Returns a key that increments the last byte to get the key that is immediately after all the keys in the database that have the current key has a prefix (ex: <c>`abc`</c> => <c>`abd`</c>, <c>123</c> => <c>124</c>)</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <param name="key">Input key</param>
 		/// <returns>Key that, when encoded into binary, will not have <paramref name="key"/> as its prefix</returns>
 		/// <remarks>
 		/// <para>This can be used to produce the "end" key for a range read that will return all the values under this key.</para>
-		/// <para>For example, <c>tr.GetRange(subspace.GetKey(123), subspace.GetKey(123).GetNext())</c> will be equivalent to <c>tr.GetRange(subspace.GetKey(123), subspace.GetKey(124))</c></para>
+		/// <para>For example, <c>tr.GetRange(subspace.GetKey(123), subspace.GetKey(123).GetNextSibling())</c> will be equivalent to <c>tr.GetRange(subspace.GetKey(123), subspace.GetKey(124))</c></para>
 		/// <para>Please be careful when using this with tuples where the last elements is a <see cref="string"/> or <see cref="Slice"/>: the encoding adds an extra <c>0x00</c> bytes after the element (ex: <c>"hello"</c> => <c>`\x02hello\x00`</c>), which means that its successor (<c>`\x02hello\x01`</c>) will not be a valid tuple encoding, but will still be valid as an 'end' key.</para>
 		/// <para>It should be combined with <see cref="FdbKeySelector.FirstGreaterOrEqual{TKey}"/> to produce a valid 'end' selector for a range read</para>
 		/// </remarks>
 		/// <seealso cref="FdbKeySelector.FirstGreaterOrEqual{TKey}"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbNextKey<TKey> GetNext<TKey>(this TKey key)
+		public static FdbNextKey<TKey> GetNextSibling<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
 			=> new(key);
+
+		/// <summary>Returns a sub-range that will match all keys that are children of <paramref name="key"/> and between the two given bounds</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="TTuple">Type of the cursor</typeparam>
+		/// <param name="key">Parent key</param>
+		/// <param name="from">Inclusive lower bound (relative to this key), or <c>null</c> to read from the start of the range</param>
+		/// <param name="to">Exclusive upper bound (relative to this key), or <c>null</c> to read to the end of the range</param>
+		/// <returns></returns>
+		public static FdbBetweenRange<TKey, TTuple> Between<TKey, TTuple>(this TKey key, TTuple from, TTuple to)
+			where TKey : struct, IFdbKey
+			where TTuple : IVarTuple
+		{
+			Contract.NotNull(from);
+			Contract.NotNull(to);
+			return new(key, from, fromInclusive: true, to, toInclusive: false);
+		}
+
+		/// <summary>Returns a sub-range that will match all keys that are children of <paramref name="key"/> and between the two given bounds</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="TTuple">Type of the cursor</typeparam>
+		/// <param name="key">Parent key</param>
+		/// <param name="from">Lower bound (relative to this key), or <c>null</c> to read from the start of the range</param>
+		/// <param name="fromInclusive">Specified whether the lower bound is included in the range</param>
+		/// <param name="to">Exclusive upper bound (relative to this key), or <c>null</c> to read to the end of the range</param>
+		/// <param name="toInclusive">Specified whether the upper bound is included in the range</param>
+		/// <returns></returns>
+		public static FdbBetweenRange<TKey, TTuple> Between<TKey, TTuple>(this TKey key, TTuple from, bool fromInclusive, TTuple to, bool toInclusive)
+			where TKey : struct, IFdbKey
+			where TTuple : IVarTuple
+		{
+			Contract.NotNull(from);
+			Contract.NotNull(to);
+			return new(key, from, fromInclusive, to, toInclusive);
+		}
+
+		/// <summary>Returns a sub-range that will match all keys that are children of <paramref name="key"/> and located between the given cursor and the end of the range.</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="TTuple">Type of the cursor</typeparam>
+		/// <param name="key">Parent key</param>
+		/// <param name="from">Lower bound (relative to this key)</param>
+		/// <param name="fromInclusive">Specifies if the lower bound is included (default) or excluded from the range</param>
+		public static FdbTailRange<TKey, TTuple> Tail<TKey, TTuple>(this TKey key, TTuple from, bool fromInclusive = true)
+			where TKey : struct, IFdbKey
+			where TTuple : IVarTuple
+		{
+			Contract.NotNull(from);
+			return new(key, from, fromInclusive);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTailRange<TKey, STuple<T1>> TailKey<TKey, T1>(this TKey key, T1 cursor1)
+			where TKey : struct, IFdbKey
+			=> new(key, new(cursor1), fromInclusive: true);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTailRange<TKey, STuple<T1, T2>> TailKey<TKey, T1, T2>(this TKey key, T1 cursor1, T2 cursor2)
+			where TKey : struct, IFdbKey
+			=> new(key, new(cursor1, cursor2), fromInclusive: true);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTailRange<TKey, STuple<T1, T2, T3>> TailKey<TKey, T1, T2, T3>(this TKey key, T1 cursor1, T2 cursor2, T3 cursor3)
+			where TKey : struct, IFdbKey
+			=> new(key, new(cursor1, cursor2, cursor3), fromInclusive: true);
+
+		/// <summary>Returns a sub-range that will match all keys that are children of <paramref name="key"/> and located between the start of the range and given cursor.</summary>
+		/// <typeparam name="TKey"></typeparam>
+		/// <typeparam name="TTuple">Type of the cursor</typeparam>
+		/// <param name="key">Parent key</param>
+		/// <param name="to">Upper bound (relative to this key)</param>
+		/// <param name="toInclusive">Specifies if the upper bound is included or excluded (default) from the range</param>
+		public static FdbHeadRange<TKey, TTuple> Head<TKey, TTuple>(this TKey key, TTuple to, bool toInclusive = false)
+			where TKey : struct, IFdbKey
+			where TTuple : IVarTuple
+		{
+			Contract.NotNull(to);
+			return new(key, to, toInclusive);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbHeadRange<TKey, STuple<T1>> HeadKey<TKey, T1>(this TKey key, T1 cursor1)
+			where TKey : struct, IFdbKey
+			=> new(key, new(cursor1), toInclusive: false);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbHeadRange<TKey, STuple<T1, T2>> HeadKey<TKey, T1, T2>(this TKey key, T1 cursor1, T2 cursor2)
+			where TKey : struct, IFdbKey
+			=> new(key, new(cursor1, cursor2), toInclusive: false);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbHeadRange<TKey, STuple<T1, T2, T3>> HeadKey<TKey, T1, T2, T3>(this TKey key, T1 cursor1, T2 cursor2, T3 cursor3)
+			where TKey : struct, IFdbKey
+			=> new(key, new(cursor1, cursor2, cursor3), toInclusive: false);
+
+		/// <summary>Returns a range that will match the key, and all of its children</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <returns>Range that matches all keys that start with <paramref name="key"/> (included)</returns>
+		/// <para>Ex: <c>subspace.GetKey(123).StartsWith()</c> will match <c>(..., 123)</c> as well as all the keys of the form <c>(..., 123, ...)</c>.</para>
+		/// <para>Please be careful when using this with tuples where the last elements is a <see cref="string"/> or <see cref="Slice"/>: the encoding adds an extra <c>0x00</c> bytes after the element (ex: <c>"hello"</c> => <c>`\x02hello\x00`</c>), which means that <c>(..., "abc")</c> is <b>NOT</b> a child of <c>(..., "ab")</c></para>
+		/// <seealso cref="PrefixedBy{TKey}"/>
+		public static FdbKeyPrefixRange<TKey> StartsWith<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key, excluded: false);
+
+		/// <summary>Returns a range that will match the all the key's children, but not the key itself</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <returns>Range that matches all keys that start with the prefix <paramref name="key"/> (excluded)</returns>
+		/// <remarks>
+		/// <para>Ex: <c>subspace.GetKey(123).PrefixedBy()</c> will match all keys of the form <c>(..., 123, ...)</c>, but will not include <c>(..., 123)</c> itself.</para>
+		/// </remarks>
+		/// <seealso cref="StartsWith{TKey}"/>
+		public static FdbKeyPrefixRange<TKey> PrefixedBy<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key, excluded: false);
 
 		#endregion
 
@@ -115,17 +230,16 @@ namespace FoundationDB.Client
 		/// <typeparam name="TKey"></typeparam>
 		/// <param name="key"></param>
 		/// <returns></returns>
-		public static IDynamicKeySubspace ToPartition<TKey>(this TKey key)
+		public static IDynamicKeySubspace ToSubspace<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
 		{
 			var parent = key.GetSubspace();
-			if (parent is null)
-			{ // the key is not tied to a subspace
-				return new DynamicKeySubspace(FdbKeyHelpers.ToSlice(in key), SubspaceContext.Default);
-			}
 
-			parent.Context.EnsureIsValid();
-			return new DynamicKeySubspace(parent.GetPrefix() + FdbKeyHelpers.ToSlice(in key), parent.Context);
+			// the key is tied to the subspace context
+			var context = parent?.Context ?? SubspaceContext.Default;
+			context.EnsureIsValid();
+
+			return new DynamicKeySubspace(FdbKeyHelpers.ToSlice(in key), context);
 		}
 
 		/// <summary>Returns a new subspace with an additional prefix</summary>
@@ -137,13 +251,11 @@ namespace FoundationDB.Client
 		/// then the new subspace will have the prefix <c>(42, 123)</c> (<c>`\x15\x2A\x15\x7B`</c>)</para>
 		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
 		/// </remarks>
-		public static IDynamicKeySubspace WithPrefix(this IDynamicKeySubspace subspace, ReadOnlySpan<byte> prefix)
+		public static IDynamicKeySubspace ToSubspace(this IDynamicKeySubspace subspace, ReadOnlySpan<byte> prefix)
 		{
 			Contract.NotNull(subspace);
 			subspace.Context.EnsureIsValid();
-			return prefix.Length == 0
-				? subspace
-				: new DynamicKeySubspace(subspace.GetPrefix().Concat(prefix), subspace.Context);
+			return new DynamicKeySubspace(subspace.GetPrefix().Concat(prefix), subspace.Context);
 		}
 
 		/// <summary>Returns a new subspace with an additional prefix</summary>
@@ -155,46 +267,12 @@ namespace FoundationDB.Client
 		/// then the new subspace will have the prefix <c>(42, 123)</c> (<c>`\x15\x2A\x15\x7B`</c>)</para>
 		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
 		/// </remarks>
-		public static IDynamicKeySubspace WithPrefix(this IDynamicKeySubspace subspace, Slice prefix)
+		public static IDynamicKeySubspace ToSubspace(this IDynamicKeySubspace subspace, Slice prefix)
 		{
 			Contract.NotNull(subspace);
 			subspace.Context.EnsureIsValid();
-			return prefix.Count == 0
-				? subspace
-				: new DynamicKeySubspace(subspace.GetPrefix() + prefix, subspace.Context);
+			return new DynamicKeySubspace(subspace.GetPrefix() + prefix, subspace.Context);
 		}
-
-		/// <summary>Returns a new subspace with an additional prefix</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="prefix">Tuple that will be packed and added to the parent subspace prefix</param>
-		/// <returns>Subspace that will append both prefixes to all the keys</returns>
-		/// <remarks>
-		/// <para>For example, if the <paramref name="subspace "/> has the prefix <c>(42,)</c> (<c>`\x15\x2A`</c>) and <paramref name="prefix"/> is <c>("abc", 123)</c> (<c>`\x02abc\x00\x15\x7B`</c>),
-		/// then the new subspace will have the prefix <c>(42, "abc", 123)</c> (<c>`\x15\x2A\x02abc\x00\x15\x7B`</c>)</para>
-		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
-		/// </remarks>
-		public static IDynamicKeySubspace WithPrefix<TTuple>(this IDynamicKeySubspace subspace, TTuple prefix)
-			where TTuple: IVarTuple
-		{
-			Contract.NotNull(subspace);
-			Contract.NotNull(prefix);
-			subspace.Context.EnsureIsValid();
-			return prefix is STuple || prefix.Count == 0
-				? subspace
-				: new DynamicKeySubspace(TupleEncoder.Pack(subspace.GetPrefix().Span, prefix), subspace.Context);
-		}
-
-		public static IDynamicKeySubspace WithPrefix<T1>(this IDynamicKeySubspace subspace, ValueTuple<T1> prefix)
-			=> WithPrefix(subspace, prefix.ToSTuple());
-
-		public static IDynamicKeySubspace WithPrefix<T1, T2>(this IDynamicKeySubspace subspace, ValueTuple<T1, T2> prefix)
-			=> WithPrefix(subspace, prefix.ToSTuple());
-
-		public static IDynamicKeySubspace WithPrefix<T1, T2, T3>(this IDynamicKeySubspace subspace, ValueTuple<T1, T2, T3> prefix)
-			=> WithPrefix(subspace, prefix.ToSTuple());
-
-		public static IDynamicKeySubspace WithPrefix<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, ValueTuple<T1, T2, T3, T4> prefix)
-			=> WithPrefix(subspace, prefix.ToSTuple());
 
 		#region IDynamicKeySubspace.GetKey(...)...
 
@@ -210,7 +288,7 @@ namespace FoundationDB.Client
 		/// <para>Example:<code>
 		/// // reads the document for 'user123' under this subspace
 		/// var value = await tr.GetAsync(subspace.GetKey("user123"));</code></para>
-		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="PackKey{T1}(IDynamicKeySubspace,STuple{T1})"/> instead.</para>
+		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="Append{T1}(FoundationDB.Client.IDynamicKeySubspace,SnowBank.Data.Tuples.STuple{T1})"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1> GetKey<T1>(this IDynamicKeySubspace subspace, T1 item1) => new(subspace, item1);
@@ -225,7 +303,7 @@ namespace FoundationDB.Client
 		/// const int VERSIONS = 1;  // subsection that store the versions of the documents
 		/// tr.Set(subspace.GetKey(DOCUMENTS, "user123"), jsonBytes);
 		/// tr.AtomicIncrement64(subspace.GetKey(VERSIONS, "user123"));</code></para>
-		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="PackKey{T1,T2}(IDynamicKeySubspace,in STuple{T1,T2})"/> instead.</para>
+		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="Append{T1,T2}(FoundationDB.Client.IDynamicKeySubspace,in SnowBank.Data.Tuples.STuple{T1,T2})"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2> GetKey<T1, T2>(this IDynamicKeySubspace subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
@@ -239,7 +317,7 @@ namespace FoundationDB.Client
 		/// <para>Example: <code>
 		/// const INDEX_BY_CITY = 2; // subsection that stores a non-unique index of users by their city name.
 		/// tr.Set(subspace.GetKey(INDEX_BY_CITY, "Tokyo", "user123"), Slice.Empty)</code></para>
-		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="PackKey{T1,T2,T3}(IDynamicKeySubspace,in STuple{T1,T2,T3})"/> instead.</para>
+		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="Append{T1,T2,T3}(FoundationDB.Client.IDynamicKeySubspace,in SnowBank.Data.Tuples.STuple{T1,T2,T3})"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3> GetKey<T1, T2, T3>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3) => new(subspace, item1, item2, item3);
@@ -251,7 +329,7 @@ namespace FoundationDB.Client
 		/// <param name="item3">value of the 3rd element in the key</param>
 		/// <param name="item4">value of the 4th element in the key</param>
 		/// <remarks>
-		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="PackKey{T1,T2,T3,T4}(IDynamicKeySubspace,in STuple{T1,T2,T3,T4})"/> instead.</para>
+		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="Append{T1,T2,T3,T4}(FoundationDB.Client.IDynamicKeySubspace,in SnowBank.Data.Tuples.STuple{T1,T2,T3,T4})"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4> GetKey<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4) => new(subspace, item1, item2, item3, item4);
@@ -264,7 +342,7 @@ namespace FoundationDB.Client
 		/// <param name="item4">value of the 4th element in the key</param>
 		/// <param name="item5">value of the 5th element in the key</param>
 		/// <remarks>
-		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="PackKey{T1,T2,T3,T4,T5}(IDynamicKeySubspace,in STuple{T1,T2,T3,T4,T5})"/> instead.</para>
+		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="Append{T1,T2,T3,T4,T5}(FoundationDB.Client.IDynamicKeySubspace,in SnowBank.Data.Tuples.STuple{T1,T2,T3,T4,T5})"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5> GetKey<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => new(subspace, item1, item2, item3, item4, item5);
@@ -278,7 +356,7 @@ namespace FoundationDB.Client
 		/// <param name="item5">value of the 5th element in the key</param>
 		/// <param name="item6">value of the 6th element in the key</param>
 		/// <remarks>
-		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="PackKey{T1,T2,T3,T4,T5,T6}(IDynamicKeySubspace,in STuple{T1,T2,T3,T4,T5,T6})"/> instead.</para>
+		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="Append{T1,T2,T3,T4,T5,T6}(FoundationDB.Client.IDynamicKeySubspace,in SnowBank.Data.Tuples.STuple{T1,T2,T3,T4,T5,T6})"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> GetKey<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(subspace, item1, item2, item3, item4, item5, item6);
@@ -293,7 +371,7 @@ namespace FoundationDB.Client
 		/// <param name="item6">value of the 6th element in the key</param>
 		/// <param name="item7">value of the 7th element in the key</param>
 		/// <remarks>
-		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="PackKey{T1,T2,T3,T4,T5,T6,T7}(IDynamicKeySubspace,in STuple{T1,T2,T3,T4,T5,T6,T7})"/> instead.</para>
+		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="Append{T1,T2,T3,T4,T5,T6,T7}(FoundationDB.Client.IDynamicKeySubspace,in SnowBank.Data.Tuples.STuple{T1,T2,T3,T4,T5,T6,T7})"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> GetKey<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(subspace, item1, item2, item3, item4, item5, item6, item7);
@@ -309,72 +387,79 @@ namespace FoundationDB.Client
 		/// <param name="item7">value of the 7th element in the key</param>
 		/// <param name="item8">value of the 8th element in the key</param>
 		/// <remarks>
-		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="PackKey{T1,T2,T3,T4,T5,T6,T7,T8}(IDynamicKeySubspace,in STuple{T1,T2,T3,T4,T5,T6,T7,T8})"/> instead.</para>
+		/// <para>Please remember that if you pass a tuple as argument to this method, it will be added as an <i>embedded</i> tuple, which may not be what you expect! To generate a key from items already stored in a tuple, use <see cref="Append{T1,T2,T3,T4,T5,T6,T7,T8}(FoundationDB.Client.IDynamicKeySubspace,in SnowBank.Data.Tuples.STuple{T1,T2,T3,T4,T5,T6,T7,T8})"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> GetKey<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(subspace, item1, item2, item3, item4, item5, item6, item7, item8);
 
 		#endregion
 
-		#region IDynamicKeySubspace.PackKey(ValueTuple<...>)...
+		#region IDynamicKeySubspace.Append(ValueTuple<...>)...
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1> PackKey<T1>(this IDynamicKeySubspace subspace, ValueTuple<T1> key) => new(subspace, key.Item1);
+		public static FdbTupleKey<T1> Append<T1>(this IDynamicKeySubspace subspace, ValueTuple<T1> key) => new(subspace, key.Item1);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2> PackKey<T1, T2>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2> Append<T1, T2>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3> PackKey<T1, T2, T3>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3> Append<T1, T2, T3>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4> PackKey<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4> Append<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5> PackKey<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5> Append<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> PackKey<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> PackKey<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> PackKey<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> key) => new(subspace, in key);
 
 		#endregion
 
 		#region IDynamicKeySubspace.PackKey(STuple<...>)...
 
+		public static FdbTupleSuffixKey<TKey, TTuple> Append<TKey, TTuple>(this TKey key, TTuple items)
+			where TKey : struct, IFdbKey
+			where TTuple : IVarTuple
+		{
+			return new(key, items);
+		}
+
 		/// <summary>Returns a key that packs the given items under this subspace</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey PackKey(this IDynamicKeySubspace subspace, IVarTuple items) => new(subspace, items);
+		public static FdbTupleKey Append(this IDynamicKeySubspace subspace, IVarTuple items) => new(subspace, items);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1> PackKey<T1>(this IDynamicKeySubspace subspace, STuple<T1> key) => new(subspace, key.Item1);
+		public static FdbTupleKey<T1> Append<T1>(this IDynamicKeySubspace subspace, STuple<T1> key) => new(subspace, key.Item1);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2> PackKey<T1, T2>(this IDynamicKeySubspace subspace, in STuple<T1, T2> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2> Append<T1, T2>(this IDynamicKeySubspace subspace, in STuple<T1, T2> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3> PackKey<T1, T2, T3>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3> Append<T1, T2, T3>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4> PackKey<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4> Append<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5> PackKey<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5> Append<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> PackKey<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> PackKey<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> PackKey<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> key) => new(subspace, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> key) => new(subspace, in key);
 
 		#endregion
 
@@ -384,7 +469,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="item1">Value of the 1st element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1>> GetRange<T1>(this IDynamicKeySubspace subspace, T1 item1)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1>> ToRange<T1>(this IDynamicKeySubspace subspace, T1 item1)
 			=> new(new(subspace, item1), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first two elements</summary>
@@ -392,7 +477,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">Value of the 1st element of the matched keys</param>
 		/// <param name="item2">Value of the 2nd element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> GetRange<T1, T2>(this IDynamicKeySubspace subspace, T1 item1, T2 item2)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> ToRange<T1, T2>(this IDynamicKeySubspace subspace, T1 item1, T2 item2)
 			=> new(new(subspace, item1, item2), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first three elements</summary>
@@ -401,7 +486,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Value of the 2nd element of the matched keys</param>
 		/// <param name="item3">value of the 3rd element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3>> GetRange<T1, T2, T3>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3>> ToRange<T1, T2, T3>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3)
 			=> new(new(subspace, item1, item2, item3), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first four elements</summary>
@@ -411,7 +496,7 @@ namespace FoundationDB.Client
 		/// <param name="item3">value of the 3rd element of the matched keys</param>
 		/// <param name="item4">value of the 4th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4>> GetRange<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4>> ToRange<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4)
 			=> new(new(subspace, item1, item2, item3, item4), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first five elements</summary>
@@ -422,7 +507,7 @@ namespace FoundationDB.Client
 		/// <param name="item4">value of the 4th element of the matched keys</param>
 		/// <param name="item5">value of the 5th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5>> GetRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5>> ToRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 			=> new(new(subspace, item1, item2, item3, item4, item5), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first six elements</summary>
@@ -434,7 +519,7 @@ namespace FoundationDB.Client
 		/// <param name="item5">value of the 5th element of the matched keys</param>
 		/// <param name="item6">value of the 6th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6>> GetRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6>> ToRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first seven elements</summary>
@@ -447,7 +532,7 @@ namespace FoundationDB.Client
 		/// <param name="item6">value of the 6th element of the matched keys</param>
 		/// <param name="item7">value of the 7th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>> GetRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>> ToRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6, item7), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first eight elements</summary>
@@ -461,7 +546,7 @@ namespace FoundationDB.Client
 		/// <param name="item7">value of the 7th element of the matched keys</param>
 		/// <param name="item8">value of the 8th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>> GetRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>> ToRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6, item7, item8), excluded: true);
 
 		#endregion
@@ -497,13 +582,6 @@ namespace FoundationDB.Client
 		[Obsolete]
 		public static FdbTupleKey<T1, T2> GetKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, in STuple<T1, T2> items) => new(subspace, in items);
 
-		/// <summary>Returns a partial key that matches all the elements in this subspace first the given <typeparamref name="T1"/> value</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="item1">First part of the key</param>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
-		public static FdbTupleKey<T1> GetPartialKey<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1) => new(subspace, item1);
-
 		// T1, T2, T3
 
 		/// <summary>Returns a key in this subspace</summary>
@@ -529,21 +607,6 @@ namespace FoundationDB.Client
 		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3> GetKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, in STuple<T1, T2, T3> items) => new(subspace, in items);
 
-		/// <summary>Returns a partial key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/> value</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="item1">First part of the key</param>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
-		public static FdbTupleKey<T1> GetPartialKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1) => new(subspace, item1);
-
-		/// <summary>Returns a partial key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="item1">First part of the key</param>
-		/// <param name="item2">Second part of the key</param>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
-		public static FdbTupleKey<T1, T2> GetPartialKey<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
-
 		// T1, T2, T3, T4
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -558,33 +621,9 @@ namespace FoundationDB.Client
 		[Obsolete]
 		public static FdbTupleKey<T1, T2, T3, T4> GetKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, in STuple<T1, T2, T3, T4> items) => new(subspace, in items);
 
-		/// <summary>Returns a key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/> value</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="item1">First part of the key</param>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
-		public static FdbTupleKey<T1> GetPartialKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1) => new(subspace, item1);
-
-		/// <summary>Returns a key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="item1">First part of the key</param>
-		/// <param name="item2">Second part of the key</param>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
-		public static FdbTupleKey<T1, T2> GetPartialKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2) => new(subspace, item1, item2);
-
-		/// <summary>Returns a key that is a prefix to all the elements in this subspace that starts with the given <typeparamref name="T1"/>, <typeparamref name="T2"/> and <typeparamref name="T3"/> values</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="item1">First part of the key</param>
-		/// <param name="item2">Second part of the key</param>
-		/// <param name="item3">Third part of the key</param>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
-		public static FdbTupleKey<T1, T2, T3> GetPartialKey<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3) => new(subspace, item1, item2, item3);
-
 		#endregion
 
-		#region ITypedKeySubspace<...>.GetRange(...)
+		#region ITypedKeySubspace<...>.ToRange(...)
 
 		// T1, T2
 
@@ -593,7 +632,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1>> GetRange<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1>> ToRange<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		// T1, T2, T3
 
@@ -602,7 +641,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1>> GetRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1>> ToRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
 		/// <param name="subspace">Parent subspace</param>
@@ -610,7 +649,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Second part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> GetRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> ToRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
 
 		// T1, T2, T3, T4
 
@@ -619,7 +658,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1>> ToRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
 		/// <param name="subspace">Parent subspace</param>
@@ -627,7 +666,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Second part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> ToRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/>, <typeparamref name="T2"/> and <typeparamref name="T3"/> values</summary>
 		/// <param name="subspace">Parent subspace</param>
@@ -636,7 +675,7 @@ namespace FoundationDB.Client
 		/// <param name="item3">Third part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3) => new(new(subspace, item1, item2, item3), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3>> ToRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3) => new(new(subspace, item1, item2, item3), excluded: true);
 
 		#endregion
 
@@ -709,38 +748,6 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey[] PackKeys(this IDynamicKeySubspace subspace, ReadOnlySpan<IVarTuple> keys)
-		{
-			if (keys.Length == 0)
-			{
-				return [ ];
-			}
-
-			var res = new FdbTupleKey[keys.Length];
-			for (int i = 0; i < keys.Length; i++)
-			{
-				res[i] = new(subspace, keys[i]);
-			}
-			return res;
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey> PackKeys(this IDynamicKeySubspace subspace, IEnumerable<IVarTuple> keys)
-		{
-			return keys.TryGetSpan(out var span)
-				? PackKeys(subspace, span)
-				: GetKeysSlow(subspace, keys);
-
-			static IEnumerable<FdbTupleKey> GetKeysSlow(IDynamicKeySubspace subspace, IEnumerable<IVarTuple> keys)
-			{
-				foreach (var key in keys)
-				{
-					yield return new(subspace, key);
-				}
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey[] PackKeys<TItem>(this IDynamicKeySubspace subspace, ReadOnlySpan<TItem> items, Func<TItem, IVarTuple> selector)
 		{
 			if (items.Length == 0)
@@ -754,126 +761,6 @@ namespace FoundationDB.Client
 				res[i] = new(subspace, selector(items[i]));
 			}
 			return res;
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey> PackKeys<TItem>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, IVarTuple> selector)
-		{
-			return items.TryGetSpan(out var span)
-				? PackKeys(subspace, span, selector)
-				: EncodeSlow(subspace, items, selector);
-
-			static IEnumerable<FdbTupleKey> EncodeSlow(IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, IVarTuple> selector)
-			{
-				foreach (var item in items)
-				{
-					yield return new(subspace, selector(item));
-				}
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey[] PackKeys<TItem, TState>(this IDynamicKeySubspace subspace, ReadOnlySpan<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
-		{
-			if (items.Length == 0)
-			{
-				return [ ];
-			}
-
-			var res = new FdbTupleKey[items.Length];
-			for(int i = 0; i < items.Length; i++)
-			{
-				res[i] = new(subspace, selector(state, items[i]));
-			}
-			return res;
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey> PackKeys<TItem, TState>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
-		{
-			return items.TryGetSpan(out var span)
-				? PackKeys(subspace, span, state, selector)
-				: EncodeSlow(subspace, items, state, selector);
-
-			static IEnumerable<FdbTupleKey> EncodeSlow(IDynamicKeySubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
-			{
-				foreach (var item in items)
-				{
-					yield return new(subspace, selector(state, item));
-				}
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey<T1>> PackKeys<TItem, T1>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1>> selector)
-		{
-			foreach (var item in items)
-			{
-				yield return new(subspace, selector(item));
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey<T1, T2>> PackKeys<TItem, T1, T2>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2>> selector)
-		{
-			foreach (var item in items)
-			{
-				yield return new(subspace, selector(item));
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey<T1, T2, T3>> PackKeys<TItem, T1, T2, T3>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3>> selector)
-		{
-			foreach (var item in items)
-			{
-				yield return new(subspace, selector(item));
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4>> PackKeys<TItem, T1, T2, T3, T4>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4>> selector)
-		{
-			foreach (var item in items)
-			{
-				yield return new(subspace, selector(item));
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4, T5>> PackKeys<TItem, T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4, T5>> selector)
-		{
-			foreach (var item in items)
-			{
-				yield return new(subspace, selector(item));
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4, T5, T6>> PackKeys<TItem, T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4, T5, T6>> selector)
-		{
-			foreach (var item in items)
-			{
-				yield return new(subspace, selector(item));
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>> PackKeys<TItem, T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4, T5, T6, T7>> selector)
-		{
-			foreach (var item in items)
-			{
-				yield return new(subspace, selector(item));
-			}
-		}
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>> PackKeys<TItem, T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>> selector)
-		{
-			foreach (var item in items)
-			{
-				yield return new(subspace, selector(item));
-			}
 		}
 
 		#endregion

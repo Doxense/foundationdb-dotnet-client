@@ -139,14 +139,14 @@ namespace FoundationDB.Client.Tests
 			var k7 = subspace.GetKey("hello", 123, "world", true, Math.PI, g, now);
 			var k8 = subspace.GetKey("hello", 123, "world", true, Math.PI, g, now, vs);
 
-			var kv1 = subspace.PackKey((IVarTuple) STuple.Create("hello"));
-			var kv2 = subspace.PackKey((IVarTuple) STuple.Create("hello", 123));
-			var kv3 = subspace.PackKey((IVarTuple) STuple.Create("hello", 123, "world"));
-			var kv4 = subspace.PackKey((IVarTuple) STuple.Create("hello", 123, "world", true));
-			var kv5 = subspace.PackKey((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI));
-			var kv6 = subspace.PackKey((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g));
-			var kv7 = subspace.PackKey((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now));
-			var kv8 = subspace.PackKey((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now, vs));
+			var kv1 = subspace.Append((IVarTuple) STuple.Create("hello"));
+			var kv2 = subspace.Append((IVarTuple) STuple.Create("hello", 123));
+			var kv3 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world"));
+			var kv4 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true));
+			var kv5 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI));
+			var kv6 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g));
+			var kv7 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now));
+			var kv8 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now, vs));
 
 			Assert.Multiple(() =>
 			{ // T1
@@ -311,46 +311,46 @@ namespace FoundationDB.Client.Tests
 			Assert.Multiple(() =>
 			{
 				// T1
-				Assert.That(k1.Append(123), Is.EqualTo(k2));
-				Assert.That(k1.Append(123, "world"), Is.EqualTo(k3));
-				Assert.That(k1.Append(123, "world", true), Is.EqualTo(k4));
-				Assert.That(k1.Append(123, "world", true, Math.PI), Is.EqualTo(k5));
-				Assert.That(k1.Append(123, "world", true, Math.PI, g), Is.EqualTo(k6));
-				Assert.That(k1.Append(123, "world", true, Math.PI, g, now), Is.EqualTo(k7));
-				Assert.That(k1.Append(123, "world", true, Math.PI, g, now, vs), Is.EqualTo(k8));
+				Assert.That(k1.AppendKey(123), Is.EqualTo(k2));
+				Assert.That(k1.AppendKey(123, "world"), Is.EqualTo(k3));
+				Assert.That(k1.AppendKey(123, "world", true), Is.EqualTo(k4));
+				Assert.That(k1.AppendKey(123, "world", true, Math.PI), Is.EqualTo(k5));
+				Assert.That(k1.AppendKey(123, "world", true, Math.PI, g), Is.EqualTo(k6));
+				Assert.That(k1.AppendKey(123, "world", true, Math.PI, g, now), Is.EqualTo(k7));
+				Assert.That(k1.AppendKey(123, "world", true, Math.PI, g, now, vs), Is.EqualTo(k8));
 
 				// T2
-				Assert.That(k2.Append("world"), Is.EqualTo(k3));
-				Assert.That(k2.Append("world", true), Is.EqualTo(k4));
-				Assert.That(k2.Append("world", true, Math.PI), Is.EqualTo(k5));
-				Assert.That(k2.Append("world", true, Math.PI, g), Is.EqualTo(k6));
-				Assert.That(k2.Append("world", true, Math.PI, g, now), Is.EqualTo(k7));
-				Assert.That(k2.Append("world", true, Math.PI, g, now, vs), Is.EqualTo(k8));
+				Assert.That(k2.AppendKey("world"), Is.EqualTo(k3));
+				Assert.That(k2.AppendKey("world", true), Is.EqualTo(k4));
+				Assert.That(k2.AppendKey("world", true, Math.PI), Is.EqualTo(k5));
+				Assert.That(k2.AppendKey("world", true, Math.PI, g), Is.EqualTo(k6));
+				Assert.That(k2.AppendKey("world", true, Math.PI, g, now), Is.EqualTo(k7));
+				Assert.That(k2.AppendKey("world", true, Math.PI, g, now, vs), Is.EqualTo(k8));
 
 				// T3
-				Assert.That(k3.Append(true), Is.EqualTo(k4));
-				Assert.That(k3.Append(true, Math.PI), Is.EqualTo(k5));
-				Assert.That(k3.Append(true, Math.PI, g), Is.EqualTo(k6));
-				Assert.That(k3.Append(true, Math.PI, g, now), Is.EqualTo(k7));
-				Assert.That(k3.Append(true, Math.PI, g, now, vs), Is.EqualTo(k8));
+				Assert.That(k3.AppendKey(true), Is.EqualTo(k4));
+				Assert.That(k3.AppendKey(true, Math.PI), Is.EqualTo(k5));
+				Assert.That(k3.AppendKey(true, Math.PI, g), Is.EqualTo(k6));
+				Assert.That(k3.AppendKey(true, Math.PI, g, now), Is.EqualTo(k7));
+				Assert.That(k3.AppendKey(true, Math.PI, g, now, vs), Is.EqualTo(k8));
 
 				// T4
-				Assert.That(k4.Append(Math.PI), Is.EqualTo(k5));
-				Assert.That(k4.Append(Math.PI, g), Is.EqualTo(k6));
-				Assert.That(k4.Append(Math.PI, g, now), Is.EqualTo(k7));
-				Assert.That(k4.Append(Math.PI, g, now, vs), Is.EqualTo(k8));
+				Assert.That(k4.AppendKey(Math.PI), Is.EqualTo(k5));
+				Assert.That(k4.AppendKey(Math.PI, g), Is.EqualTo(k6));
+				Assert.That(k4.AppendKey(Math.PI, g, now), Is.EqualTo(k7));
+				Assert.That(k4.AppendKey(Math.PI, g, now, vs), Is.EqualTo(k8));
 
 				// T5
-				Assert.That(k5.Append(g), Is.EqualTo(k6));
-				Assert.That(k5.Append(g, now), Is.EqualTo(k7));
-				Assert.That(k5.Append(g, now, vs), Is.EqualTo(k8));
+				Assert.That(k5.AppendKey(g), Is.EqualTo(k6));
+				Assert.That(k5.AppendKey(g, now), Is.EqualTo(k7));
+				Assert.That(k5.AppendKey(g, now, vs), Is.EqualTo(k8));
 
 				// T6
-				Assert.That(k6.Append(now), Is.EqualTo(k7));
-				Assert.That(k6.Append(now, vs), Is.EqualTo(k8));
+				Assert.That(k6.AppendKey(now), Is.EqualTo(k7));
+				Assert.That(k6.AppendKey(now, vs), Is.EqualTo(k8));
 
 				// T7
-				Assert.That(k7.Append(vs), Is.EqualTo(k8));
+				Assert.That(k7.AppendKey(vs), Is.EqualTo(k8));
 			});
 		}
 
@@ -364,7 +364,7 @@ namespace FoundationDB.Client.Tests
 				Log($"# {prefix:x} + {items}: -> {packed:x}");
 				if (!packed.StartsWith(prefix)) throw new InvalidOperationException();
 
-				var key = subspace.PackKey(items);
+				var key = subspace.Append(items);
 
 				Assert.That(key.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero, "");
 				Assert.That(key.TryGetSizeHint(out int size), Is.False.WithOutput(size).Zero);

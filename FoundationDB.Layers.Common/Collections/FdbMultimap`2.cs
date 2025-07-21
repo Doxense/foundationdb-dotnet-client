@@ -277,7 +277,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				var range = this.Subspace.GetRange(pk);
+				var range = this.Subspace.ToRange(pk);
 
 				if (this.Parent.AllowNegativeValues)
 				{
@@ -307,7 +307,7 @@ namespace FoundationDB.Layers.Collections
 			public IAsyncQuery<(TValue Value, long Count)> GetCounts(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				var range = this.Subspace.GetRange(pk);
+				var range = this.Subspace.ToRange(pk);
 
 				var query = trans
 					.GetRange(range)
@@ -324,7 +324,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				trans.ClearRange(this.Subspace.GetRange(pk));
+				trans.ClearRange(this.Subspace.ToRange(pk));
 			}
 
 			/// <summary>Removes a <paramref name="value"/> for a specific <paramref name="key"/></summary>

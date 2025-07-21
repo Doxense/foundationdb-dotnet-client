@@ -109,7 +109,7 @@ namespace FoundationDB.Layers.Indexing
 			public IFdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 			{
 				return trans
-					.GetRange(this.Subspace.GetRange(value), reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
+					.GetRange(this.Subspace.ToRange(value), reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
 					.Select((kvp) => this.Subspace.DecodeLast<TId>(kvp.Key)!);
 			}
 
@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Indexing
 				else
 				{ // (> "abc", *) => (..., "abd") < x < (..., <FF>)
 					query = trans.GetRange(
-						this.Subspace.GetKey(value).GetNext().FirstGreaterThan(),
+						this.Subspace.GetKey(value).GetNextSibling().FirstGreaterThan(),
 						this.Subspace.GetRange().GetEndSelector(),
 						FdbRangeOptions.Reversed
 					);
@@ -146,7 +146,7 @@ namespace FoundationDB.Layers.Indexing
 				{
 					query = trans.GetRange(
 						this.Subspace.GetRange().ToBeginSelector(),
-						this.Subspace.GetKey(value).GetNext().FirstGreaterThan(),
+						this.Subspace.GetKey(value).GetNextSibling().FirstGreaterThan(),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}

@@ -363,49 +363,57 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Delegate that will observe a value read from the database</summary>
+	/// <summary>Delegate that will decode a key or value read from the database</summary>
 	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
+	/// <typeparam name="TResult">Type of the decoded result</typeparam>
 	/// <param name="state">State that will be passed to the delegate, in order to reduce scope allocations</param>
-	/// <param name="value">Binary data representing the value to observe</param>
-	public delegate void FdbValueAction<in TState>(TState state, ReadOnlySpan<byte> value);
+	/// <param name="bytes">Binary data representing the key or value to decode</param>
+	/// <returns>Decoded value</returns>
+	public delegate TResult FdbRangeDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> bytes);
+
+	/// <summary>Delegate that will decode a key or value read from the database</summary>
+	/// <typeparam name="TResult">Type of the decoded result</typeparam>
+	/// <param name="bytes">Binary data representing the key or value to decode</param>
+	/// <returns>Decoded value</returns>
+	public delegate TResult FdbRangeDecoder<out TResult>(ReadOnlySpan<byte> bytes);
 
 	/// <summary>Delegate that will decode a value read from the database</summary>
 	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
 	/// <typeparam name="TResult">Type of the decoded result</typeparam>
 	/// <param name="state">State that will be passed to the delegate, in order to reduce scope allocations</param>
-	/// <param name="value">Binary data representing the value to decode</param>
+	/// <param name="bytes">Binary data representing the value to decode</param>
 	/// <param name="found">If <see langword="false"/>, the value was not found, and the returned value should represent a "logical" null for this type.</param>
 	/// <returns>Decoded value</returns>
-	public delegate TResult FdbValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> value, bool found);
+	public delegate TResult FdbValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> bytes, bool found);
 
 	/// <summary>Delegate that will decode a value read from the database</summary>
 	/// <typeparam name="TResult">Type of the decoded result</typeparam>
-	/// <param name="value">Binary data representing the value to decode</param>
+	/// <param name="bytes">Binary data representing the value to decode</param>
 	/// <param name="found">If <see langword="false"/>, the value was not found, and the returned value should represent a "logical" null for this type.</param>
 	/// <returns>Decoded value</returns>
-	public delegate TResult FdbValueDecoder<out TResult>(ReadOnlySpan<byte> value, bool found);
+	public delegate TResult FdbValueDecoder<out TResult>(ReadOnlySpan<byte> bytes, bool found);
 
 	/// <summary>Delegate that will observe a key/value pair read from the database</summary>
 	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
 	/// <param name="state">State that will be passed to the delegate, in order to reduce scope allocations</param>
-	/// <param name="key">Binary key representing the key to observe. Empty span if the key was not found</param>
-	/// <param name="value">Binary data representing the value to observe</param>
-	public delegate void FdbKeyValueAction<in TState>(TState state, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
+	/// <param name="keyBytes">Binary key representing the key to observe. Empty span if the key was not found</param>
+	/// <param name="valueBytes">Binary data representing the value to observe</param>
+	public delegate void FdbKeyValueAction<in TState>(TState state, ReadOnlySpan<byte> keyBytes, ReadOnlySpan<byte> valueBytes);
 
 	/// <summary>Delegate that will decode a key/value pair read from the database</summary>
 	/// <typeparam name="TState">Type of the state provided by the caller</typeparam>
 	/// <typeparam name="TResult">Type of the decoded result</typeparam>
 	/// <param name="state">State that will be passed to the delegate, in order to reduce scope allocations</param>
-	/// <param name="key">Binary key representing the key to decode. Empty span if the key was not found</param>
-	/// <param name="value">Binary data representing the value to decode</param>
+	/// <param name="keyBytes">Binary key representing the key to decode. Empty span if the key was not found</param>
+	/// <param name="valueBytes">Binary data representing the value to decode</param>
 	/// <returns>Decoded value</returns>
-	public delegate TResult FdbKeyValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
+	public delegate TResult FdbKeyValueDecoder<in TState, out TResult>(TState state, ReadOnlySpan<byte> keyBytes, ReadOnlySpan<byte> valueBytes);
 
 	/// <summary>Delegate that will decode a key/value pair read from the database</summary>
 	/// <typeparam name="TResult">Type of the decoded result</typeparam>
-	/// <param name="key">Binary key representing the key to decode. Empty span if the key was not found</param>
-	/// <param name="value">Binary data representing the value to decode</param>
+	/// <param name="keyBytes">Binary key representing the key to decode. Empty span if the key was not found</param>
+	/// <param name="valueBytes">Binary data representing the value to decode</param>
 	/// <returns>Decoded value</returns>
-	public delegate TResult FdbKeyValueDecoder<out TResult>(ReadOnlySpan<byte> key, ReadOnlySpan<byte> value);
+	public delegate TResult FdbKeyValueDecoder<out TResult>(ReadOnlySpan<byte> keyBytes, ReadOnlySpan<byte> valueBytes);
 
 }

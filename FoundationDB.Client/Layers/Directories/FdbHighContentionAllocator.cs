@@ -93,7 +93,7 @@ namespace FoundationDB.Layers.Allocators
 			long start = 0, count = 0;
 			var kv = await trans
 				.Snapshot
-				.GetRange(subspace.GetRange(COUNTERS))
+				.GetRange(subspace.ToRange(COUNTERS))
 				.LastOrDefaultAsync()
 				.ConfigureAwait(false);
 

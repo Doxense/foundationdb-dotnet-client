@@ -1083,23 +1083,16 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition.ExtractKey(barKey, boundCheck: false));
 				ShouldFail(() => partition.ExtractKey(barKey, boundCheck: true));
 
-				// Partition
-				ShouldFail(() => partition.Partition.ByKey(123));
-				ShouldFail(() => partition.Partition.ByKey(123, "hello"));
-				ShouldFail(() => partition.Partition.ByKey(123, "hello", false));
-				ShouldFail(() => partition.Partition.ByKey(123, "hello", false, "world"));
-
 				// With Prefix
-				ShouldFail(() => partition.WithPrefix(TuPack.EncodeKey(123)));
-				ShouldFail(() => partition.WithPrefix(STuple.Create(123)));
-				ShouldFail(() => partition.WithPrefix(STuple.Create(123, "hello")));
-				ShouldFail(() => partition.WithPrefix(STuple.Create(123, "hello", false)));
-				ShouldFail(() => partition.WithPrefix(STuple.Create(123, "hello", false, "world")));
 
-				ShouldFail(() => partition.WithPrefix(ValueTuple.Create(123)));
-				ShouldFail(() => partition.WithPrefix((123, "hello")));
-				ShouldFail(() => partition.WithPrefix((123, "hello", false)));
-				ShouldFail(() => partition.WithPrefix((123, "hello", false, "world")));
+				ShouldFail(() => partition.ToSubspace(Slice.Empty));
+				ShouldFail(() => partition.ToSubspace("hello"u8));
+				ShouldFail(() => partition.ToSubspace(TuPack.EncodeKey(123)));
+
+				ShouldFail(() => partition.GetKey(123).ToSubspace());
+				ShouldFail(() => partition.GetKey(123, "hello").ToSubspace());
+				ShouldFail(() => partition.GetKey(123, "hello", false).ToSubspace());
+				ShouldFail(() => partition.GetKey(123, "hello", false, "world").ToSubspace());
 
 				// Keys
 
@@ -1110,23 +1103,10 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
 				ShouldFail(() => partition.ToRange());
-				ShouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				ShouldFail(() => partition.ToRange(TuPack.EncodeKey("hello")));
+				ShouldFail(() => KeySubspaceExtensions.ToRange(partition, Slice.FromString("hello")));
+				ShouldFail(() => KeySubspaceExtensions.ToRange(partition, TuPack.EncodeKey("hello")));
 
 				// Tuples
-
-				ShouldFail(() => partition.Encode(123));
-				ShouldFail(() => partition.Encode(123, "hello"));
-				ShouldFail(() => partition.Encode(123, "hello", false));
-				ShouldFail(() => partition.Encode(123, "hello", false, "world"));
-				ShouldFail(() => partition.Encode<object>(123));
-
-				ShouldFail(() => partition.EncodeMany<int>([ 123, 456, 789 ]));
-				ShouldFail(() => partition.EncodeMany<int>(new[] { 123, 456, 789 }));
-				ShouldFail(() => partition.EncodeMany<int>((IEnumerable<int>) new[] { 123, 456, 789 }));
-				ShouldFail(() => partition.EncodeMany<object>([ 123, "hello", true ]));
-				ShouldFail(() => partition.EncodeMany<object>(new object[] { 123, "hello", true }));
-				ShouldFail(() => partition.EncodeMany<object>((IEnumerable<object>) new object[] { 123, "hello", true }));
 
 				ShouldFail(() => partition.Unpack(barKey));
 				ShouldFail(() => partition.Decode<int>(barKey));
@@ -1134,7 +1114,7 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition.DecodeFirst<int>(barKey));
 
 				ShouldFail(() => partition.ToRange());
-				ShouldFail(() => partition.ToRange(Slice.FromString("hello")));
+				ShouldFail(() => KeySubspaceExtensions.ToRange(partition, Slice.FromString("hello")));
 				ShouldFail(() => partition.PackRange(STuple.Create("hello")));
 
 				// GetKey

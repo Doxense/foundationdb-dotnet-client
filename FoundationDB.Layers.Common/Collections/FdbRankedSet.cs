@@ -84,7 +84,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				return trans
-					.GetRange(this.Subspace.GetRange(MAX_LEVELS - 1))
+					.GetRange(this.Subspace.ToRange(MAX_LEVELS - 1))
 					.Select(kv => DecodeCount(kv.Value))
 					.SumAsync();
 			}
@@ -178,8 +178,8 @@ namespace FoundationDB.Layers.Collections
 					var lss = this.Subspace.GetKey(level);
 					long lastCount = 0;
 					var kcs = await trans.GetRange(
-						FdbKeySelector.FirstGreaterOrEqual(lss.Append(rankKey)),
-						FdbKeySelector.FirstGreaterThan(lss.Append(key))
+						lss.AppendKey(rankKey).FirstGreaterOrEqual(),
+						lss.AppendKey(key).FirstGreaterThan()
 					).ToListAsync().ConfigureAwait(false);
 					foreach (var kc in kcs)
 					{
@@ -205,7 +205,9 @@ namespace FoundationDB.Layers.Collections
 				for (int level = MAX_LEVELS - 1; level >= 0; level--)
 				{
 					var lss = this.Subspace.GetKey(level);
-					var kcs = await trans.GetRange(lss.Append(key), lss.GetNext()).ToListAsync().ConfigureAwait(false);
+					var kcs = await trans.GetRange(
+						this.Subspace.GetKey(level).Tail(STuple.Create(key))
+					).ToListAsync().ConfigureAwait(false);
 
 					if (kcs.Count == 0) break;
 

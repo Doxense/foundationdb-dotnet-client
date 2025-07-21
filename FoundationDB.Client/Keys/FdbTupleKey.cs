@@ -503,25 +503,25 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2> Append<T2>(T2 item2) => new(Subspace, this.Item1, item2);
+		public FdbTupleKey<T1, T2> AppendKey<T2>(T2 item2) => new(Subspace, this.Item1, item2);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3> Append<T2, T3>(T2 item2, T3 item3) => new(this.Subspace, STuple.Create(this.Item1, item2, item3));
+		public FdbTupleKey<T1, T2, T3> AppendKey<T2, T3>(T2 item2, T3 item3) => new(this.Subspace, STuple.Create(this.Item1, item2, item3));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4> Append<T2, T3, T4>(T2 item2, T3 item3, T4 item4) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4));
+		public FdbTupleKey<T1, T2, T3, T4> AppendKey<T2, T3, T4>(T2 item2, T3 item3, T4 item4) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T2, T3, T4, T5>(T2 item2, T3 item3, T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5));
+		public FdbTupleKey<T1, T2, T3, T4, T5> AppendKey<T2, T3, T4, T5>(T2 item2, T3 item3, T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T2, T3, T4, T5, T6>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> AppendKey<T2, T3, T4, T5, T6>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T2, T3, T4, T5, T6, T7>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6, item7));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> AppendKey<T2, T3, T4, T5, T6, T7>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6, item7));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T2, T3, T4, T5, T6, T7, T8>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6, item7, item8));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> AppendKey<T2, T3, T4, T5, T6, T7, T8>(T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Item1, item2, item3, item4, item5, item6, item7, item8));
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
@@ -806,22 +806,22 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3> Append<T3>(T3 item3) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3));
+		public FdbTupleKey<T1, T2, T3> AppendKey<T3>(T3 item3) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4> Append<T3, T4>(T3 item3, T4 item4) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4));
+		public FdbTupleKey<T1, T2, T3, T4> AppendKey<T3, T4>(T3 item3, T4 item4) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T3, T4, T5>(T3 item3, T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5));
+		public FdbTupleKey<T1, T2, T3, T4, T5> AppendKey<T3, T4, T5>(T3 item3, T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T3, T4, T5, T6>(T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> AppendKey<T3, T4, T5, T6>(T3 item3, T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T3, T4, T5, T6, T7>(T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6, item7));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> AppendKey<T3, T4, T5, T6, T7>(T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6, item7));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T3, T4, T5, T6, T7, T8>(T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6, item7, item8));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> AppendKey<T3, T4, T5, T6, T7, T8>(T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, item3, item4, item5, item6, item7, item8));
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
@@ -1107,19 +1107,19 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4> Append<T4>(T4 item4) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4));
+		public FdbTupleKey<T1, T2, T3, T4> AppendKey<T4>(T4 item4) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T4, T5>(T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5));
+		public FdbTupleKey<T1, T2, T3, T4, T5> AppendKey<T4, T5>(T4 item4, T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T4, T5, T6>(T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> AppendKey<T4, T5, T6>(T4 item4, T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T4, T5, T6, T7>(T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6, item7));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> AppendKey<T4, T5, T6, T7>(T4 item4, T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6, item7));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T4, T5, T6, T7, T8>(T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6, item7, item8));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> AppendKey<T4, T5, T6, T7, T8>(T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, item4, item5, item6, item7, item8));
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
@@ -1406,16 +1406,16 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5> Append<T5>(T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5));
+		public FdbTupleKey<T1, T2, T3, T4, T5> AppendKey<T5>(T5 item5) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T5, T6>(T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> AppendKey<T5, T6>(T5 item5, T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T5, T6, T7>(T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6, item7));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> AppendKey<T5, T6, T7>(T5 item5, T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6, item7));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T5, T6, T7, T8>(T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6, item7, item8));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> AppendKey<T5, T6, T7, T8>(T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, item5, item6, item7, item8));
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
@@ -1703,13 +1703,13 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6> Append<T6>(T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6> AppendKey<T6>(T6 item6) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T6, T7>(T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6, item7));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> AppendKey<T6, T7>(T6 item6, T7 item7) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6, item7));
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T6, T7, T8>(T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6, item7, item8));
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> AppendKey<T6, T7, T8>(T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Create(this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, item6, item7, item8));
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
@@ -1998,10 +1998,10 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Append<T7>(T7 item7) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7);
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> AppendKey<T7>(T7 item7) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T7, T8>(T7 item7, T8 item8) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7, item8);
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> AppendKey<T7, T8>(T7 item7, T8 item8) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, item7, item8);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
@@ -2291,7 +2291,7 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> Append<T8>(T8 item8) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, this.Items.Item7, item8);
+		public FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> AppendKey<T8>(T8 item8) => new(this.Subspace, this.Items.Item1, this.Items.Item2, this.Items.Item3, this.Items.Item4, this.Items.Item5, this.Items.Item6, this.Items.Item7, item8);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
@@ -2343,7 +2343,7 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Key that is composed of a 8-tuple inside a subspace</summary>
+	/// <summary>Key that is composed of an 8-tuple inside a subspace</summary>
 	/// <remarks>Encoded as the subspace's prefix, following by the packed tuple items</remarks>
 	[DebuggerDisplay("{ToString(),nq}")]
 	public readonly struct FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> : IFdbKey

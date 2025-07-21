@@ -779,7 +779,7 @@ namespace FoundationDB.Client
 
 				if (prefix.IsNull)
 				{ // automatically allocate a new prefix inside the ContentSubspace
-					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.WithPrefix((partition.Nodes.GetPrefix(), HcaAttribute)), this.Allocator).ConfigureAwait(false);
+					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.GetKey(partition.Nodes.GetPrefix(), HcaAttribute).ToSubspace(), this.Allocator).ConfigureAwait(false);
 					prefix = partition.Content.GetKey(id).ToSlice();
 
 					// ensure that there is no data already present under this prefix
@@ -1135,7 +1135,7 @@ namespace FoundationDB.Client
 				Contract.Debug.Requires(tr != null && partition != null);
 
 				var items = await tr
-					.GetRange(partition.Nodes.GetRange(prefix, SUBDIRS))
+					.GetRange(partition.Nodes.ToRange(prefix, SUBDIRS))
 					.Select(kvp => (Name: partition.Nodes.DecodeLast<string>(kvp.Key) ?? string.Empty, Prefix: kvp.Value))
 					.ToListAsync()
 					.ConfigureAwait(false);
@@ -1188,8 +1188,8 @@ namespace FoundationDB.Client
 				tr.ClearRange(KeyRange.StartsWith(prefix));
 
 				// and all the metadata for this folder
-				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.GetRange(prefix)}");
-				tr.ClearRange(partition.Nodes.GetRange(prefix));
+				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.ToRange(prefix)}");
+				tr.ClearRange(partition.Nodes.ToRange(prefix));
 			}
 
 			private async Task<bool> IsPrefixFree(IFdbReadOnlyTransaction tr, PartitionDescriptor partition, Slice prefix)
@@ -1211,7 +1211,7 @@ namespace FoundationDB.Client
 				return !(await tr
 					.GetRange(
 						partition.Nodes.GetKey(prefix),
-						partition.Nodes.GetKey(prefix).GetNext()
+						partition.Nodes.GetKey(prefix).GetNextSibling()
 					)
 					.AnyAsync()
 					.ConfigureAwait(false));
@@ -1580,7 +1580,7 @@ namespace FoundationDB.Client
 				this.Path = path;
 				this.Parent = parent;
 				this.Content = content;
-				this.Nodes = content.WithPrefix(FdbKey.DirectoryPrefixSpan);
+				this.Nodes = content.ToSubspace(FdbKey.DirectoryPrefixSpan);
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

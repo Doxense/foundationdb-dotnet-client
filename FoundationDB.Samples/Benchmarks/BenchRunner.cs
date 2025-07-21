@@ -91,7 +91,7 @@ namespace FoundationDB.Samples.Benchmarks
 				}
 			);
 
-			var foo = this.Subspace!.Encode("foo");
+			var foo = this.Subspace!.GetKey("foo");
 			var bar = Slice.FromString("bar");
 			var barf = Slice.FromString("barf");
 
@@ -122,8 +122,7 @@ namespace FoundationDB.Samples.Benchmarks
 								}
 								else
 								{
-									var foos = TuPack.EncodePrefixedKeys(foo, Enumerable.Range(1, this.Value).ToArray());
-									await db.ReadAsync(tr => tr.GetValuesAsync(foos), ct);
+									await db.ReadAsync(tr => tr.GetValuesAsync(Enumerable.Range(1, this.Value), i => foo.AppendKey(i)), ct);
 								}
 								break;
 							}

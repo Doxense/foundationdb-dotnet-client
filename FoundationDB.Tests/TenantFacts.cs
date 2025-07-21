@@ -280,7 +280,6 @@ namespace FoundationDB.Client.Tests
 					Assert.That(subspace, Is.Not.Null);
 					Assert.That(subspace.Name, Is.EqualTo(tenant.Name), ".Name");
 					Assert.That(subspace.Metadata, Is.SameAs(metadata), ".Metadata");
-					Assert.That(subspace.KeyEncoder, Is.InstanceOf<TupleKeyEncoder>(), ".Encoder");
 					Assert.That(subspace.GetPrefix(), Is.EqualTo(metadata.Prefix), ".GetPrefix()");
 					Assert.That(subspace.GetPrefixUnsafe(), Is.EqualTo(metadata.Prefix), ".GetPrefixUnsafe()");
 

@@ -876,7 +876,7 @@ namespace FoundationDB.Client.Tests
 
 				KeyValuePair<Slice, Slice> res;
 
-				// A: more then one item
+				// A: more than one item
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var fa = await a.Resolve(tr);
@@ -1270,7 +1270,7 @@ namespace FoundationDB.Client.Tests
 			// more generally: lists[k][i] = (..., MergeSort, k, (i * K) + k) = (k, i)
 			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
 			{
-				return folder.WithPrefix(STuple.Create(k));
+				return folder.GetKey(k).ToSubspace();
 			}
 
 			using (var db = await OpenTestPartitionAsync())
@@ -1335,7 +1335,7 @@ namespace FoundationDB.Client.Tests
 			// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
 			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
 			{
-				return folder.WithPrefix(STuple.Create(k));
+				return folder.GetKey(k).ToSubspace();
 			}
 
 			using (var db = await OpenTestPartitionAsync())
@@ -1413,7 +1413,7 @@ namespace FoundationDB.Client.Tests
 			// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
 			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
 			{
-				return folder.WithPrefix(STuple.Create(k));
+				return folder.GetKey(k).ToSubspace();
 			}
 
 			using (var db = await OpenTestPartitionAsync())

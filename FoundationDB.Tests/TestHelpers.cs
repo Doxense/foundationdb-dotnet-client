@@ -75,8 +75,8 @@ namespace FoundationDB.Client.Tests
 				Assert.Fail("Cannot clean the root of the database!");
 			}
 
-			// if the prefix part is empty, then we simply recursively remove the corresponding sub-directory tree
-			// If it is not empty, we only remove the corresponding subspace (without touching the sub-directories!)
+			// if the prefix part is empty, then we simply recursively remove the corresponding subdirectory tree
+			// If it is not empty, we only remove the corresponding subspace (without touching the subdirectories!)
 
 			return db.WriteAsync(async tr =>
 			{
@@ -103,7 +103,7 @@ namespace FoundationDB.Client.Tests
 					var subspace = await db.DirectoryLayer.CreateOrOpenAsync(tr, location.Path);
 
 					// get and clear subspace
-					tr.ClearRange(subspace.Partition[location.Prefix].ToRange());
+					tr.ClearRange(subspace.AppendBytes(location.Prefix).StartsWith());
 				}
 			}, ct);
 
