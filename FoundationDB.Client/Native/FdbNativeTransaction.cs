@@ -769,6 +769,7 @@ namespace FoundationDB.Client.Native
 					}
 					else
 					{ // key does not exist, pass only if expected is Nil
+						s.Transaction.AccountReadOperation(1, 0);
 						return s.Expected.IsNull ? (FdbValueCheckResult.Success, Slice.Nil) : (FdbValueCheckResult.Failed, Slice.Nil);
 					}
 				},
