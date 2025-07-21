@@ -517,7 +517,7 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 		{
 			// unfortunately, we have to store the encoded key and value into the heap, since the check is async
-			AddValueCheck(tag, key.ToSlice(), expectedValue);
+			AddValueCheck(tag, FdbKeyHelpers.ToSlice(in key), expectedValue);
 		}
 
 		/// <inheritdoc cref="AddValueCheck"/>
@@ -530,7 +530,7 @@ namespace FoundationDB.Client
 #endif
 		{
 			// unfortunately, we have to store the encoded key and value into the heap, since the check is async
-			AddValueCheck(tag, key.ToSlice(), FdbValueExtensions.ToSlice(expectedValue));
+			AddValueCheck(tag, FdbKeyHelpers.ToSlice(in key), FdbValueHelpers.ToSlice(expectedValue));
 		}
 
 		/// <summary>Add a check on the value of the key, that will be resolved before the transaction is able to commit</summary>

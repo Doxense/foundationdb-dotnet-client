@@ -32,16 +32,21 @@ namespace FoundationDB.Client
 
 		public static FdbRawKeyRange Create(Slice begin, Slice end) => new(begin, end);
 
+		[OverloadResolutionPriority(1)]
+		public static FdbKeyRange<TKey> Create<TKey>(TKey begin, TKey end)
+			where TKey : struct, IFdbKey
+			=> new(begin, end);
+
 		public static FdbKeyRange<TBegin, TEnd> Create<TBegin, TEnd>(TBegin begin, TEnd end)
 			where TBegin : struct, IFdbKey
 			where TEnd : struct, IFdbKey
 			=> new(begin, end);
 
-		public static FdbKeyRange<TKey> StartsWith<TKey>(in TKey prefix)
+		public static FdbKeyPrefixRange<TKey> StartsWith<TKey>(in TKey prefix)
 			where TKey : struct, IFdbKey
 			=> new(prefix, excluded: false);
 
-		public static FdbKeyRange<TKey> PrefixedBy<TKey>(in TKey prefix)
+		public static FdbKeyPrefixRange<TKey> PrefixedBy<TKey>(in TKey prefix)
 			where TKey : struct, IFdbKey
 			=> new(prefix, excluded: true);
 
@@ -108,6 +113,54 @@ namespace FoundationDB.Client
 
 	}
 
+	public readonly struct FdbKeyRange<TKey> : IFdbKeyRange
+		where TKey : struct, IFdbKey
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbKeyRange(TKey begin, TKey end)
+		{
+			this.Begin = begin;
+			this.End = end;
+		}
+
+		public readonly TKey Begin;
+
+		public readonly TKey End;
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Begin.GetSubspace() ?? this.End.GetSubspace();
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToKeyRange()
+			=> new(FdbKeyHelpers.ToSlice(in this.Begin), FdbKeyHelpers.ToSlice(in this.End));
+
+		/// <summary>Returns a <see cref="FdbKeySelector{FdbRawKey}"/> that will match the first key in the range (inclusive)</summary>
+		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbKeySelector<TKey> GetBeginSelector()
+			=> FdbKeySelector.FirstGreaterOrEqual(this.Begin);
+
+		/// <summary>Returns a <see cref="FdbKeySelector{FdbRawKey}"/> that will match the last key in the range (exclusive)</summary>
+		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbKeySelector<TKey> GetEndSelector()
+			=> FdbKeySelector.FirstGreaterOrEqual(this.End);
+
+		/// <summary>Returns a <see cref="KeySelector"/> that will match the first key in the range (inclusive)</summary>
+		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeySelector ToBeginSelector()
+			=> FdbKeySelector.FirstGreaterOrEqual(this.Begin).ToSelector();
+
+		/// <summary>Returns a <see cref="KeySelector"/> that will match the last key in the range (exclusive)</summary>
+		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeySelector ToEndSelector()
+			=> FdbKeySelector.FirstGreaterOrEqual(this.End).ToSelector();
+
+	}
+
 	public readonly struct FdbKeyRange<TBegin, TEnd> : IFdbKeyRange
 		where TBegin : struct, IFdbKey
 		where TEnd : struct, IFdbKey
@@ -129,7 +182,7 @@ namespace FoundationDB.Client
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToKeyRange()
-			=> new(this.Begin.ToSlice(), this.End.ToSlice());
+			=> new(FdbKeyHelpers.ToSlice(in this.Begin), FdbKeyHelpers.ToSlice(in this.End));
 
 		/// <summary>Returns a <see cref="FdbKeySelector{FdbRawKey}"/> that will match the first key in the range (inclusive)</summary>
 		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
@@ -157,11 +210,11 @@ namespace FoundationDB.Client
 
 	}
 
-	public readonly struct FdbKeyRange<TKey> : IFdbKeyRange
+	public readonly struct FdbKeyPrefixRange<TKey> : IFdbKeyRange
 		where TKey : struct, IFdbKey
 	{
 
-		public FdbKeyRange(in TKey prefix, bool excluded)
+		public FdbKeyPrefixRange(in TKey prefix, bool excluded)
 		{
 			this.Prefix = prefix;
 			this.Excluded = excluded;
@@ -190,7 +243,7 @@ namespace FoundationDB.Client
 			{
 				return key.StartsWith(span) && (!this.Excluded || key.Length != span.Length);
 			}
-			using var prefixBytes = FdbKeyExtensions.Encode(in Prefix, ArrayPool<byte>.Shared);
+			using var prefixBytes = FdbKeyHelpers.Encode(in Prefix, ArrayPool<byte>.Shared);
 			return key.StartsWith(prefixBytes.Span) && (!this.Excluded || key.Length != prefixBytes.Count);
 		}
 
@@ -207,7 +260,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var prefixBytes = FdbKeyExtensions.Encode(in Prefix, ArrayPool<byte>.Shared);
+				using var prefixBytes = FdbKeyHelpers.Encode(in Prefix, ArrayPool<byte>.Shared);
 				int cmp = prefixBytes.Span.SequenceCompareTo(key);
 				return (cmp > 0) || (cmp == 0 && this.Excluded);
 			}
@@ -226,7 +279,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var prefixBytes = FdbKeyExtensions.Encode(in Prefix, ArrayPool<byte>.Shared);
+				using var prefixBytes = FdbKeyHelpers.Encode(in Prefix, ArrayPool<byte>.Shared);
 				int cmp = prefixBytes.Span.SequenceCompareTo(key);
 				return cmp < 0 && (key.Length <= prefixBytes.Count || !key[..prefixBytes.Count].SequenceEqual(prefixBytes.Span));
 			}
@@ -235,8 +288,8 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToKeyRange() => this.Excluded
 			//PERF: TODO: optimize this!
-			? KeyRange.PrefixedBy(this.Prefix.ToSlice())
-			: KeyRange.StartsWith(this.Prefix.ToSlice());
+			? KeyRange.PrefixedBy(FdbKeyHelpers.ToSlice(in this.Prefix))
+			: KeyRange.StartsWith(FdbKeyHelpers.ToSlice(in this.Prefix));
 
 		/// <summary>Returns a <see cref="FdbKeySelector{FdbRawKey}"/> that will match the first key in the range (inclusive)</summary>
 		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
@@ -288,7 +341,7 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToKeyRange()
 		{
-			var cursorBytes = this.Cursor.ToSlice();
+			var cursorBytes = FdbKeyHelpers.ToSlice(in this.Cursor);
 			var endBytes = FdbKey.Increment(this.Cursor.GetSubspace()!.GetPrefix());
 			return new(cursorBytes, endBytes);
 		}
@@ -320,7 +373,7 @@ namespace FoundationDB.Client
 		{
 			var beginBytes = this.Cursor.GetSubspace()!.GetPrefix();
 
-			var cursorBytes = this.Cursor.ToSlice();
+			var cursorBytes = FdbKeyHelpers.ToSlice(in this.Cursor);
 			if (!this.Excluded) cursorBytes = FdbKey.Increment(cursorBytes);
 
 			return new(beginBytes, cursorBytes);
@@ -347,7 +400,7 @@ namespace FoundationDB.Client
 		public KeyRange ToKeyRange()
 		{
 			//PERF: TODO: optimize this!
-			return KeyRange.FromKey(this.Key.ToSlice());
+			return KeyRange.FromKey(FdbKeyHelpers.ToSlice(in this.Key));
 		}
 
 	}

@@ -82,7 +82,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				return trans.GetAsync(keyBytes.Span);
 			}
 		}
@@ -97,7 +97,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				return trans.GetAsync(keyBytes.Span, decoder);
 			}
 		}
@@ -112,7 +112,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				return trans.GetAsync(keyBytes.Span, state, decoder);
 			}
 		}
@@ -155,7 +155,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Task<TValue?> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, IValueEncoder<TValue> encoder)
-			=> GetAsync(trans, ToSpanKey(key), encoder);
+			=> trans.GetAsync(ToSpanKey(key), encoder);
 
 		/// <summary>Reads and decodes a value from the database snapshot represented by the current transaction.</summary>
 		/// <typeparam name="TValue">Type of the value.</typeparam>
@@ -183,9 +183,9 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="valueWriter">Buffer writer where the value will be written, if it is found</param>
 		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
-		public static Task<bool> TryGetAsync(IFdbReadOnlyTransaction trans, Slice key, IBufferWriter<byte> valueWriter)
+		public static Task<bool> TryGetAsync(this IFdbReadOnlyTransaction trans, Slice key, IBufferWriter<byte> valueWriter)
 		{
-			return TryGetAsync(trans, ToSpanKey(key), valueWriter);
+			return trans.TryGetAsync(ToSpanKey(key), valueWriter);
 		}
 
 		/// <summary>Tries to read a value from database snapshot represented by the current transaction, and writes it to <paramref name="valueWriter"/> if found.</summary>
@@ -193,10 +193,10 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="valueWriter">Buffer writer where the value will be written, if it is found</param>
 		/// <returns>Task with <see langword="true"/> if the key was found; otherwise, <see langword="false"/></returns>
-		public static Task<bool> TryGetAsync(IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter)
+		public static Task<bool> TryGetAsync(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, IBufferWriter<byte> valueWriter)
 		{
 			Contract.NotNull(valueWriter);
-			return trans.GetAsync<IBufferWriter<byte>, bool>(key, valueWriter, static (vw, value, found) =>
+			return trans.GetAsync(key, valueWriter, static (vw, value, found) =>
 			{
 				if (!found) return false;
 				vw.Write(value);
@@ -245,7 +245,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<int?> GetValueInt32Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueInt32Async(trans, ToSpanKey(key));
+			=> trans.GetValueInt32Async(ToSpanKey(key));
 
 		/// <inheritdoc cref="GetValueInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<int?> GetValueInt32Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key)
@@ -257,7 +257,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				return trans.GetValueInt32Async(keyBytes.Span);
 			}
 		}
@@ -271,7 +271,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},int)"/>
 		public static Task<int> GetValueInt32Async(this IFdbReadOnlyTransaction trans, Slice key, int missingValue)
-			=> GetValueInt32Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueInt32Async(ToSpanKey(key), missingValue);
 
 		/// <inheritdoc cref="GetValueInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},int)"/>
 		public static Task<int> GetValueInt32Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key, int missingValue)
@@ -283,7 +283,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				return trans.GetValueInt32Async(keyBytes.Span, missingValue);
 			}
 		}
@@ -302,7 +302,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<uint?> GetValueUInt32Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueUInt32Async(trans, ToSpanKey(key));
+			=> trans.GetValueUInt32Async(ToSpanKey(key));
 
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 32-bit unsigned integer</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -313,7 +313,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUInt32Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},uint)"/>
 		public static Task<uint> GetValueUInt32Async(this IFdbReadOnlyTransaction trans, Slice key, uint missingValue)
-			=> GetValueUInt32Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueUInt32Async(ToSpanKey(key), missingValue);
 
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 32-bit unsigned integer</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -329,7 +329,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<long?> GetValueInt64Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueInt64Async(trans, ToSpanKey(key));
+			=> trans.GetValueInt64Async(ToSpanKey(key));
 
 		/// <inheritdoc cref="GetValueInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<long?> GetValueInt64Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key)
@@ -337,12 +337,12 @@ namespace FoundationDB.Client
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{
-				return GetValueInt64Async(trans, keySpan);
+				return trans.GetValueInt64Async(keySpan);
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
-				return GetValueInt64Async(trans, keyBytes.Span);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
+				return trans.GetValueInt64Async(keyBytes.Span);
 			}
 		}
 
@@ -355,7 +355,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},long)"/>
 		public static Task<long> GetValueInt64Async(this IFdbReadOnlyTransaction trans, Slice key, long missingValue)
-			=> GetValueInt64Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueInt64Async(ToSpanKey(key), missingValue);
 
 		/// <inheritdoc cref="GetValueInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},long)"/>
 		public static Task<long> GetValueInt64Async<TKey>(this IFdbReadOnlyTransaction trans, in TKey key, long missingValue)
@@ -363,12 +363,12 @@ namespace FoundationDB.Client
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{
-				return GetValueInt64Async(trans, keySpan, missingValue);
+				return trans.GetValueInt64Async(keySpan, missingValue);
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
-				return GetValueInt64Async(trans, keyBytes.Span, missingValue);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
+				return trans.GetValueInt64Async(keyBytes.Span, missingValue);
 			}
 		}
 
@@ -386,7 +386,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<ulong?> GetValueUInt64Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueUInt64Async(trans, ToSpanKey(key));
+			=> trans.GetValueUInt64Async(ToSpanKey(key));
 
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 64-bit unsigned integer</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -397,7 +397,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUInt64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},ulong)"/>
 		public static Task<ulong> GetValueUInt64Async(this IFdbReadOnlyTransaction trans, Slice key, ulong missingValue)
-			=> GetValueUInt64Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueUInt64Async(ToSpanKey(key), missingValue);
 
 		/// <summary>Reads the value of a key from the database, decoded as a little-endian 64-bit unsigned integer</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -413,7 +413,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid128Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<Uuid128?> GetValueUuid128Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueUuid128Async(trans, ToSpanKey(key));
+			=> trans.GetValueUuid128Async(ToSpanKey(key));
 
 		/// <summary>Reads the value of a key from the database, decoded as a 128-bit <see cref="Uuid128"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -424,7 +424,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid128Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid128)"/>
 		public static Task<Uuid128> GetValueUuid128Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid128 missingValue)
-			=> GetValueUuid128Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueUuid128Async(ToSpanKey(key), missingValue);
 
 		/// <summary>Reads the value of a key from the database, decoded as a 128-bit <see cref="Uuid128"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -440,7 +440,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid96Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<Uuid96?> GetValueUuid96Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueUuid96Async(trans, ToSpanKey(key));
+			=> trans.GetValueUuid96Async(ToSpanKey(key));
 
 		/// <summary>Reads the value of a key from the database, decoded as a 96-bit <see cref="Uuid96"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -451,7 +451,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid96Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid96)"/>
 		public static Task<Uuid96> GetValueUuid96Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid96 missingValue)
-			=> GetValueUuid96Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueUuid96Async(ToSpanKey(key), missingValue);
 
 		/// <summary>Reads the value of a key from the database, decoded as a 96-bit <see cref="Uuid96"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -467,7 +467,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid80Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<Uuid80?> GetValueUuid80Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueUuid80Async(trans, ToSpanKey(key));
+			=> trans.GetValueUuid80Async(ToSpanKey(key));
 
 		/// <summary>Reads the value of a key from the database, decoded as an 80-bit <see cref="Uuid80"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -478,7 +478,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid80Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid80)"/>
 		public static Task<Uuid80> GetValueUuid80Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid80 missingValue)
-			=> GetValueUuid80Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueUuid80Async(ToSpanKey(key), missingValue);
 
 		/// <summary>Reads the value of a key from the database, decoded as an 80-bit <see cref="Uuid80"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -494,7 +494,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<Uuid64?> GetValueUuid64Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueUuid64Async(trans, ToSpanKey(key));
+			=> trans.GetValueUuid64Async(ToSpanKey(key));
 
 		/// <summary>Reads the value of a key from the database, decoded as a 64-bit <see cref="Uuid64"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -505,7 +505,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid64Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid64)"/>
 		public static Task<Uuid64> GetValueUuid64Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid64 missingValue)
-			=> GetValueUuid64Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueUuid64Async(ToSpanKey(key), missingValue);
 
 		/// <summary>Reads the value of a key from the database, decoded as a 64-bit <see cref="Uuid64"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -521,7 +521,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid48Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<Uuid48?> GetValueUuid48Async(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueUuid48Async(trans, ToSpanKey(key));
+			=> trans.GetValueUuid48Async(ToSpanKey(key));
 
 		/// <summary>Reads the value of a key from the database, decoded as a 48-bit <see cref="Uuid48"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -532,7 +532,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueUuid48Async(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},Uuid48)"/>
 		public static Task<Uuid48> GetValueUuid48Async(this IFdbReadOnlyTransaction trans, Slice key, Uuid48 missingValue)
-			=> GetValueUuid48Async(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueUuid48Async(ToSpanKey(key), missingValue);
 
 		/// <summary>Reads the value of a key from the database, decoded as a 48-bit <see cref="Uuid48"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -548,7 +548,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueVersionStampAsync(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte})"/>
 		public static Task<VersionStamp?> GetValueVersionStampAsync(this IFdbReadOnlyTransaction trans, Slice key)
-			=> GetValueVersionStampAsync(trans, ToSpanKey(key));
+			=> trans.GetValueVersionStampAsync(ToSpanKey(key));
 
 		/// <summary>Reads the value of a key from the database, decoded as a <see cref="VersionStamp"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -559,7 +559,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetValueVersionStampAsync(FoundationDB.Client.IFdbReadOnlyTransaction,System.ReadOnlySpan{byte},VersionStamp)"/>
 		public static Task<VersionStamp> GetValueVersionStampAsync(this IFdbReadOnlyTransaction trans, Slice key, VersionStamp missingValue)
-			=> GetValueVersionStampAsync(trans, ToSpanKey(key), missingValue);
+			=> trans.GetValueVersionStampAsync(ToSpanKey(key), missingValue);
 
 		/// <summary>Reads the value of a key from the database, decoded as a <see cref="VersionStamp"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -598,13 +598,13 @@ namespace FoundationDB.Client
 #else
 			where TValue : struct, ISpanEncodable
 #endif
-			=> Set<TValue>(trans, ToSpanKey(key), in value);
+			=> trans.Set(ToSpanKey(key), in value);
 
 		/// <inheritdoc cref="IFdbTransaction.Set"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void Set<TKey>(this IFdbTransaction trans, in TKey key, Slice value)
 			where TKey : struct, IFdbKey
-			=> Set(trans, in key, ToSpanValue(value));
+			=> trans.Set(in key, ToSpanValue(value));
 
 		/// <inheritdoc cref="IFdbTransaction.Set"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -617,7 +617,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				trans.Set(keyBytes.Span, value);
 			}
 		}
@@ -647,7 +647,7 @@ namespace FoundationDB.Client
 				}
 			}
 
-			using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+			using var valueBytes = FdbValueHelpers.Encode(in value, ArrayPool<byte>.Shared);
 			trans.Set(key, valueBytes.Span);
 		}
 
@@ -667,7 +667,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				trans.Set(keyBytes.Span, in value);
 			}
 		}
@@ -681,7 +681,7 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)] //TODO: phase out IKeyEncoder/IValueEncoder
 		public static void Set<TValue>(this IFdbTransaction trans, Slice key, IValueEncoder<TValue> encoder, TValue value)
-			=> Set<TValue>(trans, ToSpanKey(key), encoder, value);
+			=> trans.Set(ToSpanKey(key), encoder, value);
 
 		/// <summary>Set the value of a key in the database, using a custom value encoder.</summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -812,7 +812,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueInt32(trans, keyBytes.Span, value);
 			}
 		}
@@ -860,7 +860,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueUInt32(trans, keyBytes.Span, value);
 			}
 		}
@@ -908,7 +908,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueInt64(trans, keyBytes.Span, value);
 			}
 		}
@@ -965,7 +965,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueUInt64(trans, keyBytes.Span, value);
 			}
 		}
@@ -1019,7 +1019,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueGuid(trans, keyBytes.Span, value);
 			}
 		}
@@ -1053,7 +1053,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueUuid128(trans, keyBytes.Span, value);
 			}
 		}
@@ -1087,7 +1087,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueUuid96(trans, keyBytes.Span, value);
 			}
 		}
@@ -1122,7 +1122,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueUuid80(trans, keyBytes.Span, value);
 			}
 		}
@@ -1156,7 +1156,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueUuid64(trans, keyBytes.Span, value);
 			}
 		}
@@ -1190,7 +1190,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				SetValueUuid48(trans, keyBytes.Span, value);
 			}
 		}
@@ -1265,9 +1265,9 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 
-			for(int i = 0; i < keyValuePairs.Length; i++)
+			foreach (var kv in keyValuePairs)
 			{
-				Set(trans, keyValuePairs[i].Key, keyValuePairs[i].Value);
+				trans.Set(ToSpanKey(kv.Key), ToSpanValue(kv.Value));
 			}
 		}
 
@@ -1287,7 +1287,7 @@ namespace FoundationDB.Client
 
 			for(int i = 0; i < keyValuePairs.Length; i++)
 			{
-				Set(trans, keyValuePairs[i].Key, keyValuePairs[i].Value);
+				trans.Set(ToSpanKey(keyValuePairs[i].Key), ToSpanValue(keyValuePairs[i].Value));
 			}
 		}
 
@@ -1329,7 +1329,7 @@ namespace FoundationDB.Client
 
 			for (int i = 0; i < keys.Length; i++)
 			{
-				Set(trans, keys[i], values[i]);
+				trans.Set(ToSpanKey(keys[i]), ToSpanValue(values[i]));
 			}
 		}
 
@@ -1347,26 +1347,22 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			Contract.NotNull(keyValuePairs);
 
-			if (keyValuePairs is KeyValuePair<Slice, Slice>[] arr)
+			if (keyValuePairs.TryGetSpan(out var span))
 			{
-				SetValues(trans, arr.AsSpan());
-			}
-			else if (keyValuePairs is List<KeyValuePair<Slice, Slice>> lst)
-			{
-				SetValues(trans, CollectionsMarshal.AsSpan(lst));
+				trans.SetValues(span);
 			}
 			else if (keyValuePairs is Dictionary<Slice, Slice> dict)
 			{
 				foreach (var kv in dict)
 				{
-					Set(trans, kv.Key, kv.Value);
+					trans.Set(ToSpanKey(kv.Key), ToSpanValue(kv.Value));
 				}
 			}
 			else
 			{
 				foreach (var kv in keyValuePairs)
 				{
-					Set(trans, kv.Key, kv.Value);
+					trans.Set(ToSpanKey(kv.Key), ToSpanValue(kv.Value));
 				}
 			}
 		}
@@ -1385,19 +1381,15 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			Contract.NotNull(keyValuePairs);
 
-			if (keyValuePairs is (Slice, Slice)[] arr)
+			if (keyValuePairs.TryGetSpan(out var span))
 			{
-				SetValues(trans, arr.AsSpan());
-			}
-			else if (keyValuePairs is List<(Slice, Slice)> lst)
-			{
-				SetValues(trans, CollectionsMarshal.AsSpan(lst));
+				trans.SetValues(span);
 			}
 			else
 			{
 				foreach (var kv in keyValuePairs)
 				{
-					Set(trans, kv.Key, kv.Value);
+					trans.Set(ToSpanKey(kv.Key), ToSpanValue(kv.Value));
 				}
 			}
 		}
@@ -1422,43 +1414,13 @@ namespace FoundationDB.Client
 			// attempt to extract a Span from both keys & values
 			// if we fail, then fallback to a slow enumeration
 
-			ReadOnlySpan<Slice> k;
-			switch (keys)
+			if (keys.TryGetSpan(out var keySpan) && values.TryGetSpan(out var valueSpan))
 			{
-				case Slice[] arr:
-				{
-					k = arr.AsSpan();
-					break;
-				}
-				case List<Slice> lst:
-				{
-					k = CollectionsMarshal.AsSpan(lst);
-					break;
-				}
-				default:
-				{
-					SetValuesSlow(trans, keys, values);
-					return;
-				}
+				trans.SetValues(keySpan, valueSpan);
 			}
-
-			switch (values)
+			else
 			{
-				case Slice[] arr:
-				{
-					SetValues(trans, k, arr.AsSpan());
-					break;
-				}
-				case List<Slice> lst:
-				{
-					SetValues(trans, k, CollectionsMarshal.AsSpan(lst));
-					break;
-				}
-				default:
-				{
-					SetValuesSlow(trans, keys, values);
-					break;
-				}
+				SetValuesSlow(trans, keys, values);
 			}
 
 
@@ -1474,7 +1436,7 @@ namespace FoundationDB.Client
 						throw new ArgumentException("Both key and value sequences must have the same size.", nameof(values));
 					}
 
-					Set(trans, keyIterator.Current, valueIterator.Current);
+					trans.Set(ToSpanKey(keyIterator.Current), ToSpanValue(valueIterator.Current));
 				}
 				if (valueIterator.MoveNext())
 				{
@@ -1499,7 +1461,7 @@ namespace FoundationDB.Client
 		{
 			if (items.TryGetSpan(out var span))
 			{
-				SetValues(trans, span, keySelector, valueSelector);
+				trans.SetValues(span, keySelector, valueSelector);
 				return;
 			}
 
@@ -1514,9 +1476,9 @@ namespace FoundationDB.Client
 		[OverloadResolutionPriority(1)]
 		public static void SetValues<TElement>(this IFdbTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, Slice> keySelector, Func<TElement, Slice> valueSelector)
 		{
-			for (int i = 0; i < items.Length; i++)
+			foreach (var item in items)
 			{
-				trans.Set(ToSpanKey(keySelector(items[i])), ToSpanValue(valueSelector(items[i])));
+				trans.Set(ToSpanKey(keySelector(item)), ToSpanValue(valueSelector(item)));
 			}
 		}
 
@@ -1524,7 +1486,7 @@ namespace FoundationDB.Client
 		{
 			if (items.TryGetSpan(out var span))
 			{
-				SetValues(trans, span, keySelector, valueSelector);
+				trans.SetValues(span, keySelector, valueSelector);
 				return;
 			}
 
@@ -1556,11 +1518,11 @@ namespace FoundationDB.Client
 					var value = valueSelector(items[i]);
 					if (!key.TryGetSpan(out var keySpan))
 					{
-						keySpan = FdbKeyExtensions.Encode(in key, ref keyBuffer, pool);
+						keySpan = FdbKeyHelpers.Encode(in key, ref keyBuffer, pool);
 					}
 					if (!value.TryGetSpan(out var valueSpan))
 					{
-						valueSpan = FdbValueExtensions.Encode(in value, ref valueBuffer, pool);
+						valueSpan = FdbValueHelpers.Encode(in value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1605,11 +1567,11 @@ namespace FoundationDB.Client
 					var value = valueSelector(item);
 					if (!key.TryGetSpan(out var keySpan))
 					{
-						keySpan = FdbKeyExtensions.Encode(in key, ref keyBuffer, pool);
+						keySpan = FdbKeyHelpers.Encode(in key, ref keyBuffer, pool);
 					}
 					if (!value.TryGetSpan(out var valueSpan))
 					{
-						valueSpan = FdbValueExtensions.Encode(in value, ref valueBuffer, pool);
+						valueSpan = FdbValueHelpers.Encode(in value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1652,11 +1614,11 @@ namespace FoundationDB.Client
 				{
 					if (!items[i].Key.TryGetSpan(out var keySpan))
 					{
-						keySpan = FdbKeyExtensions.Encode(in items[i].Key, ref keyBuffer, pool);
+						keySpan = FdbKeyHelpers.Encode(in items[i].Key, ref keyBuffer, pool);
 					}
 					if (!items[i].Value.TryGetSpan(out var valueSpan))
 					{
-						valueSpan = FdbValueExtensions.Encode(in items[i].Value, ref valueBuffer, pool);
+						valueSpan = FdbValueHelpers.Encode(in items[i].Value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1704,11 +1666,11 @@ namespace FoundationDB.Client
 				{
 					if (!kv.Key.TryGetSpan(out var keySpan))
 					{
-						keySpan = FdbKeyExtensions.Encode(in kv.Key, ref keyBuffer, pool);
+						keySpan = FdbKeyHelpers.Encode(in kv.Key, ref keyBuffer, pool);
 					}
 					if (!kv.Value.TryGetSpan(out var valueSpan))
 					{
-						valueSpan = FdbValueExtensions.Encode(in kv.Value, ref valueBuffer, pool);
+						valueSpan = FdbValueHelpers.Encode(in kv.Value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1751,11 +1713,11 @@ namespace FoundationDB.Client
 				{
 					if (!items[i].Key.TryGetSpan(out var keySpan))
 					{
-						keySpan = FdbKeyExtensions.Encode(items[i].Key, ref keyBuffer, pool);
+						keySpan = FdbKeyHelpers.Encode(items[i].Key, ref keyBuffer, pool);
 					}
 					if (!items[i].Value.TryGetSpan(out var valueSpan))
 					{
-						valueSpan = FdbValueExtensions.Encode(items[i].Value, ref valueBuffer, pool);
+						valueSpan = FdbValueHelpers.Encode(items[i].Value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1803,11 +1765,11 @@ namespace FoundationDB.Client
 				{
 					if (!kv.Key.TryGetSpan(out var keySpan))
 					{
-						keySpan = FdbKeyExtensions.Encode(kv.Key, ref keyBuffer, pool);
+						keySpan = FdbKeyHelpers.Encode(kv.Key, ref keyBuffer, pool);
 					}
 					if (!kv.Value.TryGetSpan(out var valueSpan))
 					{
-						valueSpan = FdbValueExtensions.Encode(kv.Value, ref valueBuffer, pool);
+						valueSpan = FdbValueHelpers.Encode(kv.Value, ref valueBuffer, pool);
 					}
 					trans.Set(keySpan, valueSpan);
 				}
@@ -1847,12 +1809,12 @@ namespace FoundationDB.Client
 		{
 			if (param.TryGetSpan(out var paramSpan))
 			{
-				Atomic<TKey>(trans, in key, paramSpan, mutation);
+				trans.Atomic(in key, paramSpan, mutation);
 			}
 			else
 			{
-				using var paramBytes = FdbValueExtensions.Encode(in param, ArrayPool<byte>.Shared);
-				Atomic<TKey>(trans, in key, paramBytes.Span, mutation);
+				using var paramBytes = FdbValueHelpers.Encode(in param, ArrayPool<byte>.Shared);
+				trans.Atomic(in key, paramBytes.Span, mutation);
 			}
 		}
 
@@ -1871,7 +1833,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var paramBytes = FdbValueExtensions.Encode(in param, ArrayPool<byte>.Shared);
+				using var paramBytes = FdbValueHelpers.Encode(in param, ArrayPool<byte>.Shared);
 				trans.Atomic(key, paramBytes.Span, mutation);
 			}
 		}
@@ -1886,7 +1848,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				trans.Atomic(keyBytes.Span, param, mutation);
 			}
 		}
@@ -1943,7 +1905,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc cref="AtomicCompareAndClear(IFdbTransaction,ReadOnlySpan{byte},ReadOnlySpan{byte})"/>
 		public static void AtomicCompareAndClear<TKey>(this IFdbTransaction trans, in TKey key, ReadOnlySpan<byte> comparand)
 			where TKey : struct, IFdbKey
-			=> Atomic(trans, in key, comparand, FdbMutationType.CompareAndClear);
+			=> trans.Atomic(in key, comparand, FdbMutationType.CompareAndClear);
 
 		/// <summary>Modify the database snapshot represented by this transaction to clear the value of <paramref name="key"/> only if it is equal to <paramref name="comparand"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -1958,7 +1920,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="AtomicClearIfZero32(IFdbTransaction,ReadOnlySpan{byte})"/>
 		public static void AtomicClearIfZero32(this IFdbTransaction trans, Slice key)
-			=> AtomicClearIfZero32(trans, ToSpanKey(key));
+			=> trans.AtomicClearIfZero32(ToSpanKey(key));
 
 		/// <inheritdoc cref="AtomicClearIfZero32(IFdbTransaction,ReadOnlySpan{byte})"/>
 		public static void AtomicClearIfZero32<TKey>(this IFdbTransaction trans, in TKey key)
@@ -1985,7 +1947,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be conditionally cleared.</param>
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicClearIfZero64(this IFdbTransaction trans, Slice key)
-			=> AtomicClearIfZero64(trans, ToSpanKey(key));
+			=> trans.AtomicClearIfZero64(ToSpanKey(key));
 
 		/// <summary>Atomically clear the key only if its value is equal to 8 consecutive zero bytes.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -2014,39 +1976,39 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement32(this IFdbTransaction trans, Slice key)
-			=> AtomicAdd32(trans, ToSpanKey(key), 1);
+			=> trans.AtomicAdd32(ToSpanKey(key), 1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to increment by <see langword="1"/> the 32-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement32<TKey>(this IFdbTransaction trans, in TKey key)
 			where TKey : struct, IFdbKey
-			=> AtomicAdd32(trans, in key, 1);
+			=> trans.AtomicAdd32(in key, 1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to increment by <see langword="1"/> the 32-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key)
-			=> AtomicAdd32(trans, key, 1);
+			=> trans.AtomicAdd32(key, 1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement32(this IFdbTransaction trans, Slice key)
-			=> AtomicAdd32(trans, ToSpanKey(key), -1);
+			=> trans.AtomicAdd32(ToSpanKey(key), -1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement32<TKey>(this IFdbTransaction trans, in TKey key)
 			where TKey : struct, IFdbKey
-			=> AtomicAdd32(trans, in key, -1);
+			=> trans.AtomicAdd32(in key, -1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key)
-			=> AtomicAdd32(trans, key, -1);
+			=> trans.AtomicAdd32(key, -1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 32-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -2056,10 +2018,10 @@ namespace FoundationDB.Client
 		public static void AtomicDecrement32(this IFdbTransaction trans, Slice key, bool clearIfZero)
 		{
 			var keySpan = ToSpanKey(key);
-			AtomicAdd32(trans, keySpan, -1);
+			trans.AtomicAdd32(keySpan, -1);
 			if (clearIfZero)
 			{
-				AtomicClearIfZero32(trans, keySpan);
+				trans.AtomicClearIfZero32(keySpan);
 			}
 		}
 
@@ -2070,10 +2032,10 @@ namespace FoundationDB.Client
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicDecrement32(this IFdbTransaction trans, ReadOnlySpan<byte> key, bool clearIfZero)
 		{
-			AtomicAdd32(trans, key, -1);
+			trans.AtomicAdd32(key, -1);
 			if (clearIfZero)
 			{
-				AtomicClearIfZero32(trans, key);
+				trans.AtomicClearIfZero32(key);
 			}
 		}
 
@@ -2082,51 +2044,51 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement64<TKey>(this IFdbTransaction trans, in TKey key)
 			where TKey : struct, IFdbKey
-			=> AtomicAdd64(trans, in key, 1);
+			=> trans.AtomicAdd64(in key, 1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to add <see langword="1"/> to the 64-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement64(this IFdbTransaction trans, Slice key)
-			=> AtomicAdd64(trans, ToSpanKey(key), 1);
+			=> trans.AtomicAdd64(ToSpanKey(key), 1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to add <see langword="1"/> to the 64-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicIncrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key)
-			=> AtomicAdd64(trans, key, 1);
+			=> trans.AtomicAdd64(key, 1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement64(this IFdbTransaction trans, Slice key)
-			=> AtomicAdd64(trans, ToSpanKey(key), -1);
+			=> trans.AtomicAdd64(ToSpanKey(key), -1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement64<TKey>(this IFdbTransaction trans, in TKey key)
 			where TKey : struct, IFdbKey
-			=> AtomicAdd64(trans, in key, -1);
+			=> trans.AtomicAdd64(in key, -1);
 
 		/// <summary>Modify the database snapshot represented by this transaction to subtract <see langword="1"/> from the 64-bit little-endian value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		public static void AtomicDecrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key)
-			=> AtomicAdd64(trans, key, -1);
+			=> trans.AtomicAdd64(key, -1);
 
 		/// <inheritdoc cref="AtomicDecrement64(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},bool)"/>
 		public static void AtomicDecrement64(this IFdbTransaction trans, Slice key, bool clearIfZero)
-			=> AtomicDecrement64(trans, ToSpanKey(key), clearIfZero);
+			=> trans.AtomicDecrement64(ToSpanKey(key), clearIfZero);
 
 		/// <inheritdoc cref="AtomicDecrement64(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},bool)"/>
 		public static void AtomicDecrement64<TKey>(this IFdbTransaction trans, in TKey key, bool clearIfZero)
 			where TKey : struct, IFdbKey
 		{
-			AtomicAdd64(trans, in key, -1);
+			trans.AtomicAdd64(in key, -1);
 			if (clearIfZero)
 			{
-				AtomicClearIfZero64(trans, in key);
+				trans.AtomicClearIfZero64(in key);
 			}
 		}
 
@@ -2137,10 +2099,10 @@ namespace FoundationDB.Client
 		/// <remarks>This method requires API version 610 or greater.</remarks>
 		public static void AtomicDecrement64(this IFdbTransaction trans, ReadOnlySpan<byte> key, bool clearIfZero)
 		{
-			AtomicAdd64(trans, key, -1);
+			trans.AtomicAdd64(key, -1);
 			if (clearIfZero)
 			{
-				AtomicClearIfZero64(trans, key);
+				trans.AtomicClearIfZero64(key);
 			}
 		}
 
@@ -2544,7 +2506,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc cref="SetVersionStampedKey(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},System.ReadOnlySpan{byte})"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetVersionStampedKey(this IFdbTransaction trans, Slice key, Slice value)
-			=> SetVersionStampedKey(trans, ToSpanKey(key), ToSpanValue(value));
+			=> trans.SetVersionStampedKey(ToSpanKey(key), ToSpanValue(value));
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -2584,7 +2546,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc cref="SetVersionStampedKey(FoundationDB.Client.IFdbTransaction,System.ReadOnlySpan{byte},int,System.ReadOnlySpan{byte})"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static void SetVersionStampedKey(this IFdbTransaction trans, Slice key, int stampOffset, Slice value)
-			=> SetVersionStampedKey(trans, ToSpanKey(key), stampOffset, ToSpanValue(value));
+			=> trans.SetVersionStampedKey(ToSpanKey(key), stampOffset, ToSpanValue(value));
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -2636,7 +2598,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				trans.SetVersionStampedKey(keyBytes.Span, value);
 			}
 		}
@@ -2648,7 +2610,7 @@ namespace FoundationDB.Client
 #else
 			where TValue : struct, ISpanEncodable
 #endif
-			=> SetVersionStampedKey<TValue>(trans, ToSpanKey(key), in value);
+			=> trans.SetVersionStampedKey(ToSpanKey(key), in value);
 
 		/// <summary>Set the <paramref name="value"/> of the <paramref name="key"/> in the database, with the <see cref="VersionStamp"/> replaced by the resolved version at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -2677,7 +2639,7 @@ namespace FoundationDB.Client
 				}
 			}
 
-			using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+			using var valueBytes = FdbValueHelpers.Encode(in value, ArrayPool<byte>.Shared);
 			trans.SetVersionStampedKey(key, valueBytes.Span);
 		}
 
@@ -2699,7 +2661,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				trans.SetVersionStampedKey<TValue>(keyBytes.Span, in value);
 			}
 		}
@@ -2765,7 +2727,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				trans.SetVersionStampedValue(keyBytes.Span, value);
 			}
 		}
@@ -2777,7 +2739,7 @@ namespace FoundationDB.Client
 #else
 			where TValue : struct, ISpanEncodable
 #endif
-			=> SetVersionStampedValue<TValue>(trans, ToSpanKey(key), in value);
+			=> trans.SetVersionStampedValue(ToSpanKey(key), in value);
 
 		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> in the value with the resolved value at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -2810,7 +2772,7 @@ namespace FoundationDB.Client
 				}
 			}
 
-			using var valueBytes = FdbValueExtensions.Encode(in value, ArrayPool<byte>.Shared);
+			using var valueBytes = FdbValueHelpers.Encode(in value, ArrayPool<byte>.Shared);
 			trans.SetVersionStampedValue(key, valueBytes.Span);
 		}
 
@@ -2836,7 +2798,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				trans.SetVersionStampedValue<TValue>(keyBytes.Span, in value);
 			}
 		}
@@ -2847,7 +2809,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value of the key. The 10 bytes starting at <paramref name="stampOffset"/> will be overwritten by the database with the resolved VersionStamp at commit time. The rest of the value will be untouched.</param>
 		/// <param name="stampOffset">Offset in <paramref name="value"/> where the 80-bit VersionStamp is located. Prior to API version 520, it can only be located at offset 0.</param>
 		public static void SetVersionStampedValue(this IFdbTransaction trans, Slice key, Slice value, int stampOffset)
-			=> SetVersionStampedValue(trans, ToSpanKey(key), ToSpanValue(value), stampOffset);
+			=> trans.SetVersionStampedValue(ToSpanKey(key), ToSpanValue(value), stampOffset);
 
 		/// <summary>Sets the <paramref name="value"/> of the <paramref name="key"/> in the database, filling the incomplete <see cref="VersionStamp"/> at the given offset in the value with the resolved VersionStamp at commit time.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -2859,12 +2821,12 @@ namespace FoundationDB.Client
 		{
 			if (key.TryGetSpan(out var keySpan))
 			{
-				SetVersionStampedValue(trans, keySpan, ToSpanValue(value), stampOffset);
+				trans.SetVersionStampedValue(keySpan, ToSpanValue(value), stampOffset);
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
-				SetVersionStampedValue(trans, keyBytes.Span, ToSpanValue(value), stampOffset);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
+				trans.SetVersionStampedValue(keyBytes.Span, ToSpanValue(value), stampOffset);
 			}
 		}
 
@@ -3017,7 +2979,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 
 			//PERF: TODO: optimize!
-			var beginKeyBytes = beginKeyInclusive.ToSlice();
+			var beginKeyBytes = FdbKeyHelpers.ToSlice(in beginKeyInclusive);
 
 			return trans.GetRange(
 				KeySelector.FirstGreaterOrEqual(beginKeyBytes),
@@ -3034,8 +2996,8 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 
 			//PERF: TODO: optimize!
-			var beginKeyBytes = beginKeyInclusive.ToSlice();
-			var endKeyBytes = endKeyExclusive.ToSlice();
+			var beginKeyBytes = FdbKeyHelpers.ToSlice(in beginKeyInclusive);
+			var endKeyBytes = FdbKeyHelpers.ToSlice(in endKeyExclusive);
 
 			return trans.GetRange(
 				KeySelector.FirstGreaterOrEqual(beginKeyBytes),
@@ -3090,7 +3052,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
 		public static IFdbRangeQuery<TResult> GetRange<TResult>(this IFdbReadOnlyTransaction trans, KeyRange range, Func<KeyValuePair<Slice, Slice>, TResult> transform, FdbRangeOptions? options = null)
 		{
-			return GetRange(trans, KeySelectorPair.Create(range), transform, options);
+			return trans.GetRange(KeySelectorPair.Create(range), transform, options);
 		}
 
 		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
@@ -3279,6 +3241,12 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<Slice> GetRangeValues<TKeyRange>(this IFdbReadOnlyTransaction trans, in TKeyRange range, FdbRangeOptions? options = null)
+			where TKeyRange : struct, IFdbKeyRange
+			=> trans.GetRangeValues(range.ToKeyRange(), options); //PERF: TODO: optimize!
+
+		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
+		[Pure, LinqTunnel]
 		public static IFdbRangeQuery<Slice> GetRangeValues(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans);
@@ -3349,16 +3317,16 @@ namespace FoundationDB.Client
 			// we will first encode the Begin key selector, and defer encoding the End key selector in another method
 			// => this should allow for a fast path when the JIT inlines a TryGetSpan that always return true
 
-			if (FdbKeySelector.TryGetSpan(in beginInclusive, out var beginSelector))
+			if (FdbKeySelectorHelpers.TryGetSpan(in beginInclusive, out var beginSelector))
 			{
-				return GetRangeAsync<TEndKey>(trans, beginSelector, in endExclusive, options, iteration);
+				return trans.GetRangeAsync(beginSelector, in endExclusive, options, iteration);
 			}
 
 			byte[]? buffer = null;
 			try
 			{
-				var selectorBytes = FdbKeySelector.Encode(in beginInclusive, ref buffer, ArrayPool<byte>.Shared);
-				return GetRangeAsync<TEndKey>(trans, selectorBytes.ToSpan(), in endExclusive, options, iteration);
+				var selectorBytes = FdbKeySelectorHelpers.Encode(in beginInclusive, ref buffer, ArrayPool<byte>.Shared);
+				return trans.GetRangeAsync(selectorBytes.ToSpan(), in endExclusive, options, iteration);
 			}
 			finally
 			{
@@ -3372,13 +3340,13 @@ namespace FoundationDB.Client
 		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
 			where TBeginKey : struct, IFdbKey
 		{
-			return GetRangeAsync<TBeginKey>(trans, in beginInclusive, endExclusive.ToSpan(), options, iteration);
+			return trans.GetRangeAsync(in beginInclusive, endExclusive.ToSpan(), options, iteration);
 		}
 
 		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions? options, int iteration)
 			where TBeginKey : struct, IFdbKey
 		{
-			if (FdbKeySelector.TryGetSpan(in beginInclusive, out var beginSelector))
+			if (FdbKeySelectorHelpers.TryGetSpan(in beginInclusive, out var beginSelector))
 			{
 				return trans.GetRangeAsync(beginSelector, endExclusive, options, iteration);
 			}
@@ -3386,7 +3354,7 @@ namespace FoundationDB.Client
 			byte[]? buffer = null;
 			try
 			{
-				var selectorBytes = FdbKeySelector.Encode(in beginInclusive, ref buffer, ArrayPool<byte>.Shared);
+				var selectorBytes = FdbKeySelectorHelpers.Encode(in beginInclusive, ref buffer, ArrayPool<byte>.Shared);
 				return trans.GetRangeAsync(selectorBytes.ToSpan(), endExclusive, options, iteration);
 			}
 			finally
@@ -3401,13 +3369,13 @@ namespace FoundationDB.Client
 		public static Task<FdbRangeChunk> GetRangeAsync<TEndKey>(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options, int iteration)
 			where TEndKey : struct, IFdbKey
 		{
-			return GetRangeAsync<TEndKey>(trans, beginInclusive.ToSpan(), in endExclusive, options, iteration);
+			return trans.GetRangeAsync(beginInclusive.ToSpan(), in endExclusive, options, iteration);
 		}
 
 		public static Task<FdbRangeChunk> GetRangeAsync<TEndKey>(this IFdbReadOnlyTransaction trans, KeySpanSelector beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options, int iteration)
 			where TEndKey : struct, IFdbKey
 		{
-			if (FdbKeySelector.TryGetSpan(in endExclusive, out var endSelector))
+			if (FdbKeySelectorHelpers.TryGetSpan(in endExclusive, out var endSelector))
 			{
 				return trans.GetRangeAsync(beginInclusive, endSelector, options, iteration);
 			}
@@ -3415,7 +3383,7 @@ namespace FoundationDB.Client
 			byte[]? buffer = null;
 			try
 			{
-				var selectorBytes = FdbKeySelector.Encode(in endExclusive, ref buffer, ArrayPool<byte>.Shared);
+				var selectorBytes = FdbKeySelectorHelpers.Encode(in endExclusive, ref buffer, ArrayPool<byte>.Shared);
 				return trans.GetRangeAsync(beginInclusive, selectorBytes.ToSpan(), options, iteration);
 			}
 			finally
@@ -3482,6 +3450,15 @@ namespace FoundationDB.Client
 			where TEndKey : struct, IFdbKey
 		{
 			return trans.GetRangeAsync(beginInclusive.FirstGreaterOrEqual(), endExclusive.FirstGreaterOrEqual(), options, iteration);
+		}
+
+		/// <inheritdoc cref="GetRangeAsync(IFdbReadOnlyTransaction,Slice,Slice,FdbRangeOptions?,int)"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Task<FdbRangeChunk> GetRangeAsync<TKeyRange>(this IFdbReadOnlyTransaction trans, in TKeyRange range, FdbRangeOptions? options = null, int iteration = 0)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			//PERF: TODO: optimize!
+			return trans.GetRangeAsync(range.ToKeyRange(), options, iteration);
 		}
 
 		/// <summary>
@@ -3554,7 +3531,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public static Task VisitRangeAsync<TState>(this IFdbReadOnlyTransaction trans, KeyRange range, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 		{
-			return VisitRangeAsync(trans, range.Begin, range.End, state, visitor, options);
+			return trans.VisitRangeAsync(range.Begin, range.End, state, visitor, options);
 		}
 
 		/// <summary>Visits all key-value pairs in the database snapshot represent by the transaction</summary>
@@ -3633,7 +3610,7 @@ namespace FoundationDB.Client
 				return trans.GetAddressesForKeyAsync(keySpan);
 			}
 
-			using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+			using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 			return trans.GetAddressesForKeyAsync(keyBytes.Span);
 		}
 
@@ -3641,16 +3618,41 @@ namespace FoundationDB.Client
 
 		#region GetRangeSplitPointsAsync...
 
-		/// <summary>Returns a list of keys that can split the given range into (roughly) equally sized chunks based on <paramref name="chunkSize"/>.</summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="beginKey">Name of the key of the start of the range</param>
-		/// <param name="endKey">Name of the key of the end of the range</param>
-		/// <param name="chunkSize">Size of chunks that will be used to split the range</param>
-		/// <returns>Task that will return an array of keys that split the range in equally sized chunks, or an exception</returns>
-		/// <remarks>The returned split points contain the start key and end key of the given range</remarks>
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRangeSplitPointsAsync"/>
 		public static Task<Slice[]> GetRangeSplitPointsAsync(this IFdbReadOnlyTransaction trans, Slice beginKey, Slice endKey, long chunkSize)
 		{
 			return trans.GetRangeSplitPointsAsync(ToSpanKey(beginKey), ToSpanKey(endKey), chunkSize);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRangeSplitPointsAsync"/>
+		public static Task<Slice[]> GetRangeSplitPointsAsync<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in TBeginKey beginKey, in TEndKey endKey, long chunkSize)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			if (beginKey.TryGetSpan(out var beginSpan))
+			{
+				return trans.GetRangeSplitPointsAsync(beginSpan, in endKey, chunkSize);
+			}
+			else
+			{
+				using var beginBytes = FdbKeyHelpers.Encode(in beginKey, ArrayPool<byte>.Shared);
+				return trans.GetRangeSplitPointsAsync(beginBytes.Span, in endKey, chunkSize);
+			}
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRangeSplitPointsAsync"/>
+		public static Task<Slice[]> GetRangeSplitPointsAsync<TEndKey>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> beginKey, in TEndKey endKey, long chunkSize)
+			where TEndKey : struct, IFdbKey
+		{
+			if (endKey.TryGetSpan(out var endSpan))
+			{
+				return trans.GetRangeSplitPointsAsync(beginKey, endSpan, chunkSize);
+			}
+			else
+			{
+				using var endBytes = FdbKeyHelpers.Encode(in endKey, ArrayPool<byte>.Shared);
+				return trans.GetRangeSplitPointsAsync(beginKey, endBytes.Span, chunkSize);
+			}
 		}
 
 		#endregion
@@ -3687,7 +3689,7 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 		{
 			// the metadata key will be stored in a cache, so we have to allocate!
-			trans.TouchMetadataVersionKey(key.ToSlice());
+			trans.TouchMetadataVersionKey(FdbKeyHelpers.ToSlice(in key));
 		}
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetMetadataVersionKeyAsync"/>
@@ -3695,7 +3697,7 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 		{
 			// the metadata key will be stored in a cache, so we have to allocate!
-			return trans.GetMetadataVersionKeyAsync(key.ToSlice());
+			return trans.GetMetadataVersionKeyAsync(FdbKeyHelpers.ToSlice(in key));
 		}
 
 		#endregion
@@ -3715,6 +3717,31 @@ namespace FoundationDB.Client
 		public static Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(this IFdbReadOnlyTransaction trans, Slice key, Slice expected)
 		{
 			return trans.CheckValueAsync(ToSpanKey(key), expected);
+		}
+
+		public static Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync<TKey>(this IFdbReadOnlyTransaction trans, in TKey key, Slice expected)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return trans.CheckValueAsync(keySpan, expected);
+			}
+			else
+			{
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
+				return trans.CheckValueAsync(keyBytes.Span, expected);
+			}
+		}
+
+		public static Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, in TKey key, in TValue expected)
+			where TKey : struct, IFdbKey
+#if NET9_0_OR_GREATER
+			where TValue : struct, ISpanEncodable, allows ref struct
+#else
+			where TValue : struct, ISpanEncodable
+#endif
+		{
+			return trans.CheckValueAsync(in key, FdbValueHelpers.ToSlice(in expected));
 		}
 
 		#endregion
@@ -3738,7 +3765,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var keyBytes = FdbKeyExtensions.Encode(in key, ArrayPool<byte>.Shared);
+				using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
 				trans.Clear(keyBytes.Span);
 			}
 		}
@@ -3784,7 +3811,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var beginKeyBytes = FdbKeyExtensions.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
+				using var beginKeyBytes = FdbKeyHelpers.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
 				trans.ClearRange(beginKeyBytes.Span, ToSpanKey(endKeyExclusive));
 			}
 		}
@@ -3801,7 +3828,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var beginKeyBytes = FdbKeyExtensions.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
+				using var beginKeyBytes = FdbKeyHelpers.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
 				ClearRangeContinuation(trans, beginKeyBytes.Span, in endKeyExclusive);
 			}
 
@@ -3813,7 +3840,7 @@ namespace FoundationDB.Client
 				}
 				else
 				{
-					using var endKeyBytes = FdbKeyExtensions.Encode(in endKeyExclusive, ArrayPool<byte>.Shared);
+					using var endKeyBytes = FdbKeyHelpers.Encode(in endKeyExclusive, ArrayPool<byte>.Shared);
 					trans.ClearRange(beginKeyInclusive, endKeyBytes.Span);
 				}
 			}
@@ -3870,7 +3897,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var beginBytes = FdbKeyExtensions.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
+				using var beginBytes = FdbKeyHelpers.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
 				trans.AddConflictRange(beginBytes.Span, endKeyExclusive, type);
 			}
 		}
@@ -3887,7 +3914,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var endBytes = FdbKeyExtensions.Encode(in endKeyExclusive, ArrayPool<byte>.Shared);
+				using var endBytes = FdbKeyHelpers.Encode(in endKeyExclusive, ArrayPool<byte>.Shared);
 				trans.AddConflictRange(beginKeyInclusive, endBytes.Span, type);
 			}
 		}
@@ -3905,7 +3932,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				using var beginBytes = FdbKeyExtensions.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
+				using var beginBytes = FdbKeyHelpers.Encode(in beginKeyInclusive, ArrayPool<byte>.Shared);
 				trans.AddConflictRange(beginBytes.Span, in endKeyExclusive, type);
 			}
 		}
@@ -3914,13 +3941,13 @@ namespace FoundationDB.Client
 		public static void AddReadConflictRange<TKeyRange>(this IFdbTransaction trans, in TKeyRange range)
 			where TKeyRange : struct, IFdbKeyRange
 		{
-			AddConflictRange<TKeyRange>(trans, in range, FdbConflictRangeType.Read);
+			trans.AddConflictRange(in range, FdbConflictRangeType.Read);
 		}
 
 		/// <summary>Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.</summary>
 		public static void AddReadConflictRange(this IFdbTransaction trans, KeyRange range)
 		{
-			AddConflictRange(trans, range, FdbConflictRangeType.Read);
+			trans.AddConflictRange(range, FdbConflictRangeType.Read);
 		}
 
 		/// <inheritdoc cref="AddReadConflictRange(IFdbTransaction,ReadOnlySpan{byte},ReadOnlySpan{byte})"/>
@@ -3946,7 +3973,7 @@ namespace FoundationDB.Client
 		/// <summary>Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.</summary>
 		public static void AddReadConflictKey(this IFdbTransaction trans, Slice key)
 		{
-			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Read);
+			trans.AddConflictRange(KeyRange.FromKey(key), FdbConflictRangeType.Read);
 		}
 
 		/// <summary>
@@ -3955,20 +3982,20 @@ namespace FoundationDB.Client
 		public static void AddReadConflictKey<TKey>(this IFdbTransaction trans, in TKey key)
 			where TKey : struct, IFdbKey
 		{
-			AddConflictRange(trans, FdbKeyRange.Single(in key), FdbConflictRangeType.Read);
+			trans.AddConflictRange(FdbKeyRange.Single(in key), FdbConflictRangeType.Read);
 		}
 
 		/// <inheritdoc cref="AddWriteConflictRange(IFdbTransaction,KeyRange)"/>
 		public static void AddWriteConflictRange<TKeyRange>(this IFdbTransaction trans, in TKeyRange range)
 			where TKeyRange : struct, IFdbKeyRange
 		{
-			AddConflictRange<TKeyRange>(trans, in range, FdbConflictRangeType.Write);
+			trans.AddConflictRange(in range, FdbConflictRangeType.Write);
 		}
 
 		/// <summary>Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.</summary>
 		public static void AddWriteConflictRange(this IFdbTransaction trans, KeyRange range)
 		{
-			AddConflictRange(trans, range, FdbConflictRangeType.Write);
+			trans.AddConflictRange(range, FdbConflictRangeType.Write);
 		}
 
 		/// <inheritdoc cref="AddWriteConflictRange(IFdbTransaction,ReadOnlySpan{byte},ReadOnlySpan{byte})"/>
@@ -3996,7 +4023,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public static void AddWriteConflictKey(this IFdbTransaction trans, Slice key)
 		{
-			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Write);
+			trans.AddConflictRange(KeyRange.FromKey(key), FdbConflictRangeType.Write);
 		}
 
 		/// <summary>
@@ -4005,7 +4032,7 @@ namespace FoundationDB.Client
 		public static void AddWriteConflictKey<TKey>(this IFdbTransaction trans, in TKey key)
 			where TKey : struct, IFdbKey
 		{
-			AddConflictRange(trans, FdbKeyRange.Single(in key), FdbConflictRangeType.Write);
+			trans.AddConflictRange(FdbKeyRange.Single(in key), FdbConflictRangeType.Write);
 		}
 
 		#endregion
@@ -4025,7 +4052,7 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 		{
 			// unfortunately, we have to allocate the encoded key since this is an async operation
-			return trans.Watch(key.ToSlice(), ct);
+			return trans.Watch(FdbKeyHelpers.ToSlice(in key), ct);
 		}
 
 		#endregion
@@ -4080,7 +4107,7 @@ namespace FoundationDB.Client
 				{
 					if (!keys[i].TryGetSpan(out var span))
 					{
-						span = FdbKeyExtensions.Encode(in keys[i], ref tmp, pool);
+						span = FdbKeyHelpers.Encode(in keys[i], ref tmp, pool);
 					}
 					encodedKeys[i] = buffer.Intern(span);
 					++count;
@@ -4114,7 +4141,7 @@ namespace FoundationDB.Client
 
 			if (keys.TryGetSpan(out var keysSpan))
 			{
-				return GetValuesAsync(trans, keysSpan);
+				return trans.GetValuesAsync(keysSpan);
 			}
 
 			// we cannot (as of .NET 10) use pass either a ReadOnlySpan<byte>[] nor a ReadOnlySpan<ReadOnlySpan<byte>> to the native handler
@@ -4130,7 +4157,7 @@ namespace FoundationDB.Client
 				{
 					if (!key.TryGetSpan(out var span))
 					{
-						span = FdbKeyExtensions.Encode(in key, ref tmp, pool);
+						span = FdbKeyHelpers.Encode(in key, ref tmp, pool);
 					}
 					encodedKeys.Add(buffer.Intern(span));
 				}
@@ -4149,7 +4176,7 @@ namespace FoundationDB.Client
 
 		public static Task<Slice[]> GetValuesAsync<TElement, TKey>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, TKey> keySelector)
 			where TKey : struct, IFdbKey
-			=> GetValuesAsync(trans, items, keySelector, static (fn, item) => fn(item));
+			=> trans.GetValuesAsync(items, keySelector, static (fn, item) => fn(item));
 
 		public static Task<Slice[]> GetValuesAsync<TElement, TState, TKey>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TElement> items, TState state, Func<TState, TElement, TKey> keySelector)
 			where TKey : struct, IFdbKey
@@ -4198,7 +4225,7 @@ namespace FoundationDB.Client
 					}
 
 					// encode in a temp location, and copy over into the slice buffer
-					var keyBytes = FdbKeyExtensions.Encode(in key, ref tmp, pool, sizeHint);
+					var keyBytes = FdbKeyHelpers.Encode(in key, ref tmp, pool, sizeHint);
 					tmpMaxSize = Math.Max(tmpMaxSize, keyBytes.Length);
 					encodedKeys[i] = buffer.Intern(keyBytes);
 					++count;
@@ -4227,7 +4254,7 @@ namespace FoundationDB.Client
 
 		public static Task<Slice[]> GetValuesAsync<TElement, TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<TElement> items, Func<TElement, TKey> keySelector)
 			where TKey : struct, IFdbKey
-			=> GetValuesAsync(trans, items, keySelector, static (fn, item) => fn(item));
+			=> trans.GetValuesAsync(items, keySelector, static (fn, item) => fn(item));
 
 		public static Task<Slice[]> GetValuesAsync<TElement, TState, TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<TElement> items, TState state, Func<TState, TElement, TKey> keySelector)
 			where TKey : struct, IFdbKey
@@ -4238,7 +4265,7 @@ namespace FoundationDB.Client
 
 			if (items.TryGetSpan(out var itemsSpan))
 			{
-				return GetValuesAsync(trans, itemsSpan, state, keySelector);
+				return trans.GetValuesAsync(itemsSpan, state, keySelector);
 			}
 
 			// we cannot (as of .NET 10) use pass either a ReadOnlySpan<byte>[] nor a ReadOnlySpan<ReadOnlySpan<byte>> to the native handler
@@ -4255,7 +4282,7 @@ namespace FoundationDB.Client
 					var key = keySelector(state, item);
 					if (!key.TryGetSpan(out var span))
 					{
-						span = FdbKeyExtensions.Encode(in key, ref tmp, pool);
+						span = FdbKeyHelpers.Encode(in key, ref tmp, pool);
 					}
 					encodedKeys.Add(buffer.Intern(span));
 				}
@@ -4305,7 +4332,7 @@ namespace FoundationDB.Client
 			var encodedKeys = new Slice[keys.Length]; //TODO: pooled?
 			for (int i = 0; i < keys.Length; i++)
 			{
-				encodedKeys[i] = keys[i].ToSlice(); //TODO: pooled
+				encodedKeys[i] = FdbKeyHelpers.ToSlice(in keys[i]); //TODO: pooled
 			}
 			return trans.GetValuesAsync<TValue>(encodedKeys.AsSpan(), results, decoder);
 		}
@@ -4345,7 +4372,7 @@ namespace FoundationDB.Client
 			var encodedKeys = new Slice[keys.Length]; //TODO: pooled?
 			for (int i = 0; i < keys.Length; i++)
 			{
-				encodedKeys[i] = keys[i].ToSlice(); //TODO: pooled
+				encodedKeys[i] = FdbKeyHelpers.ToSlice(in keys[i]); //TODO: pooled
 			}
 			return trans.GetValuesAsync(encodedKeys.AsSpan(), results, state, decoder);
 		}
@@ -4382,7 +4409,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			Contract.NotNull(decoder);
 
-			return decoder.DecodeValues(await GetValuesAsync(trans, keys).ConfigureAwait(false));
+			return decoder.DecodeValues(await trans.GetValuesAsync(keys).ConfigureAwait(false));
 		}
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetKeyAsync(FoundationDB.Client.KeySelector)"/>

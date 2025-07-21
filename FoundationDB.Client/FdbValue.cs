@@ -346,7 +346,6 @@ namespace FoundationDB.Client
 
 	public static class FdbValueExtensions
 	{
-
 		/// <summary>Creates a pre-encoded version of a value that can be reused multiple times</summary>
 		/// <typeparam name="TValue">Type of the value to pre-encode</typeparam>
 		/// <param name="value">value to pre-encoded</param>
@@ -359,13 +358,37 @@ namespace FoundationDB.Client
 #else
 			where TValue : struct, IFdbValue
 #endif
-		{
-			if (typeof(TValue) == typeof(FdbRawValue))
-			{ // already cached!
-				return Unsafe.As<TValue, FdbRawValue>(ref value);
-			}
-			return new(ToSlice(in value));
-		}
+			=> FdbValueHelpers.Memoize(in value);
+
+		/// <summary>Encodes this value into <see cref="Slice"/></summary>
+		/// <param name="value">Value to encode</param>
+		/// <returns><see cref="Slice"/> that contains the binary representation of this value</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice ToSlice<TValue>(this TValue value)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+#endif
+			=> FdbValueHelpers.ToSlice(in value);
+
+		/// <summary>Encodes this value into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
+		/// <param name="value">Value to encode</param>
+		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
+		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this value</returns>
+		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SliceOwner ToSlice<TValue>(this TValue value, ArrayPool<byte>? pool)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+#endif
+			=> FdbValueHelpers.ToSlice(in value, pool);
+
+	}
+
+	internal static class FdbValueHelpers
+	{
 
 		/// <summary>Creates a pre-encoded version of a value that can be reused multiple times</summary>
 		/// <typeparam name="TValue">Type of the value to pre-encode</typeparam>
@@ -386,18 +409,6 @@ namespace FoundationDB.Client
 			}
 			return new(ToSlice(in value));
 		}
-
-		/// <summary>Encodes this value into <see cref="Slice"/></summary>
-		/// <param name="value">Value to encode</param>
-		/// <returns><see cref="Slice"/> that contains the binary representation of this value</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToSlice<TValue>(this TValue value)
-#if NET9_0_OR_GREATER
-			where TValue : struct, IFdbValue, allows ref struct
-#else
-			where TValue : struct, IFdbValue
-#endif
-			=> ToSlice(in value);
 
 		/// <summary>Encodes this value into <see cref="Slice"/></summary>
 		/// <param name="value">Value to encode</param>
@@ -491,7 +502,7 @@ namespace FoundationDB.Client
 		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
 		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this value</returns>
 		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static SliceOwner ToSlice<TValue>(this TValue value, ArrayPool<byte>? pool)
+		public static SliceOwner ToSlice<TValue>(in TValue value, ArrayPool<byte>? pool)
 #if NET9_0_OR_GREATER
 			where TValue : struct, IFdbValue, allows ref struct
 #else
@@ -502,7 +513,7 @@ namespace FoundationDB.Client
 
 			if (typeof(TValue) == typeof(FdbRawValue))
 			{
-				return SliceOwner.Wrap(Unsafe.As<TValue, FdbRawValue>(ref value).Data);
+				return SliceOwner.Wrap(Unsafe.As<TValue, FdbRawValue>(ref Unsafe.AsRef(in value)).Data);
 			}
 
 			return value.TryGetSpan(out var span)

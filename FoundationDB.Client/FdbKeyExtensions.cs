@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 		/// <para>Please note that <c>subspace.GetKey("abc", 123).GetRange()</c> is equivalent to <c>subspace.GetRange("abc", 123)</c></para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<TKey> GetRange<TKey>(this TKey key, bool excluded = false)
+		public static FdbKeyPrefixRange<TKey> GetRange<TKey>(this TKey key, bool excluded = false)
 			where TKey : struct, IFdbKey
 		{
 			return excluded
@@ -109,482 +109,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Encoding...
-
-		/// <summary>Returns a pre-encoded version of a key</summary>
-		/// <typeparam name="TKey">Type of the key to pre-encode</typeparam>
-		/// <param name="key">Key to pre-encoded</param>
-		/// <returns>Key with a cached version of the encoded original</returns>
-		/// <remarks>This key can be used multiple times without re-encoding the original</remarks>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawKey Memoize<TKey>(this TKey key)
-			where TKey : struct, IFdbKey
-		{
-			if (typeof(TKey) == typeof(FdbRawKey))
-			{ // already cached!
-				return (FdbRawKey) (object) key;
-			}
-
-			return new(key.ToSlice());
-		}
-
-		/// <summary>Compares the prefix of two subspaces for equality</summary>
-		public static bool Equals(IKeySubspace? subspace, IKeySubspace? other)
-		{
-			return (subspace ?? KeySubspace.Empty).Equals(other ?? KeySubspace.Empty);
-		}
-
-		/// <summary>Compares the prefix of two subspaces</summary>
-		public static int CompareTo(IKeySubspace? subspace, IKeySubspace? other)
-		{
-			return (subspace ?? KeySubspace.Empty).CompareTo(other ?? KeySubspace.Empty);
-		}
-
-		/// <inheritdoc cref="CompareTo{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
-		public static int CompareTo<TKey>(in TKey key, Slice expectedBytes)
-			where TKey : struct, IFdbKey
-			=> !expectedBytes.IsNull ? CompareTo(in key, expectedBytes.Span) : +1;
-
-		/// <summary>Compares a key with a specific encoded binary representation</summary>
-		/// <typeparam name="TKey">Type of the key</typeparam>
-		/// <param name="key">Key being compared</param>
-		/// <param name="expectedBytes">Encoded bytes to compare with</param>
-		/// <returns><c>0</c> if the key encodes to the exact same bytes, a negative number if it would be sorted before, or a positive number if it would be sorted after</returns>
-		/// <remarks>
-		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
-		/// </remarks>
-		public static int CompareTo<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
-			where TKey : struct, IFdbKey
-		{
-			if (key.TryGetSpan(out var span))
-			{
-				return span.SequenceCompareTo(expectedBytes);
-			}
-
-			using var bytes = Encode(in key, ArrayPool<byte>.Shared);
-			return bytes.Span.SequenceCompareTo(expectedBytes);
-		}
-
-		/// <summary>Compares two keys by their encoded binary representation</summary>
-		/// <typeparam name="TKey">Type of the first key</typeparam>
-		/// <typeparam name="TOtherKey">Type of the second key</typeparam>
-		/// <param name="key">First key to compare</param>
-		/// <param name="other">Second key to compare</param>
-		/// <returns><c>0</c> if both keys are equal, a negative number if <paramref name="key"/> would be sorted before <paramref name="other"/>, or a positive number if <paramref name="key"/> would be sorted after <paramref name="other"/></returns>
-		/// <remarks>
-		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
-		/// </remarks>
-		public static int CompareTo<TKey, TOtherKey>(in TKey key, in TOtherKey other)
-			where TKey : struct, IFdbKey
-			where TOtherKey : struct, IFdbKey
-		{
-			if (other.TryGetSpan(out var otherSpan))
-			{
-				return CompareTo(in key, otherSpan);
-			}
-			if (key.TryGetSpan(out var keySpan))
-			{
-				return CompareTo(in other, keySpan);
-			}
-			return CompareToIncompatible(in key, in other);
-
-			static int CompareToIncompatible(in TKey key, in TOtherKey other)
-			{
-				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
-				using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
-				return keyBytes.Span.SequenceCompareTo(otherBytes.Span);
-			}
-		}
-
-		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
-		/// <typeparam name="TKey">Type of the first key</typeparam>
-		/// <typeparam name="TOtherKey">Type of the second key</typeparam>
-		/// <param name="key">First key to test</param>
-		/// <param name="other">Second key to test</param>
-		/// <returns><c>true</c> if the both key encodes to the exact same bytes; otherwise, <c>false</c></returns>
-		/// <remarks>
-		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
-		/// </remarks>
-		public static bool Equals<TKey, TOtherKey>(in TKey key, in TOtherKey other)
-			where TKey : struct, IFdbKey
-			where TOtherKey : struct, IFdbKey
-		{
-			if (other.TryGetSpan(out var otherSpan))
-			{
-				return Equals(in key, otherSpan);
-			}
-			if (key.TryGetSpan(out var keySpan))
-			{
-				return Equals(in other, keySpan);
-			}
-			return EqualsIncompatible(in key, in other);
-
-			static bool EqualsIncompatible(in TKey key, in TOtherKey other)
-			{
-				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
-				using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
-				return keyBytes.Span.SequenceEqual(otherBytes.Span);
-			}
-		}
-
-		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
-		/// <typeparam name="TKey">Type of the first key</typeparam>
-		/// <param name="key">First key to test</param>
-		/// <param name="other">Second key to test</param>
-		/// <returns><c>true</c> if the both key encodes to the exact same bytes; otherwise, <c>false</c></returns>
-		/// <remarks>
-		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
-		/// </remarks>
-		public static bool Equals<TKey>(in TKey key, IFdbKey other)
-			where TKey : struct, IFdbKey
-		{
-			if (other.TryGetSpan(out var otherSpan))
-			{
-				return Equals(in key, otherSpan);
-			}
-			if (key.TryGetSpan(out var keySpan))
-			{
-				return other.Equals(keySpan);
-			}
-			return EqualsIncompatible(in key, other);
-
-			static bool EqualsIncompatible(in TKey key, IFdbKey other)
-			{
-				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
-				using var otherBytes = Encode(other, ArrayPool<byte>.Shared);
-				return keyBytes.Span.SequenceEqual(otherBytes.Span);
-			}
-		}
-
-		/// <inheritdoc cref="Equals{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
-		public static bool Equals<TKey>(in TKey key, Slice expectedBytes)
-			where TKey : struct, IFdbKey
-			=> Equals(in key, expectedBytes.Span);
-
-		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
-		/// <typeparam name="TKey">Type of the key</typeparam>
-		/// <param name="key">Key to test</param>
-		/// <param name="expectedBytes">Expected encoded bytes</param>
-		/// <returns><c>true</c> if the key encodes to the exact same bytes; otherwise, <c>false</c></returns>
-		/// <remarks>
-		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
-		/// </remarks>
-		public static bool Equals<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
-			where TKey : struct, IFdbKey
-		{
-			if (key.TryGetSpan(out var span))
-			{
-				return span.SequenceEqual(expectedBytes);
-			}
-
-			using var bytes = Encode(in key, ArrayPool<byte>.Shared);
-			return bytes.Span.SequenceEqual(expectedBytes);
-		}
-
-		/// <summary>Encodes this key into <see cref="Slice"/></summary>
-		/// <param name="key">Key to encode</param>
-		/// <returns><see cref="Slice"/> that contains the binary representation of this key</returns>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Slice ToSlice<TKey>(this TKey key)
-			where TKey : struct, IFdbKey
-		{
-			if (typeof(TKey) == typeof(FdbRawKey))
-			{
-				return ((FdbRawKey) (object) key).Data;
-			}
-
-			if (key.TryGetSpan(out var span))
-			{
-				return Slice.FromBytes(span);
-			}
-
-			return ToSliceSlow(in key);
-
-			[MethodImpl(MethodImplOptions.NoInlining)]
-			static Slice ToSliceSlow(in TKey key)
-			{
-				byte[]? tmp = null;
-				if (key.TryGetSizeHint(out var capacity))
-				{
-					// we will hope for the best, and pre-allocate the slice
-
-					tmp = new byte[capacity];
-					if (key.TryEncode(tmp, out var bytesWritten))
-					{
-						return tmp.AsSlice(0, bytesWritten);
-					}
-
-					if (capacity >= FdbKey.MaxSize)
-					{
-						goto key_too_long;
-					}
-
-					capacity *= 2;
-				}
-				else
-				{
-					capacity = 128;
-				}
-
-				var pool = ArrayPool<byte>.Shared;
-				try
-				{
-					while (true)
-					{
-						tmp = pool.Rent(capacity);
-						if (key.TryEncode(tmp, out int bytesWritten))
-						{
-							return tmp.AsSlice(0, bytesWritten).Copy();
-						}
-
-						pool.Return(tmp);
-						tmp = null;
-
-						if (capacity >= FdbKey.MaxSize)
-						{
-							goto key_too_long;
-						}
-
-						capacity *= 2;
-					}
-				}
-				catch (Exception)
-				{
-					if (tmp is not null)
-					{
-						pool.Return(tmp);
-					}
-
-					throw;
-				}
-
-			key_too_long:
-				// it would be too large anyway!
-				throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
-			}
-		}
-
-		/// <summary>Encodes this key into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
-		/// <param name="key">Key to encode</param>
-		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
-		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this key</returns>
-		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static SliceOwner ToSlice<TKey>(this TKey key, ArrayPool<byte>? pool)
-			where TKey : struct, IFdbKey
-		{
-			if (typeof(TKey) == typeof(FdbRawKey))
-			{
-				return SliceOwner.Wrap(((FdbRawKey) (object) key).Data);
-			}
-
-			pool ??= ArrayPool<byte>.Shared;
-			return key.TryGetSpan(out var span)
-				? SliceOwner.Copy(span, pool)
-				: Encode(in key, pool);
-		}
-
-		[MustDisposeResource, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static SliceOwner Encode(IFdbKey key, ArrayPool<byte>? pool, int? sizeHint = null)
-		{
-			Contract.Debug.Requires(pool != null);
-
-			int capacity;
-			if (sizeHint is not null)
-			{
-				capacity = sizeHint.Value;
-			}
-			else if (!key.TryGetSizeHint(out capacity))
-			{
-				capacity = 0;
-			}
-			if (capacity <= 0)
-			{
-				capacity = 128;
-			}
-
-			byte[]? tmp = null;
-			try
-			{
-				while (true)
-				{
-					tmp = pool.Rent(capacity);
-					if (key.TryEncode(tmp, out int bytesWritten))
-					{
-						if (bytesWritten == 0)
-						{
-							pool.Return(tmp);
-							tmp = null;
-							return SliceOwner.Empty;
-						}
-
-						return SliceOwner.Create(tmp.AsSlice(0, bytesWritten), pool);
-					}
-
-					pool.Return(tmp);
-					tmp = null;
-
-					if (capacity >= FdbKey.MaxSize)
-					{
-						// it would be too large anyway!
-						throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
-					}
-					capacity *= 2;
-				}
-			}
-			catch(Exception)
-			{
-				if (tmp is not null)
-				{
-					pool.Return(tmp);
-				}
-				throw;
-			}
-		}
-
-		[MustDisposeResource, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static SliceOwner Encode<TKey>(in TKey key, ArrayPool<byte>? pool, int? sizeHint = null)
-			where TKey : struct, IFdbKey
-		{
-			Contract.Debug.Requires(pool != null);
-
-			int capacity;
-			if (sizeHint is not null)
-			{
-				capacity = sizeHint.Value;
-			}
-			else if (!key.TryGetSizeHint(out capacity))
-			{
-				capacity = 0;
-			}
-			if (capacity <= 0)
-			{
-				capacity = 128;
-			}
-
-			byte[]? tmp = null;
-			try
-			{
-				while (true)
-				{
-					tmp = pool.Rent(capacity);
-					if (key.TryEncode(tmp, out int bytesWritten))
-					{
-						if (bytesWritten == 0)
-						{
-							pool.Return(tmp);
-							tmp = null;
-							return SliceOwner.Empty;
-						}
-
-						return SliceOwner.Create(tmp.AsSlice(0, bytesWritten), pool);
-					}
-
-					pool.Return(tmp);
-					tmp = null;
-
-					if (capacity >= FdbKey.MaxSize)
-					{
-						// it would be too large anyway!
-						throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
-					}
-					capacity *= 2;
-				}
-			}
-			catch(Exception)
-			{
-				if (tmp is not null)
-				{
-					pool.Return(tmp);
-				}
-				throw;
-			}
-		}
-
-		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static ReadOnlySpan<byte> Encode<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool, int? sizeHint = null)
-			where TKey : struct, IFdbKey
-		{
-			Contract.Debug.Requires(pool != null);
-
-			int capacity;
-			if (sizeHint is not null)
-			{
-				capacity = sizeHint.Value;
-			}
-			else if (!key.TryGetSizeHint(out capacity))
-			{
-				capacity = 0;
-			}
-			if (capacity <= 0)
-			{
-				capacity = 128;
-			}
-
-			while (true)
-			{
-				if (buffer is null)
-				{
-					buffer = pool.Rent(capacity);
-				}
-				else if (buffer.Length < capacity)
-				{
-					pool.Return(buffer);
-					buffer = pool.Rent(capacity);
-				}
-
-				if (key.TryEncode(buffer, out int bytesWritten))
-				{
-					return bytesWritten > 0 ? buffer.AsSpan(0, bytesWritten) : default;
-				}
-
-				if (capacity >= FdbKey.MaxSize)
-				{
-					// it would be too large anyway!
-					throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
-				}
-				capacity *= 2;
-			}
-		}
-
-		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
-		internal static Slice ToSlice<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool)
-			where TKey : struct, IFdbKey
-		{
-			Contract.Debug.Requires(pool != null);
-
-			if (!key.TryGetSizeHint(out int capacity) || capacity <= 0)
-			{
-				capacity = 128;
-			}
-
-			while (true)
-			{
-				if (buffer is null)
-				{
-					buffer = pool.Rent(capacity);
-				}
-				else if (buffer.Length < capacity)
-				{
-					pool.Return(buffer);
-					buffer = pool.Rent(capacity);
-				}
-
-				if (key.TryEncode(buffer, out int bytesWritten))
-				{
-					return bytesWritten > 0 ? buffer.AsSlice(0, bytesWritten) : Slice.Empty;
-				}
-
-				if (capacity >= FdbKey.MaxSize)
-				{
-					// it would be too large anyway!
-					throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
-				}
-				capacity *= 2;
-			}
-		}
-
-		#endregion
-
 		#region TSubspace Keys...
 
 		/// <summary>Returns a new subspace that will use this key as its prefix</summary>
@@ -597,11 +121,11 @@ namespace FoundationDB.Client
 			var parent = key.GetSubspace();
 			if (parent is null)
 			{ // the key is not tied to a subspace
-				return new DynamicKeySubspace(key.ToSlice(), SubspaceContext.Default);
+				return new DynamicKeySubspace(FdbKeyHelpers.ToSlice(in key), SubspaceContext.Default);
 			}
 
 			parent.Context.EnsureIsValid();
-			return new DynamicKeySubspace(parent.GetPrefix() + key.ToSlice(), parent.Context);
+			return new DynamicKeySubspace(parent.GetPrefix() + FdbKeyHelpers.ToSlice(in key), parent.Context);
 		}
 
 		/// <summary>Returns a new subspace with an additional prefix</summary>
@@ -826,7 +350,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbVarTupleKey PackKey(this IDynamicKeySubspace subspace, IVarTuple items) => new(subspace, items);
+		public static FdbTupleKey PackKey(this IDynamicKeySubspace subspace, IVarTuple items) => new(subspace, items);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1> PackKey<T1>(this IDynamicKeySubspace subspace, STuple<T1> key) => new(subspace, key.Item1);
@@ -860,7 +384,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="item1">Value of the 1st element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<FdbTupleKey<T1>> GetRange<T1>(this IDynamicKeySubspace subspace, T1 item1)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1>> GetRange<T1>(this IDynamicKeySubspace subspace, T1 item1)
 			=> new(new(subspace, item1), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first two elements</summary>
@@ -868,7 +392,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">Value of the 1st element of the matched keys</param>
 		/// <param name="item2">Value of the 2nd element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<FdbTupleKey<T1, T2>> GetRange<T1, T2>(this IDynamicKeySubspace subspace, T1 item1, T2 item2)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> GetRange<T1, T2>(this IDynamicKeySubspace subspace, T1 item1, T2 item2)
 			=> new(new(subspace, item1, item2), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first three elements</summary>
@@ -877,7 +401,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Value of the 2nd element of the matched keys</param>
 		/// <param name="item3">value of the 3rd element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<FdbTupleKey<T1, T2, T3>> GetRange<T1, T2, T3>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3>> GetRange<T1, T2, T3>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3)
 			=> new(new(subspace, item1, item2, item3), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first four elements</summary>
@@ -887,7 +411,7 @@ namespace FoundationDB.Client
 		/// <param name="item3">value of the 3rd element of the matched keys</param>
 		/// <param name="item4">value of the 4th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4>> GetRange<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4>> GetRange<T1, T2, T3, T4>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4)
 			=> new(new(subspace, item1, item2, item3, item4), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first five elements</summary>
@@ -898,7 +422,7 @@ namespace FoundationDB.Client
 		/// <param name="item4">value of the 4th element of the matched keys</param>
 		/// <param name="item5">value of the 5th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4, T5>> GetRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5>> GetRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 			=> new(new(subspace, item1, item2, item3, item4, item5), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first six elements</summary>
@@ -910,7 +434,7 @@ namespace FoundationDB.Client
 		/// <param name="item5">value of the 5th element of the matched keys</param>
 		/// <param name="item6">value of the 6th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4, T5, T6>> GetRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6>> GetRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first seven elements</summary>
@@ -923,7 +447,7 @@ namespace FoundationDB.Client
 		/// <param name="item6">value of the 6th element of the matched keys</param>
 		/// <param name="item7">value of the 7th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>> GetRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7>> GetRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6, item7), excluded: true);
 
 		/// <summary>Returns a range that matches all the keys under this subspace that start with the given first eight elements</summary>
@@ -937,7 +461,7 @@ namespace FoundationDB.Client
 		/// <param name="item7">value of the 7th element of the matched keys</param>
 		/// <param name="item8">value of the 8th element of the matched keys</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeyRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>> GetRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8>> GetRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace subspace, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 			=> new(new(subspace, item1, item2, item3, item4, item5, item6, item7, item8), excluded: true);
 
 		#endregion
@@ -1069,7 +593,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyRange<FdbTupleKey<T1>> GetRange<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1>> GetRange<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		// T1, T2, T3
 
@@ -1078,7 +602,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyRange<FdbTupleKey<T1>> GetRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1>> GetRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
 		/// <param name="subspace">Parent subspace</param>
@@ -1086,7 +610,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Second part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyRange<FdbTupleKey<T1, T2>> GetRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> GetRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
 
 		// T1, T2, T3, T4
 
@@ -1095,7 +619,7 @@ namespace FoundationDB.Client
 		/// <param name="item1">First part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyRange<FdbTupleKey<T1>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1) => new(new(subspace, item1), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/> and <typeparamref name="T2"/> values</summary>
 		/// <param name="subspace">Parent subspace</param>
@@ -1103,7 +627,7 @@ namespace FoundationDB.Client
 		/// <param name="item2">Second part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyRange<FdbTupleKey<T1, T2>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2) => new(new(subspace, item1, item2), excluded: true);
 
 		/// <summary>Returns a range that matches all the elements in this subspace that starts with the given <typeparamref name="T1"/>, <typeparamref name="T2"/> and <typeparamref name="T3"/> values</summary>
 		/// <param name="subspace">Parent subspace</param>
@@ -1112,7 +636,7 @@ namespace FoundationDB.Client
 		/// <param name="item3">Third part of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[Obsolete]
-		public static FdbKeyRange<FdbTupleKey<T1, T2, T3>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3) => new(new(subspace, item1, item2, item3), excluded: true);
+		public static FdbKeyPrefixRange<FdbTupleKey<T1, T2, T3>> GetRange<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, T1 item1, T2 item2, T3 item3) => new(new(subspace, item1, item2, item3), excluded: true);
 
 		#endregion
 
@@ -1159,7 +683,7 @@ namespace FoundationDB.Client
 		/// <param name="tuple">Tuple that will be added as a suffix</param>
 		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
 		[Pure]
-		public static FdbVarTupleKey AppendBytes(this IKeySubspace subspace, IVarTuple tuple)
+		public static FdbTupleKey AppendBytes(this IKeySubspace subspace, IVarTuple tuple)
 		{
 			Contract.NotNull(subspace);
 			Contract.NotNull(tuple);
@@ -1185,14 +709,14 @@ namespace FoundationDB.Client
 		#endregion
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbVarTupleKey[] PackKeys(this IDynamicKeySubspace subspace, ReadOnlySpan<IVarTuple> keys)
+		public static FdbTupleKey[] PackKeys(this IDynamicKeySubspace subspace, ReadOnlySpan<IVarTuple> keys)
 		{
 			if (keys.Length == 0)
 			{
 				return [ ];
 			}
 
-			var res = new FdbVarTupleKey[keys.Length];
+			var res = new FdbTupleKey[keys.Length];
 			for (int i = 0; i < keys.Length; i++)
 			{
 				res[i] = new(subspace, keys[i]);
@@ -1201,13 +725,13 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbVarTupleKey> PackKeys(this IDynamicKeySubspace subspace, IEnumerable<IVarTuple> keys)
+		public static IEnumerable<FdbTupleKey> PackKeys(this IDynamicKeySubspace subspace, IEnumerable<IVarTuple> keys)
 		{
 			return keys.TryGetSpan(out var span)
 				? PackKeys(subspace, span)
 				: GetKeysSlow(subspace, keys);
 
-			static IEnumerable<FdbVarTupleKey> GetKeysSlow(IDynamicKeySubspace subspace, IEnumerable<IVarTuple> keys)
+			static IEnumerable<FdbTupleKey> GetKeysSlow(IDynamicKeySubspace subspace, IEnumerable<IVarTuple> keys)
 			{
 				foreach (var key in keys)
 				{
@@ -1217,14 +741,14 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbVarTupleKey[] PackKeys<TItem>(this IDynamicKeySubspace subspace, ReadOnlySpan<TItem> items, Func<TItem, IVarTuple> selector)
+		public static FdbTupleKey[] PackKeys<TItem>(this IDynamicKeySubspace subspace, ReadOnlySpan<TItem> items, Func<TItem, IVarTuple> selector)
 		{
 			if (items.Length == 0)
 			{
 				return [ ];
 			}
 
-			var res = new FdbVarTupleKey[items.Length];
+			var res = new FdbTupleKey[items.Length];
 			for(int i = 0; i < items.Length; i++)
 			{
 				res[i] = new(subspace, selector(items[i]));
@@ -1233,13 +757,13 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbVarTupleKey> PackKeys<TItem>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, IVarTuple> selector)
+		public static IEnumerable<FdbTupleKey> PackKeys<TItem>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, IVarTuple> selector)
 		{
 			return items.TryGetSpan(out var span)
 				? PackKeys(subspace, span, selector)
 				: EncodeSlow(subspace, items, selector);
 
-			static IEnumerable<FdbVarTupleKey> EncodeSlow(IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, IVarTuple> selector)
+			static IEnumerable<FdbTupleKey> EncodeSlow(IDynamicKeySubspace subspace, IEnumerable<TItem> items, Func<TItem, IVarTuple> selector)
 			{
 				foreach (var item in items)
 				{
@@ -1249,14 +773,14 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbVarTupleKey[] PackKeys<TItem, TState>(this IDynamicKeySubspace subspace, ReadOnlySpan<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
+		public static FdbTupleKey[] PackKeys<TItem, TState>(this IDynamicKeySubspace subspace, ReadOnlySpan<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
 		{
 			if (items.Length == 0)
 			{
 				return [ ];
 			}
 
-			var res = new FdbVarTupleKey[items.Length];
+			var res = new FdbTupleKey[items.Length];
 			for(int i = 0; i < items.Length; i++)
 			{
 				res[i] = new(subspace, selector(state, items[i]));
@@ -1265,13 +789,13 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static IEnumerable<FdbVarTupleKey> PackKeys<TItem, TState>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
+		public static IEnumerable<FdbTupleKey> PackKeys<TItem, TState>(this IDynamicKeySubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
 		{
 			return items.TryGetSpan(out var span)
 				? PackKeys(subspace, span, state, selector)
 				: EncodeSlow(subspace, items, state, selector);
 
-			static IEnumerable<FdbVarTupleKey> EncodeSlow(IDynamicKeySubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
+			static IEnumerable<FdbTupleKey> EncodeSlow(IDynamicKeySubspace subspace, IEnumerable<TItem> items, TState state, Func<TState, TItem, IVarTuple> selector)
 			{
 				foreach (var item in items)
 				{
@@ -1353,6 +877,500 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
+
+		/// <summary>Encodes this key into <see cref="Slice"/></summary>
+		/// <param name="key">Key to encode</param>
+		/// <returns><see cref="Slice"/> that contains the binary representation of this key</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice ToSlice<TKey>(this TKey key) 
+			where TKey : struct, IFdbKey
+			=> FdbKeyHelpers.ToSlice(in key);
+
+		/// <summary>Encodes this key into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
+		/// <param name="key">Key to encode</param>
+		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
+		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this key</returns>
+		[Pure, MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SliceOwner ToSlice<TKey>(this TKey key, ArrayPool<byte>? pool)
+			where TKey : struct, IFdbKey
+			=> FdbKeyHelpers.ToSlice(in key, pool);
+
+	}
+
+	internal static class FdbKeyHelpers
+	{
+
+		/// <summary>Returns a pre-encoded version of a key</summary>
+		/// <typeparam name="TKey">Type of the key to pre-encode</typeparam>
+		/// <param name="key">Key to pre-encoded</param>
+		/// <returns>Key with a cached version of the encoded original</returns>
+		/// <remarks>This key can be used multiple times without re-encoding the original</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbRawKey Memoize<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+		{
+			if (typeof(TKey) == typeof(FdbRawKey))
+			{ // already cached!
+				return (FdbRawKey) (object) key;
+			}
+
+			return new(key.ToSlice());
+		}
+
+		/// <summary>Compares the prefix of two subspaces for equality</summary>
+		public static bool Equals(IKeySubspace? subspace, IKeySubspace? other)
+		{
+			return (subspace ?? KeySubspace.Empty).Equals(other ?? KeySubspace.Empty);
+		}
+
+		/// <summary>Compares the prefix of two subspaces</summary>
+		public static int CompareTo(IKeySubspace? subspace, IKeySubspace? other)
+		{
+			return (subspace ?? KeySubspace.Empty).CompareTo(other ?? KeySubspace.Empty);
+		}
+
+		/// <inheritdoc cref="CompareTo{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
+		public static int CompareTo<TKey>(in TKey key, Slice expectedBytes)
+			where TKey : struct, IFdbKey
+			=> !expectedBytes.IsNull ? CompareTo(in key, expectedBytes.Span) : +1;
+
+		/// <summary>Compares a key with a specific encoded binary representation</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key being compared</param>
+		/// <param name="expectedBytes">Encoded bytes to compare with</param>
+		/// <returns><c>0</c> if the key encodes to the exact same bytes, a negative number if it would be sorted before, or a positive number if it would be sorted after</returns>
+		/// <remarks>
+		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static int CompareTo<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var span))
+			{
+				return span.SequenceCompareTo(expectedBytes);
+			}
+
+			using var bytes = Encode(in key, ArrayPool<byte>.Shared);
+			return bytes.Span.SequenceCompareTo(expectedBytes);
+		}
+
+		/// <summary>Compares two keys by their encoded binary representation</summary>
+		/// <typeparam name="TKey">Type of the first key</typeparam>
+		/// <typeparam name="TOtherKey">Type of the second key</typeparam>
+		/// <param name="key">First key to compare</param>
+		/// <param name="other">Second key to compare</param>
+		/// <returns><c>0</c> if both keys are equal, a negative number if <paramref name="key"/> would be sorted before <paramref name="other"/>, or a positive number if <paramref name="key"/> would be sorted after <paramref name="other"/></returns>
+		/// <remarks>
+		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static int CompareTo<TKey, TOtherKey>(in TKey key, in TOtherKey other)
+			where TKey : struct, IFdbKey
+			where TOtherKey : struct, IFdbKey
+		{
+			if (other.TryGetSpan(out var otherSpan))
+			{
+				return CompareTo(in key, otherSpan);
+			}
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return CompareTo(in other, keySpan);
+			}
+			return CompareToIncompatible(in key, in other);
+
+			static int CompareToIncompatible(in TKey key, in TOtherKey other)
+			{
+				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
+				using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
+				return keyBytes.Span.SequenceCompareTo(otherBytes.Span);
+			}
+		}
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TKey">Type of the first key</typeparam>
+		/// <typeparam name="TOtherKey">Type of the second key</typeparam>
+		/// <param name="key">First key to test</param>
+		/// <param name="other">Second key to test</param>
+		/// <returns><c>true</c> if the both key encodes to the exact same bytes; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool Equals<TKey, TOtherKey>(in TKey key, in TOtherKey other)
+			where TKey : struct, IFdbKey
+			where TOtherKey : struct, IFdbKey
+		{
+			if (other.TryGetSpan(out var otherSpan))
+			{
+				return Equals(in key, otherSpan);
+			}
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return Equals(in other, keySpan);
+			}
+			return EqualsIncompatible(in key, in other);
+
+			static bool EqualsIncompatible(in TKey key, in TOtherKey other)
+			{
+				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
+				using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
+				return keyBytes.Span.SequenceEqual(otherBytes.Span);
+			}
+		}
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TKey">Type of the first key</typeparam>
+		/// <param name="key">First key to test</param>
+		/// <param name="other">Second key to test</param>
+		/// <returns><c>true</c> if the both key encodes to the exact same bytes; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool Equals<TKey>(in TKey key, IFdbKey other)
+			where TKey : struct, IFdbKey
+		{
+			if (other.TryGetSpan(out var otherSpan))
+			{
+				return Equals(in key, otherSpan);
+			}
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return other.Equals(keySpan);
+			}
+			return EqualsIncompatible(in key, other);
+
+			static bool EqualsIncompatible(in TKey key, IFdbKey other)
+			{
+				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
+				using var otherBytes = Encode(other, ArrayPool<byte>.Shared);
+				return keyBytes.Span.SequenceEqual(otherBytes.Span);
+			}
+		}
+
+		/// <inheritdoc cref="Equals{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
+		public static bool Equals<TKey>(in TKey key, Slice expectedBytes)
+			where TKey : struct, IFdbKey
+			=> Equals(in key, expectedBytes.Span);
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key to test</param>
+		/// <param name="expectedBytes">Expected encoded bytes</param>
+		/// <returns><c>true</c> if the key encodes to the exact same bytes; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool Equals<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
+			where TKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var span))
+			{
+				return span.SequenceEqual(expectedBytes);
+			}
+
+			using var bytes = Encode(in key, ArrayPool<byte>.Shared);
+			return bytes.Span.SequenceEqual(expectedBytes);
+		}
+
+		/// <summary>Encodes this key into <see cref="Slice"/></summary>
+		/// <param name="key">Key to encode</param>
+		/// <returns><see cref="Slice"/> that contains the binary representation of this key</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static Slice ToSlice<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			if (typeof(TKey) == typeof(FdbRawKey))
+			{
+				return ((FdbRawKey) (object) key).Data;
+			}
+
+			if (key.TryGetSpan(out var span))
+			{
+				return Slice.FromBytes(span);
+			}
+
+			return ToSliceSlow(in key);
+
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static Slice ToSliceSlow(in TKey key)
+			{
+				byte[]? tmp = null;
+				if (key.TryGetSizeHint(out var capacity))
+				{
+					// we will hope for the best, and pre-allocate the slice
+
+					tmp = new byte[capacity];
+					if (key.TryEncode(tmp, out var bytesWritten))
+					{
+						return tmp.AsSlice(0, bytesWritten);
+					}
+
+					if (capacity >= FdbKey.MaxSize)
+					{
+						goto key_too_long;
+					}
+
+					capacity *= 2;
+				}
+				else
+				{
+					capacity = 128;
+				}
+
+				var pool = ArrayPool<byte>.Shared;
+				try
+				{
+					while (true)
+					{
+						tmp = pool.Rent(capacity);
+						if (key.TryEncode(tmp, out int bytesWritten))
+						{
+							return tmp.AsSlice(0, bytesWritten).Copy();
+						}
+
+						pool.Return(tmp);
+						tmp = null;
+
+						if (capacity >= FdbKey.MaxSize)
+						{
+							goto key_too_long;
+						}
+
+						capacity *= 2;
+					}
+				}
+				catch (Exception)
+				{
+					if (tmp is not null)
+					{
+						pool.Return(tmp);
+					}
+
+					throw;
+				}
+
+			key_too_long:
+				// it would be too large anyway!
+				throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+			}
+		}
+
+		/// <summary>Encodes this key into <see cref="Slice"/>, using backing buffer rented from a pool</summary>
+		/// <param name="key">Key to encode</param>
+		/// <param name="pool">Pool used to rent the buffer (<see cref="ArrayPool{T}.Shared"/> is <c>null</c>)</param>
+		/// <returns><see cref="SliceOwner"/> that contains the binary representation of this key</returns>
+		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static SliceOwner ToSlice<TKey>(in TKey key, ArrayPool<byte>? pool)
+			where TKey : struct, IFdbKey
+		{
+			if (typeof(TKey) == typeof(FdbRawKey))
+			{
+				return SliceOwner.Wrap(((FdbRawKey) (object) key).Data);
+			}
+
+			pool ??= ArrayPool<byte>.Shared;
+			return key.TryGetSpan(out var span)
+				? SliceOwner.Copy(span, pool)
+				: Encode(in key, pool);
+		}
+
+		[MustDisposeResource, MethodImpl(MethodImplOptions.NoInlining)]
+		public static SliceOwner Encode(IFdbKey key, ArrayPool<byte>? pool, int? sizeHint = null)
+		{
+			Contract.Debug.Requires(pool != null);
+
+			int capacity;
+			if (sizeHint is not null)
+			{
+				capacity = sizeHint.Value;
+			}
+			else if (!key.TryGetSizeHint(out capacity))
+			{
+				capacity = 0;
+			}
+			if (capacity <= 0)
+			{
+				capacity = 128;
+			}
+
+			byte[]? tmp = null;
+			try
+			{
+				while (true)
+				{
+					tmp = pool.Rent(capacity);
+					if (key.TryEncode(tmp, out int bytesWritten))
+					{
+						if (bytesWritten == 0)
+						{
+							pool.Return(tmp);
+							tmp = null;
+							return SliceOwner.Empty;
+						}
+
+						return SliceOwner.Create(tmp.AsSlice(0, bytesWritten), pool);
+					}
+
+					pool.Return(tmp);
+					tmp = null;
+
+					if (capacity >= FdbKey.MaxSize)
+					{
+						// it would be too large anyway!
+						throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+					}
+					capacity *= 2;
+				}
+			}
+			catch(Exception)
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				throw;
+			}
+		}
+
+		[MustDisposeResource, MethodImpl(MethodImplOptions.NoInlining)]
+		public static SliceOwner Encode<TKey>(in TKey key, ArrayPool<byte>? pool, int? sizeHint = null)
+			where TKey : struct, IFdbKey
+		{
+			Contract.Debug.Requires(pool != null);
+
+			int capacity;
+			if (sizeHint is not null)
+			{
+				capacity = sizeHint.Value;
+			}
+			else if (!key.TryGetSizeHint(out capacity))
+			{
+				capacity = 0;
+			}
+			if (capacity <= 0)
+			{
+				capacity = 128;
+			}
+
+			byte[]? tmp = null;
+			try
+			{
+				while (true)
+				{
+					tmp = pool.Rent(capacity);
+					if (key.TryEncode(tmp, out int bytesWritten))
+					{
+						if (bytesWritten == 0)
+						{
+							pool.Return(tmp);
+							tmp = null;
+							return SliceOwner.Empty;
+						}
+
+						return SliceOwner.Create(tmp.AsSlice(0, bytesWritten), pool);
+					}
+
+					pool.Return(tmp);
+					tmp = null;
+
+					if (capacity >= FdbKey.MaxSize)
+					{
+						// it would be too large anyway!
+						throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+					}
+					capacity *= 2;
+				}
+			}
+			catch(Exception)
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				throw;
+			}
+		}
+
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
+		public static ReadOnlySpan<byte> Encode<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool, int? sizeHint = null)
+			where TKey : struct, IFdbKey
+		{
+			Contract.Debug.Requires(pool != null);
+
+			int capacity;
+			if (sizeHint is not null)
+			{
+				capacity = sizeHint.Value;
+			}
+			else if (!key.TryGetSizeHint(out capacity))
+			{
+				capacity = 0;
+			}
+			if (capacity <= 0)
+			{
+				capacity = 128;
+			}
+
+			while (true)
+			{
+				if (buffer is null)
+				{
+					buffer = pool.Rent(capacity);
+				}
+				else if (buffer.Length < capacity)
+				{
+					pool.Return(buffer);
+					buffer = pool.Rent(capacity);
+				}
+
+				if (key.TryEncode(buffer, out int bytesWritten))
+				{
+					return bytesWritten > 0 ? buffer.AsSpan(0, bytesWritten) : default;
+				}
+
+				if (capacity >= FdbKey.MaxSize)
+				{
+					// it would be too large anyway!
+					throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+				}
+				capacity *= 2;
+			}
+		}
+
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
+		public static Slice ToSlice<TKey>(scoped in TKey key, scoped ref byte[]? buffer, ArrayPool<byte>? pool)
+			where TKey : struct, IFdbKey
+		{
+			Contract.Debug.Requires(pool != null);
+
+			if (!key.TryGetSizeHint(out int capacity) || capacity <= 0)
+			{
+				capacity = 128;
+			}
+
+			while (true)
+			{
+				if (buffer is null)
+				{
+					buffer = pool.Rent(capacity);
+				}
+				else if (buffer.Length < capacity)
+				{
+					pool.Return(buffer);
+					buffer = pool.Rent(capacity);
+				}
+
+				if (key.TryEncode(buffer, out int bytesWritten))
+				{
+					return bytesWritten > 0 ? buffer.AsSlice(0, bytesWritten) : Slice.Empty;
+				}
+
+				if (capacity >= FdbKey.MaxSize)
+				{
+					// it would be too large anyway!
+					throw new ArgumentException("Cannot encode key because it would exceed the maximum allowed length.");
+				}
+				capacity *= 2;
+			}
+		}
 
 	}
 

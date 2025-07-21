@@ -26,8 +26,54 @@
 
 namespace FoundationDB.Client
 {
-
 	public static class FdbKeySelector
+	{
+
+		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbKeySelector<TKey> LastLessThan<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key, false, 0);
+
+		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbKeySelector<TKey> LastLessOrEqual<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key, true, 0);
+
+		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbKeySelector<TKey> FirstGreaterThan<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key, true, 1);
+
+		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
+		public static FdbKeySelector<TKey> FirstGreaterOrEqual<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key, false, 1);
+
+		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbKeySelector<FdbRawKey> LastLessThan(Slice key)
+			=> new(key, false, 0);
+
+		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbKeySelector<FdbRawKey> LastLessOrEqual(Slice key)
+			=> new(key, true, 0);
+
+		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbKeySelector<FdbRawKey> FirstGreaterThan(Slice key)
+			=> new(key, true, 1);
+
+		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
+		public static FdbKeySelector<FdbRawKey> FirstGreaterOrEqual(Slice key)
+			=> new(key, false, 1);
+
+	}
+
+	internal static class FdbKeySelectorHelpers
 	{
 
 		public static bool TryGetSpan<TKey>(in FdbKeySelector<TKey> selector, out KeySpanSelector spanSelector)
@@ -46,49 +92,13 @@ namespace FoundationDB.Client
 		public static KeySelector Encode<TKey>(in FdbKeySelector<TKey> selector, ref byte[]? buffer, ArrayPool<byte>? pool)
 			where TKey : struct, IFdbKey
 		{
-			var key = FdbKeyExtensions.ToSlice(in selector.Key, ref buffer, pool);
+			var key = FdbKeyHelpers.ToSlice(in selector.Key, ref buffer, pool);
 			return new(key, selector.OrEqual, selector.Offset);
-		}
-
-		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeySelector<TKey> LastLessThan<TKey>(in TKey key)
-			where TKey : struct, IFdbKey
-		{
-			// #define FDB_KEYSEL_LAST_LESS_THAN(k, l) k, l, 0, 0
-			return new(key, false, 0);
-		}
-
-		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeySelector<TKey> LastLessOrEqual<TKey>(in TKey key)
-			where TKey : struct, IFdbKey
-		{
-			// #define FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
-			return new(key, true, 0);
-		}
-
-		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbKeySelector<TKey> FirstGreaterThan<TKey>(in TKey key)
-			where TKey : struct, IFdbKey
-		{
-			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
-			return new(key, true, 1);
-		}
-
-		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
-		public static FdbKeySelector<TKey> FirstGreaterOrEqual<TKey>(in TKey key)
-			where TKey : struct, IFdbKey
-		{
-			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
-			return new(key, false, 1);
 		}
 
 	}
 
-
-	public readonly struct FdbKeySelector<TKey>
+	public readonly struct FdbKeySelector<TKey> //TODO: IFormattable!
 		where TKey : struct, IFdbKey
 	{
 
