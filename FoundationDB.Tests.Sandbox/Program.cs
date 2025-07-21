@@ -36,8 +36,6 @@ namespace FoundationDB.Tests.Sandbox
 	using System.Threading.Tasks;
 	using SnowBank.Data.Tuples;
 	using FoundationDB.Client;
-	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 
 	class Program
 	{
@@ -114,7 +112,7 @@ namespace FoundationDB.Tests.Sandbox
 				Console.ReadLine();
 			}
 
-			AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
+			AppDomain.CurrentDomain.UnhandledException += (_, e) =>
 			{
 				if (e.IsTerminating)
 				{
@@ -136,7 +134,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					if (e is AggregateException aggEx)
 					{
-						e = aggEx.Flatten().InnerException;
+						e = aggEx.Flatten().InnerException!;
 					}
 
 					Console.Error.WriteLine("Oops! something went wrong:");
@@ -294,26 +292,25 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("> " + location);
 
 				Console.WriteLine("Getting 'hello'...");
-				var result = await trans.GetAsync(location.Encode("hello"));
+				var result = await trans.GetAsync(location.GetKey("hello"));
 				if (result.IsNull)
 					Console.WriteLine("> hello NOT FOUND");
 				else
 					Console.WriteLine($"> hello = {result:V}");
 
 				Console.WriteLine("Setting 'Foo' = 'Bar'");
-				trans.Set(location.Encode("Foo"), Slice.FromString("Bar"));
+				trans.Set(location.GetKey("Foo"), FdbValue.ToTextUtf8("Bar"));
 
 				Console.WriteLine("Setting 'TopSecret' = rnd(512)");
-				var data = new byte[512];
-				new Random(1234).NextBytes(data);
-				trans.Set(location.Encode("TopSecret"), data.AsSlice());
+				var data = Slice.Random(new Random(1234), 512);
+				trans.Set(location.GetKey("TopSecret"), data);
 
 				Console.WriteLine("Committing transaction...");
 				await trans.CommitAsync();
 				//trans.Commit();
 				Console.WriteLine("> Committed!");
 
-				Console.WriteLine("Getting comitted version...");
+				Console.WriteLine("Getting committed version...");
 				var writeVersion = trans.GetCommittedVersion();
 				Console.WriteLine("> Commited Version = " + writeVersion);
 			}
@@ -345,7 +342,7 @@ namespace FoundationDB.Tests.Sandbox
 						tmp[1] = (byte)(i >> 8);
 						// (Batch, 1) = [......]
 						// (Batch, 2) = [......]
-						trans.Set(subspace.Encode(k * N + i), tmp.AsSlice());
+						trans.Set(subspace.GetKey(k * N + i), tmp.AsSlice());
 					}
 					await trans.CommitAsync();
 				}
@@ -387,12 +384,12 @@ namespace FoundationDB.Tests.Sandbox
 				// spin a task for the batch using TaskCreationOptions.LongRunning to make sure it runs in its own thread
 				tasks.Add(Task.Factory.StartNew(async () =>
 				{
-					var rnd = new Random(1234567 * j);
+					var rnd = new Random(1234567 * offset);
 					var tmp = new byte[size];
 					rnd.NextBytes(tmp);
 
 					// block until all threads are ready
-					sem.Wait();
+					sem.Wait(ct);
 
 					var x = Stopwatch.StartNew();
 					using (var trans = db.BeginTransaction(ct))
@@ -428,7 +425,7 @@ namespace FoundationDB.Tests.Sandbox
 				}, TaskCreationOptions.LongRunning).Unwrap());
 			}
 			// give time for threads to be ready
-			await Task.Delay(100);
+			await Task.Delay(100, ct);
 
 			// start
 			var sw = Stopwatch.StartNew();
@@ -460,7 +457,7 @@ namespace FoundationDB.Tests.Sandbox
 						trans = db.BeginTransaction(ct);
 						subspace = await location.Resolve(trans);
 					}
-					trans.Set(subspace.Encode(i), Slice.FromInt32(i));
+					trans.Set(subspace.GetKey(i), Slice.FromInt32(i));
 					if (trans.Size > 100 * 1024)
 					{
 						await trans.CommitAsync();
@@ -468,7 +465,11 @@ namespace FoundationDB.Tests.Sandbox
 						trans = null;
 					}
 				}
-				await trans.CommitAsync();
+
+				if (trans is not null)
+				{
+					await trans.CommitAsync();
+				}
 			}
 			finally
 			{
@@ -496,7 +497,7 @@ namespace FoundationDB.Tests.Sandbox
 					var subspace = await location.Resolve(trans);
 					for (int i = k; i < N && i < k + 1000; i++)
 					{
-						_ = await trans.GetAsync(subspace.Encode(i));
+						_ = await trans.GetAsync(subspace.GetKey(i));
 					}
 				}
 				Console.Write(".");
@@ -514,7 +515,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine($"=== BenchConcurrentRead(N={N:N0}) ===");
 			Console.WriteLine($"Reading {N:N0} keys (concurrent)");
 
-			var location = db.Root.ByKey("hello").AsTyped<int>();
+			var location = db.Root.ByKey("hello").AsDynamic();
 
 			Console.WriteLine("# Task.WhenAll+GetAsync");
 			var sw = Stopwatch.StartNew();
@@ -546,7 +547,7 @@ namespace FoundationDB.Tests.Sandbox
 			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
-				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace.Encode(i)));
+				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace.GetKey(i).ToSlice())); //PERF: TODO: optimize!
 			}
 			sw.Stop();
 			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
@@ -567,7 +568,7 @@ namespace FoundationDB.Tests.Sandbox
 				var subspace = await location.Resolve(trans);
 				for (int i = 0; i < N; i++)
 				{
-					trans.Clear(subspace.Encode(i));
+					trans.Clear(subspace.GetKey(i));
 				}
 
 				await trans.CommitAsync();
@@ -592,7 +593,7 @@ namespace FoundationDB.Tests.Sandbox
 				using (var trans = db.BeginTransaction(ct))
 				{
 					var subspace = await db.Root.Resolve(trans);
-					trans.Set(subspace.Encode("list"), list.AsSlice());
+					trans.Set(subspace.GetKey("list"), list.AsSlice());
 					await trans.CommitAsync();
 				}
 				if (i % 100 == 0) Console.Write($"\r> {i:N0} / {N:N0}");
@@ -609,7 +610,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine($"=== BenchUpdateLotsOfKeys(N={N:N0}) ===");
 
-			var location = db.Root.ByKey("lists").AsTyped<int>();
+			var location = db.Root.ByKey("lists").AsDynamic();
 
 			var rnd = new Random();
 
@@ -700,7 +701,7 @@ namespace FoundationDB.Tests.Sandbox
 							int z = 0;
 							foreach (int i in Enumerable.Range(chunk.Key, chunk.Value))
 							{
-								tr.Set(subspace.Encode(i), Slice.Zero(256));
+								tr.Set(subspace.GetKey(i), Slice.Zero(256));
 								z++;
 							}
 
@@ -780,7 +781,7 @@ namespace FoundationDB.Tests.Sandbox
 					var list = await location.ByKey(source).Resolve(tr);
 					for (int i = 0; i < N; i++)
 					{
-						tr.Set(list.Encode(rnd.Next()), Slice.FromInt32(i));
+						tr.Set(list.GetKey(rnd.Next()), Slice.FromInt32(i));
 					}
 					await tr.CommitAsync();
 				}
@@ -795,7 +796,7 @@ namespace FoundationDB.Tests.Sandbox
 
 				var mergesort = tr
 					.MergeSort(
-						sources.Select(source => KeySelectorPair.StartsWith(subspace.Encode(source))),
+						sources.Select(source => KeySelectorPair.StartsWith(subspace.GetKey(source).ToSlice())),
 						(kvp) => subspace.DecodeLast<int>(kvp.Key)
 					)
 					.Take(B)

@@ -37,10 +37,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	{
 
 		public FdbCompressedBitmapIndex(string name, IKeySubspace subspace, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
-			: this(name, subspace.AsTyped<TValue>(), valueComparer, indexNullValues)
+			: this(name, subspace.AsDynamic(), valueComparer, indexNullValues)
 		{ }
 
-		public FdbCompressedBitmapIndex(string name, ITypedKeySubspace<TValue> subspace, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
+		public FdbCompressedBitmapIndex(string name, IDynamicKeySubspace subspace, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
 		{
 			Contract.NotNull(name);
 			Contract.NotNull(subspace);
@@ -53,7 +53,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public string Name { get; }
 
-		public ITypedKeySubspace<TValue> Subspace { get; }
+		public IDynamicKeySubspace Subspace { get; }
 
 		public IEqualityComparer<TValue> ValueComparer { get; }
 

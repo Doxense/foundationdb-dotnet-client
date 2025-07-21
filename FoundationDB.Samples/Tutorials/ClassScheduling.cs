@@ -28,19 +28,20 @@
 
 namespace FoundationDB.Samples.Tutorials
 {
+
 	public class ClassScheduling : IAsyncTest
 	{
 
 		public ClassScheduling()
 		{
 			// create a bunch of random classes
-			var levels = new[] { "intro", "for dummies", "remedial", "101", "201", "301", "mastery", "lab", "seminar" };
-			var types = new[] { "chem", "bio", "cs", "geometry", "calc", "alg", "film", "music", "art", "dance" };
-			var times = Enumerable.Range(2, 20).Select(h => h.ToString() + ":00").ToArray();
+			string[] levels = [ "intro", "for dummies", "remedial", "101", "201", "301", "mastery", "lab", "seminar" ];
+			string[] types = [ "chem", "bio", "cs", "geometry", "calc", "alg", "film", "music", "art", "dance" ];
+			var times = Enumerable.Range(2, 20).Select(h => string.Create(CultureInfo.InvariantCulture, $"{h}:00")).ToArray();
 
 			this.ClassNames = times
-				.SelectMany((h) => types.Select(t => h + " " + t))
-				.SelectMany((s) => levels.Select((l) => s + " " + l))
+				.SelectMany((h) => types.Select(t => $"{h} {t}"))
+				.SelectMany((s) => levels.Select((l) => $"{s} {l}"))
 				.ToArray();
 		}
 
@@ -48,19 +49,19 @@ namespace FoundationDB.Samples.Tutorials
 
 		public IDynamicKeySubspace? Subspace { get; private set; }
 
-		protected Slice ClassKey(string c)
+		protected FdbTupleKey<string, string> ClassKey(string c)
 		{
-			return this.Subspace!.Encode("class", c);
+			return this.Subspace!.GetKey("class", c);
 		}
 
-		protected Slice AttendsKey(string s, string c)
+		protected FdbTupleKey<string, string, string> AttendsKey(string s, string c)
 		{
-			return this.Subspace!.Encode("attends", s, c);
+			return this.Subspace!.GetKey("attends", s, c);
 		}
 
-		protected KeyRange AttendsKeys(string s)
+		protected FdbKeyPrefixRange<FdbTupleKey<string, string>> AttendsKeys(string s)
 		{
-			return this.Subspace!.PackRange(STuple.Create("attends", s));
+			return this.Subspace!.GetRange("attends", s);
 		}
 
 		/// <summary>
@@ -91,9 +92,9 @@ namespace FoundationDB.Samples.Tutorials
 		/// </summary>
 		public Task<List<string>> AvailableClasses(IFdbReadOnlyTransaction tr)
 		{
-			return tr.GetRange(this.Subspace!.PackRange(STuple.Create("class")))
-				.Where(kvp => int.TryParse(kvp.Value.ToStringAscii(), out _)) // (step 3)
-				.Select(kvp => this.Subspace!.Decode<string>(kvp.Key)!)
+			return tr.GetRange(this.Subspace!.GetRange("class"))
+				.Where(kvp => int.TryParse(kvp.Value.Span, out _)) // (step 3)
+				.Select(kvp => this.Subspace!.DecodeLast<string>(kvp.Key)!)
 				.ToListAsync();
 		}
 
@@ -168,7 +169,7 @@ namespace FoundationDB.Samples.Tutorials
 
 				try
 				{
-					allClasses ??= await db.ReadAsync((tr) => AvailableClasses(tr), ct);
+					allClasses ??= await db.ReadAsync(AvailableClasses, ct);
 
 					switch (mood)
 					{
@@ -197,13 +198,13 @@ namespace FoundationDB.Samples.Tutorials
 						}
 						default:
 						{
-							throw new InvalidOperationException("Ooops");
+							throw new InvalidOperationException("Unsupported mood value.");
 						}
 					}
 				}
 				catch (Exception e)
 				{
-					if (e is TaskCanceledException || e is OperationCanceledException) throw;
+					if (e is TaskCanceledException or OperationCanceledException) throw;
 					allClasses = null;
 				}
 			}
@@ -222,12 +223,12 @@ namespace FoundationDB.Samples.Tutorials
 			const int OPS_PER_STUDENTS = 10;
 
 			await Init(db, ct);
-			log.WriteLine("# Class sheduling test initialized");
+			log.WriteLine("# Class scheduling test initialized");
 
 			// run multiple students
 			var elapsed = await Program.RunConcurrentWorkersAsync(
 				STUDENTS,
-				(i, _ct) => IndecisiveStudent(db, i, OPS_PER_STUDENTS, _ct),
+				(i, cancel) => IndecisiveStudent(db, i, OPS_PER_STUDENTS, cancel),
 				ct
 			);
 

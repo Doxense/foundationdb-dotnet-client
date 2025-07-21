@@ -35,22 +35,20 @@ namespace FoundationDB.Layers.Documents
 		public const int DefaultChunkSize = 1 << 20; // 1 MB
 
 		public FdbDocumentCollection(ISubspaceLocation subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
-			: this(subspace.AsTyped<TId, int>(), selector, valueEncoder)
-		{ }
-
-		public FdbDocumentCollection(TypedKeySubspaceLocation<TId, int> subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
 		{
-			this.Location = subspace ?? throw new ArgumentNullException(nameof(subspace));
-			this.IdSelector = selector ?? throw new ArgumentNullException(nameof(selector));
-			this.ValueEncoder = valueEncoder ?? throw new ArgumentNullException(nameof(valueEncoder));
+			Contract.NotNull(subspace);
+			Contract.NotNull(selector);
+			Contract.NotNull(valueEncoder);
+
+			this.Location = subspace.AsDynamic();
+			this.IdSelector = selector;
+			this.ValueEncoder = valueEncoder;
 		}
 
-		protected virtual Task<List<Slice>> LoadPartsAsync(ITypedKeySubspace<TId, int> subspace, IFdbReadOnlyTransaction trans, TId id)
+		protected virtual Task<List<Slice>> LoadPartsAsync(IDynamicKeySubspace subspace, IFdbReadOnlyTransaction trans, TId id)
 		{
-			var key = subspace.EncodePartial(id);
-
 			return trans
-				.GetRange(KeyRange.StartsWith(key)) //TODO: options ?
+				.GetRange(FdbKeyRange.StartsWith(subspace.GetKey(id))) //TODO: options ?
 				.Select(kvp => kvp.Value)
 				.ToListAsync();
 		}
@@ -62,7 +60,7 @@ namespace FoundationDB.Layers.Documents
 		}
 
 		/// <summary>Subspace used as a prefix for all hashset in this collection</summary>
-		public TypedKeySubspaceLocation<TId, int> Location { get; }
+		public DynamicKeySubspaceLocation Location { get; }
 
 		/// <summary>Encoder that packs/unpacks the documents</summary>
 		public IValueEncoder<TDocument> ValueEncoder { get; }
@@ -88,10 +86,10 @@ namespace FoundationDB.Layers.Documents
 			var subspace = await this.Location.Resolve(trans);
 
 			// Key Prefix = ...(id,)
-			var key = subspace.EncodePartial(id);
+			var key = subspace.GetKey(id);
 
 			// clear previous value
-			trans.ClearRange(KeyRange.StartsWith(key));
+			trans.ClearRange(FdbKeyRange.StartsWith(key));
 
 			int remaining = packed.Count;
 			if (remaining <= this.ChunkSize)
@@ -151,8 +149,8 @@ namespace FoundationDB.Layers.Documents
 
 			var subspace = await this.Location.Resolve(trans);
 
-			var key = subspace.EncodePartial(id);
-			trans.ClearRange(KeyRange.StartsWith(key));
+			var key = subspace.GetKey(id);
+			trans.ClearRange(FdbKeyRange.StartsWith(key));
 		}
 
 
@@ -166,8 +164,8 @@ namespace FoundationDB.Layers.Documents
 
 			foreach (var id in ids)
 			{
-				var key = subspace.EncodePartial(id);
-				trans.ClearRange(KeyRange.StartsWith(key));
+				var key = subspace.GetKey(id);
+				trans.ClearRange(FdbKeyRange.StartsWith(key));
 			}
 		}
 
