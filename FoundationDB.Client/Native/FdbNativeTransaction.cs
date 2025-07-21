@@ -1039,7 +1039,9 @@ namespace FoundationDB.Client.Native
 
 		private void ResetInternal()
 		{
+			m_keyWriteCount = 0;
 			m_payloadBytes = 0;
+			m_keyReadCount = 0;
 			m_keyReadSize = 0;
 		}
 
