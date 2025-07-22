@@ -139,7 +139,7 @@ namespace FoundationDB.Client
 			if (!this.Parent.TryGetSizeHint(out var size))
 			{
 				sizeHint = 0;
-				return true;
+				return false;
 			}
 
 			// incrementing the key can only produce a key of the same size or smaller, except when the key is empty in which case the successor has size 1

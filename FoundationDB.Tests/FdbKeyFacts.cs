@@ -630,6 +630,109 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbSystemKey.Special.AppendBytes("/status").AppendBytes("/json"), Is.EqualTo(statusJson));
 		}
 
+		[Test]
+		public void Test_GetSuccessor_Key()
+		{
+			{
+				var k = FdbKey.Nil.GetSuccessor();
+				Log($"# {k}");
+				Assert.That(k.Parent, Is.EqualTo(FdbKey.Nil));
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
+			}
+			{
+				var k = FdbKey.ToBytes(Slice.Empty).GetSuccessor();
+				Log($"# {k}");
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
+			}
+			{
+				var k = FdbKey.ToBytes([ 0x00 ]).GetSuccessor();
+				Log($"# {k}");
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x00, 0 ])));
+			}
+			{
+				var k = FdbKey.ToBytes([ 0xFF ]).GetSuccessor();
+				Log($"# {k}");
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0xFF, 0 ])));
+			}
+			{
+				var p = FdbKey.ToBytes(Slice.FromBytes("hello"u8));
+				var k = p.GetSuccessor();
+				Log($"# {k}");
+
+				Assert.That(k.Parent, Is.EqualTo(p));
+
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes("hello\0"u8)));
+			}
+			{
+				var subspace = GetSubspace(FdbPath.Parse("/Foo/Bar"), STuple.Create(42));
+				var p = subspace.GetKey("hello");
+				var k = p.GetSuccessor();
+				Log($"# {k}");
+
+				Assert.That(k.Parent, Is.EqualTo(p));
+
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes("\x15\x2A\x02hello\0\0"u8)));
+			}
+		}
+
+		[Test]
+		public void Test_GetNextSibling_Key()
+		{
+			{
+				var k = FdbKey.Nil.GetNextSibling();
+				Log($"# {k}");
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
+			}
+			{
+				var k = FdbKey.ToBytes(Slice.Empty).GetNextSibling();
+				Log($"# {k}");
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
+			}
+			{
+				var k = FdbKey.ToBytes(Slice.FromBytes([ 0x00 ])).GetNextSibling();
+				Log($"# {k}");
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x01 ])));
+			}
+			{
+				var k = FdbKey.ToBytes(Slice.FromBytes([ 0xFF ])).GetNextSibling();
+				Log($"# {k}");
+				Assert.That(() => k.ToSlice(), Throws.ArgumentException);
+			}
+			{
+				var k = FdbKey.ToBytes(Slice.FromBytes([ 0x00, 0xFF ])).GetNextSibling();
+				Log($"# {k}");
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x01 ])));
+			}
+			{
+				var k = FdbKey.ToBytes(Slice.FromBytes([ 0x00, 0xFF, 0xFF ])).GetNextSibling();
+				Log($"# {k}");
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x01 ])));
+			}
+			{
+				var k = FdbKey.ToBytes(Slice.FromBytes([ 0xFF, 0xFF, 0xFF ])).GetNextSibling();
+				Log($"# {k}");
+				Assert.That(() => k.ToSlice(), Throws.ArgumentException);
+			}
+			{
+				var p = FdbKey.ToBytes("hello"u8);
+				var k = p.GetNextSibling();
+				Log($"# {k}");
+
+				Assert.That(k.Parent, Is.EqualTo(p));
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes("hellp"u8)));
+			}
+			{
+				var subspace = GetSubspace(FdbPath.Parse("/Foo/Bar"), STuple.Create(42));
+				var p = subspace.GetKey("hello");
+				var k = p.GetNextSibling();
+				Log($"# {k}");
+
+				Assert.That(k.Parent, Is.EqualTo(p));
+
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes("\x15\x2A\x02hello\x01"u8)));
+			}
+		}
+
 	}
 
 }

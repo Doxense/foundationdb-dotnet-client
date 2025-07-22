@@ -30,6 +30,10 @@ namespace FoundationDB.Client
 	using System.Numerics;
 
 	/// <summary>Wraps a <see cref="Slice"/> that contains a pre-encoded key in the database</summary>
+	/// <remarks>
+	/// <para>This can help in situations where the same key will be frequently used in the same transaction, and where the cost of allocating on the heap will be less than re-encoding the key over and over.</para>
+	/// <para>Please refrain from capturing a key in once transaction and reusing it in another. It is possible that the original subspace would be moved or re-created between both transactions, with a different prefix, which could create silent data corruption!</para>
+	/// </remarks>
 	public readonly struct FdbRawKey : IFdbKey
 		, IComparisonOperators<FdbRawKey, FdbRawKey, bool>
 		, IComparisonOperators<FdbRawKey, Slice, bool>
@@ -42,6 +46,7 @@ namespace FoundationDB.Client
 			this.Data = data;
 		}
 
+		/// <summary>Pre-encoded bytes for this key</summary>
 		public readonly Slice Data;
 
 		/// <summary>Returns <see langword="true"/> if the key is null</summary>
@@ -176,18 +181,20 @@ namespace FoundationDB.Client
 		#endregion
 
 		/// <inheritdoc />
-		public override string ToString() => this.Data.ToString();
+		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider)
-			=> this.Data.ToString(format, formatProvider);
+		public string ToString(string? format, IFormatProvider? formatProvider = null)
+			=> string.Create(formatProvider, $"{this}");
 
 		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-			=> this.Data.TryFormat(destination, out charsWritten, format, provider);
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+			=> this.Data.Count > 0
+				? destination.TryWrite(provider, $"`{this.Data}`", out charsWritten)
+				: (this.Data.IsNull ? "<null>" : "``").TryCopyTo(destination, out charsWritten);
 
 		/// <inheritdoc />
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span)
 		{
 			span = this.Data.Span;
@@ -195,7 +202,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint)
 		{
 			sizeHint = this.Data.Count;
@@ -203,7 +210,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten)
 		{
 			return this.Data.TryCopyTo(destination, out bytesWritten);

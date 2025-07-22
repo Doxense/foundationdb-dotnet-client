@@ -27,11 +27,19 @@
 namespace FoundationDB.Client
 {
 
+	/// <summary>Key that appends the <b>0x00</b> byte to another key</summary>
+	/// <typeparam name="TKey">Type of the parent key</typeparam>
+	/// <remarks>
+	/// <para>By definition, there can not be any other in between this key and its parent.</para>
+	/// <para>It is frequently used to convert an inclusive bound into an exclusive bound.</para>
+	/// <para>It is also possible to have the same behavior by switching from <see cref="FdbKeySelector.FirstGreaterThan{TKey}"/> to <see cref="FdbKeySelector.FirstGreaterOrEqual{TKey}"/>, or by adding an offset of <c>1</c> to a more complex selector.</para>
+	/// </remarks>
 	public readonly struct FdbSuccessorKey<TKey> : IFdbKey
 		, IEquatable<FdbSuccessorKey<TKey>>, IComparable<FdbSuccessorKey<TKey>>
 		where TKey : struct, IFdbKey
 	{
 
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbSuccessorKey(in TKey parent)
 		{
 			this.Parent = parent;
@@ -44,7 +52,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null)
-			=> $"SuccessorOf({this.Parent.ToString(format, formatProvider)})";
+			=> string.Create(formatProvider, $"{this}");
 
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
