@@ -133,7 +133,7 @@ namespace FoundationDB.Client
 			if (!this.Parent.TryGetSizeHint(out var size))
 			{
 				sizeHint = 0;
-				return true;
+				return false;
 			}
 
 			// we always add 1 to the original size

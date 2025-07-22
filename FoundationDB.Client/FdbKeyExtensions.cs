@@ -982,8 +982,16 @@ namespace FoundationDB.Client
 				byte[]? tmp = null;
 				if (key.TryGetSizeHint(out var capacity))
 				{
-					// we will hope for the best, and pre-allocate the slice
+					if (capacity <= 0)
+					{
+#if DEBUG
+						// probably a bug in TryGetSizeHint which returned "true" instead of "false"!
+						if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+						capacity = 16;
+					}
 
+					// we will hope for the best, and pre-allocate the slice
 					tmp = new byte[capacity];
 					if (key.TryEncode(tmp, out var bytesWritten))
 					{
