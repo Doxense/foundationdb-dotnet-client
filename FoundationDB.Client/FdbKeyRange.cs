@@ -294,7 +294,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a <see cref="FdbKeySelector{FdbRawKey}"/> that will match the last key in the range (exclusive)</summary>
 		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbKeySelector<FdbNextKey<TKey>> GetEndSelector()
+		public FdbKeySelector<FdbNextSiblingKey<TKey>> GetEndSelector()
 			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNextSibling());
 
 		/// <summary>Returns a <see cref="KeySelector"/> that will match the first key in the range (inclusive)</summary>

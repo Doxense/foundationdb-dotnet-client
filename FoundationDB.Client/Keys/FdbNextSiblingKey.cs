@@ -27,12 +27,18 @@
 namespace FoundationDB.Client
 {
 
-	public readonly struct FdbNextKey<TKey> : IFdbKey
-		, IEquatable<FdbNextKey<TKey>>, IComparable<FdbNextKey<TKey>>
+	/// <summary>Key that increments the last byte (with carry) of another key</summary>
+	/// <typeparam name="TKey">Type of the parent key</typeparam>
+	/// <remarks>
+	/// <para>This key is the first key that comes after all the children of its previous sibling</para>
+	/// <para>It is frequently used as the end (exclusive) of a range read.</para>
+	/// </remarks>
+	public readonly struct FdbNextSiblingKey<TKey> : IFdbKey
+		, IEquatable<FdbNextSiblingKey<TKey>>, IComparable<FdbNextSiblingKey<TKey>>
 		where TKey : struct, IFdbKey
 	{
 
-		public FdbNextKey(in TKey parent)
+		public FdbNextSiblingKey(in TKey parent)
 		{
 			this.Parent = parent;
 		}
@@ -44,11 +50,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null)
-			=> $"Increment({this.Parent.ToString(format, formatProvider)})";
+			=> string.Create(formatProvider, $"{this}");
 
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-			=> destination.TryWrite(provider, $"Increment({this.Parent})", out charsWritten);
+			=> destination.TryWrite(provider, $"NextSibling({this.Parent})", out charsWritten);
 
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
@@ -57,7 +63,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbNextKey<TKey> other)
+		public bool Equals(FdbNextSiblingKey<TKey> other)
 			=> FdbKeyHelpers.Equals(in this.Parent, in other.Parent);
 
 		/// <inheritdoc />
@@ -80,9 +86,9 @@ namespace FoundationDB.Client
 		public bool Equals<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 		{
-			if (typeof(TOtherKey) == typeof(FdbNextKey<TKey>))
+			if (typeof(TOtherKey) == typeof(FdbNextSiblingKey<TKey>))
 			{
-				return FdbKeyHelpers.Equals(in this.Parent, in Unsafe.As<TOtherKey, FdbNextKey<TKey>>(ref Unsafe.AsRef(in other)).Parent);
+				return FdbKeyHelpers.Equals(in this.Parent, in Unsafe.As<TOtherKey, FdbNextSiblingKey<TKey>>(ref Unsafe.AsRef(in other)).Parent);
 			}
 			if (typeof(TOtherKey) == typeof(FdbRawKey))
 			{
@@ -93,7 +99,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo(FdbNextKey<TKey> other)
+		public int CompareTo(FdbNextSiblingKey<TKey> other)
 			=> FdbKeyHelpers.CompareTo(in this.Parent, in other.Parent);
 
 		/// <inheritdoc />

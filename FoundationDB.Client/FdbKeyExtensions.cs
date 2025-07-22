@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <seealso cref="FdbKeySelector.FirstGreaterOrEqual{TKey}"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbNextKey<TKey> GetNextSibling<TKey>(this TKey key)
+		public static FdbNextSiblingKey<TKey> GetNextSibling<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
 			=> new(key);
 
