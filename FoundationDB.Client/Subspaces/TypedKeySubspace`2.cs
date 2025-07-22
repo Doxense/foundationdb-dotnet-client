@@ -120,7 +120,12 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc/>
-		public Slice Encode(T1 item1, T2 item2) => this.GetKey(item1, item2).ToSlice();
+		public Slice Encode(T1 item1, T2 item2)
+		{
+			var sw = this.OpenWriter(3 * 16);
+			this.KeyEncoder.WriteKeyTo(ref sw, (item1, item2));
+			return sw.ToSlice();
+		}
 
 		/// <inheritdoc/>
 		[Pure]

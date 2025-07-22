@@ -665,6 +665,19 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
+			public static Task<long> EstimateCountAsync<TKeyRange>(IFdbDatabase db, in TKeyRange range, CancellationToken ct)
+				where TKeyRange : struct, IFdbKeyRange
+			{
+				var r = range.ToKeyRange();
+				return EstimateCountAsync(db, r.Begin, r.End, null, ct);
+			}
+
+			/// <summary>Estimates the number of keys in the specified range.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="range">Range defining the keys to count</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
+			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
 			public static Task<long> EstimateCountAsync(IFdbDatabaseProvider db, KeyRange range, CancellationToken ct)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, null, ct);
@@ -682,6 +695,20 @@ namespace FoundationDB.Client
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, onProgress, ct);
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
+			}
+
+			/// <summary>Estimates the number of keys in the specified range.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="range">Range defining the keys to count</param>
+			/// <param name="onProgress">Optional callback called every time the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
+			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
+			public static Task<long> EstimateCountAsync<TKeyRange>(IFdbDatabase db, in TKeyRange range, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
+				where TKeyRange : struct, IFdbKeyRange
+			{
+				var r = range.ToKeyRange();
+				return EstimateCountAsync(db, r.Begin, r.End, onProgress, ct);
 			}
 
 			/// <summary>Estimates the number of keys in the specified range.</summary>

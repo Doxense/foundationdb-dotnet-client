@@ -923,7 +923,7 @@ namespace FoundationDB.Client.Tests
 				var results = new int[ids.Length];
 
 				await tr.GetValuesAsync(
-					subspace.PackKeys(ids, (id) => STuple.Create(id)),
+					ids, subspace, static (s, id) => s.GetKey(id),
 					results.AsMemory(),
 					decoder: (value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * 3 : -1
 				);
@@ -2526,7 +2526,7 @@ namespace FoundationDB.Client.Tests
 				var data = await tr.GetAsync(subspace.GetKey("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"));
 					
-				var res = await tr.GetRange(subspace.ToRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+				var res = await tr.GetRange(subspace.GetKey("b").StartsWith()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]));
 
 				tr.Set(subspace.GetKey("a"), Text("aa"));
@@ -2534,7 +2534,7 @@ namespace FoundationDB.Client.Tests
 
 				data = await tr.GetAsync(subspace.GetKey("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should be visible by default");
-				res = await tr.GetRange(subspace.ToRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+				res = await tr.GetRange(subspace.GetKey("b").StartsWith()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "PRINT \"WORLD\"", "GOTO 10" ]), "The transaction own writes should be visible by default");
 
 				//note: don't commit
@@ -2563,7 +2563,7 @@ namespace FoundationDB.Client.Tests
 
 				var data = await tr.GetAsync(subspace.GetKey("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"));
-				var res = await tr.GetRange(subspace.ToRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+				var res = await tr.GetRange(subspace.GetKey("b").StartsWith()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]));
 
 				tr.Set(subspace.GetKey("a"), Text("aa"));
@@ -2571,7 +2571,7 @@ namespace FoundationDB.Client.Tests
 
 				data = await tr.GetAsync(subspace.GetKey("a"));
 				Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
-				res = await tr.GetRange(subspace.ToRange("b")).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+				res = await tr.GetRange(subspace.GetKey("b").StartsWith()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 				Assert.That(res, Is.EqualTo([ "PRINT \"HELLO\"", "GOTO 10" ]), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
 
 				//note: don't commit!
@@ -3436,7 +3436,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var subspace = await location.Resolve(tr);
 				{
-					var foo = await tr.GetRange(subspace.ToRange("foo")).SingleAsync();
+					var foo = await tr.GetRange(subspace.GetKey("foo").StartsWith()).SingleAsync();
 					Log("> Found 1 result under (foo,)");
 					Log($"- {subspace.ExtractKey(foo.Key):K} = {foo.Value:V}");
 					Assert.That(foo.Value.ToString(), Is.EqualTo("Hello, World!"));
@@ -3454,7 +3454,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				{
-					var items = await tr.GetRange(subspace.ToRange("bar")).ToListAsync();
+					var items = await tr.GetRange(subspace.GetKey("bar").StartsWith()).ToListAsync();
 					Log($"> Found {items.Count} results under (bar,)");
 					foreach (var item in items)
 					{
@@ -3795,7 +3795,7 @@ namespace FoundationDB.Client.Tests
 					tr.StopLogging();
 					var subspace = await location.Resolve(tr);
 
-					tr.ClearRange(subspace.ToRange());
+					tr.ClearRange(subspace.GetRange());
 					tr.Set(subspace.GetKey("AAA"), initialA);
 					tr.Set(subspace.GetKey("BBB"), initialB);
 					// CCC does not exist

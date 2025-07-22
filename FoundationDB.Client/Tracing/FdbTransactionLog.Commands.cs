@@ -306,7 +306,7 @@ namespace FoundationDB.Filters.Logging
 
 				//HACKHACK: for now, we will simply poke inside the node subspace of the directory layer, which is brittle (if the structure changes in future versions!)
 				// Entries that correspond to subfolders have the form: NodeSubspace.Pack( (parent_prefix, 0, "child_name") ) = child_prefix
-				var keys = await tr.GetRange(location.ToRange()).ToListAsync().ConfigureAwait(false);
+				var keys = await tr.GetRange(location.GetRange()).ToListAsync().ConfigureAwait(false);
 
 				var map = new Dictionary<Slice, string>(Slice.Comparer.Default);
 

@@ -75,13 +75,13 @@ namespace FoundationDB.Layers.Counters
 				var subspace = await this.Location.Resolve(tr);
 
 				// read N writes from a random place in ID space
-				var loc = subspace.GetKey(RandomId()).ToSlice(); //PERF: TODO: optimize this!
+				var loc = RandomId();
 
 				bool right;
 				lock (this.Rng) { right = this.Rng.NextDouble() < 0.5; }
 				var query = right
-					? tr.Snapshot.GetRange(loc, subspace.ToRange().End, new() { Limit = limit })
-					: tr.Snapshot.GetRange(subspace.ToRange().Begin, loc, new() { Limit = limit , IsReversed = true });
+					? tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.GetKey(loc), subspace.GetLastKey()), new() { Limit = limit })
+					: tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.GetFirstKey(), subspace.GetKey(loc)), new() { Limit = limit , IsReversed = true });
 				var shards = await query.ToListAsync().ConfigureAwait(false);
 
 				if (shards.Count > 0)
@@ -144,7 +144,7 @@ namespace FoundationDB.Layers.Counters
 
 			long total = 0;
 			await trans
-				.GetRange(subspace.ToRange())
+				.GetRange(subspace.GetRange())
 				.ForEachAsync((kvp) => { checked { total += TuPack.DecodeKey<long>(kvp.Value); } })
 				.ConfigureAwait(false);
 

@@ -140,9 +140,8 @@ namespace FoundationDB.Layers.Collections
 				//PERF: TODO: use GetRange with value decoder!
 				return tr
 					.GetRangeValues(
-						this.Subspace.ToRange(),
-						this.Parent.Codec,
-						(codec, bytes) => codec.DecodeValue(bytes)
+						this.Subspace.GetRange(),
+						this.Parent.Codec, static (codec, bytes) => codec.DecodeValue(bytes)
 					)
 					.LastOrDefaultAsync();
 			}
@@ -159,13 +158,11 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(tr);
 
-				var keyRange = this.Subspace.ToRange();
-
 				// Read the last two entries so we can check if the second to last item
 				// is being represented sparsely. If so, we will be required to set it
 				// to the default value
 				var lastTwo = await tr
-					.GetRange(keyRange, FdbRangeOptions.Reversed.WithLimit(2))
+					.GetRange(this.Subspace.GetRange(), FdbRangeOptions.Reversed.WithLimit(2))
 					.ToListAsync()
 					.ConfigureAwait(false);
 
@@ -233,7 +230,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.Positive(index);
 
 				var start = GetKeyAt(index);
-				var end = this.Subspace.ToRange().End;
+				var end = this.Subspace.GetRange().End;
 
 				var output = await tr
 					.GetRange(start, end)
@@ -308,12 +305,13 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.Debug.Requires(tr != null);
 
-				var keyRange = this.Subspace.ToRange();
+				var keyRange = this.Subspace.GetRange();
 
-				var lastKey = await tr.GetKeyAsync(KeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
+				// get the last key in the range (if there is any)
+				var lastKey = await tr.GetRangeKeys(this.Subspace.GetRange()).LastOrDefaultAsync().ConfigureAwait(false);
 
-				if (lastKey < keyRange.Begin)
-				{
+				if (lastKey.IsNull)
+				{ // the range is empty
 					return 0;
 				}
 

@@ -244,6 +244,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
+		[Obsolete("Use GetRange() instead")]
 		public KeyRange ToRange()
 		{
 			return GetKeyRange();

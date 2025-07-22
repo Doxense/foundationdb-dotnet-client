@@ -137,7 +137,7 @@ namespace FoundationDB.Layers.Messaging
 
 			internal async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, char ring)
 			{
-				var range = this.Subspace.ToRange(ring);
+				var range = this.Subspace.GetKey(ring).StartsWith();
 
 				// start from a random position around the ring
 				var key = this.Subspace.GetKey(ring, GetRandomId());
@@ -202,7 +202,7 @@ namespace FoundationDB.Layers.Messaging
 				tr.Annotate($"Deleting task {taskId:P}");
 
 				// clear all metadata about the task
-				tr.ClearRange(this.Subspace.ToRange(TASKS, taskId));
+				tr.ClearRange(this.Subspace.GetKey(TASKS, taskId).StartsWith(inclusive: true));
 				// decrement pending number of tasks
 				tr.AtomicDecrement64(this.Subspace.GetKey(COUNTERS, COUNTER_PENDING_TASKS));
 			}
@@ -311,7 +311,7 @@ namespace FoundationDB.Layers.Messaging
 							tr.Annotate("Look for next queued item");
 							
 							// Find the next task on the queue
-							var item = await tr.GetRange(state.Subspace.ToRange(UNASSIGNED)).FirstOrDefaultAsync().ConfigureAwait(false);
+							var item = await tr.GetRange(state.Subspace.GetKey(UNASSIGNED).StartsWith()).FirstOrDefaultAsync().ConfigureAwait(false);
 
 							if (!item.Key.IsNull)
 							{ // pop the Task from the queue

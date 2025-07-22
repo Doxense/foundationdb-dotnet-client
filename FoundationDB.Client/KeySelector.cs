@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using SnowBank.Buffers.Text;
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
@@ -166,16 +167,18 @@ namespace FoundationDB.Client
 			=> new(this.Key.Copy(), this.OrEqual, this.Offset);
 
 		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
-		public override string ToString() => PrettyPrint(FdbKey.PrettyPrintMode.Single);
+		public override string ToString() => ToString(null);
 
-		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider) => PrettyPrint(FdbKey.PrettyPrintMode.Single);
+		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => PrettyPrint(FdbKey.PrettyPrintMode.Single);
 
 		/// <summary>Returns a displayable representation of the key selector</summary>
 		[Pure]
 		public string PrettyPrint(FdbKey.PrettyPrintMode mode)
 		{
-			var sb = new StringBuilder();
+			Span<char> tmp = stackalloc char[128];
+			using var sb = new FastStringBuilder(tmp);
+
 			int offset = this.Offset;
 			if (offset < 1)
 			{
@@ -186,16 +189,19 @@ namespace FoundationDB.Client
 				--offset;
 				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
 			}
-			sb.Append(FdbKey.PrettyPrint(this.Key, mode))
-			  .Append('}');
+			//PERF: TODO: optimize!
+			sb.Append(FdbKey.PrettyPrint(this.Key, mode));
+			sb.Append('}');
 
 			if (offset > 0)
 			{
-				sb.Append(" + ").Append(offset);
+				sb.Append(" + ");
+				sb.Append(offset);
 			}
 			else if (offset < 0)
 			{
-				sb.Append(" - ").Append(-offset);
+				sb.Append(" - ");
+				sb.Append(-offset);
 			}
 
 			return sb.ToString();

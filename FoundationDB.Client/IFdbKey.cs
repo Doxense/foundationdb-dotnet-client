@@ -59,6 +59,9 @@ namespace FoundationDB.Client
 		[Pure]
 		int CompareTo(ReadOnlySpan<byte> other);
 
+		/// <summary>Tests if the key is <c>Nil</c></summary>
+		bool IsNull => false;
+
 	}
 
 }

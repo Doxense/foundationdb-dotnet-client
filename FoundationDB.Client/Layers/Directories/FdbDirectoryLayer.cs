@@ -1094,8 +1094,8 @@ namespace FoundationDB.Client
 
 				var kvp = await tr
 					.GetRange(
-						partition.Nodes.ToRange().Begin,
-						partition.Nodes.GetKey(key).GetSuccessor().ToSlice()
+						partition.Nodes.GetKey(),
+						partition.Nodes.GetKey(key).GetSuccessor()
 					)
 					.LastOrDefaultAsync()
 					.ConfigureAwait(false);
@@ -1135,7 +1135,7 @@ namespace FoundationDB.Client
 				Contract.Debug.Requires(tr != null && partition != null);
 
 				var items = await tr
-					.GetRange(partition.Nodes.ToRange(prefix, SUBDIRS))
+					.GetRange(partition.Nodes.GetKey(prefix, SUBDIRS).StartsWith())
 					.Select(kvp => (Name: partition.Nodes.DecodeLast<string>(kvp.Key) ?? string.Empty, Prefix: kvp.Value))
 					.ToListAsync()
 					.ConfigureAwait(false);
@@ -1188,8 +1188,8 @@ namespace FoundationDB.Client
 				tr.ClearRange(KeyRange.StartsWith(prefix));
 
 				// and all the metadata for this folder
-				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.ToRange(prefix)}");
-				tr.ClearRange(partition.Nodes.ToRange(prefix));
+				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.GetKey(prefix)}");
+				tr.ClearRange(partition.Nodes.GetKey(prefix).StartsWith(inclusive: true));
 			}
 
 			private async Task<bool> IsPrefixFree(IFdbReadOnlyTransaction tr, PartitionDescriptor partition, Slice prefix)

@@ -39,21 +39,25 @@ namespace FoundationDB.Client
 
 			#region Keys / Values...
 
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static Exception KeyCannotBeNull(string paramName = "key")
 			{
 				return new ArgumentException("Key cannot be null.", paramName);
 			}
 
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static Exception KeyIsTooBig(ReadOnlySpan<byte> key, string paramName = "key")
 			{
 				return new ArgumentException($"Key is too big ({key.Length} > {Fdb.MaxKeySize}).", paramName);
 			}
 
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static Exception ValueCannotBeNull(string paramName = "value")
 			{
 				return new ArgumentException("Value cannot be null", paramName);
 			}
 
+			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			internal static Exception ValueIsTooBig(ReadOnlySpan<byte> value, string paramName = "value")
 			{
 				return new ArgumentException($"Value is too big ({value.Length} > {Fdb.MaxValueSize}).", paramName);

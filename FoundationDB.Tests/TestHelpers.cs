@@ -64,7 +64,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(subspace, Is.Not.Null, "null db");
 			Assert.That(subspace.GetPrefix(), Is.Not.EqualTo(Slice.Empty), "Cannot clean the root of the database!");
 
-			return db.WriteAsync(tr => tr.ClearRange(subspace.ToRange()), ct);
+			return db.WriteAsync(tr => tr.ClearRange(subspace.GetRange()), ct);
 		}
 
 		public static Task CleanLocation(IFdbDatabase db, ISubspaceLocation location, CancellationToken ct)
@@ -103,7 +103,7 @@ namespace FoundationDB.Client.Tests
 					var subspace = await db.DirectoryLayer.CreateOrOpenAsync(tr, location.Path);
 
 					// get and clear subspace
-					tr.ClearRange(subspace.AppendBytes(location.Prefix).StartsWith());
+					tr.ClearRange(subspace.AppendBytes(location.Prefix).StartsWith(inclusive: true));
 				}
 			}, ct);
 
@@ -183,7 +183,7 @@ namespace FoundationDB.Client.Tests
 					return;
 				}
 
-				long n = await tr.GetEstimatedRangeSizeBytesAsync(subspace.ToRange());
+				long n = await tr.GetEstimatedRangeSizeBytesAsync(subspace.GetRange());
 
 				SimpleTest.Log($"# {indent}- {subspace.Path[^1]} at {TuPack.Unpack(subspace.GetPrefix())} {(n == 0 ? "<empty>" : $"~{n:N0} bytes")}");
 

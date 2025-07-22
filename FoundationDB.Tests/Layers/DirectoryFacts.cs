@@ -1102,9 +1102,9 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition.Append(subspace.GetPrefix()));
 				ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
-				ShouldFail(() => partition.ToRange());
-				ShouldFail(() => KeySubspaceExtensions.ToRange(partition, Slice.FromString("hello")));
-				ShouldFail(() => KeySubspaceExtensions.ToRange(partition, TuPack.EncodeKey("hello")));
+				ShouldFail(() => partition.GetRange().ToKeyRange());
+				ShouldFail(() => partition.GetKey("hello").StartsWith().ToKeyRange());
+				ShouldFail(() => FdbKeyRange.Between(partition.GetKey("hello", 123), partition.GetKey("hello", 456)).ToKeyRange());
 
 				// Tuples
 
@@ -1112,10 +1112,6 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition.Decode<int>(barKey));
 				ShouldFail(() => partition.DecodeLast<int>(barKey));
 				ShouldFail(() => partition.DecodeFirst<int>(barKey));
-
-				ShouldFail(() => partition.ToRange());
-				ShouldFail(() => KeySubspaceExtensions.ToRange(partition, Slice.FromString("hello")));
-				ShouldFail(() => partition.PackRange(STuple.Create("hello")));
 
 				// GetKey
 

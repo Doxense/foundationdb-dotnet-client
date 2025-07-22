@@ -26,48 +26,52 @@
 
 namespace FoundationDB.Client
 {
+	using SnowBank.Buffers.Text;
+
+	[DebuggerDisplay("{ToString(),nq}")]
+	[PublicAPI]
 	public static class FdbKeySelector
 	{
 
-		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
+		/// <summary>Creates a key selector that will select the last key in the database that is less than <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<TKey> LastLessThan<TKey>(in TKey key)
 			where TKey : struct, IFdbKey
 			=> new(key, false, 0);
 
-		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
+		/// <summary>Creates a key selector that will select the last key in the database that is less than or equal to <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<TKey> LastLessOrEqual<TKey>(in TKey key)
 			where TKey : struct, IFdbKey
 			=> new(key, true, 0);
 
-		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
+		/// <summary>Creates a key selector that will select the first key in the database that is greater than <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<TKey> FirstGreaterThan<TKey>(in TKey key)
 			where TKey : struct, IFdbKey
 			=> new(key, true, 1);
 
-		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
+		/// <summary>Creates a key selector that will select the first key in the database that is greater than or equal to <paramref name="key"/></summary>
 		public static FdbKeySelector<TKey> FirstGreaterOrEqual<TKey>(in TKey key)
 			where TKey : struct, IFdbKey
 			=> new(key, false, 1);
 
-		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
+		/// <summary>Creates a key selector that will select the last key in the database that is less than <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<FdbRawKey> LastLessThan(Slice key)
 			=> new(key, false, 0);
 
-		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
+		/// <summary>Creates a key selector that will select the last key in the database that is less than or equal to <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<FdbRawKey> LastLessOrEqual(Slice key)
 			=> new(key, true, 0);
 
-		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
+		/// <summary>Creates a key selector that will select the first key in the database that is greater than <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<FdbRawKey> FirstGreaterThan(Slice key)
 			=> new(key, true, 1);
 
-		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
+		/// <summary>Creates a key selector that will select the first key in the database that is greater than or equal to <paramref name="key"/></summary>
 		public static FdbKeySelector<FdbRawKey> FirstGreaterOrEqual(Slice key)
 			=> new(key, false, 1);
 
@@ -98,7 +102,7 @@ namespace FoundationDB.Client
 
 	}
 
-	public readonly struct FdbKeySelector<TKey> //TODO: IFormattable!
+	public readonly struct FdbKeySelector<TKey> : IFormattable
 		where TKey : struct, IFdbKey
 	{
 
@@ -151,12 +155,53 @@ namespace FoundationDB.Client
 			return new(selector.Key, selector.OrEqual, checked(selector.Offset + 1));
 		}
 
+		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
+		public override string ToString() => ToString(null);
+
+		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => PrettyPrint(FdbKey.PrettyPrintMode.Single);
+
 		/// <summary>Decrement the selector's offset</summary>
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <returns><c>fGE{'abc'} - 1</c></returns>
 		public static FdbKeySelector<TKey> operator --(FdbKeySelector<TKey> selector)
 		{
 			return new(selector.Key, selector.OrEqual, checked(selector.Offset - 1));
+		}
+
+		/// <summary>Returns a displayable representation of the key selector</summary>
+		[Pure]
+		public string PrettyPrint(FdbKey.PrettyPrintMode mode)
+		{
+			Span<char> tmp = stackalloc char[128];
+			using var sb = new FastStringBuilder(tmp);
+
+			int offset = this.Offset;
+			if (offset < 1)
+			{
+				sb.Append(this.OrEqual ? "lLE{" : "lLT{");
+			}
+			else
+			{
+				--offset;
+				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
+			}
+			//PERF: TODO: optimize!
+			sb.Append(FdbKey.PrettyPrint(this.Key.ToSlice(), mode));
+			sb.Append('}');
+
+			if (offset > 0)
+			{
+				sb.Append(" + ");
+				sb.Append(offset);
+			}
+			else if (offset < 0)
+			{
+				sb.Append(" - ");
+				sb.Append(-offset);
+			}
+
+			return sb.ToString();
 		}
 
 	}

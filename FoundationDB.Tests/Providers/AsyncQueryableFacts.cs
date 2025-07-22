@@ -26,6 +26,8 @@
 
 // ReSharper disable StringLiteralTypo
 
+//#define ENABLE_LOGGING
+
 namespace FoundationDB.Linq.Tests
 {
 	using FoundationDB.Layers.Indexing;
@@ -43,6 +45,10 @@ namespace FoundationDB.Linq.Tests
 			{
 				var location = db.Root;
 				await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
 
 				await db.WriteAsync(async (tr) =>
 				{
@@ -88,6 +94,10 @@ namespace FoundationDB.Linq.Tests
 				var location = db.Root;
 				await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
 				var indexFoos = new FdbIndex<long, string>(location.ByKey("Foos", "ByColor"));
 
 				await db.WriteAsync(async (tr) =>
@@ -125,6 +135,10 @@ namespace FoundationDB.Linq.Tests
 				var location = db.Root;
 				await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
 				var index = new FdbIndex<string, int>(location.ByKey("Foos", "ByScore"));
 
 				await db.WriteAsync(async (tr) =>
@@ -142,23 +156,65 @@ namespace FoundationDB.Linq.Tests
 					foos.Add(tr, "whisky", 9001);
 				}, this.Cancellation);
 
-				// find all up to 100
-				var lookup = index.Query(db).Lookup(x => x <= 100);
-				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
-				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
-				Log(lookup.Expression!.GetDebugView());
+				Log("# Find all up to 100");
+				{
+					var lookup = index.Query(db).Lookup(x => x <= 100);
+					Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
+					Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
+					Log(lookup.Expression!.GetDebugView());
 
-				var ids = await lookup.ToListAsync();
-				Log($"=> [ {string.Join(", ", ids)} ]");
-				
-				// find all that are over nine thousand
-				lookup = index.Query(db).Lookup(x => x >= 9000);
-				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
-				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
-				Log(lookup.Expression!.GetDebugView());
+					var ids = await lookup.ToListAsync();
+					Log($"=> [ {string.Join(", ", ids)} ]");
+					Assert.That(ids, Is.EqualTo([ "alpha", "charly", "bravo" ]));
+				}
 
-				ids = await lookup.ToListAsync();
-				Log($"=> [ {string.Join(", ", ids)} ]");
+				Log("# Find all over NINE THOUSAAAAND"); //*: technically "it's over 8000" </NERD_FACT>
+				{
+					var lookup = index.Query(db).Lookup(x => x >= 9000);
+					Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
+					Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
+					Log(lookup.Expression!.GetDebugView());
+
+					var ids = await lookup.ToListAsync();
+					Log($"=> [ {string.Join(", ", ids)} ]");
+					Assert.That(ids, Is.EqualTo([ "whisky", "tango", "foxtrot" ]));
+				}
+
+				Log("# > 9001");
+				{
+					var lookup = index.Query(db).Lookup(x => x > 9001);
+					Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
+					Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
+					Log(lookup.Expression!.GetDebugView());
+
+					var ids = await lookup.ToListAsync();
+					Log($"=> [ {string.Join(", ", ids)} ]");
+					Assert.That(ids, Is.EqualTo([ "tango", "foxtrot" ]));
+				}
+
+				Log("# <= 10");
+				{
+					var lookup = index.Query(db).Lookup(x => x <= 10); // should match one
+					Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
+					Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
+					Log(lookup.Expression!.GetDebugView());
+
+					var ids = await lookup.ToListAsync();
+					Log($"=> [ {string.Join(", ", ids)} ]");
+					Assert.That(ids, Is.EqualTo([ "alpha" ]));
+				}
+
+				Log("# < 10");
+				{
+					var lookup = index.Query(db).Lookup(x => x < 10); // no match expected
+					Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
+					Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
+					Log(lookup.Expression!.GetDebugView());
+
+					var ids = await lookup.ToListAsync();
+					Log($"=> [ {string.Join(", ", ids)} ]");
+					Assert.That(ids, Is.Empty);
+				}
 			}
 
 		}

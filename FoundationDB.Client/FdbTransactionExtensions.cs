@@ -2935,7 +2935,7 @@ namespace FoundationDB.Client
 			in FdbKeySelector<TEndKey> endKeyExclusive,
 			TState state,
 			FdbKeyValueDecoder<TState, TResult> decoder,
-			FdbRangeOptions? options
+			FdbRangeOptions? options = null
 		)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
@@ -2952,13 +2952,27 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
 		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRange<TKeyRange, TState, TResult>(
+			this IFdbReadOnlyTransaction trans,
+			in TKeyRange range,
+			TState state,
+			FdbKeyValueDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options = null
+		)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			return trans.GetRange(range.ToKeyRange(), state, decoder, options);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
+		[Pure, LinqTunnel]
 		public static IFdbRangeQuery<TResult> GetRange<TBeginKey, TEndKey, TState, TResult>(
 			this IFdbReadOnlyTransaction trans,
 			in TBeginKey beginKeyInclusive,
 			in TEndKey endKeyExclusive,
 			TState state,
 			FdbKeyValueDecoder<TState, TResult> decoder,
-			FdbRangeOptions? options
+			FdbRangeOptions? options = null
 		)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
@@ -3067,6 +3081,21 @@ namespace FoundationDB.Client
 				KeySelector.FirstGreaterOrEqual(beginKeyInclusive),
 				KeySelector.FirstGreaterOrEqual(endKeyExclusive),
 				transform,
+				options
+			);
+		}
+
+		/// <summary>Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction</summary>
+		public static IFdbRangeQuery<TResult> GetRange<TState, TResult>(this IFdbReadOnlyTransaction trans, KeyRange range, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options = null)
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(decoder);
+
+			return trans.GetRange(
+				KeySelector.FirstGreaterOrEqual(range.Begin),
+				KeySelector.FirstGreaterOrEqual(range.End),
+				state,
+				decoder,
 				options
 			);
 		}
@@ -3194,7 +3223,7 @@ namespace FoundationDB.Client
 			in FdbKeySelector<TEndKey> endKeyExclusive,
 			TState state,
 			FdbRangeDecoder<TState, TResult> decoder,
-			FdbRangeOptions? options
+			FdbRangeOptions? options = null
 		)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
@@ -3225,7 +3254,7 @@ namespace FoundationDB.Client
 				beginInclusive,
 				endExclusive,
 				(State: state, Decoder: decoder),
-				(s, _, v) => s.Decoder(s.State, v),
+				(s, k, _) => s.Decoder(s.State, k),
 				options?.OnlyKeys() ?? FdbRangeOptions.KeysOnly
 			);
 		}
@@ -3376,13 +3405,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
 		[Pure, LinqTunnel]
-		public static IFdbRangeQuery<TResult> GetRangeValues<TBeginKey, TEndKey, TState, TResult>(
-			this IFdbReadOnlyTransaction trans,
-			in FdbKeySelector<TBeginKey> beginKeyInclusive,
-			in FdbKeySelector<TEndKey> endKeyExclusive,
-			TState state,
-			FdbRangeDecoder<TState, TResult> decoder,
-			FdbRangeOptions? options
+		public static IFdbRangeQuery<TResult> GetRangeValues<TBeginKey, TEndKey, TState, TResult>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginKeyInclusive, in FdbKeySelector<TEndKey> endKeyExclusive, TState state, FdbRangeDecoder<TState, TResult> decoder, FdbRangeOptions? options = null
 		)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
@@ -3399,13 +3422,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new range query that will read the values of all key-value pairs in the database snapshot represented by the transaction</summary>
 		[Pure, LinqTunnel]
-		public static IFdbRangeQuery<TResult> GetRangeValues<TState, TResult>(
-			this IFdbReadOnlyTransaction trans,
-			KeySelector beginInclusive,
-			KeySelector endExclusive,
-			TState state,
-			FdbRangeDecoder<TState, TResult> decoder,
-			FdbRangeOptions? options = null)
+		public static IFdbRangeQuery<TResult> GetRangeValues<TState, TResult>(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbRangeDecoder<TState, TResult> decoder, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans);
 			return trans.GetRange(
@@ -3509,13 +3526,13 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, int iteration)
+		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, KeySelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 			where TBeginKey : struct, IFdbKey
 		{
 			return trans.GetRangeAsync(in beginInclusive, endExclusive.ToSpan(), options, iteration);
 		}
 
-		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions? options, int iteration)
+		public static Task<FdbRangeChunk> GetRangeAsync<TBeginKey>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 			where TBeginKey : struct, IFdbKey
 		{
 			if (FdbKeySelectorHelpers.TryGetSpan(in beginInclusive, out var beginSelector))
@@ -3538,13 +3555,13 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public static Task<FdbRangeChunk> GetRangeAsync<TEndKey>(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options, int iteration)
+		public static Task<FdbRangeChunk> GetRangeAsync<TEndKey>(this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 			where TEndKey : struct, IFdbKey
 		{
 			return trans.GetRangeAsync(beginInclusive.ToSpan(), in endExclusive, options, iteration);
 		}
 
-		public static Task<FdbRangeChunk> GetRangeAsync<TEndKey>(this IFdbReadOnlyTransaction trans, KeySpanSelector beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options, int iteration)
+		public static Task<FdbRangeChunk> GetRangeAsync<TEndKey>(this IFdbReadOnlyTransaction trans, KeySpanSelector beginInclusive, in FdbKeySelector<TEndKey> endExclusive, FdbRangeOptions? options = null, int iteration = 0)
 			where TEndKey : struct, IFdbKey
 		{
 			if (FdbKeySelectorHelpers.TryGetSpan(in endExclusive, out var endSelector))
@@ -3577,7 +3594,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
 		}
@@ -3592,7 +3609,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			var sp = KeySelectorPair.Create(range);
 			return trans.GetRangeAsync(sp.Begin, sp.End, options, iteration);
@@ -3646,7 +3663,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
+		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options = null, int iteration = 0)
 		{
 			return trans.GetRangeAsync<TState, TResult>(
 				KeySelector.FirstGreaterOrEqual(beginInclusive),
@@ -3659,7 +3676,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRangeAsync(KeySelector,KeySelector,FdbRangeOptions?,int)"/>
-		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TBeginKey, TEndKey, TState, TResult>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, in FdbKeySelector<TEndKey> endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
+		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TBeginKey, TEndKey, TState, TResult>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, in FdbKeySelector<TEndKey> endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options = null, int iteration = 0)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
 		{
@@ -3675,7 +3692,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="GetRangeAsync(FoundationDB.Client.IFdbReadOnlyTransaction,Slice,Slice,FdbRangeOptions?,int)"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TBeginKey, TEndKey, TState, TResult>(this IFdbReadOnlyTransaction trans, in TBeginKey beginInclusive, in TEndKey endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration = 0)
+		public static Task<FdbRangeChunk<TResult>> GetRangeAsync<TBeginKey, TEndKey, TState, TResult>(this IFdbReadOnlyTransaction trans, in TBeginKey beginInclusive, in TEndKey endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options = null, int iteration = 0)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
 		{
@@ -3844,12 +3861,65 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns an estimated byte size of the key range.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		public static Task<long> GetEstimatedRangeSizeBytesAsync<TBeginKey, TEndKey>(this IFdbReadOnlyTransaction trans, in TBeginKey beginKey, in TEndKey endKey)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			if (beginKey.TryGetSpan(out var beginSpan))
+			{
+				return trans.GetEstimatedRangeSizeBytesAsync(beginSpan, in endKey);
+			}
+			else
+			{
+				using var beginBytes = FdbKeyHelpers.Encode(in beginKey, ArrayPool<byte>.Shared);
+				return trans.GetEstimatedRangeSizeBytesAsync(beginBytes.Span, in endKey);
+			}
+		}
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="beginKey">Name of the key of the start of the range</param>
+		/// <param name="endKey">Name of the key of the end of the range</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		public static Task<long> GetEstimatedRangeSizeBytesAsync<TEndKey>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> beginKey, in TEndKey endKey)
+			where TEndKey : struct, IFdbKey
+		{
+			if (endKey.TryGetSpan(out var endSpan))
+			{
+				return trans.GetEstimatedRangeSizeBytesAsync(beginKey, endSpan);
+			}
+			else
+			{
+				using var endBytes = FdbKeyHelpers.Encode(in endKey, ArrayPool<byte>.Shared);
+				return trans.GetEstimatedRangeSizeBytesAsync(beginKey, endBytes.Span);
+			}
+		}
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">Range of keys</param>
 		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
 		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
 		public static Task<long> GetEstimatedRangeSizeBytesAsync(this IFdbReadOnlyTransaction trans, KeyRange range)
 		{
 			return trans.GetEstimatedRangeSizeBytesAsync(ToSpanKey(range.Begin), ToSpanKey(range.End));
+		}
+
+		/// <summary>Returns an estimated byte size of the key range.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="range">Range of keys</param>
+		/// <returns>Task that will return an estimated byte size of the key range, or an exception</returns>
+		/// <remarks>The estimated size is calculated based on the sampling done by FDB server. The sampling algorithm works roughly in this way: the larger the key-value pair is, the more likely it would be sampled and the more accurate its sampled size would be. And due to that reason it is recommended to use this API to query against large ranges for accuracy considerations. For a rough reference, if the returned size is larger than 3MB, one can consider the size to be accurate.</remarks>
+		public static Task<long> GetEstimatedRangeSizeBytesAsync<TKeyRange>(this IFdbReadOnlyTransaction trans, in TKeyRange range)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			var r = range.ToKeyRange(); //PERF: TODO: optimize this!
+			return trans.GetEstimatedRangeSizeBytesAsync(ToSpanKey(r.Begin), ToSpanKey(r.End));
 		}
 
 		#endregion

@@ -749,7 +749,7 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("Reading all keys...");
 				var subspace = await location.Resolve(tr);
 				var sw = Stopwatch.StartNew();
-				var items = await tr.GetRange(subspace.ToRange()).ToListAsync();
+				var items = await tr.GetRange(subspace.GetRange()).ToListAsync();
 				sw.Stop();
 				Console.WriteLine($"Took {FormatTimeMilli(sw.Elapsed.TotalMilliseconds)} to get {items.Count.ToString("N0", CultureInfo.InvariantCulture)} results ({items.Count / sw.Elapsed.TotalSeconds:N0} keys/sec)");
 			}

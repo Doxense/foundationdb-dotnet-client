@@ -35,7 +35,7 @@ namespace SnowBank.Buffers.Text
 	/// <summary>Span-based implementation of a <see cref="StringBuilder"/>, with reduced safety checks</summary>
 	/// <remarks>All formatting uses the invariant culture.</remarks>
 	[PublicAPI]
-	public ref struct FastStringBuilder : ISpanBufferWriter<char>
+	public ref struct FastStringBuilder : ISpanBufferWriter<char>, IDisposable
 	{
 
 		/// <summary>Buffer that must be returned to the shared array pool</summary>

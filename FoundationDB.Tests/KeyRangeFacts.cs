@@ -26,6 +26,7 @@
 
 // ReSharper disable JoinDeclarationAndInitializer
 // ReSharper disable StringLiteralTypo
+// ReSharper disable CanSimplifyStringEscapeSequence
 
 namespace FoundationDB.Client.Tests
 {
@@ -178,15 +179,14 @@ namespace FoundationDB.Client.Tests
 			// verify that the pretty printing of keys produce a user-friendly output
 			Assert.Multiple(() =>
 			{
-
 				Assert.That(FdbKey.Dump(Slice.Nil), Is.EqualTo("<null>"));
 				Assert.That(FdbKey.Dump(Slice.Empty), Is.EqualTo("<empty>"));
 
 				Assert.That(FdbKey.Dump(Slice.FromByte(0)), Is.EqualTo("<00>"));
 				Assert.That(FdbKey.Dump(Slice.FromByte(255)), Is.EqualTo("<FF>"));
 
-				Assert.That(FdbKey.Dump(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 }.AsSlice()), Is.EqualTo("<00><01><02><03><04><05><06><07>"));
-				Assert.That(FdbKey.Dump(new byte[] { 255, 254, 253, 252, 251, 250, 249, 248 }.AsSlice()), Is.EqualTo("(|System|<FE><FD><FC><FB><FA><F9><F8>,)"));
+				Assert.That(FdbKey.Dump([ 0, 1, 2, 3, 4, 5, 6, 7 ]), Is.EqualTo("<00><01><02><03><04><05><06><07>"));
+				Assert.That(FdbKey.Dump([ 255, 254, 253, 252, 251, 250, 249, 248 ]), Is.EqualTo("(|System:<FE><FD><FC><FB><FA><F9><F8>|,)"));
 
 				Assert.That(FdbKey.Dump(Text("hello")), Is.EqualTo("hello"));
 				Assert.That(FdbKey.Dump(Text("héllø")), Is.EqualTo("h<C3><A9>ll<C3><B8>"));

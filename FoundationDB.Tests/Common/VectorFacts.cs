@@ -414,7 +414,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			bool first = true;
 			var sb = new StringBuilder();
 
-			await tr.GetRange(vector.Subspace.ToRange()).ForEachAsync((kvp) =>
+			await foreach(var kvp in tr.GetRange(vector.Subspace.GetRange()))
 			{
 				if (!first)
 				{
@@ -425,7 +425,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					first = false;
 				}
 				sb.Append($"{vector.Subspace.DecodeLast<long>(kvp.Key)}:{kvp.Value:P}");
-			});
+			}
 
 			Log($"> Vector: ({sb})");
 		}

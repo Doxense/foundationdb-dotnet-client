@@ -171,7 +171,7 @@ namespace FoundationDB.Client.Tests
 					{
 						Log("Retry #" + tr.Context.Retries + " @ " + tr.Context.ElapsedTotal);
 						var subspace = await location.Resolve(tr);
-						return tr.GetRange(subspace.ToRange()).ToListAsync();
+						return tr.GetRange(subspace.GetRange()).ToListAsync();
 					}, this.Cancellation);
 
 					Assert.Fail("Too fast! increase the amount of inserted data, or slow down the system!");

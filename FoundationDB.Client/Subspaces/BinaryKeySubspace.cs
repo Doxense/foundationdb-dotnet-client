@@ -71,10 +71,6 @@ namespace FoundationDB.Client
 			: base(prefix, context)
 		{ }
 
-		internal BinaryKeySubspace(Slice prefix, KeyRange range, ISubspaceContext context)
-			: base(prefix, range, context)
-		{ }
-
 		/// <inheritdoc />
 		public Slice this[Slice relativeKey]
 		{

@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Documents
 		protected virtual Task<List<Slice>> LoadPartsAsync(IDynamicKeySubspace subspace, IFdbReadOnlyTransaction trans, TId id)
 		{
 			return trans
-				.GetRange(FdbKeyRange.StartsWith(subspace.GetKey(id))) //TODO: options ?
+				.GetRange(subspace.GetKey(id).StartsWith(inclusive: true)) //TODO: options ?
 				.Select(kvp => kvp.Value)
 				.ToListAsync();
 		}
@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Documents
 			var key = subspace.GetKey(id);
 
 			// clear previous value
-			trans.ClearRange(FdbKeyRange.StartsWith(key));
+			trans.ClearRange(key.StartsWith(inclusive: true));
 
 			int remaining = packed.Count;
 			if (remaining <= this.ChunkSize)
@@ -150,7 +150,7 @@ namespace FoundationDB.Layers.Documents
 			var subspace = await this.Location.Resolve(trans);
 
 			var key = subspace.GetKey(id);
-			trans.ClearRange(FdbKeyRange.StartsWith(key));
+			trans.ClearRange(key.StartsWith(inclusive: true));
 		}
 
 
@@ -165,7 +165,7 @@ namespace FoundationDB.Layers.Documents
 			foreach (var id in ids)
 			{
 				var key = subspace.GetKey(id);
-				trans.ClearRange(FdbKeyRange.StartsWith(key));
+				trans.ClearRange(key.StartsWith(inclusive: true));
 			}
 		}
 

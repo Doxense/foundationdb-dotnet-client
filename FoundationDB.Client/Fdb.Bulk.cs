@@ -73,7 +73,7 @@ namespace FoundationDB.Client
 			// Use Case: MEMORY-IN => DATABASE-OUT
 
 			// Bulk writing consists of inserting a lot of precomputed keys into the database, as fast as possible.
-			// => the latency will comes exclusively from committing the transaction to the database (i.e: network delay, disk delay)
+			// => the latency will come exclusively from committing the transaction to the database (i.e: network delay, disk delay)
 
 			/// <summary>Writes a potentially large sequence of key/value pairs into the database, by using as many transactions as necessary, and automatically scaling the size of each batch.</summary>
 			/// <param name="db">Database used for the operation</param>
@@ -248,7 +248,7 @@ namespace FoundationDB.Client
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="source">Sequence of items to be processed</param>
-			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside the passed transaction.</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
@@ -273,7 +273,7 @@ namespace FoundationDB.Client
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="source">Sequence of items to be processed</param>
-			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside the passed transaction.</param>
 			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
@@ -299,7 +299,7 @@ namespace FoundationDB.Client
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="source">Sequence of items to be processed</param>
-			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside the passed transaction.</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
@@ -324,7 +324,7 @@ namespace FoundationDB.Client
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="source">Sequence of items to be processed</param>
-			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside the passed transaction.</param>
 			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
@@ -444,7 +444,7 @@ namespace FoundationDB.Client
 							bodyBlocking(item, trans);
 						}
 
-						// commit the batch if ..
+						// commit the batch if ...
 						if (trans.Size >= sizeThreshold      // transaction is starting to get big...
 						 || batch.Count >= batchCount        // too many items would need to be retried...
 						 || timer.Elapsed.TotalSeconds >= 4  // it's getting late...
@@ -560,7 +560,7 @@ namespace FoundationDB.Client
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="source">Sequence of items to be processed</param>
-			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside the passed transaction.</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
@@ -585,7 +585,7 @@ namespace FoundationDB.Client
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="source">Sequence of items to be processed</param>
-			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside the passed transaction.</param>
 			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
@@ -611,7 +611,7 @@ namespace FoundationDB.Client
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="source">Sequence of items to be processed</param>
-			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside the passed transaction.</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non retry-able error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
@@ -636,7 +636,7 @@ namespace FoundationDB.Client
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="source">Sequence of items to be processed</param>
-			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside the passed transaction.</param>
 			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
@@ -770,8 +770,8 @@ namespace FoundationDB.Client
 							}
 							offset += batch.Length;
 
-							// commit the batch if ..
-							if (trans.Size >= sizeThreshold         // transaction is startting to get big...
+							// commit the batch if ...
+							if (trans.Size >= sizeThreshold         // transaction is starting to get big...
 							 || timer.Elapsed.TotalSeconds >= 4)    // it's getting late...
 							{
 								await CommitBatch().ConfigureAwait(false);
@@ -897,7 +897,7 @@ namespace FoundationDB.Client
 			private const int DefaultMinimumBatchSize = 4;
 			private const int DefaultMaximumBatchSize = 10000;
 
-			/// <summary>Context for a long running batched read operation</summary>
+			/// <summary>Context for a long-running batched read operation</summary>
 			public sealed class BatchOperationContext
 			{
 				/// <summary>Transaction corresponding to the current generation</summary>
@@ -930,7 +930,7 @@ namespace FoundationDB.Client
 				/// <summary>Returns true if all values processed up to this point used the same transaction, or false if more than one transaction was used.</summary>
 				public bool IsTransactional => this.Generation == 0;
 
-				/// <summary>Returns true if at least one unretryable exception happened during the process of one batch</summary>
+				/// <summary>Returns true if at least one un-retryable exception happened during the process of one batch</summary>
 				public bool Failed { get; internal set; }
 
 				/// <summary>If called, will stop immediately after processing this batch, even if the source sequence contains more elements</summary>
@@ -1294,7 +1294,7 @@ namespace FoundationDB.Client
 						finally
 						{
 							if (localFinally != null && localInitialized)
-							{ // we need to cleanup the state whatever happens
+							{ // we need to clean up the state whatever happens
 								if (localFinallyVoid != null)
 								{
 									localFinallyVoid(localValue);
@@ -1539,9 +1539,9 @@ namespace FoundationDB.Client
 
 						previous = folder.GetPrefix();
 						location = folder;
-						var range = folder.ToRange();
-						begin = KeySelector.FirstGreaterOrEqual(range.Begin);
-						end = KeySelector.FirstGreaterOrEqual(range.End);
+						var range = folder.GetRange();
+						begin = range.GetBeginSelector().ToSelector();
+						end = range.GetEndSelector().ToSelector();
 					}
 					else
 					{

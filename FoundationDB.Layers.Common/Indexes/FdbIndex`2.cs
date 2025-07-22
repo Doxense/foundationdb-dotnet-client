@@ -108,34 +108,34 @@ namespace FoundationDB.Layers.Indexing
 			/// <summary>Returns a query that will return all id of the entities that have the specified <paramref name="value"/></summary>
 			public IFdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 			{
-				return trans
-					.GetRange(this.Subspace.ToRange(value), reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default)
-					.Select((kvp) => this.Subspace.DecodeLast<TId>(kvp.Key)!);
+				return trans.GetRangeKeys(
+					this.Subspace.GetKey(value).StartsWith(inclusive: true),
+					this.Subspace, (s, k) => s.DecodeLast<TId>(k)!,
+					reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
+				);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value greater than (or equal) a specified <paramref name="value"/></summary>
 			public IFdbRangeQuery<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
-
-				IFdbKeyValueRangeQuery query;
 				if (orEqual)
 				{ // (>= "abc", *) => (..., "abc") < x < (..., <FF>)
-					query = trans.GetRange(
-						this.Subspace.GetKey(value).FirstGreaterThan(),
-						this.Subspace.GetRange().GetEndSelector(),
-						FdbRangeOptions.Reversed
+					return trans.GetRangeKeys(
+						this.Subspace.GetKey(value).FirstGreaterOrEqual(),
+						this.Subspace.GetKey().GetNextSibling().FirstGreaterOrEqual(),
+						this.Subspace, static (s, k) => s.DecodeLast<TId>(k)!,
+						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}
 				else
 				{ // (> "abc", *) => (..., "abd") < x < (..., <FF>)
-					query = trans.GetRange(
-						this.Subspace.GetKey(value).GetNextSibling().FirstGreaterThan(),
+					return trans.GetRangeKeys(
+						this.Subspace.GetKey(value).GetNextSibling().FirstGreaterOrEqual(),
 						this.Subspace.GetRange().GetEndSelector(),
-						FdbRangeOptions.Reversed
+						this.Subspace, static (s, k) => s.DecodeLast<TId>(k)!,
+						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}
-
-				return query.Select((kvp) => this.Subspace.DecodeLast<TId>(kvp.Key)!);
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have a value lesser than (or equal) a specified <paramref name="value"/></summary>
@@ -145,7 +145,7 @@ namespace FoundationDB.Layers.Indexing
 				if (orEqual)
 				{
 					query = trans.GetRange(
-						this.Subspace.GetRange().ToBeginSelector(),
+						this.Subspace.GetKey().FirstGreaterOrEqual(),
 						this.Subspace.GetKey(value).GetNextSibling().FirstGreaterThan(),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
@@ -153,7 +153,7 @@ namespace FoundationDB.Layers.Indexing
 				else
 				{
 					query = trans.GetRange(
-						this.Subspace.GetRange().ToBeginSelector(),
+						this.Subspace.GetKey().FirstGreaterOrEqual(),
 						this.Subspace.GetKey(value).FirstGreaterThan(),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);

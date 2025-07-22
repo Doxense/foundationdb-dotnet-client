@@ -219,7 +219,7 @@ namespace FoundationDB.Layers.Blobs
 			{
 				Contract.NotNull(trans);
 
-				trans.ClearRange(this.Subspace.ToRange());
+				trans.ClearRange(this.Subspace.GetRange());
 			}
 
 			/// <summary>Gets the size (in bytes) of the blob.</summary>

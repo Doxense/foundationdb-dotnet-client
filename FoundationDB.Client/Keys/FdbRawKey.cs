@@ -49,12 +49,8 @@ namespace FoundationDB.Client
 		/// <summary>Pre-encoded bytes for this key</summary>
 		public readonly Slice Data;
 
-		/// <summary>Returns <see langword="true"/> if the key is null</summary>
-		public bool IsNull
-		{
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Data.IsNull;
-		}
+		[Pure]
+		public ReadOnlySpan<byte> Span => this.Data.Span;
 
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => null;

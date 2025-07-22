@@ -277,20 +277,19 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				var range = this.Subspace.ToRange(pk);
 
 				if (this.Parent.AllowNegativeValues)
 				{
 					//TODO: use a GetRange that decodes the keys and values directly
 					return trans
-						.GetRange(range)
+						.GetRange(this.Subspace.GetKey(pk).StartsWith())
 						.Select(kvp => this.Parent.ValueCodec.DecodeKey(this.Subspace.DecodeLast<TEncodedValue>(kvp.Key)!));
 				}
 				else
 				{
 					//TODO: use a GetRange that decodes the keys and values directly
 					return trans
-						.GetRange(range)
+						.GetRange(this.Subspace.GetKey(pk).StartsWith())
 						.Where(kvp => kvp.Value.ToInt64() > 0) // we need to filter out zero or negative values (possible artefacts)
 						.Select(kvp => this.Parent.ValueCodec.DecodeKey(this.Subspace.DecodeLast<TEncodedValue>(kvp.Key)!));
 				}
@@ -307,11 +306,12 @@ namespace FoundationDB.Layers.Collections
 			public IAsyncQuery<(TValue Value, long Count)> GetCounts(IFdbReadOnlyTransaction trans, TKey key)
 			{
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				var range = this.Subspace.ToRange(pk);
 
 				var query = trans
-					.GetRange(range)
-					.Select(kvp => (Value: this.Parent.ValueCodec.DecodeKey(this.Subspace.DecodeLast<TEncodedValue>(kvp.Key)!), Count: kvp.Value.ToInt64()));
+					.GetRange(
+						this.Subspace.GetKey(pk).StartsWith(),
+						this, static (self, k, v) => (Value: self.Parent.ValueCodec.DecodeKey(self.Subspace.DecodeLast<TEncodedValue>(k)!), Count: v.ToInt64())
+					);
 
 				return this.Parent.AllowNegativeValues
 					? query
@@ -324,7 +324,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				trans.ClearRange(this.Subspace.ToRange(pk));
+				trans.ClearRange(this.Subspace.GetKey(pk).StartsWith());
 			}
 
 			/// <summary>Removes a <paramref name="value"/> for a specific <paramref name="key"/></summary>

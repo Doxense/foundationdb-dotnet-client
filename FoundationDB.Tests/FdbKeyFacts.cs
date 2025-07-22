@@ -41,26 +41,11 @@ namespace FoundationDB.Client.Tests
 			FdbRawKey hello = Slice.FromBytes("hello"u8);
 			FdbRawKey world = Slice.FromBytes("world"u8);
 
-			{ // Nil
-				var k = FdbKey.ToBytes(Slice.Nil);
-				Assert.That(k.Data, Is.EqualTo(Slice.Nil));
-				Assert.That(((IFdbKey) k).GetSubspace(), Is.Null);
-
-				Assert.That(k.IsNull, Is.True);
-				Assert.That(k.ToSlice(), Is.EqualTo(Slice.Nil));
-				
-				Assert.That(k, Is.EqualTo(Slice.Nil));
-				Assert.That(k, Is.Not.EqualTo(Slice.Empty));
-				Assert.That(k, Is.Not.EqualTo(hello));
-
-				Assert.That(k.CompareTo(Slice.Nil), Is.Zero);
-			}
 			{ // Empty
 				var k = FdbKey.ToBytes(Slice.Empty);
 				Assert.That(k.Data, Is.EqualTo(Slice.Empty));
 				Assert.That(((IFdbKey) k).GetSubspace(), Is.Null);
 
-				Assert.That(k.IsNull, Is.False);
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.Empty));
 
 				Assert.That(k, Is.EqualTo(Slice.Empty));
@@ -74,7 +59,6 @@ namespace FoundationDB.Client.Tests
 				Assert.That(k.Data, Is.EqualTo(hello));
 				Assert.That(((IFdbKey) k).GetSubspace(), Is.Null);
 
-				Assert.That(k.IsNull, Is.False);
 				Assert.That(k.ToSlice(), Is.EqualTo(hello));
 				Assert.That(k.ToSlice().Array, Is.SameAs(k.Data.Array), "Should expose the wrapped slice");
 
@@ -102,7 +86,6 @@ namespace FoundationDB.Client.Tests
 					Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToSlice()).EqualTo(rawKey));
 					Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Count));
 
-					Assert.That(key.IsNull, Is.False);
 					Assert.That(((IFdbKey) key).GetSubspace(), Is.Null);
 				}
 				{ // byte[]
@@ -112,7 +95,6 @@ namespace FoundationDB.Client.Tests
 					Assert.That(key.ToSlice().ToArray(), Is.EqualTo(rawKey));
 					Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(rawKey));
 					Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Length));
-					Assert.That(key.IsNull, Is.False);
 					Assert.That(((IFdbKey) key).GetSubspace(), Is.Null);
 				}
 			}
@@ -141,14 +123,14 @@ namespace FoundationDB.Client.Tests
 			var k7 = subspace.GetKey("hello", 123, "world", true, Math.PI, g, now);
 			var k8 = subspace.GetKey("hello", 123, "world", true, Math.PI, g, now, vs);
 
-			var kv1 = subspace.Append((IVarTuple) STuple.Create("hello"));
-			var kv2 = subspace.Append((IVarTuple) STuple.Create("hello", 123));
-			var kv3 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world"));
-			var kv4 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true));
-			var kv5 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI));
-			var kv6 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g));
-			var kv7 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now));
-			var kv8 = subspace.Append((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now, vs));
+			var kv1 = subspace.GetTuple((IVarTuple) STuple.Create("hello"));
+			var kv2 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123));
+			var kv3 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world"));
+			var kv4 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true));
+			var kv5 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI));
+			var kv6 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g));
+			var kv7 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now));
+			var kv8 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now, vs));
 
 			Assert.Multiple(() =>
 			{ // T1
@@ -366,7 +348,7 @@ namespace FoundationDB.Client.Tests
 				Log($"# {prefix:x} + {items}: -> {packed:x}");
 				if (!packed.StartsWith(prefix)) throw new InvalidOperationException();
 
-				var key = subspace.Append(items);
+				var key = subspace.GetTuple(items);
 
 				Assert.That(key.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero, "");
 				Assert.That(key.TryGetSizeHint(out int size), Is.False.WithOutput(size).Zero);
@@ -443,7 +425,14 @@ namespace FoundationDB.Client.Tests
 				var expected = prefix + packedTuple;
 				Log($"  - expected: [{expected.Count:N0}] {expected:x}");
 
-				Assert.That(key.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero, "");
+				if (items.Count == 0)
+				{
+					Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.Length).EqualTo(prefix.Count));
+				}
+				else
+				{
+					Assert.That(key.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
+				}
 
 				var buffer = new byte[expected.Count + 32];
 
@@ -536,6 +525,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(k, Is.EqualTo(new FdbSystemKey(false, Slice.Empty)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF ]))));
 				Assert.That(k, Is.EqualTo(Slice.FromBytes([ 0xFF ])));
+				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.System))));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.System))));
 
 				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(true, Slice.Empty)));
@@ -634,14 +624,9 @@ namespace FoundationDB.Client.Tests
 		public void Test_GetSuccessor_Key()
 		{
 			{
-				var k = FdbKey.Nil.GetSuccessor();
-				Log($"# {k}");
-				Assert.That(k.Parent, Is.EqualTo(FdbKey.Nil));
-				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
-			}
-			{
 				var k = FdbKey.ToBytes(Slice.Empty).GetSuccessor();
 				Log($"# {k}");
+				Assert.That(k.Parent.Data, Is.EqualTo(Slice.Empty));
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
 			}
 			{
@@ -679,18 +664,15 @@ namespace FoundationDB.Client.Tests
 		public void Test_GetNextSibling_Key()
 		{
 			{
-				var k = FdbKey.Nil.GetNextSibling();
-				Log($"# {k}");
-				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
-			}
-			{
 				var k = FdbKey.ToBytes(Slice.Empty).GetNextSibling();
 				Log($"# {k}");
+				Assert.That(k.Parent.Data, Is.EqualTo(Slice.Empty));
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
 			}
 			{
 				var k = FdbKey.ToBytes(Slice.FromBytes([ 0x00 ])).GetNextSibling();
 				Log($"# {k}");
+				Assert.That(k.Parent.Data, Is.EqualTo(Slice.FromBytes([ 0x00 ])));
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x01 ])));
 			}
 			{

@@ -60,9 +60,10 @@ namespace FoundationDB.Client
 		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		[Pure]
+		[Obsolete("Use GetRange() instead")]
 		KeyRange ToRange();
 
-		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
+		/// <summary>Return a range that will match all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		[Pure]
 		FdbRawKeyRange GetRange();
