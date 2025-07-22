@@ -24,8 +24,10 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable VariableLengthStringHexEscapeSequence
 namespace FoundationDB.Client.Tests
 {
+	using SnowBank.Data.Tuples.Binary;
 
 	[TestFixture]
 	[Category("Fdb-Client-InProc")]
@@ -519,7 +521,115 @@ namespace FoundationDB.Client.Tests
 			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI, vs, now, uuid128), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs, now, uuid128));
 			Verify(subspace, subspace.GetKey("Hello", true, STuple.Create("Wörld", STuple.Create(123, Math.PI), vs), now, uuid128), STuple.Create("Hello", true, STuple.Create("Wörld", STuple.Create(123, Math.PI), vs), now, uuid128));
 		}
-		
+
+		[Test]
+		public void Test_FdbSystemKey_Basics()
+		{
+			{ // 0xFF
+				var k = FdbSystemKey.System;
+				Log($"# {k}");
+				Assert.That(k.IsSpecial, Is.False);
+				Assert.That(k.Suffix, Is.EqualTo(Slice.Empty));
+
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0xFF ])));
+
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(false, Slice.Empty)));
+				Assert.That(k, Is.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF ]))));
+				Assert.That(k, Is.EqualTo(Slice.FromBytes([ 0xFF ])));
+				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.System))));
+
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(true, Slice.Empty)));
+				Assert.That(k, Is.Not.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF, 0xFF ]))));
+				Assert.That(k, Is.Not.EqualTo(Slice.FromBytes([ 0xFF, 0xFF ])));
+			}
+			{ // 0xFF 0xFF
+				var k = FdbSystemKey.Special;
+				Log($"# {k}");
+				Assert.That(k.IsSpecial, Is.True);
+				Assert.That(k.Suffix, Is.EqualTo(Slice.Empty));
+
+				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0xFF, 0xFF ])));
+
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(true, Slice.Empty)));
+				Assert.That(k, Is.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF, 0xFF ]))));
+				Assert.That(k, Is.EqualTo(Slice.FromBytes([ 0xFF, 0xFF ])));
+				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.Special))));
+
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(false, Slice.Empty)));
+				Assert.That(k, Is.Not.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF ]))));
+				Assert.That(k, Is.Not.EqualTo(Slice.FromBytes([ 0xFF ])));
+			}
+			{ // System: MetadataVersion
+				var k = FdbKey.CreateSystem("/metadataVersion");
+
+				Log($"# {k}");
+				Assert.That(k.IsSpecial, Is.False);
+				Assert.That(k.Suffix, Is.EqualTo(Slice.FromString("/metadataVersion")));
+
+				var expectedBytes = Slice.FromByteString("\xFF/metadataVersion");
+				Assert.That(k.ToSlice(), Is.EqualTo(expectedBytes));
+
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(special: false, Slice.FromString("/metadataVersion"))));
+				Assert.That(k, Is.EqualTo(new FdbRawKey(expectedBytes)));
+				Assert.That(k, Is.EqualTo(expectedBytes));
+				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.SystemKey("/metadataVersion")))));
+
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: true, Slice.FromString("/metadataVersion"))));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: false, Slice.FromString("/metadataversion"))));
+				Assert.That(k, Is.Not.EqualTo(new FdbVarTupleValue(STuple.Create(TuPackUserType.SpecialKey("/metadataVersion")))));
+
+			}
+			{ // Special: Status Json
+				var k = FdbKey.CreateSpecial("/status/json");
+				Log($"# {k}");
+				Assert.That(k.IsSpecial, Is.True);
+				Assert.That(k.Suffix, Is.EqualTo(Slice.FromString("/status/json")));
+
+				var expectedBytes = Slice.FromByteString("\xFF\xFF/status/json");
+				Assert.That(k.ToSlice(), Is.EqualTo(expectedBytes));
+
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(special: true, Slice.FromString("/status/json"))));
+				Assert.That(k, Is.EqualTo(new FdbRawKey(expectedBytes)));
+				Assert.That(k, Is.EqualTo(expectedBytes));
+				Assert.That(k.Equals(new FdbTupleKey(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))));
+				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))));
+
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: false, Slice.FromString("/status/json"))));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: true, Slice.FromString("/status/JSON"))));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: true, Slice.FromString("/status/json/"))));
+				Assert.That(k, Is.Not.EqualTo(new FdbVarTupleValue(STuple.Create(TuPackUserType.SystemKey("/status/json")))));
+			}
+		}
+
+		[Test]
+		public void Test_FdbSystemKey_Comparisons()
+		{
+			var metadataVersion = FdbKey.CreateSystem("/metadataVersion");
+			var statusJson = FdbKey.CreateSpecial("/status/json");
+
+			Assert.That(FdbSystemKey.System, Is.EqualTo(FdbKey.ToBytes([ 0xFF ])));
+			Assert.That(FdbSystemKey.Special, Is.EqualTo(FdbKey.ToBytes([ 0xFF, 0xFF ])));
+
+			Assert.That(FdbSystemKey.System, Is.LessThan(FdbSystemKey.Special));
+			Assert.That(FdbSystemKey.Special, Is.GreaterThan(FdbSystemKey.System));
+
+			Assert.That(metadataVersion, Is.GreaterThan(FdbSystemKey.System));
+			Assert.That(metadataVersion, Is.LessThan(FdbSystemKey.Special));
+			Assert.That(metadataVersion, Is.GreaterThan(FdbKey.ToBytes("/metadataVersion"u8)));
+
+			Assert.That(statusJson, Is.GreaterThan(FdbSystemKey.System));
+			Assert.That(statusJson, Is.GreaterThan(FdbSystemKey.Special));
+			Assert.That(statusJson, Is.GreaterThan(metadataVersion));
+			Assert.That(metadataVersion, Is.GreaterThan(FdbKey.ToBytes("/status/json"u8)));
+
+			Assert.That(FdbSystemKey.System.AppendBytes("/metadataVersion"), Is.EqualTo(metadataVersion));
+			Assert.That(FdbSystemKey.System.AppendBytes("/metadataVersion").ToSlice(), Is.EqualTo(Slice.FromByteString("\xFF/metadataVersion")));
+
+			Assert.That(FdbSystemKey.Special.AppendBytes("/status/json"), Is.EqualTo(statusJson));
+			Assert.That(FdbSystemKey.Special.AppendBytes("/status/json").ToSlice(), Is.EqualTo(Slice.FromByteString("\xFF\xFF/status/json")));
+			Assert.That(FdbSystemKey.Special.AppendBytes("/status").AppendBytes("/json"), Is.EqualTo(statusJson));
+		}
+
 	}
 
 }

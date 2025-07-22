@@ -29,9 +29,8 @@ namespace FoundationDB.Client
 
 	/// <summary>Factory class for keys</summary>
 	[PublicAPI]
-	public static partial class FdbKey
+	public static class FdbKey
 	{
-
 
 		/// <summary>Maximum allowed size for a key in the database (10,000 bytes)</summary>
 		public const int MaxSize = Fdb.MaxKeySize;
@@ -154,20 +153,28 @@ namespace FoundationDB.Client
 
 		#region Special Keys...
 
-		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
-		/// <param name="suffix"></param>
-		/// <returns></returns>
+		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
 		public static FdbSystemKey CreateSystem(Slice suffix)
 		{
 			return new(special: false, suffix);
 		}
 
+		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
+		public static FdbSystemKey CreateSystem(string suffix)
+		{
+			return new(special: false, Slice.FromString(suffix));
+		}
+
 		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
-		/// <param name="suffix"></param>
-		/// <returns></returns>
 		public static FdbSystemKey CreateSpecial(Slice suffix)
 		{
 			return new(special: true, suffix);
+		}
+
+		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		public static FdbSystemKey CreateSpecial(string suffix)
+		{
+			return new(special: true, Slice.FromString(suffix));
 		}
 
 		#endregion
@@ -205,6 +212,11 @@ namespace FoundationDB.Client
 		#endregion
 
 		#region ToTuple(IKeySubspace, STuple<...>)...
+
+		/// <summary>Returns a key that packs the given items inside the root subspace</summary>
+		/// <param name="items">Elements of the key</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey ToTuple(IVarTuple items) => new(null, items);
 
 		/// <summary>Returns a key that packs the given items inside a subspace</summary>
 		/// <param name="subspace">Subspace that contains the key</param>

@@ -27,10 +27,14 @@
 namespace FoundationDB.Client
 {
 
-	/// <summary>Wraps a <see cref="Slice"/> that wraps a pre-encoded binary suffix, relative to a subspace</summary>
+	/// <summary>Wraps a <see cref="Slice"/> that wraps a key in either the System (<c>`\xFF`</c>) or Special Key (<c>`\xFF\xFF`</c>) subspaces</summary>
 	public readonly struct FdbSystemKey : IFdbKey
 		, IEquatable<FdbSystemKey>, IComparable<FdbSystemKey>
 	{
+
+		public static readonly FdbSystemKey System = new(false, Slice.Empty);
+
+		public static readonly FdbSystemKey Special = new(true, Slice.Empty);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[SkipLocalsInit]
@@ -40,12 +44,51 @@ namespace FoundationDB.Client
 			this.Suffix = suffix;
 		}
 
+		/// <summary>If <c>true</c>, uses the <c>`\xFF\xFF`</c> prefix (for special keys); otherwise, uses the <c>`\xFF`</c> prefix (for regular system keys)</summary>
 		public readonly bool IsSpecial;
 
+		/// <summary>Rest of the key</summary>
 		public readonly Slice Suffix;
 
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => null;
+
+		[Pure]
+		public FdbSystemKey AppendBytes(Slice suffix)
+		{
+			if (suffix.Count == 0) return this;
+
+			if (this.Suffix.Count == 0)
+			{
+				if (!this.IsSpecial && suffix[0] == 0xFF)
+				{
+					return suffix.Count > 1 ? new(special: true, suffix[1..]) : Special;
+				}
+				return new(this.IsSpecial, suffix);
+			}
+
+			return new(special: IsSpecial, this.Suffix + suffix);
+		}
+
+		[Pure]
+		public FdbSystemKey AppendBytes(ReadOnlySpan<byte> suffix)
+		{
+			if (suffix.Length == 0) return this;
+
+			if (this.Suffix.Count == 0)
+			{
+				if (!this.IsSpecial && suffix[0] == 0xFF)
+				{
+					return suffix.Length > 1 ? new(special: true, Slice.FromBytes(suffix[1..])) : Special;
+				}
+				return new(this.IsSpecial, Slice.FromBytes(suffix));
+			}
+
+			return new(special: IsSpecial, this.Suffix.Concat(suffix));
+		}
+
+		[Pure]
+		public FdbSystemKey AppendBytes(string suffix) => AppendBytes(Slice.FromByteString(suffix));
 
 		#region Equals(...)
 
@@ -143,7 +186,9 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-			=> destination.TryWrite(provider, $"`{(this.IsSpecial ? "<FF><FF>" : "<FF>")}{this.Suffix}`", out charsWritten);
+			=> this.Suffix.Count == 0
+				? (this.IsSpecial ? "`<FF><FF>`" : "`<FF>`").TryCopyTo(destination, out charsWritten)
+				: destination.TryWrite(provider, $"`{(this.IsSpecial ? "<FF><FF>" : "<FF>")}{this.Suffix}`", out charsWritten);
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -157,7 +202,7 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint)
 		{
-			sizeHint = (this.IsSpecial ? 2 : 1) + this.Suffix.Count;
+			sizeHint = checked((this.IsSpecial ? 2 : 1) + this.Suffix.Count);
 			return true;
 		}
 
