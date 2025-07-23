@@ -3015,6 +3015,10 @@ namespace FoundationDB.Client.Tests
 			var location = db.Root.ByKey("test", "bigbrother");
 			await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
 			Log("Set to initial value...");
 			await db.WriteAsync(async tr =>
 			{
@@ -3053,6 +3057,113 @@ namespace FoundationDB.Client.Tests
 				var subspace = await location.Resolve(tr);
 				tr.Set(subspace.GetKey("watched"), Text("new value"));
 			}, this.Cancellation);
+
+			Log("Watch should fire...");
+			await Task.WhenAny(w.Task, Task.Delay(1_000, this.Cancellation));
+			if (!w.Task.IsCompleted)
+			{
+				Assert.That(w.Task.Status, Is.EqualTo(TaskStatus.RanToCompletion), "Watch should have fired by now!");
+			}
+			else
+			{
+				await w;
+			}
+		}
+
+		[Test]
+		public async Task Test_Watched_Key_Changed_By_Same_Transaction_Before_Commit_Should_Trigger_Watch()
+		{
+			// Steps:
+			// - T1: set a watch on a key, but does not commit yet
+			// - T1: change the value of the watched key
+			// - T1: commit
+			// Expect:
+			// - Watch should fire as soon as T1 commits
+
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.ByKey("test", "bigbrother");
+			await CleanLocation(db, location);
+
+			Log("Set to initial value...");
+			await db.WriteAsync(async tr =>
+			{
+				var subspace = await location.Resolve(tr);
+				tr.Set(subspace.GetKey("watched"), Text("initial value"));
+			}, this.Cancellation);
+
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
+			using var tr = db.BeginTransaction(this.Cancellation);
+
+			var subspace = await location.Resolve(tr);
+
+			Log("T1: Create watch");
+			var w = tr.Watch(subspace.GetKey("watched"), this.Cancellation);
+
+			Log("T1: Update watched key");
+			tr.Set(subspace.GetKey("watched"), Text("new value"));
+
+			Log("T1: Commit");
+			await tr.CommitAsync();
+
+			Log("Watch should fire...");
+			await Task.WhenAny(w.Task, Task.Delay(1_000, this.Cancellation));
+			if (!w.Task.IsCompleted)
+			{
+				Assert.That(w.Task.Status, Is.EqualTo(TaskStatus.RanToCompletion), "Watch should have fired by now!");
+			}
+			else
+			{
+				await w;
+			}
+		}
+		
+		[Test]
+		public async Task Test_Concurrent_Change_To_Watched_Key_Before_Commit_Should_Still_Trigger_Watch()
+		{
+			// Steps:
+			// - T1: set a watch on a key, but do not commit yet
+			// - T2: update the watched key and commit before T1
+			// - T1: commit after T2
+			// Expect:
+			// - Watch should fire as soon as T1 commits
+
+			using var db = await OpenTestPartitionAsync();
+			var location = db.Root.ByKey("test", "bigbrother");
+			await CleanLocation(db, location);
+
+			Log("Set to initial value...");
+			await db.WriteAsync(async tr =>
+			{
+				var subspace = await location.Resolve(tr);
+				tr.Set(subspace.GetKey("watched"), Text("initial value"));
+			}, this.Cancellation);
+
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
+			using var tr1 = db.BeginTransaction(this.Cancellation);
+
+			var subspace1 = await location.Resolve(tr1);
+
+			Log("T1: Create watch");
+			var w = tr1.Watch(subspace1.GetKey("watched"), this.Cancellation);
+
+			// T2: change the key to the same value
+			using(var tr2 = db.BeginTransaction(this.Cancellation))
+			{
+				var subspace2 = await location.Resolve(tr2);
+				Log("T2: Update watched key");
+				tr2.Set(subspace2.GetKey("watched"), Text("new value"));
+				Log("T2: commit");
+				await tr2.CommitAsync();
+			}
+
+			Log("T1: Commit");
+			await tr1.CommitAsync();
 
 			Log("Watch should fire...");
 			await Task.WhenAny(w.Task, Task.Delay(1_000, this.Cancellation));
