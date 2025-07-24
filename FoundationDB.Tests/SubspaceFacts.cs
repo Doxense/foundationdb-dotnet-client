@@ -59,9 +59,9 @@ namespace FoundationDB.Client.Tests
 			Assert.That(subspace.Append(Slice.FromStringAscii("hello")).ToString(), Is.EqualTo("*<FF><00><7F>hello"));
 
 			// pack(...) should use tuple serialization
-			Assert.That(subspace.GetKey(123).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><15>{"));
-			Assert.That(subspace.GetKey("hello").ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
-			Assert.That(subspace.GetKey(Slice.FromStringAscii("world")).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><01>world<00>"));
+			Assert.That(subspace.Key(123).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><15>{"));
+			Assert.That(subspace.Key("hello").ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
+			Assert.That(subspace.Key(Slice.FromStringAscii("world")).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><01>world<00>"));
 			Assert.That(subspace.Pack(STuple.Create("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
 			Assert.That(subspace.Pack(("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
 
@@ -125,8 +125,8 @@ namespace FoundationDB.Client.Tests
 			Assert.That(subspace.Append(Slice.FromStringAscii("world")).ToString(), Is.EqualTo("<02>hello<00>world"));
 
 			// pack(...) should use tuple serialization
-			Assert.That(subspace.GetKey(123).ToSlice().ToString(), Is.EqualTo("<02>hello<00><15>{"));
-			Assert.That(subspace.GetKey("world").ToSlice().ToString(), Is.EqualTo("<02>hello<00><02>world<00>"));
+			Assert.That(subspace.Key(123).ToSlice().ToString(), Is.EqualTo("<02>hello<00><15>{"));
+			Assert.That(subspace.Key("world").ToSlice().ToString(), Is.EqualTo("<02>hello<00><02>world<00>"));
 
 			// even though the subspace prefix is a tuple, appending to it will only return the new items
 			var k = subspace.Pack(("world", 123, false));
@@ -155,7 +155,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(child.GetPrefix().ToString(), Is.EqualTo("<FE>"));
 
 			// create a key from this child subspace
-			var key = child.AppendBytes(Slice.FromFixed32(0x01020304)).ToSlice();
+			var key = child.Bytes(Slice.FromFixed32(0x01020304)).ToSlice();
 			Assert.That(key.ToString(), Is.EqualTo("<FE><04><03><02><01>"));
 
 			// create another child
@@ -163,7 +163,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(grandChild, Is.Not.Null);
 			Assert.That(grandChild.GetPrefix().ToString(), Is.EqualTo("<FE>hello"));
 
-			key = grandChild.AppendBytes(Slice.FromFixed32(0x01020304)).ToSlice();
+			key = grandChild.Bytes(Slice.FromFixed32(0x01020304)).ToSlice();
 			Assert.That(key.ToString(), Is.EqualTo("<FE>hello<04><03><02><01>"));
 
 			// corner case
@@ -178,12 +178,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(location.Append(Slice.FromString("SUFFIX")).ToString(), Is.EqualTo("PREFIXSUFFIX"));
 
 			// Encode<T...>(...)
-			Assert.That(location.GetKey("hello").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
-			Assert.That(location.GetKey("hello", 123).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
-			Assert.That(location.GetKey("hello", 123, "world").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
-			Assert.That(location.GetKey("hello", 123, "world", 456).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
-			Assert.That(location.GetKey("hello", 123, "world", 456, "!").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
-			Assert.That(location.GetKey("hello", 123, "world", 456, "!", 789).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
+			Assert.That(location.Key("hello").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Key("hello", 123).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Key("hello", 123, "world").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Key("hello", 123, "world", 456).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Key("hello", 123, "world", 456, "!").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
+			Assert.That(location.Key("hello", 123, "world", 456, "!", 789).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
 
 			// Pack(ITuple)
 			Assert.That(location.Pack((IVarTuple) STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));

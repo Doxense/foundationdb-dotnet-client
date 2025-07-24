@@ -321,7 +321,7 @@ namespace FoundationDB.Layers.Collections
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			private FdbTupleKey<long> GetKeyAt(long index)
 			{
-				return this.Subspace.GetKey(index);
+				return this.Subspace.Key(index);
 			}
 
 			#endregion

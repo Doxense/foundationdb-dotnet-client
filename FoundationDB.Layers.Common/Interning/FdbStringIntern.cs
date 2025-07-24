@@ -118,10 +118,10 @@ namespace FoundationDB.Layers.Interning
 			#region Private Helpers...
 
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private FdbTupleKey<Slice, Slice> UidKey(Slice uid) => this.Subspace.GetKey(Uid2StringKey, uid);
+			private FdbTupleKey<Slice, Slice> UidKey(Slice uid) => this.Subspace.Key(Uid2StringKey, uid);
 
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private FdbTupleKey<Slice, string> StringKey(string value) => this.Subspace.GetKey(String2UidKey, value);
+			private FdbTupleKey<Slice, string> StringKey(string value) => this.Subspace.Key(String2UidKey, value);
 
 			/// <summary>Finds a new free uid that can be used to store a new string in the table</summary>
 			/// <param name="trans">Transaction used to look for and create a new uid</param>

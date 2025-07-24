@@ -1089,10 +1089,10 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition.ToSubspace("hello"u8));
 				ShouldFail(() => partition.ToSubspace(TuPack.EncodeKey(123)));
 
-				ShouldFail(() => partition.GetKey(123).ToSubspace());
-				ShouldFail(() => partition.GetKey(123, "hello").ToSubspace());
-				ShouldFail(() => partition.GetKey(123, "hello", false).ToSubspace());
-				ShouldFail(() => partition.GetKey(123, "hello", false, "world").ToSubspace());
+				ShouldFail(() => partition.Key(123).ToSubspace());
+				ShouldFail(() => partition.Key(123, "hello").ToSubspace());
+				ShouldFail(() => partition.Key(123, "hello", false).ToSubspace());
+				ShouldFail(() => partition.Key(123, "hello", false, "world").ToSubspace());
 
 				// Keys
 
@@ -1103,8 +1103,8 @@ namespace FoundationDB.Client.Tests
 				ShouldFail(() => partition[STuple.Create("hello", 123)]);
 
 				ShouldFail(() => partition.GetRange().ToKeyRange());
-				ShouldFail(() => partition.GetKey("hello").StartsWith().ToKeyRange());
-				ShouldFail(() => FdbKeyRange.Between(partition.GetKey("hello", 123), partition.GetKey("hello", 456)).ToKeyRange());
+				ShouldFail(() => partition.Key("hello").ToRange().ToKeyRange());
+				ShouldFail(() => FdbKeyRange.Between(partition.Key("hello", 123), partition.Key("hello", 456)).ToKeyRange());
 
 				// Tuples
 
@@ -1116,17 +1116,17 @@ namespace FoundationDB.Client.Tests
 				// GetKey
 
 				// GetKey() itself should not fail, but attempting to render the bytes should!
-				ShouldPass(() => partition.GetKey(123));
-				ShouldPass(() => partition.GetKey(123, "hello"));
-				ShouldPass(() => partition.GetKey(123, "hello", false));
-				ShouldPass(() => partition.GetKey(123, "hello", false, "world"));
-				ShouldPass(() => partition.GetKey<object>(123));
+				ShouldPass(() => partition.Key(123));
+				ShouldPass(() => partition.Key(123, "hello"));
+				ShouldPass(() => partition.Key(123, "hello", false));
+				ShouldPass(() => partition.Key(123, "hello", false, "world"));
+				ShouldPass(() => partition.Key<object>(123));
 
-				ShouldFail(() => partition.GetKey(123).ToSlice());
-				ShouldFail(() => partition.GetKey(123, "hello").ToSlice());
-				ShouldFail(() => partition.GetKey(123, "hello", false).ToSlice());
-				ShouldFail(() => partition.GetKey(123, "hello", false, "world").ToSlice());
-				ShouldFail(() => partition.GetKey<object>(123).ToSlice());
+				ShouldFail(() => partition.Key(123).ToSlice());
+				ShouldFail(() => partition.Key(123, "hello").ToSlice());
+				ShouldFail(() => partition.Key(123, "hello", false).ToSlice());
+				ShouldFail(() => partition.Key(123, "hello", false, "world").ToSlice());
+				ShouldFail(() => partition.Key<object>(123).ToSlice());
 
 			}, this.Cancellation);
 		}
@@ -1223,10 +1223,10 @@ namespace FoundationDB.Client.Tests
 					var subspace2 = await location.Resolve(tr2, dl);
 					Assert.That(subspace2, Is.Not.Null);
 
-					var first = await dl.RegisterAsync(tr1, FdbPath.Absolute("First"), subspace1.GetKey("abc").ToSlice());
+					var first = await dl.RegisterAsync(tr1, FdbPath.Absolute("First"), subspace1.Key("abc").ToSlice());
 					tr1.Set(first.GetPrefix(), Text("This belongs to the first directory"));
 
-					var second = await dl.RegisterAsync(tr2, FdbPath.Absolute("Second"), subspace2.GetKey("def").ToSlice());
+					var second = await dl.RegisterAsync(tr2, FdbPath.Absolute("Second"), subspace2.Key("def").ToSlice());
 					tr2.Set(second.GetPrefix(), Text("This belongs to the second directory"));
 
 					Log("Committing T1...");

@@ -36,7 +36,7 @@ namespace FoundationDB.Client
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[SkipLocalsInit]
-		internal FdbTupleSuffixKey(TKey parent, TTuple suffix)
+		internal FdbTupleSuffixKey(TKey parent, in TTuple suffix)
 		{
 			this.Parent = parent;
 			this.Suffix = suffix;
@@ -276,6 +276,34 @@ namespace FoundationDB.Client
 		public int CompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 			=> FdbKeyHelpers.CompareTo(in this, in other);
+
+		#endregion
+
+		#region Key...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<FdbSuffixKey, STuple<T1>> Key<T1>(T1 item1) => new(this, new(item1));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<FdbSuffixKey, STuple<T1, T2>> Key<T1, T2>(T1 item1, T2 item2) => new(this, new(item1, item2));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<FdbSuffixKey, STuple<T1, T2, T3>> Key<T1, T2, T3>(T1 item1, T2 item2, T3 item3) => new(this, new(item1, item2, item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<FdbSuffixKey, STuple<T1, T2, T3, T4>> Key<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4) => new(this, new(item1, item2, item3, item4));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<FdbSuffixKey, STuple<T1, T2, T3, T4, T5>> Key<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5) => new(this, new(item1, item2, item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<FdbSuffixKey, STuple<T1, T2, T3, T4, T5, T6>> Key<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6) => new(this, new(item1, item2, item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<FdbSuffixKey, STuple<T1, T2, T3, T4, T5, T6, T7>> Key<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7) => new(this, new(item1, item2, item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<FdbSuffixKey, STuple<T1, T2, T3, T4, T5, T6, T7, T8>> Key<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this, new(item1, item2, item3, item4, item5, item6, item7, item8));
 
 		#endregion
 

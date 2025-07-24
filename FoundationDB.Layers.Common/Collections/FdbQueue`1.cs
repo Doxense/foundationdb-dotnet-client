@@ -117,7 +117,7 @@ namespace FoundationDB.Layers.Collections
 #endif
 
 				//BUGBUG: can be called multiple times per transaction, so need a unique stamp _per_ transaction!!
-				tr.SetVersionStampedKey(this.Subspace.GetKey(tr.CreateUniqueVersionStamp()), this.Parent.Codec.EncodeValue(value));
+				tr.SetVersionStampedKey(this.Subspace.Key(tr.CreateUniqueVersionStamp()), this.Parent.Codec.EncodeValue(value));
 			}
 
 			/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>

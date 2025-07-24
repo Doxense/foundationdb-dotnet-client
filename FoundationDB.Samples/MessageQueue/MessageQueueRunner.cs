@@ -168,7 +168,7 @@ namespace FoundationDB.Samples.Tutorials
 				var subspace = await this.Location.Resolve(tr);
 
 				var counters = await tr.Snapshot
-					.GetRange(subspace.GetKey(FdbWorkerPool.COUNTERS).StartsWith())
+					.GetRange(subspace.Key(FdbWorkerPool.COUNTERS).ToRange())
 					.Select(kvp => new KeyValuePair<string, long>(subspace.DecodeLast<string>(kvp.Key)!, kvp.Value.ToInt64()))
 					.ToListAsync()
 					.ConfigureAwait(false);
@@ -182,25 +182,25 @@ namespace FoundationDB.Samples.Tutorials
 				Console.WriteLine("Dump:");
 
 				Console.WriteLine("> Idle");
-				await foreach(var kvp in tr.Snapshot.GetRange(subspace.GetKey(FdbWorkerPool.IDLE).StartsWith()))
+				await foreach(var kvp in tr.Snapshot.GetRange(subspace.Key(FdbWorkerPool.IDLE).ToRange()))
 				{
 					Console.WriteLine($"- Idle.{subspace.Unpack(kvp.Key)[1..]} = {kvp.Value:V}");
 				}
 
 				Console.WriteLine("> Busy");
-				await tr.Snapshot.GetRange(subspace.GetKey(FdbWorkerPool.BUSY).StartsWith()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(subspace.Key(FdbWorkerPool.BUSY).ToRange()).ForEachAsync((kvp) =>
 				{
 					Console.WriteLine($"- Busy.{subspace.Unpack(kvp.Key)[1..]} = {kvp.Value:V}");
 				});
 
 				Console.WriteLine("> Unassigned");
-				await tr.Snapshot.GetRange(subspace.GetKey(FdbWorkerPool.UNASSIGNED).StartsWith()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(subspace.Key(FdbWorkerPool.UNASSIGNED).ToRange()).ForEachAsync((kvp) =>
 				{
 					Console.WriteLine($"- Unassigned.{subspace.Unpack(kvp.Key)[1..]} = {kvp.Value:V}");
 				});
 
 				Console.WriteLine("> Tasks");
-				await tr.Snapshot.GetRange(subspace.GetKey(FdbWorkerPool.TASKS).StartsWith()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(subspace.Key(FdbWorkerPool.TASKS).ToRange()).ForEachAsync((kvp) =>
 				{
 					Console.WriteLine($"- Tasks.{subspace.Unpack(kvp.Key)[1..]} = {kvp.Value:V}");
 				});

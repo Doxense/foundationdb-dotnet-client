@@ -552,7 +552,7 @@ namespace FoundationDB.Client
 					if (AnnotateTransactions) tr.Annotate($"Looking for child {path[i]} under node {FdbKey.Dump(current)}...");
 
 					// maybe use the node cache, if allowed
-					current = await tr.GetAsync(partition.Nodes.GetKey(current, SUBDIRS, path[i].Name)).ConfigureAwait(false);
+					current = await tr.GetAsync(partition.Nodes.Key(current, SUBDIRS, path[i].Name)).ConfigureAwait(false);
 
 					if (current.IsNull)
 					{
@@ -779,8 +779,8 @@ namespace FoundationDB.Client
 
 				if (prefix.IsNull)
 				{ // automatically allocate a new prefix inside the ContentSubspace
-					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.GetKey(partition.Nodes.GetPrefix(), HcaAttribute).ToSubspace(), this.Allocator).ConfigureAwait(false);
-					prefix = partition.Content.GetKey(id).ToSlice();
+					long id = await FdbHighContentionAllocator.AllocateAsync(trans, partition.Nodes.Key(partition.Nodes.GetPrefix(), HcaAttribute).ToSubspace(), this.Allocator).ConfigureAwait(false);
+					prefix = partition.Content.Key(id).ToSlice();
 
 					// ensure that there is no data already present under this prefix
 					if (AnnotateTransactions) trans.Annotate($"Ensure that there is no data already present under prefix {prefix:K}");
@@ -810,7 +810,7 @@ namespace FoundationDB.Client
 
 				if (AnnotateTransactions) trans.Annotate($"Registering the new prefix {prefix:K} into the folder sub-tree");
 
-				trans.Set(partition.Nodes.GetKey(parentPrefix, SUBDIRS, path.Name), prefix);
+				trans.Set(partition.Nodes.Key(parentPrefix, SUBDIRS, path.Name), prefix);
 
 				// initialize the new folder
 				SetLayer(trans, partition, prefix, layer);
@@ -904,7 +904,7 @@ namespace FoundationDB.Client
 					trans.TouchMetadataVersionKey();
 				}
 
-				trans.Set(parentPartition.Nodes.GetKey(parentPrefix, SUBDIRS, newPath.Name), oldNode.PrefixInParentPartition);
+				trans.Set(parentPartition.Nodes.Key(parentPrefix, SUBDIRS, newPath.Name), oldNode.PrefixInParentPartition);
 
 				await RemoveFromParent(trans, oldPath).ConfigureAwait(false);
 
@@ -1094,8 +1094,8 @@ namespace FoundationDB.Client
 
 				var kvp = await tr
 					.GetRange(
-						partition.Nodes.GetKey(),
-						partition.Nodes.GetKey(key).GetSuccessor()
+						partition.Nodes.Key(),
+						partition.Nodes.Key(key).Successor()
 					)
 					.LastOrDefaultAsync()
 					.ConfigureAwait(false);
@@ -1135,7 +1135,7 @@ namespace FoundationDB.Client
 				Contract.Debug.Requires(tr != null && partition != null);
 
 				var items = await tr
-					.GetRange(partition.Nodes.GetKey(prefix, SUBDIRS).StartsWith())
+					.GetRange(partition.Nodes.Key(prefix, SUBDIRS).ToRange())
 					.Select(kvp => (Name: partition.Nodes.DecodeLast<string>(kvp.Key) ?? string.Empty, Prefix: kvp.Value))
 					.ToListAsync()
 					.ConfigureAwait(false);
@@ -1188,8 +1188,8 @@ namespace FoundationDB.Client
 				tr.ClearRange(KeyRange.StartsWith(prefix));
 
 				// and all the metadata for this folder
-				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.GetKey(prefix)}");
-				tr.ClearRange(partition.Nodes.GetKey(prefix).StartsWith(inclusive: true));
+				if (AnnotateTransactions) tr.Annotate($"Removing all metadata for folder under {partition.Nodes.Key(prefix)}");
+				tr.ClearRange(partition.Nodes.Key(prefix).ToRange(inclusive: true));
 			}
 
 			private async Task<bool> IsPrefixFree(IFdbReadOnlyTransaction tr, PartitionDescriptor partition, Slice prefix)
@@ -1210,8 +1210,8 @@ namespace FoundationDB.Client
 
 				return !(await tr
 					.GetRange(
-						partition.Nodes.GetKey(prefix),
-						partition.Nodes.GetKey(prefix).GetNextSibling()
+						partition.Nodes.Key(prefix),
+						partition.Nodes.Key(prefix).NextSibling()
 					)
 					.AnyAsync()
 					.ConfigureAwait(false));
@@ -1223,7 +1223,7 @@ namespace FoundationDB.Client
 
 				// for a path equal to ("foo","bar","baz") and index = -1, we need to generate (parent, SUBDIRS, "baz")
 				// but since the last item of path can be of any type, we will use tuple splicing to copy the last item without changing its type
-				return partition.Nodes.GetKey(prefix, SUBDIRS, segment).ToSlice();
+				return partition.Nodes.Key(prefix, SUBDIRS, segment).ToSlice();
 			}
 
 			/// <summary>Ensure that this transaction can perform mutation operations</summary>
@@ -1584,13 +1584,13 @@ namespace FoundationDB.Client
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public FdbTupleKey<Slice, Slice> GetVersionKey() => this.Nodes.GetKey(this.Nodes.GetPrefix(), VersionAttribute);
+			public FdbTupleKey<Slice, Slice> GetVersionKey() => this.Nodes.Key(this.Nodes.GetPrefix(), VersionAttribute);
 
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public FdbTupleKey<Slice, Slice> GetStampKey() => this.Nodes.GetKey(this.Nodes.GetPrefix(), StampAttribute);
+			public FdbTupleKey<Slice, Slice> GetStampKey() => this.Nodes.Key(this.Nodes.GetPrefix(), StampAttribute);
 
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public FdbTupleKey<Slice, Slice> GetLayerIdKey(Slice prefix) => this.Nodes.GetKey(prefix, LayerAttribute);
+			public FdbTupleKey<Slice, Slice> GetLayerIdKey(Slice prefix) => this.Nodes.Key(prefix, LayerAttribute);
 
 			/// <summary>Return a child partition of the current partition</summary>
 			public PartitionDescriptor CreateChild(FdbPath path, Slice prefix)

@@ -83,7 +83,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
-					var value = await tr.GetAsync(foos.Subspace.AsDynamic().GetKey("hello"));
+					var value = await tr.GetAsync(foos.Subspace.AsDynamic().Key("hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToString(), Is.EqualTo(secret));
 				}, this.Cancellation);
@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 					// also check directly
 					var folder = await location.Resolve(tr);
-					var data = await tr.GetAsync(folder.GetKey("Foos", "hello"));
+					var data = await tr.GetAsync(folder.Key("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);
 

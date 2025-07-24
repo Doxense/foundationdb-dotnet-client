@@ -102,7 +102,7 @@ namespace FoundationDB.Layers.Counters
 
 				//REVIEW: we could no-op if value == 0 but this may change conflict behaviour for other transactions...
 				var pk = this.Parent.Codec.EncodeKey(counterKey);
-				transaction.AtomicAdd64(this.Subspace.GetKey(pk), value);
+				transaction.AtomicAdd64(this.Subspace.Key(pk), value);
 			}
 
 			/// <summary>Subtract a value from a counter in one atomic operation</summary>
@@ -137,7 +137,7 @@ namespace FoundationDB.Layers.Counters
 				Contract.NotNull(counterKey);
 
 				var pk = this.Parent.Codec.EncodeKey(counterKey);
-				var data = await transaction.GetAsync(this.Subspace.GetKey(pk)).ConfigureAwait(false);
+				var data = await transaction.GetAsync(this.Subspace.Key(pk)).ConfigureAwait(false);
 				return data.IsNullOrEmpty ? null : data.ToInt64();
 			}
 
@@ -153,10 +153,10 @@ namespace FoundationDB.Layers.Counters
 				Contract.NotNull(counterKey);
 
 				var pk = this.Parent.Codec.EncodeKey(counterKey);
-				var res = await transaction.GetAsync(this.Subspace.GetKey(pk)).ConfigureAwait(false);
+				var res = await transaction.GetAsync(this.Subspace.Key(pk)).ConfigureAwait(false);
 
 				if (!res.IsNullOrEmpty) value += res.ToInt64();
-				transaction.Set(this.Subspace.GetKey(pk), Slice.FromFixed64(value));
+				transaction.Set(this.Subspace.Key(pk), Slice.FromFixed64(value));
 
 				return value;
 			}
@@ -182,10 +182,10 @@ namespace FoundationDB.Layers.Counters
 				Contract.NotNull(counterKey);
 
 				var pk = this.Parent.Codec.EncodeKey(counterKey);
-				var res = await transaction.GetAsync(this.Subspace.GetKey(pk)).ConfigureAwait(false);
+				var res = await transaction.GetAsync(this.Subspace.Key(pk)).ConfigureAwait(false);
 
 				long previous = res.IsNullOrEmpty ? 0 : res.ToInt64();
-				transaction.Set(this.Subspace.GetKey(pk), Slice.FromFixed64(value + previous));
+				transaction.Set(this.Subspace.Key(pk), Slice.FromFixed64(value + previous));
 
 				return previous;
 			}

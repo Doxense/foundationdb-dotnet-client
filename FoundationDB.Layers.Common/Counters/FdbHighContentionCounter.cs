@@ -80,8 +80,8 @@ namespace FoundationDB.Layers.Counters
 				bool right;
 				lock (this.Rng) { right = this.Rng.NextDouble() < 0.5; }
 				var query = right
-					? tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.GetKey(loc), subspace.GetLastKey()), new() { Limit = limit })
-					: tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.GetFirstKey(), subspace.GetKey(loc)), new() { Limit = limit , IsReversed = true });
+					? tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.Key(loc), subspace.Last()), new() { Limit = limit })
+					: tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.GetFirstKey(), subspace.Key(loc)), new() { Limit = limit , IsReversed = true });
 				var shards = await query.ToListAsync().ConfigureAwait(false);
 
 				if (shards.Count > 0)
@@ -94,7 +94,7 @@ namespace FoundationDB.Layers.Counters
 						tr.Clear(shard.Key);
 					}
 
-					tr.Set(subspace.GetKey(RandomId()), FdbValue.ToTuple(total));
+					tr.Set(subspace.Key(RandomId()), FdbValue.ToTuple(total));
 
 				}
 			}, ct);
@@ -164,7 +164,7 @@ namespace FoundationDB.Layers.Counters
 			var subspace = await this.Location.TryResolve(trans);
 			if (subspace == null) throw new InvalidOperationException($"Location '{this.Location} referenced by High Contention Counter Layer was not found.");
 
-			trans.Set(subspace.GetKey(RandomId()), FdbValue.ToTuple(x));
+			trans.Set(subspace.Key(RandomId()), FdbValue.ToTuple(x));
 
 			// decide if we must coalesce
 			//note: Random() is not thread-safe so we must lock

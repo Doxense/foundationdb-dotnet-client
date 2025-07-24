@@ -101,7 +101,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
 					var loc = foos.Subspace.AsDynamic();
-					var value = await tr.GetAsync(loc.GetKey("hello", "world"));
+					var value = await tr.GetAsync(loc.Key("hello", "world"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToInt64(), Is.EqualTo(1));
 				}, this.Cancellation);
@@ -120,7 +120,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 					// also check directly
 					var loc = foos.Subspace.AsDynamic();
-					var data = await tr.GetAsync(loc.GetKey("hello", "world"));
+					var data = await tr.GetAsync(loc.Key("hello", "world"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);
 

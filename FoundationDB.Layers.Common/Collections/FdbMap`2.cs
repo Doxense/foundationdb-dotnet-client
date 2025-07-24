@@ -141,7 +141,7 @@ namespace FoundationDB.Layers.Collections
 				var pk = this.Parent.KeyCodec.EncodeKey(id);
 
 				var (data, found) = await trans.GetAsync(
-					this.Subspace.GetKey(pk),
+					this.Subspace.Key(pk),
 					(value, found) => found ? (this.Parent.ValueCodec.DecodeValue(value), true) : (default, false)
 				).ConfigureAwait(false);
 
@@ -160,7 +160,7 @@ namespace FoundationDB.Layers.Collections
 				var pk = this.Parent.KeyCodec.EncodeKey(id);
 
 				return await trans.GetAsync(
-					this.Subspace.GetKey(pk),
+					this.Subspace.Key(pk),
 					(value, found) => found ? (this.Parent.ValueCodec.DecodeValue(value), true) : (default, false)
 				).ConfigureAwait(false);
 			}
@@ -177,7 +177,7 @@ namespace FoundationDB.Layers.Collections
 
 				var pk = this.Parent.KeyCodec.EncodeKey(id);
 
-				trans.Set(this.Subspace.GetKey(pk), this.Parent.ValueCodec.EncodeValue(value));
+				trans.Set(this.Subspace.Key(pk), this.Parent.ValueCodec.EncodeValue(value));
 			}
 
 			/// <summary>Removes a single entry from the map</summary>
@@ -189,7 +189,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(id);
 
-				trans.Clear(this.Subspace.GetKey(id));
+				trans.Clear(this.Subspace.Key(id));
 			}
 
 			/// <summary>Creates a query that will attempt to read all the entries in the map within a single transaction.</summary>
@@ -216,7 +216,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(ids);
 
 				//PERF: TODO: implement GetValuesAsync<> that also takes a value codec?
-				var kv = await trans.GetValuesAsync(ids, id => this.Subspace.GetKey(this.Parent.KeyCodec.EncodeKey(id))).ConfigureAwait(false);
+				var kv = await trans.GetValuesAsync(ids, id => this.Subspace.Key(this.Parent.KeyCodec.EncodeKey(id))).ConfigureAwait(false);
 				if (kv.Length == 0) return [ ];
 
 				var result = new TValue?[kv.Length];

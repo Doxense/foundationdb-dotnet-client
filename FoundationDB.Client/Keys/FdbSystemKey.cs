@@ -32,13 +32,13 @@ namespace FoundationDB.Client
 		, IEquatable<FdbSystemKey>, IComparable<FdbSystemKey>
 	{
 
-		public static readonly FdbSystemKey System = new(false, Slice.Empty);
+		public static readonly FdbSystemKey System = new(Slice.Empty, special: false);
 
-		public static readonly FdbSystemKey Special = new(true, Slice.Empty);
+		public static readonly FdbSystemKey Special = new(Slice.Empty, special: true);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[SkipLocalsInit]
-		internal FdbSystemKey(bool special, Slice suffix)
+		internal FdbSystemKey(Slice suffix, bool special)
 		{
 			this.IsSpecial = special;
 			this.Suffix = suffix;
@@ -54,7 +54,7 @@ namespace FoundationDB.Client
 		IKeySubspace? IFdbKey.GetSubspace() => null;
 
 		[Pure]
-		public FdbSystemKey AppendBytes(Slice suffix)
+		public FdbSystemKey Bytes(Slice suffix)
 		{
 			if (suffix.Count == 0) return this;
 
@@ -62,16 +62,16 @@ namespace FoundationDB.Client
 			{
 				if (!this.IsSpecial && suffix[0] == 0xFF)
 				{
-					return suffix.Count > 1 ? new(special: true, suffix[1..]) : Special;
+					return suffix.Count > 1 ? new(suffix[1..], special: true) : Special;
 				}
-				return new(this.IsSpecial, suffix);
+				return new(suffix, this.IsSpecial);
 			}
 
-			return new(special: IsSpecial, this.Suffix + suffix);
+			return new(this.Suffix + suffix, special: IsSpecial);
 		}
 
 		[Pure]
-		public FdbSystemKey AppendBytes(ReadOnlySpan<byte> suffix)
+		public FdbSystemKey Bytes(ReadOnlySpan<byte> suffix)
 		{
 			if (suffix.Length == 0) return this;
 
@@ -79,16 +79,16 @@ namespace FoundationDB.Client
 			{
 				if (!this.IsSpecial && suffix[0] == 0xFF)
 				{
-					return suffix.Length > 1 ? new(special: true, Slice.FromBytes(suffix[1..])) : Special;
+					return suffix.Length > 1 ? new(Slice.FromBytes(suffix[1..]), special: true) : Special;
 				}
-				return new(this.IsSpecial, Slice.FromBytes(suffix));
+				return new(Slice.FromBytes(suffix), this.IsSpecial);
 			}
 
-			return new(special: IsSpecial, this.Suffix.Concat(suffix));
+			return new(this.Suffix.Concat(suffix), special: IsSpecial);
 		}
 
 		[Pure]
-		public FdbSystemKey AppendBytes(string suffix) => AppendBytes(Slice.FromByteString(suffix));
+		public FdbSystemKey Bytes(string suffix) => Bytes(Slice.FromByteString(suffix));
 
 		#region Equals(...)
 

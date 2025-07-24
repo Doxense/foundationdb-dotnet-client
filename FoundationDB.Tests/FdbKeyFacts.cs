@@ -42,7 +42,7 @@ namespace FoundationDB.Client.Tests
 			FdbRawKey world = Slice.FromBytes("world"u8);
 
 			{ // Empty
-				var k = FdbKey.ToBytes(Slice.Empty);
+				var k = FdbKey.FromBytes(Slice.Empty);
 				Assert.That(k.Data, Is.EqualTo(Slice.Empty));
 				Assert.That(((IFdbKey) k).GetSubspace(), Is.Null);
 
@@ -55,7 +55,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(k.CompareTo(Slice.Empty), Is.Zero);
 			}
 			{ // Not Empty
-				var k = FdbKey.ToBytes("hello"u8);
+				var k = FdbKey.FromBytes("hello"u8);
 				Assert.That(k.Data, Is.EqualTo(hello));
 				Assert.That(((IFdbKey) k).GetSubspace(), Is.Null);
 
@@ -81,7 +81,7 @@ namespace FoundationDB.Client.Tests
 				{ // Slice
 					var rawKey = value;
 
-					var key = FdbKey.ToBytes(rawKey);
+					var key = FdbKey.FromBytes(rawKey);
 					Assert.That(key.ToSlice(), Is.EqualTo(rawKey));
 					Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToSlice()).EqualTo(rawKey));
 					Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Count));
@@ -91,7 +91,7 @@ namespace FoundationDB.Client.Tests
 				{ // byte[]
 					var rawKey = value.ToArray();
 
-					var key = FdbKey.ToBytes(rawKey);
+					var key = FdbKey.FromBytes(rawKey);
 					Assert.That(key.ToSlice().ToArray(), Is.EqualTo(rawKey));
 					Assert.That(key.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(rawKey));
 					Assert.That(key.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawKey.Length));
@@ -114,23 +114,23 @@ namespace FoundationDB.Client.Tests
 			var now = DateTime.Now;
 			var vs = VersionStamp.FromUuid80(Uuid80.NewUuid());
 
-			var k1 = subspace.GetKey("hello");
-			var k2 = subspace.GetKey("hello", 123);
-			var k3 = subspace.GetKey("hello", 123, "world");
-			var k4 = subspace.GetKey("hello", 123, "world", true);
-			var k5 = subspace.GetKey("hello", 123, "world", true, Math.PI);
-			var k6 = subspace.GetKey("hello", 123, "world", true, Math.PI, g);
-			var k7 = subspace.GetKey("hello", 123, "world", true, Math.PI, g, now);
-			var k8 = subspace.GetKey("hello", 123, "world", true, Math.PI, g, now, vs);
+			var k1 = subspace.Key("hello");
+			var k2 = subspace.Key("hello", 123);
+			var k3 = subspace.Key("hello", 123, "world");
+			var k4 = subspace.Key("hello", 123, "world", true);
+			var k5 = subspace.Key("hello", 123, "world", true, Math.PI);
+			var k6 = subspace.Key("hello", 123, "world", true, Math.PI, g);
+			var k7 = subspace.Key("hello", 123, "world", true, Math.PI, g, now);
+			var k8 = subspace.Key("hello", 123, "world", true, Math.PI, g, now, vs);
 
-			var kv1 = subspace.GetTuple((IVarTuple) STuple.Create("hello"));
-			var kv2 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123));
-			var kv3 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world"));
-			var kv4 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true));
-			var kv5 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI));
-			var kv6 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g));
-			var kv7 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now));
-			var kv8 = subspace.GetTuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now, vs));
+			var kv1 = subspace.Tuple((IVarTuple) STuple.Create("hello"));
+			var kv2 = subspace.Tuple((IVarTuple) STuple.Create("hello", 123));
+			var kv3 = subspace.Tuple((IVarTuple) STuple.Create("hello", 123, "world"));
+			var kv4 = subspace.Tuple((IVarTuple) STuple.Create("hello", 123, "world", true));
+			var kv5 = subspace.Tuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI));
+			var kv6 = subspace.Tuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g));
+			var kv7 = subspace.Tuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now));
+			var kv8 = subspace.Tuple((IVarTuple) STuple.Create("hello", 123, "world", true, Math.PI, g, now, vs));
 
 			Assert.Multiple(() =>
 			{ // T1
@@ -146,14 +146,14 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k1.Equals(k1), Is.True);
 				Assert.That(k1.Equals(kv1), Is.True);
-				Assert.That(k1.Equals(subspace.GetKey("hello")), Is.True);
-				Assert.That(k1.Equals(child.GetKey()), Is.True);
+				Assert.That(k1.Equals(subspace.Key("hello")), Is.True);
+				Assert.That(k1.Equals(child.Key()), Is.True);
 				Assert.That(k1.Equals(TuPack.EncodeKey(42, "hello")), Is.True);
 
 				Assert.That(k1.Equals(k2), Is.False);
 				Assert.That(k1.Equals(kv2), Is.False);
-				Assert.That(k1.Equals(other.GetKey("hello")), Is.False);
-				Assert.That(k1.Equals(subspace.GetKey("world")), Is.False);
+				Assert.That(k1.Equals(other.Key("hello")), Is.False);
+				Assert.That(k1.Equals(subspace.Key("world")), Is.False);
 			});
 			Assert.Multiple(() =>
 			{ // T1, T2
@@ -168,15 +168,15 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k2.Equals(k2), Is.True);
 				Assert.That(k2.Equals(kv2), Is.True);
-				Assert.That(k2.Equals(subspace.GetKey("hello", 123)), Is.True);
-				Assert.That(k2.Equals(child.GetKey(123)), Is.True);
+				Assert.That(k2.Equals(subspace.Key("hello", 123)), Is.True);
+				Assert.That(k2.Equals(child.Key(123)), Is.True);
 				Assert.That(k2.Equals(TuPack.EncodeKey(42, "hello", 123)), Is.True);
-				Assert.That(k2.Equals(subspace.AppendBytes(TuPack.EncodeKey("hello", 123))), Is.True);
-				Assert.That(k2.Equals(subspace.GetKey("hello").AppendBytes(TuPack.EncodeKey(123))), Is.True);
+				Assert.That(k2.Equals(subspace.Bytes(TuPack.EncodeKey("hello", 123))), Is.True);
+				Assert.That(k2.Equals(subspace.Key("hello").Bytes(TuPack.EncodeKey(123))), Is.True);
 
-				Assert.That(k2.Equals(other.GetKey("hello", 123)), Is.False);
-				Assert.That(k2.Equals(subspace.GetKey("world", 123)), Is.False);
-				Assert.That(k2.Equals(subspace.GetKey("hello", 456)), Is.False);
+				Assert.That(k2.Equals(other.Key("hello", 123)), Is.False);
+				Assert.That(k2.Equals(subspace.Key("world", 123)), Is.False);
+				Assert.That(k2.Equals(subspace.Key("hello", 456)), Is.False);
 			});
 			Assert.Multiple(() =>
 			{ // T1, T2, T3
@@ -192,7 +192,7 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k3.Equals(k3), Is.True);
 				Assert.That(k3.Equals(kv3), Is.True);
-				Assert.That(k3.Equals(subspace.GetKey("hello", 123, "world")), Is.True);
+				Assert.That(k3.Equals(subspace.Key("hello", 123, "world")), Is.True);
 
 			});
 			Assert.Multiple(() =>
@@ -210,7 +210,7 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k4.Equals(k4), Is.True);
 				Assert.That(k4.Equals(kv4), Is.True);
-				Assert.That(k4.Equals(subspace.GetKey("hello", 123, "world", true)), Is.True);
+				Assert.That(k4.Equals(subspace.Key("hello", 123, "world", true)), Is.True);
 			});
 			Assert.Multiple(() =>
 			{ // T1, T2, T3, T4, T5
@@ -228,7 +228,7 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k5.Equals(k5), Is.True);
 				Assert.That(k5.Equals(kv5), Is.True);
-				Assert.That(k5.Equals(subspace.GetKey("hello", 123, "world", true, Math.PI)), Is.True);
+				Assert.That(k5.Equals(subspace.Key("hello", 123, "world", true, Math.PI)), Is.True);
 			});
 			Assert.Multiple(() =>
 			{ // T1, T2, T3, T4, T5, T6
@@ -247,7 +247,7 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k6.Equals(k6), Is.True);
 				Assert.That(k6.Equals(kv6), Is.True);
-				Assert.That(k6.Equals(subspace.GetKey("hello", 123, "world", true, Math.PI, g)), Is.True);
+				Assert.That(k6.Equals(subspace.Key("hello", 123, "world", true, Math.PI, g)), Is.True);
 			});
 			Assert.Multiple(() =>
 			{ // T1, T2, T3, T4, T5, T6, T7
@@ -267,7 +267,7 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k7.Equals(k7), Is.True);
 				Assert.That(k7.Equals(kv7), Is.True);
-				Assert.That(k7.Equals(subspace.GetKey("hello", 123, "world", true, Math.PI, g, now)), Is.True);
+				Assert.That(k7.Equals(subspace.Key("hello", 123, "world", true, Math.PI, g, now)), Is.True);
 			});
 			Assert.Multiple(() =>
 			{ // T1, T2, T3, T4, T5, T6, T7, T8
@@ -287,7 +287,7 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k8.Equals(k8), Is.True);
 				Assert.That(k8.Equals(kv8), Is.True);
-				Assert.That(k8.Equals(subspace.GetKey("hello", 123, "world", true, Math.PI, g, now, vs)), Is.True);
+				Assert.That(k8.Equals(subspace.Key("hello", 123, "world", true, Math.PI, g, now, vs)), Is.True);
 			});
 
 			// Append Matrix
@@ -295,46 +295,46 @@ namespace FoundationDB.Client.Tests
 			Assert.Multiple(() =>
 			{
 				// T1
-				Assert.That(k1.AppendKey(123), Is.EqualTo(k2));
-				Assert.That(k1.AppendKey(123, "world"), Is.EqualTo(k3));
-				Assert.That(k1.AppendKey(123, "world", true), Is.EqualTo(k4));
-				Assert.That(k1.AppendKey(123, "world", true, Math.PI), Is.EqualTo(k5));
-				Assert.That(k1.AppendKey(123, "world", true, Math.PI, g), Is.EqualTo(k6));
-				Assert.That(k1.AppendKey(123, "world", true, Math.PI, g, now), Is.EqualTo(k7));
-				Assert.That(k1.AppendKey(123, "world", true, Math.PI, g, now, vs), Is.EqualTo(k8));
+				Assert.That(k1.Key(123), Is.EqualTo(k2));
+				Assert.That(k1.Key(123, "world"), Is.EqualTo(k3));
+				Assert.That(k1.Key(123, "world", true), Is.EqualTo(k4));
+				Assert.That(k1.Key(123, "world", true, Math.PI), Is.EqualTo(k5));
+				Assert.That(k1.Key(123, "world", true, Math.PI, g), Is.EqualTo(k6));
+				Assert.That(k1.Key(123, "world", true, Math.PI, g, now), Is.EqualTo(k7));
+				Assert.That(k1.Key(123, "world", true, Math.PI, g, now, vs), Is.EqualTo(k8));
 
 				// T2
-				Assert.That(k2.AppendKey("world"), Is.EqualTo(k3));
-				Assert.That(k2.AppendKey("world", true), Is.EqualTo(k4));
-				Assert.That(k2.AppendKey("world", true, Math.PI), Is.EqualTo(k5));
-				Assert.That(k2.AppendKey("world", true, Math.PI, g), Is.EqualTo(k6));
-				Assert.That(k2.AppendKey("world", true, Math.PI, g, now), Is.EqualTo(k7));
-				Assert.That(k2.AppendKey("world", true, Math.PI, g, now, vs), Is.EqualTo(k8));
+				Assert.That(k2.Key("world"), Is.EqualTo(k3));
+				Assert.That(k2.Key("world", true), Is.EqualTo(k4));
+				Assert.That(k2.Key("world", true, Math.PI), Is.EqualTo(k5));
+				Assert.That(k2.Key("world", true, Math.PI, g), Is.EqualTo(k6));
+				Assert.That(k2.Key("world", true, Math.PI, g, now), Is.EqualTo(k7));
+				Assert.That(k2.Key("world", true, Math.PI, g, now, vs), Is.EqualTo(k8));
 
 				// T3
-				Assert.That(k3.AppendKey(true), Is.EqualTo(k4));
-				Assert.That(k3.AppendKey(true, Math.PI), Is.EqualTo(k5));
-				Assert.That(k3.AppendKey(true, Math.PI, g), Is.EqualTo(k6));
-				Assert.That(k3.AppendKey(true, Math.PI, g, now), Is.EqualTo(k7));
-				Assert.That(k3.AppendKey(true, Math.PI, g, now, vs), Is.EqualTo(k8));
+				Assert.That(k3.Key(true), Is.EqualTo(k4));
+				Assert.That(k3.Key(true, Math.PI), Is.EqualTo(k5));
+				Assert.That(k3.Key(true, Math.PI, g), Is.EqualTo(k6));
+				Assert.That(k3.Key(true, Math.PI, g, now), Is.EqualTo(k7));
+				Assert.That(k3.Key(true, Math.PI, g, now, vs), Is.EqualTo(k8));
 
 				// T4
-				Assert.That(k4.AppendKey(Math.PI), Is.EqualTo(k5));
-				Assert.That(k4.AppendKey(Math.PI, g), Is.EqualTo(k6));
-				Assert.That(k4.AppendKey(Math.PI, g, now), Is.EqualTo(k7));
-				Assert.That(k4.AppendKey(Math.PI, g, now, vs), Is.EqualTo(k8));
+				Assert.That(k4.Key(Math.PI), Is.EqualTo(k5));
+				Assert.That(k4.Key(Math.PI, g), Is.EqualTo(k6));
+				Assert.That(k4.Key(Math.PI, g, now), Is.EqualTo(k7));
+				Assert.That(k4.Key(Math.PI, g, now, vs), Is.EqualTo(k8));
 
 				// T5
-				Assert.That(k5.AppendKey(g), Is.EqualTo(k6));
-				Assert.That(k5.AppendKey(g, now), Is.EqualTo(k7));
-				Assert.That(k5.AppendKey(g, now, vs), Is.EqualTo(k8));
+				Assert.That(k5.Key(g), Is.EqualTo(k6));
+				Assert.That(k5.Key(g, now), Is.EqualTo(k7));
+				Assert.That(k5.Key(g, now, vs), Is.EqualTo(k8));
 
 				// T6
-				Assert.That(k6.AppendKey(now), Is.EqualTo(k7));
-				Assert.That(k6.AppendKey(now, vs), Is.EqualTo(k8));
+				Assert.That(k6.Key(now), Is.EqualTo(k7));
+				Assert.That(k6.Key(now, vs), Is.EqualTo(k8));
 
 				// T7
-				Assert.That(k7.AppendKey(vs), Is.EqualTo(k8));
+				Assert.That(k7.Key(vs), Is.EqualTo(k8));
 			});
 		}
 
@@ -348,7 +348,7 @@ namespace FoundationDB.Client.Tests
 				Log($"# {prefix:x} + {items}: -> {packed:x}");
 				if (!packed.StartsWith(prefix)) throw new InvalidOperationException();
 
-				var key = subspace.GetTuple(items);
+				var key = subspace.Tuple(items);
 
 				Assert.That(key.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero, "");
 				Assert.That(key.TryGetSizeHint(out int size), Is.False.WithOutput(size).Zero);
@@ -499,16 +499,16 @@ namespace FoundationDB.Client.Tests
 			var now = DateTime.Now;
 			var vs = VersionStamp.Incomplete(0x1234);
 			var uuid128 = Uuid128.NewUuid();
-			Verify(subspace, subspace.GetKey(), STuple.Create());
-			Verify(subspace, subspace.GetKey("Hello"), STuple.Create("Hello"));
-			Verify(subspace, subspace.GetKey("Héllo", "Wörld!"), STuple.Create("Héllo", "Wörld!"));
-			Verify(subspace, subspace.GetKey("Hello", true, "Wörld"), STuple.Create("Hello", true, "Wörld"));
-			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123), STuple.Create("Hello", true, "Wörld", 123));
-			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI), STuple.Create("Hello", true, "Wörld", 123, Math.PI));
-			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI, vs), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs));
-			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI, vs, now), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs, now));
-			Verify(subspace, subspace.GetKey("Hello", true, "Wörld", 123, Math.PI, vs, now, uuid128), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs, now, uuid128));
-			Verify(subspace, subspace.GetKey("Hello", true, STuple.Create("Wörld", STuple.Create(123, Math.PI), vs), now, uuid128), STuple.Create("Hello", true, STuple.Create("Wörld", STuple.Create(123, Math.PI), vs), now, uuid128));
+			Verify(subspace, subspace.Key(), STuple.Create());
+			Verify(subspace, subspace.Key("Hello"), STuple.Create("Hello"));
+			Verify(subspace, subspace.Key("Héllo", "Wörld!"), STuple.Create("Héllo", "Wörld!"));
+			Verify(subspace, subspace.Key("Hello", true, "Wörld"), STuple.Create("Hello", true, "Wörld"));
+			Verify(subspace, subspace.Key("Hello", true, "Wörld", 123), STuple.Create("Hello", true, "Wörld", 123));
+			Verify(subspace, subspace.Key("Hello", true, "Wörld", 123, Math.PI), STuple.Create("Hello", true, "Wörld", 123, Math.PI));
+			Verify(subspace, subspace.Key("Hello", true, "Wörld", 123, Math.PI, vs), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs));
+			Verify(subspace, subspace.Key("Hello", true, "Wörld", 123, Math.PI, vs, now), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs, now));
+			Verify(subspace, subspace.Key("Hello", true, "Wörld", 123, Math.PI, vs, now, uuid128), STuple.Create("Hello", true, "Wörld", 123, Math.PI, vs, now, uuid128));
+			Verify(subspace, subspace.Key("Hello", true, STuple.Create("Wörld", STuple.Create(123, Math.PI), vs), now, uuid128), STuple.Create("Hello", true, STuple.Create("Wörld", STuple.Create(123, Math.PI), vs), now, uuid128));
 		}
 
 		[Test]
@@ -522,13 +522,13 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0xFF ])));
 
-				Assert.That(k, Is.EqualTo(new FdbSystemKey(false, Slice.Empty)));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.Empty, false)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF ]))));
 				Assert.That(k, Is.EqualTo(Slice.FromBytes([ 0xFF ])));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.System))));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.System))));
 
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(true, Slice.Empty)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.Empty, true)));
 				Assert.That(k, Is.Not.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF, 0xFF ]))));
 				Assert.That(k, Is.Not.EqualTo(Slice.FromBytes([ 0xFF, 0xFF ])));
 			}
@@ -540,17 +540,17 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0xFF, 0xFF ])));
 
-				Assert.That(k, Is.EqualTo(new FdbSystemKey(true, Slice.Empty)));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.Empty, true)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF, 0xFF ]))));
 				Assert.That(k, Is.EqualTo(Slice.FromBytes([ 0xFF, 0xFF ])));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.Special))));
 
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(false, Slice.Empty)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.Empty, false)));
 				Assert.That(k, Is.Not.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF ]))));
 				Assert.That(k, Is.Not.EqualTo(Slice.FromBytes([ 0xFF ])));
 			}
 			{ // System: MetadataVersion
-				var k = FdbKey.CreateSystem("/metadataVersion");
+				var k = FdbKey.ToSystemKey("/metadataVersion");
 
 				Log($"# {k}");
 				Assert.That(k.IsSpecial, Is.False);
@@ -559,18 +559,18 @@ namespace FoundationDB.Client.Tests
 				var expectedBytes = Slice.FromByteString("\xFF/metadataVersion");
 				Assert.That(k.ToSlice(), Is.EqualTo(expectedBytes));
 
-				Assert.That(k, Is.EqualTo(new FdbSystemKey(special: false, Slice.FromString("/metadataVersion"))));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.FromString("/metadataVersion"), special: false)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(expectedBytes)));
 				Assert.That(k, Is.EqualTo(expectedBytes));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.SystemKey("/metadataVersion")))));
 
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: true, Slice.FromString("/metadataVersion"))));
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: false, Slice.FromString("/metadataversion"))));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/metadataVersion"), special: true)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/metadataversion"), special: false)));
 				Assert.That(k, Is.Not.EqualTo(new FdbVarTupleValue(STuple.Create(TuPackUserType.SpecialKey("/metadataVersion")))));
 
 			}
 			{ // Special: Status Json
-				var k = FdbKey.CreateSpecial("/status/json");
+				var k = FdbKey.ToSpecialKey("/status/json");
 				Log($"# {k}");
 				Assert.That(k.IsSpecial, Is.True);
 				Assert.That(k.Suffix, Is.EqualTo(Slice.FromString("/status/json")));
@@ -578,15 +578,15 @@ namespace FoundationDB.Client.Tests
 				var expectedBytes = Slice.FromByteString("\xFF\xFF/status/json");
 				Assert.That(k.ToSlice(), Is.EqualTo(expectedBytes));
 
-				Assert.That(k, Is.EqualTo(new FdbSystemKey(special: true, Slice.FromString("/status/json"))));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.FromString("/status/json"), special: true)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(expectedBytes)));
 				Assert.That(k, Is.EqualTo(expectedBytes));
 				Assert.That(k.Equals(new FdbTupleKey(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))));
 
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: false, Slice.FromString("/status/json"))));
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: true, Slice.FromString("/status/JSON"))));
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(special: true, Slice.FromString("/status/json/"))));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/json"), special: false)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/JSON"), special: true)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/json/"), special: true)));
 				Assert.That(k, Is.Not.EqualTo(new FdbVarTupleValue(STuple.Create(TuPackUserType.SystemKey("/status/json")))));
 			}
 		}
@@ -594,54 +594,56 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbSystemKey_Comparisons()
 		{
-			var metadataVersion = FdbKey.CreateSystem("/metadataVersion");
-			var statusJson = FdbKey.CreateSpecial("/status/json");
+			var metadataVersion = FdbKey.ToSystemKey("/metadataVersion");
+			var statusJson = FdbKey.ToSpecialKey("/status/json");
 
-			Assert.That(FdbSystemKey.System, Is.EqualTo(FdbKey.ToBytes([ 0xFF ])));
-			Assert.That(FdbSystemKey.Special, Is.EqualTo(FdbKey.ToBytes([ 0xFF, 0xFF ])));
+			Assert.That(FdbSystemKey.System, Is.EqualTo(FdbKey.FromBytes([ 0xFF ])));
+			Assert.That(FdbSystemKey.Special, Is.EqualTo(FdbKey.FromBytes([ 0xFF, 0xFF ])));
+
+			Assert.That(metadataVersion, Is.EqualTo(FdbKey.ToSystemKey("/metadata"u8).Bytes("Version"u8)));
 
 			Assert.That(FdbSystemKey.System, Is.LessThan(FdbSystemKey.Special));
 			Assert.That(FdbSystemKey.Special, Is.GreaterThan(FdbSystemKey.System));
 
 			Assert.That(metadataVersion, Is.GreaterThan(FdbSystemKey.System));
 			Assert.That(metadataVersion, Is.LessThan(FdbSystemKey.Special));
-			Assert.That(metadataVersion, Is.GreaterThan(FdbKey.ToBytes("/metadataVersion"u8)));
+			Assert.That(metadataVersion, Is.GreaterThan(FdbKey.FromBytes("/metadataVersion"u8)));
 
 			Assert.That(statusJson, Is.GreaterThan(FdbSystemKey.System));
 			Assert.That(statusJson, Is.GreaterThan(FdbSystemKey.Special));
 			Assert.That(statusJson, Is.GreaterThan(metadataVersion));
-			Assert.That(metadataVersion, Is.GreaterThan(FdbKey.ToBytes("/status/json"u8)));
+			Assert.That(metadataVersion, Is.GreaterThan(FdbKey.FromBytes("/status/json"u8)));
 
-			Assert.That(FdbSystemKey.System.AppendBytes("/metadataVersion"), Is.EqualTo(metadataVersion));
-			Assert.That(FdbSystemKey.System.AppendBytes("/metadataVersion").ToSlice(), Is.EqualTo(Slice.FromByteString("\xFF/metadataVersion")));
+			Assert.That(FdbSystemKey.System.Bytes("/metadataVersion"), Is.EqualTo(metadataVersion));
+			Assert.That(FdbSystemKey.System.Bytes("/metadataVersion").ToSlice(), Is.EqualTo(Slice.FromByteString("\xFF/metadataVersion")));
 
-			Assert.That(FdbSystemKey.Special.AppendBytes("/status/json"), Is.EqualTo(statusJson));
-			Assert.That(FdbSystemKey.Special.AppendBytes("/status/json").ToSlice(), Is.EqualTo(Slice.FromByteString("\xFF\xFF/status/json")));
-			Assert.That(FdbSystemKey.Special.AppendBytes("/status").AppendBytes("/json"), Is.EqualTo(statusJson));
+			Assert.That(FdbSystemKey.Special.Bytes("/status/json"), Is.EqualTo(statusJson));
+			Assert.That(FdbSystemKey.Special.Bytes("/status/json").ToSlice(), Is.EqualTo(Slice.FromByteString("\xFF\xFF/status/json")));
+			Assert.That(FdbSystemKey.Special.Bytes("/status").Bytes("/json"), Is.EqualTo(statusJson));
 		}
 
 		[Test]
 		public void Test_GetSuccessor_Key()
 		{
 			{
-				var k = FdbKey.ToBytes(Slice.Empty).GetSuccessor();
+				var k = FdbKey.FromBytes(Slice.Empty).Successor();
 				Log($"# {k}");
 				Assert.That(k.Parent.Data, Is.EqualTo(Slice.Empty));
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
 			}
 			{
-				var k = FdbKey.ToBytes([ 0x00 ]).GetSuccessor();
+				var k = FdbKey.FromBytes([ 0x00 ]).Successor();
 				Log($"# {k}");
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x00, 0 ])));
 			}
 			{
-				var k = FdbKey.ToBytes([ 0xFF ]).GetSuccessor();
+				var k = FdbKey.FromBytes([ 0xFF ]).Successor();
 				Log($"# {k}");
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0xFF, 0 ])));
 			}
 			{
-				var p = FdbKey.ToBytes(Slice.FromBytes("hello"u8));
-				var k = p.GetSuccessor();
+				var p = FdbKey.FromBytes(Slice.FromBytes("hello"u8));
+				var k = p.Successor();
 				Log($"# {k}");
 
 				Assert.That(k.Parent, Is.EqualTo(p));
@@ -650,8 +652,8 @@ namespace FoundationDB.Client.Tests
 			}
 			{
 				var subspace = GetSubspace(FdbPath.Parse("/Foo/Bar"), STuple.Create(42));
-				var p = subspace.GetKey("hello");
-				var k = p.GetSuccessor();
+				var p = subspace.Key("hello");
+				var k = p.Successor();
 				Log($"# {k}");
 
 				Assert.That(k.Parent, Is.EqualTo(p));
@@ -664,40 +666,40 @@ namespace FoundationDB.Client.Tests
 		public void Test_GetNextSibling_Key()
 		{
 			{
-				var k = FdbKey.ToBytes(Slice.Empty).GetNextSibling();
+				var k = FdbKey.FromBytes(Slice.Empty).NextSibling();
 				Log($"# {k}");
 				Assert.That(k.Parent.Data, Is.EqualTo(Slice.Empty));
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0 ])));
 			}
 			{
-				var k = FdbKey.ToBytes(Slice.FromBytes([ 0x00 ])).GetNextSibling();
+				var k = FdbKey.FromBytes(Slice.FromBytes([ 0x00 ])).NextSibling();
 				Log($"# {k}");
 				Assert.That(k.Parent.Data, Is.EqualTo(Slice.FromBytes([ 0x00 ])));
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x01 ])));
 			}
 			{
-				var k = FdbKey.ToBytes(Slice.FromBytes([ 0xFF ])).GetNextSibling();
+				var k = FdbKey.FromBytes(Slice.FromBytes([ 0xFF ])).NextSibling();
 				Log($"# {k}");
 				Assert.That(() => k.ToSlice(), Throws.ArgumentException);
 			}
 			{
-				var k = FdbKey.ToBytes(Slice.FromBytes([ 0x00, 0xFF ])).GetNextSibling();
+				var k = FdbKey.FromBytes(Slice.FromBytes([ 0x00, 0xFF ])).NextSibling();
 				Log($"# {k}");
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x01 ])));
 			}
 			{
-				var k = FdbKey.ToBytes(Slice.FromBytes([ 0x00, 0xFF, 0xFF ])).GetNextSibling();
+				var k = FdbKey.FromBytes(Slice.FromBytes([ 0x00, 0xFF, 0xFF ])).NextSibling();
 				Log($"# {k}");
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0x01 ])));
 			}
 			{
-				var k = FdbKey.ToBytes(Slice.FromBytes([ 0xFF, 0xFF, 0xFF ])).GetNextSibling();
+				var k = FdbKey.FromBytes(Slice.FromBytes([ 0xFF, 0xFF, 0xFF ])).NextSibling();
 				Log($"# {k}");
 				Assert.That(() => k.ToSlice(), Throws.ArgumentException);
 			}
 			{
-				var p = FdbKey.ToBytes("hello"u8);
-				var k = p.GetNextSibling();
+				var p = FdbKey.FromBytes("hello"u8);
+				var k = p.NextSibling();
 				Log($"# {k}");
 
 				Assert.That(k.Parent, Is.EqualTo(p));
@@ -705,8 +707,8 @@ namespace FoundationDB.Client.Tests
 			}
 			{
 				var subspace = GetSubspace(FdbPath.Parse("/Foo/Bar"), STuple.Create(42));
-				var p = subspace.GetKey("hello");
-				var k = p.GetNextSibling();
+				var p = subspace.Key("hello");
+				var k = p.NextSibling();
 				Log($"# {k}");
 
 				Assert.That(k.Parent, Is.EqualTo(p));

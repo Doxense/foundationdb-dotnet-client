@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Documents
 		protected virtual Task<List<Slice>> LoadPartsAsync(IDynamicKeySubspace subspace, IFdbReadOnlyTransaction trans, TId id)
 		{
 			return trans
-				.GetRange(subspace.GetKey(id).StartsWith(inclusive: true)) //TODO: options ?
+				.GetRange(subspace.Key(id).ToRange(inclusive: true)) //TODO: options ?
 				.Select(kvp => kvp.Value)
 				.ToListAsync();
 		}
@@ -86,10 +86,10 @@ namespace FoundationDB.Layers.Documents
 			var subspace = await this.Location.Resolve(trans);
 
 			// Key Prefix = ...(id,)
-			var key = subspace.GetKey(id);
+			var key = subspace.Key(id);
 
 			// clear previous value
-			trans.ClearRange(key.StartsWith(inclusive: true));
+			trans.ClearRange(key.ToRange(inclusive: true));
 
 			int remaining = packed.Count;
 			if (remaining <= this.ChunkSize)
@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Documents
 				while (remaining > 0)
 				{
 					int sz = Math.Max(remaining, this.ChunkSize);
-					trans.Set(subspace.GetKey(id, index), packed.Substring(p, sz));
+					trans.Set(subspace.Key(id, index), packed.Substring(p, sz));
 					++index;
 					p += sz;
 					remaining -= sz;
@@ -149,8 +149,8 @@ namespace FoundationDB.Layers.Documents
 
 			var subspace = await this.Location.Resolve(trans);
 
-			var key = subspace.GetKey(id);
-			trans.ClearRange(key.StartsWith(inclusive: true));
+			var key = subspace.Key(id);
+			trans.ClearRange(key.ToRange(inclusive: true));
 		}
 
 
@@ -164,8 +164,8 @@ namespace FoundationDB.Layers.Documents
 
 			foreach (var id in ids)
 			{
-				var key = subspace.GetKey(id);
-				trans.ClearRange(key.StartsWith(inclusive: true));
+				var key = subspace.Key(id);
+				trans.ClearRange(key.ToRange(inclusive: true));
 			}
 		}
 

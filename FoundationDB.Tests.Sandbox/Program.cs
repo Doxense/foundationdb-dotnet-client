@@ -292,18 +292,18 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("> " + location);
 
 				Console.WriteLine("Getting 'hello'...");
-				var result = await trans.GetAsync(location.GetKey("hello"));
+				var result = await trans.GetAsync(location.Key("hello"));
 				if (result.IsNull)
 					Console.WriteLine("> hello NOT FOUND");
 				else
 					Console.WriteLine($"> hello = {result:V}");
 
 				Console.WriteLine("Setting 'Foo' = 'Bar'");
-				trans.Set(location.GetKey("Foo"), FdbValue.ToTextUtf8("Bar"));
+				trans.Set(location.Key("Foo"), FdbValue.ToTextUtf8("Bar"));
 
 				Console.WriteLine("Setting 'TopSecret' = rnd(512)");
 				var data = Slice.Random(new Random(1234), 512);
-				trans.Set(location.GetKey("TopSecret"), data);
+				trans.Set(location.Key("TopSecret"), data);
 
 				Console.WriteLine("Committing transaction...");
 				await trans.CommitAsync();
@@ -342,7 +342,7 @@ namespace FoundationDB.Tests.Sandbox
 						tmp[1] = (byte)(i >> 8);
 						// (Batch, 1) = [......]
 						// (Batch, 2) = [......]
-						trans.Set(subspace.GetKey(k * N + i), tmp.AsSlice());
+						trans.Set(subspace.Key(k * N + i), tmp.AsSlice());
 					}
 					await trans.CommitAsync();
 				}
@@ -457,7 +457,7 @@ namespace FoundationDB.Tests.Sandbox
 						trans = db.BeginTransaction(ct);
 						subspace = await location.Resolve(trans);
 					}
-					trans.Set(subspace.GetKey(i), Slice.FromInt32(i));
+					trans.Set(subspace.Key(i), Slice.FromInt32(i));
 					if (trans.Size > 100 * 1024)
 					{
 						await trans.CommitAsync();
@@ -497,7 +497,7 @@ namespace FoundationDB.Tests.Sandbox
 					var subspace = await location.Resolve(trans);
 					for (int i = k; i < N && i < k + 1000; i++)
 					{
-						_ = await trans.GetAsync(subspace.GetKey(i));
+						_ = await trans.GetAsync(subspace.Key(i));
 					}
 				}
 				Console.Write(".");
@@ -524,7 +524,7 @@ namespace FoundationDB.Tests.Sandbox
 				var subspace = await location.Resolve(trans);
 				_ = await Task.WhenAll(Enumerable
 					.Range(0, N)
-					.Select((i) => trans.GetAsync(subspace.GetKey(i)))
+					.Select((i) => trans.GetAsync(subspace.Key(i)))
 				);
 			}
 			sw.Stop();
@@ -536,7 +536,7 @@ namespace FoundationDB.Tests.Sandbox
 			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
-				_ = await trans.GetValuesAsync(Enumerable.Range(0, N), i => subspace.GetKey(i));
+				_ = await trans.GetValuesAsync(Enumerable.Range(0, N), i => subspace.Key(i));
 			}
 			sw.Stop();
 			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
@@ -547,7 +547,7 @@ namespace FoundationDB.Tests.Sandbox
 			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
-				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace.GetKey(i).ToSlice())); //PERF: TODO: optimize!
+				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace.Key(i).ToSlice())); //PERF: TODO: optimize!
 			}
 			sw.Stop();
 			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
@@ -568,7 +568,7 @@ namespace FoundationDB.Tests.Sandbox
 				var subspace = await location.Resolve(trans);
 				for (int i = 0; i < N; i++)
 				{
-					trans.Clear(subspace.GetKey(i));
+					trans.Clear(subspace.Key(i));
 				}
 
 				await trans.CommitAsync();
@@ -593,7 +593,7 @@ namespace FoundationDB.Tests.Sandbox
 				using (var trans = db.BeginTransaction(ct))
 				{
 					var subspace = await db.Root.Resolve(trans);
-					trans.Set(subspace.GetKey("list"), list.AsSlice());
+					trans.Set(subspace.Key("list"), list.AsSlice());
 					await trans.CommitAsync();
 				}
 				if (i % 100 == 0) Console.Write($"\r> {i:N0} / {N:N0}");
@@ -625,7 +625,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					for (int k = i; k < i + 1000 && k < N; k++)
 					{
-						trans.Set(subspace.GetKey(k), segment.AsSlice());
+						trans.Set(subspace.Key(k), segment.AsSlice());
 					}
 					await trans.CommitAsync();
 					Console.Write("\r" + i + " / " + N);
@@ -640,7 +640,7 @@ namespace FoundationDB.Tests.Sandbox
 
 				Console.WriteLine("READ");
 				// get all the lists
-				var data = await trans.GetValuesAsync(Enumerable.Range(0, N).Select(i => subspace.GetKey(i)));
+				var data = await trans.GetValuesAsync(Enumerable.Range(0, N).Select(i => subspace.Key(i)));
 
 				// change them
 				Console.WriteLine("CHANGE");
@@ -649,7 +649,7 @@ namespace FoundationDB.Tests.Sandbox
 					Debug.Assert(!data[i].IsNull);
 					var list = data[i].ToArray();
 					list[(list.Length >> 1) + 1] = (byte) rnd.Next(256);
-					trans.Set(subspace.GetKey(i), list.AsSlice());
+					trans.Set(subspace.Key(i), list.AsSlice());
 				}
 
 				Console.WriteLine("COMMIT");
@@ -701,7 +701,7 @@ namespace FoundationDB.Tests.Sandbox
 							int z = 0;
 							foreach (int i in Enumerable.Range(chunk.Key, chunk.Value))
 							{
-								tr.Set(subspace.GetKey(i), Slice.Zero(256));
+								tr.Set(subspace.Key(i), Slice.Zero(256));
 								z++;
 							}
 
@@ -781,7 +781,7 @@ namespace FoundationDB.Tests.Sandbox
 					var list = await location.ByKey(source).Resolve(tr);
 					for (int i = 0; i < N; i++)
 					{
-						tr.Set(list.GetKey(rnd.Next()), Slice.FromInt32(i));
+						tr.Set(list.Key(rnd.Next()), Slice.FromInt32(i));
 					}
 					await tr.CommitAsync();
 				}
@@ -796,7 +796,7 @@ namespace FoundationDB.Tests.Sandbox
 
 				var mergesort = tr
 					.MergeSort(
-						sources.Select(source => KeySelectorPair.StartsWith(subspace.GetKey(source).ToSlice())),
+						sources.Select(source => KeySelectorPair.StartsWith(subspace.Key(source).ToSlice())),
 						(kvp) => subspace.DecodeLast<int>(kvp.Key)
 					)
 					.Take(B)

@@ -93,7 +93,7 @@ namespace FoundationDB.Layers.Allocators
 			long start = 0, count = 0;
 			var kv = await trans
 				.Snapshot
-				.GetRange(subspace.GetKey(COUNTERS).StartsWith())
+				.GetRange(subspace.Key(COUNTERS).ToRange())
 				.LastOrDefaultAsync()
 				.ConfigureAwait(false);
 
@@ -108,14 +108,14 @@ namespace FoundationDB.Layers.Allocators
 			if ((count + 1) * 2 >= window)
 			{ // advance the window
 				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate($"Advance allocator window size to {window} starting at {start + window}");
-				trans.ClearRange(subspace.GetKey(COUNTERS, 0), subspace.GetKey(COUNTERS, start + 1));
+				trans.ClearRange(subspace.Key(COUNTERS, 0), subspace.Key(COUNTERS, start + 1));
 				start += window;
 				count = 0;
-				trans.ClearRange(subspace.GetKey(RECENT, 0), subspace.GetKey(RECENT, start));
+				trans.ClearRange(subspace.Key(RECENT, 0), subspace.Key(RECENT, start));
 			}
 
 			// Increment the allocation count for the current window
-			trans.AtomicIncrement64(subspace.GetKey(COUNTERS, start));
+			trans.AtomicIncrement64(subspace.Key(COUNTERS, start));
 
 			// As of the snapshot being read from, the window is less than half
 			// full, so this should be expected to take 2 tries.  Under high
@@ -131,7 +131,7 @@ namespace FoundationDB.Layers.Allocators
 				}
 
 				// test if the key is used
-				var key = subspace.GetKey(RECENT, candidate);
+				var key = subspace.Key(RECENT, candidate);
 				var value = await trans.GetAsync(key).ConfigureAwait(false);
 
 				if (value.IsNull)

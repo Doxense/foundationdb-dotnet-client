@@ -46,7 +46,7 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace.GetKey("Hello"), Text(secret));
+				tr.Set(subspace.Key("Hello"), Text(secret));
 			}, this.Cancellation);
 
 			int called = 0;
@@ -59,7 +59,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(tr.Context.Shared, Is.True);
 
 				var subspace = await location.Resolve(tr);
-				return await tr.GetAsync(subspace.GetKey("Hello"));
+				return await tr.GetAsync(subspace.Key("Hello"));
 			}, this.Cancellation);
 
 			Assert.That(called, Is.EqualTo(1)); // note: if this assertion fails, first ensure that you did not get a transient error while running this test!
@@ -156,7 +156,7 @@ namespace FoundationDB.Client.Tests
 					var subspace = await location.Resolve(tr);
 					for (int j = 0; j < 1000; j++)
 					{
-						tr.Set(subspace.GetKey(i * 1000 + j), Slice.Random(rnd, 4096));
+						tr.Set(subspace.Key(i * 1000 + j), Slice.Random(rnd, 4096));
 					}
 				}, this.Cancellation);
 			}
@@ -242,7 +242,7 @@ namespace FoundationDB.Client.Tests
 				var subspace = await location.Resolve(tr);
 
 				// this call should fail !
-				hijack.Set(subspace.GetKey("Hello"), Text("Hijacked"));
+				hijack.Set(subspace.Key("Hello"), Text("Hijacked"));
 
 				Assert.Fail("Calling Set() on a read-only transaction should fail");
 				return Task.FromResult(123);
@@ -266,7 +266,7 @@ namespace FoundationDB.Client.Tests
 				var subspace = await location.Resolve(tr);
 				for (int i = 0; i < 10; i++)
 				{
-					tr.Set(subspace.GetKey(i), Slice.FromInt32(i));
+					tr.Set(subspace.Key(i), Slice.FromInt32(i));
 				}
 			}, this.Cancellation);
 
@@ -282,25 +282,25 @@ namespace FoundationDB.Client.Tests
 				// read 0..2
 				for (int i = 0; i < 3; i++)
 				{
-					values[i] = (await tr.GetAsync(subspace.GetKey(i))).ToInt32();
+					values[i] = (await tr.GetAsync(subspace.Key(i))).ToInt32();
 				}
 
 				// another transaction commits a change to 3 before we read it
-				await db.WriteAsync((tr2) => tr2.Set(subspace.GetKey(3), FdbValue.ToCompactLittleEndian(42)), this.Cancellation);
+				await db.WriteAsync((tr2) => tr2.Set(subspace.Key(3), FdbValue.ToCompactLittleEndian(42)), this.Cancellation);
 
 				// read 3 to 7
 				for (int i = 3; i < 7; i++)
 				{
-					values[i] = (await tr.GetAsync(subspace.GetKey(i))).ToInt32();
+					values[i] = (await tr.GetAsync(subspace.Key(i))).ToInt32();
 				}
 
 				// another transaction commits a change to 6 after it has been read
-				await db.WriteAsync((tr2) => tr2.Set(subspace.GetKey(6), FdbValue.ToCompactLittleEndian(66)), this.Cancellation);
+				await db.WriteAsync((tr2) => tr2.Set(subspace.Key(6), FdbValue.ToCompactLittleEndian(66)), this.Cancellation);
 
 				// read 7 to 9
 				for (int i = 7; i < 10; i++)
 				{
-					values[i] = (await tr.GetAsync(subspace.GetKey(i))).ToInt32();
+					values[i] = (await tr.GetAsync(subspace.Key(i))).ToInt32();
 				}
 
 				return values;
@@ -322,7 +322,7 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace.GetKey("Hello"), Text(secret));
+				tr.Set(subspace.Key("Hello"), Text(secret));
 			}, this.Cancellation);
 
 			int called = 0;
@@ -331,8 +331,8 @@ namespace FoundationDB.Client.Tests
 				{
 					if (tr.Context.Retries == 0) throw new FdbException(FdbError.NotCommitted, "Fake Not Committed!");
 					var subspace = await location.Resolve(tr);
-					tr.Set(subspace.GetKey("World"), Slice.Empty);
-					return await tr.GetAsync(subspace.GetKey("Hello"));
+					tr.Set(subspace.Key("World"), Slice.Empty);
+					return await tr.GetAsync(subspace.Key("Hello"));
 				},
 				(tr, res) =>
 				{
@@ -358,7 +358,7 @@ namespace FoundationDB.Client.Tests
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				tr.Set(subspace.GetKey("Hello"), Text(secret));
+				tr.Set(subspace.Key("Hello"), Text(secret));
 			}, this.Cancellation);
 
 			int called = 0;
@@ -389,7 +389,7 @@ namespace FoundationDB.Client.Tests
 
 			// Cannot set a key after commit
 			//note: we assume that nobody will move the directories during the test execution!
-			Slice key = await db.ReadAsync(async tr => (await location.Resolve(tr)).GetKey("hello").ToSlice(), this.Cancellation);
+			Slice key = await db.ReadAsync(async tr => (await location.Resolve(tr)).Key("hello").ToSlice(), this.Cancellation);
 			Log("Using key: " + key);
 
 			Assert.That(
@@ -477,8 +477,8 @@ namespace FoundationDB.Client.Tests
 					async (tr) =>
 					{
 						var subspace = await location.Resolve(tr);
-						tr.Set(subspace.GetKey("Hello"), Text("GetVersionStamp"));
-						tr.SetVersionStampedKey(subspace.GetKey("Hello", tr.CreateVersionStamp()), Slice.Empty);
+						tr.Set(subspace.Key("Hello"), Text("GetVersionStamp"));
+						tr.SetVersionStampedKey(subspace.Key("Hello", tr.CreateVersionStamp()), Slice.Empty);
 					},
 					(tr) => tr.GetVersionStampAsync(),
 					this.Cancellation),
@@ -489,7 +489,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(await db.ReadAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				return await tr.GetAsync(subspace.GetKey("Hello"));
+				return await tr.GetAsync(subspace.Key("Hello"));
 			}, this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp")));
 
 			// but getting stamp before commit and awaiting it after should work
@@ -497,9 +497,9 @@ namespace FoundationDB.Client.Tests
 				async (tr) =>
 				{
 					var subspace = await location.Resolve(tr);
-					var prev = await tr.GetAsync(subspace.GetKey("Hello"));
-					tr.Set(subspace.GetKey("Hello"), Text("GetVersionStamp2"));
-					tr.SetVersionStampedKey(subspace.GetKey("Hello", VersionStamp.Incomplete()), prev);
+					var prev = await tr.GetAsync(subspace.Key("Hello"));
+					tr.Set(subspace.Key("Hello"), Text("GetVersionStamp2"));
+					tr.SetVersionStampedKey(subspace.Key("Hello", VersionStamp.Incomplete()), prev);
 					return new { Stamp = tr.GetVersionStampAsync() }; //REVIEW: "return tr.GetVersionStampAsync()" will deadlock because 'ReadWrite' will try to await it!
 				},
 				(_, res) => res.Stamp,
@@ -510,7 +510,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(await db.ReadAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
-				return await tr.GetAsync(subspace.GetKey("Hello"));
+				return await tr.GetAsync(subspace.Key("Hello"));
 			}, this.Cancellation), Is.EqualTo(Slice.FromString("GetVersionStamp2")));
 		}
 

@@ -137,10 +137,10 @@ namespace FoundationDB.Layers.Messaging
 
 			internal async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, char ring)
 			{
-				var range = this.Subspace.GetKey(ring).StartsWith();
+				var range = this.Subspace.Key(ring).ToRange();
 
 				// start from a random position around the ring
-				var key = this.Subspace.GetKey(ring, GetRandomId());
+				var key = this.Subspace.Key(ring, GetRandomId());
 
 				// We want to find the next item in the clockwise direction. If we reach the end of the ring, we "wrap around" by starting again from the start
 				// => So we do find_next(key <= x < MAX) and if that does not produce any result, we do a find_next(MIN <= x < key)
@@ -174,27 +174,27 @@ namespace FoundationDB.Layers.Messaging
 				// - an empty queue must correspond to an empty subspace
 
 				// get the current size of the queue
-				var lastKey = await tr.Snapshot.GetKeyAsync(this.Subspace.GetKey(queue).GetNextSibling().LastLessThan()).ConfigureAwait(false);
+				var lastKey = await tr.Snapshot.GetKeyAsync(this.Subspace.Key(queue).NextSibling().LastLessThan()).ConfigureAwait(false);
 				//PERF: TODO: implement '<' between FdbTupleKey and Slice ?
-				int count = lastKey < this.Subspace.GetKey(queue).ToSlice() ? 0 : this.Subspace.DecodeAt<int>(lastKey, 1) + 1;
+				int count = lastKey < this.Subspace.Key(queue).ToSlice() ? 0 : this.Subspace.DecodeAt<int>(lastKey, 1) + 1;
 
 				// set the value
-				tr.Set(this.Subspace.GetKey(queue, count, GetRandomId()), taskId);
+				tr.Set(this.Subspace.Key(queue, count, GetRandomId()), taskId);
 			}
 
 			internal void StoreTask(IFdbTransaction tr, Slice taskId, DateTime scheduledUtc, Slice taskBody)
 			{
 				tr.Annotate($"Writing task {taskId:P}");
 
-				var prefix = this.Subspace.GetKey(TASKS, taskId);
+				var prefix = this.Subspace.Key(TASKS, taskId);
 
 				// store task body and timestamp
 				tr.Set(prefix, taskBody);
-				tr.Set(prefix.AppendKey(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
+				tr.Set(prefix.Key(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
 				// increment total and pending number of tasks
 
-				tr.AtomicIncrement64(this.Subspace.GetKey(COUNTERS, COUNTER_TOTAL_TASKS));
-				tr.AtomicIncrement64(this.Subspace.GetKey(COUNTERS, COUNTER_PENDING_TASKS));
+				tr.AtomicIncrement64(this.Subspace.Key(COUNTERS, COUNTER_TOTAL_TASKS));
+				tr.AtomicIncrement64(this.Subspace.Key(COUNTERS, COUNTER_PENDING_TASKS));
 			}
 
 			internal void ClearTask(IFdbTransaction tr, Slice taskId)
@@ -202,9 +202,9 @@ namespace FoundationDB.Layers.Messaging
 				tr.Annotate($"Deleting task {taskId:P}");
 
 				// clear all metadata about the task
-				tr.ClearRange(this.Subspace.GetKey(TASKS, taskId).StartsWith(inclusive: true));
+				tr.ClearRange(this.Subspace.Key(TASKS, taskId).ToRange(inclusive: true));
 				// decrement pending number of tasks
-				tr.AtomicDecrement64(this.Subspace.GetKey(COUNTERS, COUNTER_PENDING_TASKS));
+				tr.AtomicDecrement64(this.Subspace.Key(COUNTERS, COUNTER_PENDING_TASKS));
 			}
 
 		}
@@ -240,12 +240,12 @@ namespace FoundationDB.Layers.Messaging
 					tr.Annotate($"Assigning {taskId:P} to {workerId:P}");
 
 					// remove worker from the idle ring
-					tr.Clear(state.Subspace.GetKey(IDLE, workerId));
-					tr.AtomicDecrement64(state.Subspace.GetKey(COUNTERS, COUNTER_IDLE));
+					tr.Clear(state.Subspace.Key(IDLE, workerId));
+					tr.AtomicDecrement64(state.Subspace.Key(COUNTERS, COUNTER_IDLE));
 
 					// assign task to the worker
-					tr.Set(state.Subspace.GetKey(BUSY, workerId), taskId);
-					tr.AtomicIncrement64(state.Subspace.GetKey(COUNTERS, COUNTER_BUSY));
+					tr.Set(state.Subspace.Key(BUSY, workerId), taskId);
+					tr.AtomicIncrement64(state.Subspace.Key(COUNTERS, COUNTER_BUSY));
 				}
 				else
 				{
@@ -302,7 +302,7 @@ namespace FoundationDB.Layers.Messaging
 						else if (myId.IsPresent)
 						{ // look for an already assigned task
 							tr.Annotate("Look for already assigned task");
-							msg.Id = await tr.GetAsync(state.Subspace.GetKey(BUSY, myId)).ConfigureAwait(false);
+							msg.Id = await tr.GetAsync(state.Subspace.Key(BUSY, myId)).ConfigureAwait(false);
 						}
 
 						if (!msg.Id.IsPresent)
@@ -311,7 +311,7 @@ namespace FoundationDB.Layers.Messaging
 							tr.Annotate("Look for next queued item");
 							
 							// Find the next task on the queue
-							var item = await tr.GetRange(state.Subspace.GetKey(UNASSIGNED).StartsWith()).FirstOrDefaultAsync().ConfigureAwait(false);
+							var item = await tr.GetRange(state.Subspace.Key(UNASSIGNED).ToRange()).FirstOrDefaultAsync().ConfigureAwait(false);
 
 							if (!item.Key.IsNull)
 							{ // pop the Task from the queue
@@ -324,8 +324,8 @@ namespace FoundationDB.Layers.Messaging
 								// note: we need a random id so generate one if it is the first time...
 								if (!myId.IsPresent) myId = state.GetRandomId();
 								tr.Annotate($"Found {msg.Id:P}, switch to busy with id {myId:P}");
-								tr.Set(state.Subspace.GetKey(BUSY, myId), msg.Id);
-								tr.AtomicIncrement64(state.Subspace.GetKey(COUNTERS, COUNTER_BUSY));
+								tr.Set(state.Subspace.Key(BUSY, myId), msg.Id);
+								tr.AtomicIncrement64(state.Subspace.Key(COUNTERS, COUNTER_BUSY));
 							}
 							else if (myId.IsPresent)
 							{ // remove ourselves from the busy ring
@@ -338,12 +338,12 @@ namespace FoundationDB.Layers.Messaging
 						{ // get the task body
 
 							tr.Annotate($"Fetching body for task {msg.Id:P}");
-							var prefix = state.Subspace.GetKey(TASKS, msg.Id);
+							var prefix = state.Subspace.Key(TASKS, msg.Id);
 							//TODO: replace this with a get_range ?
 							var data = await tr.GetValuesAsync(
 							[
 								prefix.ToSlice(), //TODO: PERF: optimize!
-								prefix.AppendKey(TASK_META_SCHEDULED).ToSlice() //TODO: PERF: optimize!
+								prefix.Key(TASK_META_SCHEDULED).ToSlice() //TODO: PERF: optimize!
 							]).ConfigureAwait(false);
 
 							msg.Body = data[0];
@@ -356,18 +356,18 @@ namespace FoundationDB.Layers.Messaging
 							// remove us from the busy ring
 							if (myId.IsPresent)
 							{
-								tr.Clear(state.Subspace.GetKey(BUSY, myId));
-								tr.AtomicDecrement64(state.Subspace.GetKey(COUNTERS, COUNTER_BUSY));
+								tr.Clear(state.Subspace.Key(BUSY, myId));
+								tr.AtomicDecrement64(state.Subspace.Key(COUNTERS, COUNTER_BUSY));
 							}
 
 							// choose a new random position on the idle ring
 							myId = state.GetRandomId();
 
 							// the idle key will also be used as the watch key to wake us up
-							var watchKey = state.Subspace.GetKey(IDLE, myId);
+							var watchKey = state.Subspace.Key(IDLE, myId);
 							tr.Annotate($"Will start watching on key {watchKey:P} with id {myId:P}");
 							tr.Set(watchKey, Slice.Empty);
-							tr.AtomicIncrement64(state.Subspace.GetKey(COUNTERS, COUNTER_IDLE));
+							tr.AtomicIncrement64(state.Subspace.Key(COUNTERS, COUNTER_IDLE));
 
 							watch = tr.Watch(watchKey, ct);
 						}

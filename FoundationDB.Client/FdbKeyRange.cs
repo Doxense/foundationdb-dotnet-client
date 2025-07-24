@@ -339,7 +339,7 @@ namespace FoundationDB.Client
 		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbKeySelector<FdbNextSiblingKey<TKey>> GetEndSelector()
-			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNextSibling());
+			=> FdbKeySelector.FirstGreaterThan(this.Prefix.NextSibling());
 
 		/// <summary>Returns a <see cref="KeySelector"/> that will match the first key in the range (inclusive)</summary>
 		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
@@ -350,7 +350,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a <see cref="KeySelector"/> that will match the last key in the range (exclusive)</summary>
 		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
 		public KeySelector ToEndSelector()
-			=> FdbKeySelector.FirstGreaterThan(this.Prefix.GetNextSibling()).ToSelector();
+			=> FdbKeySelector.FirstGreaterThan(this.Prefix.NextSibling()).ToSelector();
 
 	}
 
@@ -384,7 +384,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public Slice GetBegin() => this.FromInclusive
 			? this.From.ToSlice() //PERF: TODO: Optimize!
-			: this.From.GetSuccessor().ToSlice(); //PERF: TODO: Optimize!
+			: this.From.Successor().ToSlice(); //PERF: TODO: Optimize!
 
 		/// <summary>Returns the encoded Begin key (inclusive) for this range</summary>
 		[Pure]
@@ -395,7 +395,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns the encoded End key (exclusive) for this range</summary>
 		[Pure]
 		public Slice GetEnd() => this.ToInclusive
-			? this.To.GetSuccessor().ToSlice() //PERF: TODO: Optimize!
+			? this.To.Successor().ToSlice() //PERF: TODO: Optimize!
 			: this.To.ToSlice(); //PERF: TODO: Optimize!
 
 		/// <summary>Returns the encoded End key (exclusive) for this range</summary>

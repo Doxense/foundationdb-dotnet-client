@@ -105,25 +105,25 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Binary
+		#region FromBytes...
 
 		#region No Subspace...
 
 		/// <summary>Returns a key that wraps a pre-encoded <see cref="Slice"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawKey ToBytes(Slice key) => !key.IsNull ? new(key) : throw Fdb.Errors.KeyCannotBeNull();
+		public static FdbRawKey FromBytes(Slice key) => !key.IsNull ? new(key) : throw Fdb.Errors.KeyCannotBeNull();
 
 		/// <summary>Returns a key that wraps a pre-encoded byte array</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawKey ToBytes(byte[] key) => key is not null ? new(key.AsSlice()) : throw Fdb.Errors.KeyCannotBeNull();
+		public static FdbRawKey FromBytes(byte[] key) => key is not null ? new(key.AsSlice()) : throw Fdb.Errors.KeyCannotBeNull();
 
 		/// <summary>Returns a key that wraps a pre-encoded byte array</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawKey ToBytes(byte[] key, int start, int length) => key is not null ? new(key.AsSlice(start, length)) : throw Fdb.Errors.KeyCannotBeNull();
+		public static FdbRawKey FromBytes(byte[] key, int start, int length) => key is not null ? new(key.AsSlice(start, length)) : throw Fdb.Errors.KeyCannotBeNull();
 
 		/// <summary>Returns a key that wraps a copy of a span of bytes</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawKey ToBytes(ReadOnlySpan<byte> key) => new(Slice.FromBytes(key));
+		public static FdbRawKey FromBytes(ReadOnlySpan<byte> key) => new(Slice.FromBytes(key));
 
 		#endregion
 
@@ -131,7 +131,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a key that wraps a pre-encoded binary suffix inside a <see cref="IBinaryKeySubspace"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbSuffixKey ToBytes(IKeySubspace subspace, Slice relativeKey)
+		public static FdbSuffixKey FromBytes(IKeySubspace subspace, Slice relativeKey)
 		{
 			Contract.NotNull(subspace);
 			return !relativeKey.IsNull ? new(subspace, relativeKey) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
@@ -139,7 +139,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a key that wraps a pre-encoded binary suffix inside a <see cref="IBinaryKeySubspace"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbSuffixKey ToBytes(IKeySubspace subspace, byte[] relativeKey)
+		public static FdbSuffixKey FromBytes(IKeySubspace subspace, byte[] relativeKey)
 		{
 			Contract.NotNull(subspace);
 			return relativeKey is not null ? new(subspace, relativeKey.AsSlice()) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a key that wraps a pre-encoded binary suffix inside a <see cref="IBinaryKeySubspace"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbSuffixKey ToBytes(IKeySubspace subspace, byte[] relativeKey, int start, int length)
+		public static FdbSuffixKey FromBytes(IKeySubspace subspace, byte[] relativeKey, int start, int length)
 		{
 			Contract.NotNull(subspace);
 			return relativeKey is not null ? new(subspace, relativeKey.AsSlice(start, length)) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
@@ -155,38 +155,10 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a key that wraps a pre-encoded binary suffix inside a <see cref="IBinaryKeySubspace"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbSuffixKey ToBytes(IKeySubspace subspace, ReadOnlySpan<byte> relativeKey)
+		public static FdbSuffixKey FromBytes(IKeySubspace subspace, ReadOnlySpan<byte> relativeKey)
 		{
 			Contract.NotNull(subspace);
 			return new(subspace, Slice.FromBytes(relativeKey));
-		}
-
-		#endregion
-
-		#region Special Keys...
-
-		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
-		public static FdbSystemKey CreateSystem(Slice relativeKey)
-		{
-			return !relativeKey.IsNull ? new(special: false, relativeKey) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
-		}
-
-		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
-		public static FdbSystemKey CreateSystem(string relativeKey)
-		{
-			return relativeKey is not null ? new(special: false, Slice.FromString(relativeKey)) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
-		}
-
-		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
-		public static FdbSystemKey CreateSpecial(Slice relativeKey)
-		{
-			return !relativeKey.IsNull ? new(special: true, relativeKey) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
-		}
-
-		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
-		public static FdbSystemKey CreateSpecial(string relativeKey)
-		{
-			return relativeKey is not null ? new(special: true, Slice.FromString(relativeKey)) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
 		}
 
 		#endregion
@@ -195,66 +167,180 @@ namespace FoundationDB.Client
 
 		#region Tuples...
 
-		#region CreateTuple(ValueTuple)
+		#region No Subspace...
+
+		#region FromTuple(ValueTuple<...>)...
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1> CreateTuple<T1>(ValueTuple<T1> key) => new(null, key.Item1);
+		public static FdbTupleKey<T1> FromTuple<T1>(ValueTuple<T1> key) => new(null, key.Item1);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2> CreateTuple<T1, T2>(in ValueTuple<T1, T2> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2> FromTuple<T1, T2>(in ValueTuple<T1, T2> key) => new(null, key.ToSTuple());
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3> CreateTuple<T1, T2, T3>(in ValueTuple<T1, T2, T3> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3> FromTuple<T1, T2, T3>(in ValueTuple<T1, T2, T3> key) => new(null, key.ToSTuple());
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4> CreateTuple<T1, T2, T3, T4>(in ValueTuple<T1, T2, T3, T4> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4> FromTuple<T1, T2, T3, T4>(in ValueTuple<T1, T2, T3, T4> key) => new(null, key.ToSTuple());
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5> CreateTuple<T1, T2, T3, T4, T5>(in ValueTuple<T1, T2, T3, T4, T5> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5> FromTuple<T1, T2, T3, T4, T5>(in ValueTuple<T1, T2, T3, T4, T5> key) => new(null, key.ToSTuple());
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> CreateTuple<T1, T2, T3, T4, T5, T6>(in ValueTuple<T1, T2, T3, T4, T5, T6> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> FromTuple<T1, T2, T3, T4, T5, T6>(in ValueTuple<T1, T2, T3, T4, T5, T6> key) => new(null, key.ToSTuple());
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> CreateTuple<T1, T2, T3, T4, T5, T6, T7>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> FromTuple<T1, T2, T3, T4, T5, T6, T7>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> key) => new(null, key.ToSTuple());
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> CreateTuple<T1, T2, T3, T4, T5, T6, T7, T8>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> FromTuple<T1, T2, T3, T4, T5, T6, T7, T8>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> key) => new(null, key.ToSTuple());
 
 		#endregion
 
-		#region CreateTuple(STuple)...
+		#region FromTuple(STuple<...>)...
 
 		/// <summary>Returns a key that packs the given items inside the root subspace</summary>
 		/// <param name="items">Elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey CreateTuple(IVarTuple items) => new(null, items);
+		public static FdbTupleKey FromTuple(IVarTuple items) => new(null, items);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1> CreateTuple<T1>(STuple<T1> key) => new(null, key.Item1);
+		public static FdbTupleKey<T1> FromTuple<T1>(STuple<T1> key) => new(null, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2> CreateTuple<T1, T2>(in STuple<T1, T2> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2> FromTuple<T1, T2>(in STuple<T1, T2> key) => new(null, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3> CreateTuple<T1, T2, T3>(in STuple<T1, T2, T3> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3> FromTuple<T1, T2, T3>(in STuple<T1, T2, T3> key) => new(null, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4> CreateTuple<T1, T2, T3, T4>(in STuple<T1, T2, T3, T4> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4> FromTuple<T1, T2, T3, T4>(in STuple<T1, T2, T3, T4> key) => new(null, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5> CreateTuple<T1, T2, T3, T4, T5>(in STuple<T1, T2, T3, T4, T5> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5> FromTuple<T1, T2, T3, T4, T5>(in STuple<T1, T2, T3, T4, T5> key) => new(null, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> CreateTuple<T1, T2, T3, T4, T5, T6>(in STuple<T1, T2, T3, T4, T5, T6> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> FromTuple<T1, T2, T3, T4, T5, T6>(in STuple<T1, T2, T3, T4, T5, T6> key) => new(null, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> CreateTuple<T1, T2, T3, T4, T5, T6, T7>(in STuple<T1, T2, T3, T4, T5, T6, T7> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> FromTuple<T1, T2, T3, T4, T5, T6, T7>(in STuple<T1, T2, T3, T4, T5, T6, T7> key) => new(null, in key);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> CreateTuple<T1, T2, T3, T4, T5, T6, T7, T8>(in STuple<T1, T2, T3, T4, T5, T6, T7, T8> key) => new(null, in key);
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> FromTuple<T1, T2, T3, T4, T5, T6, T7, T8>(in STuple<T1, T2, T3, T4, T5, T6, T7, T8> key) => new(null, in key);
 
 		#endregion
+
+		#endregion
+
+		#region With Subspace...
+
+		#region FromTuple(ValueTuple<...>)...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1> FromTuple<T1>(IKeySubspace subspace, ValueTuple<T1> key) => new(subspace, key.Item1);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> FromTuple<T1, T2>(IKeySubspace subspace, in ValueTuple<T1, T2> key) => new(subspace, key.ToSTuple());
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> FromTuple<T1, T2, T3>(IKeySubspace subspace, in ValueTuple<T1, T2, T3> key) => new(subspace, key.ToSTuple());
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> FromTuple<T1, T2, T3, T4>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4> key) => new(subspace, key.ToSTuple());
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5> FromTuple<T1, T2, T3, T4, T5>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5> key) => new(subspace, key.ToSTuple());
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> FromTuple<T1, T2, T3, T4, T5, T6>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, key.ToSTuple());
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> FromTuple<T1, T2, T3, T4, T5, T6, T7>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, key.ToSTuple());
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> FromTuple<T1, T2, T3, T4, T5, T6, T7, T8>(IKeySubspace subspace, in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> key) => new(subspace, key.ToSTuple());
+
+		#endregion
+
+		#region FromTuple(STuple<...>)...
+
+		/// <summary>Returns a key that packs the given items inside the root subspace</summary>
+		/// <param name="subspace">Subspace that contains the key</param>
+		/// <param name="items">Elements of the key</param>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey FromTuple(IKeySubspace subspace, IVarTuple items) => new(subspace, items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1> FromTuple<T1>(IKeySubspace subspace, STuple<T1> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2> FromTuple<T1, T2>(IKeySubspace subspace, in STuple<T1, T2> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3> FromTuple<T1, T2, T3>(IKeySubspace subspace, in STuple<T1, T2, T3> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4> FromTuple<T1, T2, T3, T4>(IKeySubspace subspace, in STuple<T1, T2, T3, T4> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5> FromTuple<T1, T2, T3, T4, T5>(IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> FromTuple<T1, T2, T3, T4, T5, T6>(IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> FromTuple<T1, T2, T3, T4, T5, T6, T7>(IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7> key) => new(subspace, in key);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7, T8> FromTuple<T1, T2, T3, T4, T5, T6, T7, T8>(IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7, T8> key) => new(subspace, in key);
+
+		#endregion
+
+		#endregion
+
+		#endregion
+
+		#region Special Keys...
+
+		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
+		[Pure]
+		public static FdbSystemKey ToSystemKey(ReadOnlySpan<byte> relativeKey)
+			=> new(Slice.FromBytes(relativeKey), special: false);
+
+		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
+		[Pure]
+		public static FdbSystemKey ToSystemKey(Slice relativeKey)
+			=> !relativeKey.IsNull ? new(relativeKey, special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+
+		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
+		[Pure]
+		public static FdbSystemKey ToSystemKey(byte[] relativeKey)
+			=> relativeKey is not null ? new(relativeKey.AsSlice(), special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+
+		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
+		[Pure]
+		public static FdbSystemKey ToSystemKey(string relativeKey)
+			=> relativeKey is not null ? new(Slice.FromString(relativeKey), special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+
+		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		[Pure]
+		public static FdbSystemKey ToSpecialKey(ReadOnlySpan<byte> relativeKey)
+			=> new(Slice.FromBytes(relativeKey), special: true);
+
+		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		[Pure]
+		public static FdbSystemKey ToSpecialKey(Slice relativeKey)
+			=> !relativeKey.IsNull ? new(relativeKey, special: true) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+
+		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		[Pure]
+		public static FdbSystemKey ToSpecialKey(byte[] relativeKey)
+			=> relativeKey is not null ? new(relativeKey.AsSlice(), special: true) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+
+		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		[Pure]
+		public static FdbSystemKey ToSpecialKey(string relativeKey)
+			=> relativeKey is not null ? new(Slice.FromString(relativeKey), special: true) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
 
 		#endregion
 

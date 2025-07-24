@@ -101,7 +101,7 @@ namespace FoundationDB.Layers.Blobs
 			private FdbTupleKey<Slice, string> DataKey(long offset)
 			{
 				//note: python code uses "%16d" % offset, which pads the value with spaces... Not sure why ?
-				return this.Subspace.GetKey(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
+				return this.Subspace.Key(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
 			}
 
 			private long DataKeyOffset(Slice key)
@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Blobs
 
 			private FdbTupleKey<Slice> SizeKey()
 			{
-				return this.Subspace.GetKey(SizeSuffix);
+				return this.Subspace.Key(SizeSuffix);
 			}
 
 			#region Internal Helpers...

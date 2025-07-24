@@ -51,17 +51,17 @@ namespace FoundationDB.Samples.Tutorials
 
 		protected FdbTupleKey<string, string> ClassKey(string c)
 		{
-			return this.Subspace!.GetKey("class", c);
+			return this.Subspace!.Key("class", c);
 		}
 
 		protected FdbTupleKey<string, string, string> AttendsKey(string s, string c)
 		{
-			return this.Subspace!.GetKey("attends", s, c);
+			return this.Subspace!.Key("attends", s, c);
 		}
 
 		protected FdbKeyPrefixRange<FdbTupleKey<string, string>> AttendsKeys(string s)
 		{
-			return this.Subspace!.GetKey("attends", s).StartsWith();
+			return this.Subspace!.Key("attends", s).ToRange();
 		}
 
 		/// <summary>
@@ -92,7 +92,7 @@ namespace FoundationDB.Samples.Tutorials
 		/// </summary>
 		public Task<List<string>> AvailableClasses(IFdbReadOnlyTransaction tr)
 		{
-			return tr.GetRange(this.Subspace!.GetKey("class").StartsWith())
+			return tr.GetRange(this.Subspace!.Key("class").ToRange())
 				.Where(kvp => int.TryParse(kvp.Value.Span, out _)) // (step 3)
 				.Select(kvp => this.Subspace!.DecodeLast<string>(kvp.Key)!)
 				.ToListAsync();

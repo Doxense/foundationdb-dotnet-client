@@ -105,7 +105,7 @@ namespace FoundationDB.Samples.Benchmarks
 					var subspace = await this.Location.Resolve(tr);
 					for (int j = 0; j < values.Length; j++)
 					{
-						tr.Set(subspace.GetKey(student, j, now), Slice.FromString(values[j] + new string('A', 100)));
+						tr.Set(subspace.Key(student, j, now), Slice.FromString(values[j] + new string('A', 100)));
 					}
 				}, ct);
 				Console.Write(".");

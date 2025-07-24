@@ -116,7 +116,7 @@ namespace FoundationDB.Layers.Collections
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
 				var pv = this.Parent.ValueCodec.EncodeKey(value);
 
-				trans.AtomicIncrement64(this.Subspace.GetKey(pk, pv));
+				trans.AtomicIncrement64(this.Subspace.Key(pk, pv));
 			}
 
 			/// <summary>Increments the count of an (<paramref name="key"/>, <paramref name="value"/>) pair in the multimap.</summary>
@@ -133,7 +133,7 @@ namespace FoundationDB.Layers.Collections
 				for (int i = 0; i < values.Length; i++)
 				{
 					var pv = this.Parent.ValueCodec.EncodeKey(in values[i]);
-					trans.AtomicIncrement64(this.Subspace.GetKey(pk, pv));
+					trans.AtomicIncrement64(this.Subspace.Key(pk, pv));
 				}
 			}
 
@@ -157,7 +157,7 @@ namespace FoundationDB.Layers.Collections
 				foreach (var value in values)
 				{
 					var pv = this.Parent.ValueCodec.EncodeKey(in value);
-					trans.AtomicIncrement64(this.Subspace.GetKey(pk, pv));
+					trans.AtomicIncrement64(this.Subspace.Key(pk, pv));
 				}
 			}
 
@@ -174,7 +174,7 @@ namespace FoundationDB.Layers.Collections
 				var pv = this.Parent.ValueCodec.EncodeKey(value);
 
 				// decrement, and optionally clear the key if it reaches zero
-				trans.AtomicDecrement64(this.Subspace.GetKey(pk, pv), clearIfZero: !this.Parent.AllowNegativeValues);
+				trans.AtomicDecrement64(this.Subspace.Key(pk, pv), clearIfZero: !this.Parent.AllowNegativeValues);
 			}
 
 			/// <summary>Decrements the count of several values for the given <paramref name="key"/> in the multimap, and optionally removes them when their count reaches zero.</summary>
@@ -191,7 +191,7 @@ namespace FoundationDB.Layers.Collections
 				{
 					var pv = this.Parent.ValueCodec.EncodeKey(in values[i]);
 					// decrement, and optionally clear the key if it reaches zero
-					trans.AtomicDecrement64(this.Subspace.GetKey(pk, pv), clearIfZero: !this.Parent.AllowNegativeValues);
+					trans.AtomicDecrement64(this.Subspace.Key(pk, pv), clearIfZero: !this.Parent.AllowNegativeValues);
 				}
 			}
 
@@ -215,7 +215,7 @@ namespace FoundationDB.Layers.Collections
 				{
 					var pv = this.Parent.ValueCodec.EncodeKey(in value);
 					// decrement, and optionally clear the key if it reaches zero
-					trans.AtomicDecrement64(this.Subspace.GetKey(pk, pv), clearIfZero: !this.Parent.AllowNegativeValues);
+					trans.AtomicDecrement64(this.Subspace.Key(pk, pv), clearIfZero: !this.Parent.AllowNegativeValues);
 				}
 			}
 
@@ -227,7 +227,7 @@ namespace FoundationDB.Layers.Collections
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
 				var pv = this.Parent.ValueCodec.EncodeKey(value);
 
-				var counterBytes = await trans.GetAsync(this.Subspace.GetKey(pk, pv)).ConfigureAwait(false);
+				var counterBytes = await trans.GetAsync(this.Subspace.Key(pk, pv)).ConfigureAwait(false);
 				return this.Parent.AllowNegativeValues ? counterBytes.IsPresent : counterBytes.ToInt64() > 0;
 			}
 
@@ -237,7 +237,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				var task = trans.GetValuesAsync(values, value => this.Subspace.GetKey(pk, this.Parent.ValueCodec.EncodeKey(value)));
+				var task = trans.GetValuesAsync(values, value => this.Subspace.Key(pk, this.Parent.ValueCodec.EncodeKey(value)));
 
 				return ContainsAnyContinuation(this, task);
 
@@ -265,7 +265,7 @@ namespace FoundationDB.Layers.Collections
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
 				var pv = this.Parent.ValueCodec.EncodeKey(value);
 
-				var counterBytes = await trans.GetAsync(this.Subspace.GetKey(pk, pv)).ConfigureAwait(false);
+				var counterBytes = await trans.GetAsync(this.Subspace.Key(pk, pv)).ConfigureAwait(false);
 				if (counterBytes.IsNullOrEmpty) return null;
 				long counterValue = counterBytes.ToInt64();
 				return this.Parent.AllowNegativeValues || counterValue > 0 ? counterValue : null;
@@ -282,14 +282,14 @@ namespace FoundationDB.Layers.Collections
 				{
 					//TODO: use a GetRange that decodes the keys and values directly
 					return trans
-						.GetRange(this.Subspace.GetKey(pk).StartsWith())
+						.GetRange(this.Subspace.Key(pk).ToRange())
 						.Select(kvp => this.Parent.ValueCodec.DecodeKey(this.Subspace.DecodeLast<TEncodedValue>(kvp.Key)!));
 				}
 				else
 				{
 					//TODO: use a GetRange that decodes the keys and values directly
 					return trans
-						.GetRange(this.Subspace.GetKey(pk).StartsWith())
+						.GetRange(this.Subspace.Key(pk).ToRange())
 						.Where(kvp => kvp.Value.ToInt64() > 0) // we need to filter out zero or negative values (possible artefacts)
 						.Select(kvp => this.Parent.ValueCodec.DecodeKey(this.Subspace.DecodeLast<TEncodedValue>(kvp.Key)!));
 				}
@@ -309,7 +309,7 @@ namespace FoundationDB.Layers.Collections
 
 				var query = trans
 					.GetRange(
-						this.Subspace.GetKey(pk).StartsWith(),
+						this.Subspace.Key(pk).ToRange(),
 						this, static (self, k, v) => (Value: self.Parent.ValueCodec.DecodeKey(self.Subspace.DecodeLast<TEncodedValue>(k)!), Count: v.ToInt64())
 					);
 
@@ -324,7 +324,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				trans.ClearRange(this.Subspace.GetKey(pk).StartsWith());
+				trans.ClearRange(this.Subspace.Key(pk).ToRange());
 			}
 
 			/// <summary>Removes a <paramref name="value"/> for a specific <paramref name="key"/></summary>
@@ -334,7 +334,7 @@ namespace FoundationDB.Layers.Collections
 
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
 				var pv = this.Parent.ValueCodec.EncodeKey(value);
-				trans.Clear(this.Subspace.GetKey(pk, pv));
+				trans.Clear(this.Subspace.Key(pk, pv));
 			}
 
 			#endregion

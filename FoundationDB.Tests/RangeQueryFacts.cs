@@ -33,7 +33,6 @@ namespace FoundationDB.Client.Tests
 {
 	using System.Collections.Generic;
 	using System.Linq;
-
 	using SnowBank.Linq.Async.Iterators;
 
 	[TestFixture]
@@ -124,7 +123,7 @@ namespace FoundationDB.Client.Tests
 				var data = await db.ReadWriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
-					var items = Enumerable.Range(0, N).Select(i => (subspace.GetKey(i).ToSlice(), Slice.FromInt32(i))).ToArray();
+					var items = Enumerable.Range(0, N).Select(i => (subspace.Key(i).ToSlice(), Slice.FromInt32(i))).ToArray();
 					tr.SetValues(items);
 					return items;
 				}, this.Cancellation);
@@ -141,8 +140,8 @@ namespace FoundationDB.Client.Tests
 					Log("Getting range (WantAll)...");
 					var ts = Stopwatch.StartNew();
 					var chunk = await tr.GetRangeAsync(
-						folder.GetKey(0),
-						folder.GetKey(N),
+						folder.Key(0),
+						folder.Key(N),
 						FdbRangeOptions.WantAll
 					);
 					ts.Stop();
@@ -169,8 +168,8 @@ namespace FoundationDB.Client.Tests
 					Log("Getting range (Iterator)...");
 					var ts = Stopwatch.StartNew();
 					var chunk = await tr.GetRangeAsync(
-						folder.GetKey(0),
-						folder.GetKey(N),
+						folder.Key(0),
+						folder.Key(N),
 						FdbRangeOptions.Default
 					);
 					ts.Stop();
@@ -225,7 +224,7 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync(async tr =>
 				{
 					var subspace = await location.Resolve(tr);
-					tr.SetValues(data, kv => subspace.GetKey(kv.Key), kv => FdbValue.ToTextUtf8(kv.Value));
+					tr.SetValues(data, kv => subspace.Key(kv.Key), kv => FdbValue.ToTextUtf8(kv.Value));
 				}, this.Cancellation);
 
 				insert.Stop();
@@ -240,8 +239,8 @@ namespace FoundationDB.Client.Tests
 					Log("Getting range (WantAll)...");
 					var ts = Stopwatch.StartNew();
 					var chunk = await tr.GetRangeAsync(
-						folder.GetKey(0),
-						folder.GetKey(N),
+						folder.Key(0),
+						folder.Key(N),
 						folder,
 						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
 						FdbRangeOptions.WantAll
@@ -259,8 +258,8 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Reversed, Is.False);
 
 					Verify(chunk, data);
-					Assert.That(chunk.First, Is.EqualTo(folder.GetKey(0)));
-					Assert.That(chunk.Last, Is.EqualTo(folder.GetKey(N - 1)));
+					Assert.That(chunk.First, Is.EqualTo(folder.Key(0)));
+					Assert.That(chunk.Last, Is.EqualTo(folder.Key(N - 1)));
 				}
 
 				await db.ReadAsync(async tr =>
@@ -270,8 +269,8 @@ namespace FoundationDB.Client.Tests
 					Log("Getting range (Iterator)...");
 					var ts = Stopwatch.StartNew();
 					var chunk = await tr.GetRangeAsync(
-						folder.GetKey(0),
-						folder.GetKey(N),
+						folder.Key(0),
+						folder.Key(N),
 						folder,
 						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
 						FdbRangeOptions.Default
@@ -289,14 +288,14 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunk.Iteration, Is.EqualTo(1));
 
 					Verify(chunk, data[..chunk.Count]);
-					Assert.That(chunk.First, Is.EqualTo(folder.GetKey(0)));
-					Assert.That(chunk.Last, Is.EqualTo(folder.GetKey(chunk.Count - 1)));
+					Assert.That(chunk.First, Is.EqualTo(folder.Key(0)));
+					Assert.That(chunk.Last, Is.EqualTo(folder.Key(chunk.Count - 1)));
 
 					// read the next chunk
 					ts.Restart();
 					var chunk2 = await tr.GetRangeAsync(
-						FdbKey.ToBytes(chunk.Last).GetSuccessor(),
-						folder.GetKey(N),
+						FdbKey.FromBytes(chunk.Last).Successor(),
+						folder.Key(N),
 						folder,
 						static (folder, key, value) => (folder.Decode<int>(key), value.ToStringUtf8()),
 						FdbRangeOptions.Default,
@@ -308,8 +307,8 @@ namespace FoundationDB.Client.Tests
 					//DumpCompact(chunk2.Items.ToArray());
 
 					Verify(chunk2, data[chunk.Count..][..chunk2.Count]);
-					Assert.That(chunk2.First, Is.EqualTo(folder.GetKey(chunk.Count)));
-					Assert.That(chunk2.Last, Is.EqualTo(folder.GetKey(chunk.Count + chunk2.Count - 1)));
+					Assert.That(chunk2.First, Is.EqualTo(folder.Key(chunk.Count)));
+					Assert.That(chunk2.Last, Is.EqualTo(folder.Key(chunk.Count + chunk2.Count - 1)));
 
 				}, this.Cancellation);
 
@@ -339,7 +338,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(folder.GetKey(i), FdbValue.ToCompactLittleEndian(i));
+						tr.Set(folder.Key(i), FdbValue.ToCompactLittleEndian(i));
 					}
 				}, this.Cancellation);
 				insert.Stop();
@@ -352,11 +351,11 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await location.Resolve(tr);
 
-					var query = tr.GetRange(folder.GetKey(0), folder.GetKey(N));
+					var query = tr.GetRange(folder.Key(0), folder.Key(N));
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Transaction, Is.SameAs(tr));
-					Assert.That(query.Begin.Key, Is.EqualTo(folder.GetKey(0)));
-					Assert.That(query.End.Key, Is.EqualTo(folder.GetKey(N)));
+					Assert.That(query.Begin.Key, Is.EqualTo(folder.Key(0)));
+					Assert.That(query.End.Key, Is.EqualTo(folder.Key(N)));
 					Assert.That(query.Limit, Is.Null);
 					Assert.That(query.TargetBytes, Is.Null);
 					Assert.That(query.IsReversed, Is.False);
@@ -418,7 +417,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(folder.GetKey(i), FdbValue.ToCompactLittleEndian(i));
+						tr.Set(folder.Key(i), FdbValue.ToCompactLittleEndian(i));
 					}
 				}, this.Cancellation);
 				insert.Stop();
@@ -432,13 +431,13 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var query = tr
-						.GetRange(folder.GetKey(0), folder.GetKey(N))
+						.GetRange(folder.Key(0), folder.Key(N))
 						.Paged();
 
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Transaction, Is.SameAs(tr));
-					Assert.That(query.Begin.Key, Is.EqualTo(folder.GetKey(0)));
-					Assert.That(query.End.Key, Is.EqualTo(folder.GetKey(N)));
+					Assert.That(query.Begin.Key, Is.EqualTo(folder.Key(0)));
+					Assert.That(query.End.Key, Is.EqualTo(folder.Key(N)));
 					Assert.That(query.Limit, Is.Null);
 					Assert.That(query.TargetBytes, Is.Null);
 					Assert.That(query.IsReversed, Is.False);
@@ -506,7 +505,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await location.Resolve(tr);
 
-					tr.SetValues(Enumerable.Range(0, N), i => folder.GetKey(i), FdbValue.ToCompactLittleEndian);
+					tr.SetValues(Enumerable.Range(0, N), i => folder.Key(i), FdbValue.ToCompactLittleEndian);
 				}, this.Cancellation);
 
 				// via FdbReadMode.Keys option
@@ -516,16 +515,16 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var chunk = await tr.GetRangeAsync(
-						folder.GetKey(0),
-						folder.GetKey(N),
+						folder.Key(0),
+						folder.Key(N),
 						FdbRangeOptions.WantAllKeysOnly
 					);
 					// note: this will not read ALL the keys in one chunk !
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
 					Assert.That(chunk.HasMore, Is.EqualTo(chunk.Count < N), "HasMore flag is invalid");
 					Assert.That(chunk.FetchMode, Is.EqualTo(FdbFetchMode.KeysOnly));
-					Assert.That(chunk.First, Is.EqualTo(folder.GetKey(0)), "First key does not match");
-					Assert.That(chunk.Last, Is.EqualTo(folder.GetKey(chunk.Count - 1)), "Last key does not match");
+					Assert.That(chunk.First, Is.EqualTo(folder.Key(0)), "First key does not match");
+					Assert.That(chunk.Last, Is.EqualTo(folder.Key(chunk.Count - 1)), "Last key does not match");
 
 					for (int i = 0; i < chunk.Count; i++)
 					{
@@ -547,7 +546,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await location.Resolve(tr);
 
-					var query = tr.GetRange(folder.GetKey(0), folder.GetKey(N), FdbRangeOptions.KeysOnly);
+					var query = tr.GetRange(folder.Key(0), folder.Key(N), FdbRangeOptions.KeysOnly);
 					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.KeysOnly));
 
 					var items = await query.ToListAsync();
@@ -575,7 +574,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await location.Resolve(tr);
 
-					var query = tr.GetRangeKeys(folder.GetKey(0), folder.GetKey(N));
+					var query = tr.GetRangeKeys(folder.Key(0), folder.Key(N));
 
 					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.KeysOnly));
 
@@ -615,7 +614,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(folder.GetKey(i), FdbValue.ToCompactLittleEndian(i));
+						tr.Set(folder.Key(i), FdbValue.ToCompactLittleEndian(i));
 					}
 
 				}, this.Cancellation);
@@ -625,16 +624,16 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var chunk = await tr.GetRangeAsync(
-						folder.GetKey(0),
-						folder.GetKey(N),
+						folder.Key(0),
+						folder.Key(N),
 						FdbRangeOptions.WantAllValuesOnly
 					);
 					// note: this will not read ALL the keys in one chunk !
 					Assert.That(chunk.Count, Is.GreaterThan(0).And.LessThanOrEqualTo(N));
 					Assert.That(chunk.HasMore, Is.EqualTo(chunk.Count < N), "HasMore flag is invalid");
 					Assert.That(chunk.FetchMode, Is.EqualTo(FdbFetchMode.ValuesOnly));
-					Assert.That(chunk.First, Is.EqualTo(folder.GetKey(0)), "The chunk should still read the first key (even in Values only mode)");
-					Assert.That(chunk.Last, Is.EqualTo(folder.GetKey(chunk.Count - 1)), "The chunk should still read the last key (even in Values only mode)");
+					Assert.That(chunk.First, Is.EqualTo(folder.Key(0)), "The chunk should still read the first key (even in Values only mode)");
+					Assert.That(chunk.Last, Is.EqualTo(folder.Key(chunk.Count - 1)), "The chunk should still read the last key (even in Values only mode)");
 
 					for (int i = 0; i < chunk.Count; i++)
 					{
@@ -656,8 +655,8 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var query = tr.GetRange(
-						folder.GetKey(0),
-						folder.GetKey(N),
+						folder.Key(0),
+						folder.Key(N),
 						FdbRangeOptions.ValuesOnly
 					);
 					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.ValuesOnly));
@@ -686,7 +685,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await location.Resolve(tr);
 
-					var query = tr.GetRangeValues(folder.GetKey(0), folder.GetKey(N));
+					var query = tr.GetRangeValues(folder.Key(0), folder.Key(N));
 
 					Assert.That(query.Fetch, Is.EqualTo(FdbFetchMode.ValuesOnly));
 
@@ -709,8 +708,8 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var query = tr.GetRangeValues(
-						folder.GetKey(0),
-						folder.GetKey(N),
+						folder.Key(0),
+						folder.Key(N),
 						new FdbRangeOptions { Streaming = FdbStreamingMode.Small }
 					);
 
@@ -752,7 +751,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(folder.GetKey(i), Slice.FromInt32(i));
+						tr.Set(folder.Key(i), Slice.FromInt32(i));
 					}
 				}, this.Cancellation);
 
@@ -763,8 +762,8 @@ namespace FoundationDB.Client.Tests
 						var folder = await location.Resolve(tr);
 
 						var query = tr.GetRange(
-							folder.GetKey(0),
-							folder.GetKey(N),
+							folder.Key(0),
+							folder.Key(N),
 							folder,
 							static (f, k, v) => (Index: f.DecodeLast<int>(k), Score: v.ToInt32()),
 							new FdbRangeOptions { Limit = N / 2 }
@@ -792,8 +791,8 @@ namespace FoundationDB.Client.Tests
 
 						var query = tr
 							.GetRange(
-								folder.GetKey(0),
-								folder.GetKey(N),
+								folder.Key(0),
+								folder.Key(N),
 								new FdbRangeOptions { Limit = N / 2 }
 							)
 							.Decode(
@@ -823,8 +822,8 @@ namespace FoundationDB.Client.Tests
 
 						var query = tr
 							.GetRange(
-								folder.GetKey(0),
-								folder.GetKey(N),
+								folder.Key(0),
+								folder.Key(N),
 								new FdbRangeOptions { Limit = N / 2 }
 							)
 							.Decode(
@@ -869,9 +868,9 @@ namespace FoundationDB.Client.Tests
 					var fb = await b.Resolve(tr);
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(fa.GetKey(i), Slice.FromInt32(i));
+						tr.Set(fa.Key(i), Slice.FromInt32(i));
 					}
-					tr.Set(fb.GetKey(0), Slice.FromInt32(42));
+					tr.Set(fb.Key(0), Slice.FromInt32(42));
 				}, this.Cancellation);
 
 				KeyValuePair<Slice, Slice> res;
@@ -885,22 +884,22 @@ namespace FoundationDB.Client.Tests
 
 					// should return the first one
 					res = await query.FirstOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(fa.GetKey(0)));
+					Assert.That(res.Key, Is.EqualTo(fa.Key(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(0)));
 
 					// should return the first one
 					res = await query.FirstAsync();
-					Assert.That(res.Key, Is.EqualTo(fa.GetKey(0)));
+					Assert.That(res.Key, Is.EqualTo(fa.Key(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(0)));
 
 					// should return the last one
 					res = await query.LastOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(fa.GetKey(9)));
+					Assert.That(res.Key, Is.EqualTo(fa.Key(9)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(9)));
 
 					// should return the last one
 					res = await query.LastAsync();
-					Assert.That(res.Key, Is.EqualTo(fa.GetKey(9)));
+					Assert.That(res.Key, Is.EqualTo(fa.Key(9)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(9)));
 
 					// should fail because there is more than one
@@ -919,32 +918,32 @@ namespace FoundationDB.Client.Tests
 
 					// should return the first one
 					res = await query.FirstOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(fb.GetKey(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Key(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the first one
 					res = await query.FirstAsync();
-					Assert.That(res.Key, Is.EqualTo(fb.GetKey(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Key(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the last one
 					res = await query.LastOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(fb.GetKey(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Key(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the last one
 					res = await query.LastAsync();
-					Assert.That(res.Key, Is.EqualTo(fb.GetKey(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Key(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the first one
 					res = await query.SingleOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(fb.GetKey(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Key(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 
 					// should return the first one
 					res = await query.SingleAsync();
-					Assert.That(res.Key, Is.EqualTo(fb.GetKey(0)));
+					Assert.That(res.Key, Is.EqualTo(fb.Key(0)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 				}
 
@@ -989,12 +988,12 @@ namespace FoundationDB.Client.Tests
 
 					// should return the fifth one
 					res = await query.LastOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(fa.GetKey(4)));
+					Assert.That(res.Key, Is.EqualTo(fa.Key(4)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(4)));
 
 					// should return the fifth one
 					res = await query.LastAsync();
-					Assert.That(res.Key, Is.EqualTo(fa.GetKey(4)));
+					Assert.That(res.Key, Is.EqualTo(fa.Key(4)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(4)));
 				}
 
@@ -1007,12 +1006,12 @@ namespace FoundationDB.Client.Tests
 
 					// should return the fifth one
 					res = await query.FirstOrDefaultAsync();
-					Assert.That(res.Key, Is.EqualTo(fa.GetKey(5)));
+					Assert.That(res.Key, Is.EqualTo(fa.Key(5)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(5)));
 
 					// should return the fifth one
 					res = await query.FirstAsync();
-					Assert.That(res.Key, Is.EqualTo(fa.GetKey(5)));
+					Assert.That(res.Key, Is.EqualTo(fa.Key(5)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(5)));
 				}
 
@@ -1039,7 +1038,7 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(fa.GetKey(i), FdbValue.ToCompactLittleEndian(i));
+						tr.Set(fa.Key(i), FdbValue.ToCompactLittleEndian(i));
 					}
 					// add guard keys
 					tr.Set(f.GetPrefix(), Slice.FromInt32(-1));
@@ -1061,7 +1060,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(elements.Count, Is.EqualTo(5));
 					for (int i = 0; i < 5; i++)
 					{
-						Assert.That(elements[i].Key, Is.EqualTo(fa.GetKey(i)));
+						Assert.That(elements[i].Key, Is.EqualTo(fa.Key(i)));
 						Assert.That(elements[i].Value, Is.EqualTo(Slice.FromInt32(i)));
 					}
 				}
@@ -1081,7 +1080,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(elements.Count, Is.EqualTo(10));
 					for (int i = 0; i < 10; i++)
 					{
-						Assert.That(elements[i].Key, Is.EqualTo(fa.GetKey(i)));
+						Assert.That(elements[i].Key, Is.EqualTo(fa.Key(i)));
 						Assert.That(elements[i].Value, Is.EqualTo(Slice.FromInt32(i)));
 					}
 				}
@@ -1121,7 +1120,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					foreach(var (k, v) in dataSet)
 					{
-						tr.Set(folder.GetKey(k), v);
+						tr.Set(folder.Key(k), v);
 					}
 				}, this.Cancellation);
 
@@ -1131,7 +1130,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var query = tr.GetRange(folder.GetRange());
-					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.GetKey(kv.Index).ToSlice(), kv.Value)).ToArray();
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToArray();
 
 					// |>>>>>>>>>>>>(50---------->99)|
 					var res = await query.Skip(50).ToListAsync();
@@ -1161,7 +1160,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var query = tr.GetRange(folder.GetRange());
-					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.GetKey(kv.Index).ToSlice(), kv.Value)).ToList();
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToList();
 
 					// |(0 <--------- 49)<<<<<<<<<<<<<|
 					var res = await query.Reverse().Skip(50).ToListAsync();
@@ -1191,7 +1190,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var query = tr.GetRange(folder.GetRange());
-					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.GetKey(kv.Index).ToSlice(), kv.Value)).ToArray();
+					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToArray();
 
 					// |>>>>>>>>>(25<------------74)<<<<<<<<|
 					var res = await query.Skip(25).Reverse().Skip(25).ToListAsync();
@@ -1221,7 +1220,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					foreach (var (k, v) in dataSet)
 					{
-						tr.Set(folder.GetKey(k), v);
+						tr.Set(folder.Key(k), v);
 					}
 				}, this.Cancellation);
 
@@ -1230,7 +1229,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var query = tr
-						.GetRange(folder.GetKey(10), folder.GetKey(20)) // 10 -> 19
+						.GetRange(folder.Key(10), folder.Key(20)) // 10 -> 19
 						.Take(20) // 10 -> 19 (limit 20)
 						.Reverse(); // 19 -> 10 (limit 20)
 					Log($"query: {query}");
@@ -1245,7 +1244,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 
 					var query = tr
-						.GetRange(folder.GetKey(10), folder.GetKey(20)) // 10 -> 19
+						.GetRange(folder.Key(10), folder.Key(20)) // 10 -> 19
 						.Reverse() // 19 -> 10
 						.Take(20)  // 19 -> 10 (limit 20)
 						.Reverse(); // 10 -> 19 (limit 20)
@@ -1270,7 +1269,7 @@ namespace FoundationDB.Client.Tests
 			// more generally: lists[k][i] = (..., MergeSort, k, (i * K) + k) = (k, i)
 			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
 			{
-				return folder.GetKey(k).ToSubspace();
+				return folder.Key(k).ToSubspace();
 			}
 
 			using (var db = await OpenTestPartitionAsync())
@@ -1287,7 +1286,7 @@ namespace FoundationDB.Client.Tests
 						var list = GetList(folder, k);
 						for (int i = 0; i < N; i++)
 						{
-							tr.Set(list.GetKey((i * K) + k), TuPack.EncodeKey(k, i));
+							tr.Set(list.Key((i * K) + k), TuPack.EncodeKey(k, i));
 						}
 						await tr.CommitAsync();
 					}
@@ -1335,7 +1334,7 @@ namespace FoundationDB.Client.Tests
 			// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
 			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
 			{
-				return folder.GetKey(k).ToSubspace();
+				return folder.Key(k).ToSubspace();
 			}
 
 			using (var db = await OpenTestPartitionAsync())
@@ -1358,7 +1357,7 @@ namespace FoundationDB.Client.Tests
 						var list = GetList(folder, k);
 						for (int i = 0; i < N; i++)
 						{
-							var key = list.GetKey(series[k][i]);
+							var key = list.Key(series[k][i]);
 							var value = TuPack.EncodeKey(k, i);
 							//Log("> " + key + " = " + value);
 							tr.Set(key, value);
@@ -1413,7 +1412,7 @@ namespace FoundationDB.Client.Tests
 			// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
 			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
 			{
-				return folder.GetKey(k).ToSubspace();
+				return folder.Key(k).ToSubspace();
 			}
 
 			using (var db = await OpenTestPartitionAsync())
@@ -1437,7 +1436,7 @@ namespace FoundationDB.Client.Tests
 						var list = GetList(folder, k);
 						for (int i = 0; i < N; i++)
 						{
-							var key = list.GetKey(series[k][i]);
+							var key = list.Key(series[k][i]);
 							var value = TuPack.EncodeKey(k, i);
 							//Log("> " + key + " = " + value);
 							tr.Set(key, value);
@@ -1504,11 +1503,11 @@ namespace FoundationDB.Client.Tests
 					var processed = await locProcessed.Resolve(tr);
 
 					// Items
-					tr.Set(items.GetKey("userA", 10093), Slice.Empty);
-					tr.Set(items.GetKey("userA", 19238), Slice.Empty);
-					tr.Set(items.GetKey("userB", 20003), Slice.Empty);
+					tr.Set(items.Key("userA", 10093), Slice.Empty);
+					tr.Set(items.Key("userA", 19238), Slice.Empty);
+					tr.Set(items.Key("userB", 20003), Slice.Empty);
 					// Processed
-					tr.Set(processed.GetKey("userA", 19238), Slice.Empty);
+					tr.Set(processed.Key("userA", 19238), Slice.Empty);
 				}, this.Cancellation);
 
 				// the query (Items ∩ Processed) should return (userA, 10093) and (userB, 20003)
@@ -1593,7 +1592,7 @@ namespace FoundationDB.Client.Tests
 					var folder = await location.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(folder.GetKey(i), Slice.FromInt32(i));
+						tr.Set(folder.Key(i), Slice.FromInt32(i));
 					}
 				}, this.Cancellation);
 				insert.Stop();
@@ -1610,7 +1609,7 @@ namespace FoundationDB.Client.Tests
 
 					var ts = Stopwatch.StartNew();
 					var items = new List<(IVarTuple Key, int Value)>(N);
-					await tr.VisitRangeAsync(folder.GetKey(0), folder.GetKey(N), items, (state, k, v) =>
+					await tr.VisitRangeAsync(folder.Key(0), folder.Key(N), items, (state, k, v) =>
 					{
 #if NET9_0_OR_GREATER
 						state.Add((folder.Unpack(k).ToTuple(), v.ToInt32()));

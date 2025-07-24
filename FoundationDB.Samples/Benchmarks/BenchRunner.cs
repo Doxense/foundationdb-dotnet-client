@@ -91,7 +91,7 @@ namespace FoundationDB.Samples.Benchmarks
 				}
 			);
 
-			var foo = this.Subspace!.GetKey("foo");
+			var foo = this.Subspace!.Key("foo");
 			var bar = Slice.FromString("bar");
 			var barf = Slice.FromString("barf");
 
@@ -122,7 +122,7 @@ namespace FoundationDB.Samples.Benchmarks
 								}
 								else
 								{
-									await db.ReadAsync(tr => tr.GetValuesAsync(Enumerable.Range(1, this.Value), i => foo.AppendKey(i)), ct);
+									await db.ReadAsync(tr => tr.GetValuesAsync(Enumerable.Range(1, this.Value), i => foo.Key(i)), ct);
 								}
 								break;
 							}

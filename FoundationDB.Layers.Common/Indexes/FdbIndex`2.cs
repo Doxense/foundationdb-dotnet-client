@@ -70,7 +70,7 @@ namespace FoundationDB.Layers.Indexing
 			{
 				if (this.Schema.IndexNullValues || value is not null)
 				{
-					trans.Set(this.Subspace.GetKey(value, id), Slice.Empty);
+					trans.Set(this.Subspace.Key(value, id), Slice.Empty);
 					return true;
 				}
 				return false;
@@ -84,13 +84,13 @@ namespace FoundationDB.Layers.Indexing
 					// remove previous value
 					if (this.Schema.IndexNullValues || previousValue is not null)
 					{
-						trans.Clear(this.Subspace.GetKey(previousValue, id));
+						trans.Clear(this.Subspace.Key(previousValue, id));
 					}
 
 					// add new value
 					if (this.Schema.IndexNullValues || newValue is not null)
 					{
-						trans.Set(this.Subspace.GetKey(newValue, id), Slice.Empty);
+						trans.Set(this.Subspace.Key(newValue, id), Slice.Empty);
 					}
 
 					// cannot be both null, so we did at least something
@@ -102,14 +102,14 @@ namespace FoundationDB.Layers.Indexing
 			/// <summary>Remove an entity from the index</summary>
 			public void Remove(IFdbTransaction trans, TId id, TValue? value)
 			{
-				trans.Clear(this.Subspace.GetKey(value, id));
+				trans.Clear(this.Subspace.Key(value, id));
 			}
 
 			/// <summary>Returns a query that will return all id of the entities that have the specified <paramref name="value"/></summary>
 			public IFdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue? value, bool reverse = false)
 			{
 				return trans.GetRangeKeys(
-					this.Subspace.GetKey(value).StartsWith(inclusive: true),
+					this.Subspace.Key(value).ToRange(inclusive: true),
 					this.Subspace, (s, k) => s.DecodeLast<TId>(k)!,
 					reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 				);
@@ -121,8 +121,8 @@ namespace FoundationDB.Layers.Indexing
 				if (orEqual)
 				{ // (>= "abc", *) => (..., "abc") < x < (..., <FF>)
 					return trans.GetRangeKeys(
-						this.Subspace.GetKey(value).FirstGreaterOrEqual(),
-						this.Subspace.GetKey().GetNextSibling().FirstGreaterOrEqual(),
+						this.Subspace.Key(value).FirstGreaterOrEqual(),
+						this.Subspace.Key().NextSibling().FirstGreaterOrEqual(),
 						this.Subspace, static (s, k) => s.DecodeLast<TId>(k)!,
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
@@ -130,7 +130,7 @@ namespace FoundationDB.Layers.Indexing
 				else
 				{ // (> "abc", *) => (..., "abd") < x < (..., <FF>)
 					return trans.GetRangeKeys(
-						this.Subspace.GetKey(value).GetNextSibling().FirstGreaterOrEqual(),
+						this.Subspace.Key(value).NextSibling().FirstGreaterOrEqual(),
 						this.Subspace.GetRange().GetEndSelector(),
 						this.Subspace, static (s, k) => s.DecodeLast<TId>(k)!,
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
@@ -145,16 +145,16 @@ namespace FoundationDB.Layers.Indexing
 				if (orEqual)
 				{
 					query = trans.GetRange(
-						this.Subspace.GetKey().FirstGreaterOrEqual(),
-						this.Subspace.GetKey(value).GetNextSibling().FirstGreaterThan(),
+						this.Subspace.Key().FirstGreaterOrEqual(),
+						this.Subspace.Key(value).NextSibling().FirstGreaterThan(),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}
 				else
 				{
 					query = trans.GetRange(
-						this.Subspace.GetKey().FirstGreaterOrEqual(),
-						this.Subspace.GetKey(value).FirstGreaterThan(),
+						this.Subspace.Key().FirstGreaterOrEqual(),
+						this.Subspace.Key(value).FirstGreaterThan(),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}

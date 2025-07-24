@@ -84,7 +84,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				return trans
-					.GetRangeValues(this.Subspace.GetKey(MAX_LEVELS - 1).StartsWith())
+					.GetRangeValues(this.Subspace.Key(MAX_LEVELS - 1).ToRange())
 					.Select(DecodeCount)
 					.SumAsync();
 			}
@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Collections
 					if ((keyHash & ((1 << (level * LEVEL_FAN_POW)) - 1)) != 0)
 					{
 						//Console.WriteLine("> [" + level + "] Incrementing previous key: " + FdbKey.Dump(prevKey));
-						trans.AtomicIncrement64(this.Subspace.GetKey(level, prevKey));
+						trans.AtomicIncrement64(this.Subspace.Key(level, prevKey));
 					}
 					else
 					{
@@ -115,14 +115,14 @@ namespace FoundationDB.Layers.Collections
 						// Insert into this level by looking at the count of the previous
 						// key in the level and recounting the next lower level to correct
 						// the counts
-						var prevCount = DecodeCount(await trans.GetAsync(this.Subspace.GetKey(level, prevKey)).ConfigureAwait(false));
+						var prevCount = DecodeCount(await trans.GetAsync(this.Subspace.Key(level, prevKey)).ConfigureAwait(false));
 						var newPrevCount = await SlowCountAsync(trans, level - 1, prevKey, key);
 						var count = checked((prevCount - newPrevCount) + 1);
 
 						// print "insert", key, "level", level, "count", count,
 						// "splits", prevKey, "oldC", prevCount, "newC", newPrevCount
-						trans.Set(this.Subspace.GetKey(level, prevKey), EncodeCount(newPrevCount));
-						trans.Set(this.Subspace.GetKey(level, key), EncodeCount(count));
+						trans.Set(this.Subspace.Key(level, prevKey), EncodeCount(newPrevCount));
+						trans.Set(this.Subspace.Key(level, key), EncodeCount(count));
 					}
 				}
 			}
@@ -132,7 +132,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", nameof(key));
 
-				return (await trans.GetAsync(this.Subspace.GetKey(0, key)).ConfigureAwait(false)).HasValue;
+				return (await trans.GetAsync(this.Subspace.Key(0, key)).ConfigureAwait(false)).HasValue;
 			}
 
 			public async Task EraseAsync(IFdbTransaction trans, Slice key)
@@ -147,7 +147,7 @@ namespace FoundationDB.Layers.Collections
 				for (int level = 0; level < MAX_LEVELS; level++)
 				{
 					// This could be optimized with hash
-					var k = this.Subspace.GetKey(level, key);
+					var k = this.Subspace.Key(level, key);
 					var c = await trans.GetAsync(k).ConfigureAwait(false);
 					if (c.HasValue) trans.Clear(k);
 					if (level == 0) continue;
@@ -157,7 +157,7 @@ namespace FoundationDB.Layers.Collections
 					long countChange = -1;
 					if (c.HasValue) countChange += DecodeCount(c);
 
-					trans.AtomicAdd64(this.Subspace.GetKey(level, prevKey), countChange);
+					trans.AtomicAdd64(this.Subspace.Key(level, prevKey), countChange);
 				}
 			}
 
@@ -175,11 +175,11 @@ namespace FoundationDB.Layers.Collections
 				var rankKey = Slice.Empty;
 				for(int level = MAX_LEVELS - 1; level >= 0; level--)
 				{
-					var lss = this.Subspace.GetKey(level);
+					var lss = this.Subspace.Key(level);
 					long lastCount = 0;
 					var kcs = await trans.GetRange(
-						lss.AppendKey(rankKey).FirstGreaterOrEqual(),
-						lss.AppendKey(key).FirstGreaterThan()
+						lss.Key(rankKey).FirstGreaterOrEqual(),
+						lss.Key(key).FirstGreaterThan()
 					).ToListAsync().ConfigureAwait(false);
 					foreach (var kc in kcs)
 					{
@@ -204,9 +204,9 @@ namespace FoundationDB.Layers.Collections
 				var key = Slice.Empty;
 				for (int level = MAX_LEVELS - 1; level >= 0; level--)
 				{
-					var lss = this.Subspace.GetKey(level);
+					var lss = this.Subspace.Key(level);
 					var kcs = await trans.GetRange(
-						FdbKeyRange.Between(this.Subspace.GetKey(level), this.Subspace.GetKey(level, key))
+						FdbKeyRange.Between(this.Subspace.Key(level), this.Subspace.Key(level, key))
 					).ToListAsync().ConfigureAwait(false);
 
 					if (kcs.Count == 0) break;
@@ -252,7 +252,7 @@ namespace FoundationDB.Layers.Collections
 				}
 
 				return trans
-					.GetRange(this.Subspace.GetKey(level, beginKey), this.Subspace.GetKey(level, endKey))
+					.GetRange(this.Subspace.Key(level, beginKey), this.Subspace.Key(level, endKey))
 					.Select(kv => DecodeCount(kv.Value))
 					.SumAsync();
 			}
@@ -260,7 +260,7 @@ namespace FoundationDB.Layers.Collections
 			internal async Task SetupLevelsAsync(IFdbTransaction trans)
 			{
 				var ks = Enumerable.Range(0, MAX_LEVELS)
-					.Select((l) => this.Subspace.GetKey(l, Slice.Empty))
+					.Select((l) => this.Subspace.Key(l, Slice.Empty))
 					.ToArray();
 
 				var res = await trans.GetValuesAsync(ks).ConfigureAwait(false);
@@ -279,7 +279,7 @@ namespace FoundationDB.Layers.Collections
 				// a transaction conflict. We also add a conflict key on the found previous
 				// key in level 0. This allows detection of erasures.
 
-				var k = this.Subspace.GetKey(level, key);
+				var k = this.Subspace.Key(level, key);
 				//Console.WriteLine(k);
 				//Console.WriteLine("GetPreviousNode(" + level + ", " + key + ")");
 				//Console.WriteLine(KeySelector.LastLessThan(k) + " <= x < " + KeySelector.FirstGreaterOrEqual(k));
@@ -294,8 +294,8 @@ namespace FoundationDB.Layers.Collections
 				//Console.WriteLine("Found " + FdbKey.Dump(kv.Key));
 
 				var prevKey = this.Subspace.DecodeLast<Slice>(kv.Key);
-				trans.AddReadConflictRange(FdbKey.ToBytes(kv.Key).GetSuccessor(), k);
-				trans.AddReadConflictKey(this.Subspace.GetKey(0, prevKey));
+				trans.AddReadConflictRange(FdbKey.FromBytes(kv.Key).Successor(), k);
+				trans.AddReadConflictKey(this.Subspace.Key(0, prevKey));
 				return prevKey;
 			}
 
