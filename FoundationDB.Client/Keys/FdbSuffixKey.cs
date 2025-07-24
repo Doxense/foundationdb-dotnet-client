@@ -203,8 +203,8 @@ namespace FoundationDB.Client
 		{
 			return other switch
 			{
-				FdbSuffixKey key => this.Equals(key),
 				FdbRawKey key => this.Equals(key),
+				FdbSuffixKey key => this.Equals(key),
 				Slice bytes => this.Equals(bytes),
 				IFdbKey key => FdbKeyHelpers.Equals(in this, key),
 				_ => false,
@@ -221,15 +221,29 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbRawKey other) => FdbKeyHelpers.Equals(in this, other.Data);
+		public bool Equals(FdbRawKey other)
+		{
+			var otherSpan = other.Span;
+			var suffixSpan = this.Subspace.GetPrefix().Span;
+			return otherSpan.StartsWith(suffixSpan) && otherSpan[suffixSpan.Length..].SequenceEqual(suffixSpan);
+		}
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(Slice other) => FdbKeyHelpers.Equals(in this, other);
+		public bool Equals(Slice other)
+		{
+			var otherSpan = other.Span;
+			var suffixSpan = this.Subspace.GetPrefix().Span;
+			return otherSpan.StartsWith(suffixSpan) && otherSpan[suffixSpan.Length..].SequenceEqual(suffixSpan);
+		}
 
 		/// <inheritdoc cref="Equals(Slice)"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyHelpers.Equals(in this, other);
+		public bool Equals(ReadOnlySpan<byte> other)
+		{
+			var suffixSpan = this.Subspace.GetPrefix().Span;
+			return other.StartsWith(suffixSpan) && other[suffixSpan.Length..].SequenceEqual(suffixSpan);
+		}
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -238,11 +252,11 @@ namespace FoundationDB.Client
 		{
 			if (typeof(TOtherKey) == typeof(FdbSuffixKey))
 			{
-				return FdbKeyHelpers.Equals(this.Subspace, ((FdbSuffixKey) (object) other).Subspace) && this.Suffix.Equals(((FdbSuffixKey) (object) other).Suffix);
+				return Equals((FdbSuffixKey) (object) other);
 			}
 			if (typeof(TOtherKey) == typeof(FdbRawKey))
 			{
-				return FdbKeyHelpers.Equals(in this, ((FdbRawKey) (object) other).Data);
+				return Equals((FdbRawKey) (object) other);
 			}
 			return FdbKeyHelpers.Equals(in this, in other);
 		}

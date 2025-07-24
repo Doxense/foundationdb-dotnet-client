@@ -64,6 +64,7 @@ namespace FoundationDB.Client
 			{
 				FdbRawKey key => this.Equals(key.Data),
 				FdbTupleKey key => key.Equals(this),
+				FdbSuffixKey key => key.Equals(this),
 				Slice bytes => this.Equals(bytes),
 				IFdbKey key => FdbKeyHelpers.Equals(in this, key),
 				_ => false,

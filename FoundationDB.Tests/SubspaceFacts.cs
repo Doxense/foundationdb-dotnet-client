@@ -58,15 +58,15 @@ namespace FoundationDB.Client.Tests
 			Assert.That(subspace.Append(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("*<FF><00><7F><04><03><02><01>"));
 			Assert.That(subspace.Append(Slice.FromStringAscii("hello")).ToString(), Is.EqualTo("*<FF><00><7F>hello"));
 
-			// pack(...) should use tuple serialization
+			// Key(...) should use tuple serialization
 			Assert.That(subspace.Key(123).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><15>{"));
 			Assert.That(subspace.Key("hello").ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
 			Assert.That(subspace.Key(Slice.FromStringAscii("world")).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><01>world<00>"));
-			Assert.That(subspace.Pack(STuple.Create("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
-			Assert.That(subspace.Pack(("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
+			Assert.That(subspace.Tuple(STuple.Create("hello", 123)).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
+			Assert.That(subspace.Tuple(("hello", 123)).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
 
 			// if we encode a tuple from this subspace, it should keep the binary prefix when converted to a key
-			var k = subspace.Pack(("world", 123, false));
+			var k = subspace.Tuple(("world", 123, false)).ToSlice();
 			Assert.That(k.ToString(), Is.EqualTo("*<FF><00><7F><02>world<00><15>{&"));
 
 			// if we unpack the key with the binary prefix, we should get a valid tuple
@@ -77,11 +77,17 @@ namespace FoundationDB.Client.Tests
 			Assert.That(t2.Get<int>(1), Is.EqualTo(123));
 			Assert.That(t2.Get<bool>(2), Is.False);
 
-			// ValueTuple
-			Assert.That(subspace.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
-			Assert.That(subspace.Pack(("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
-			Assert.That(subspace.Pack(("hello", 123, "world")).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00>"));
-			Assert.That(subspace.Pack(("hello", 123, "world", 456)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00><16><01><C8>"));
+			// Pack(ValueTuple)
+			Assert.That(subspace.Tuple(STuple.Create("hello")).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
+			Assert.That(subspace.Tuple(STuple.Create("hello", 123)).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
+			Assert.That(subspace.Tuple(STuple.Create("hello", 123, "world")).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00>"));
+			Assert.That(subspace.Tuple(STuple.Create("hello", 123, "world", 456)).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00><16><01><C8>"));
+
+			// Pack(ValueTuple)
+			Assert.That(subspace.Tuple(ValueTuple.Create("hello")).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00>"));
+			Assert.That(subspace.Tuple(("hello", 123)).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
+			Assert.That(subspace.Tuple(("hello", 123, "world")).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00>"));
+			Assert.That(subspace.Tuple(("hello", 123, "world", 456)).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{<02>world<00><16><01><C8>"));
 		}
 
 		[Test]
@@ -129,7 +135,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(subspace.Key("world").ToSlice().ToString(), Is.EqualTo("<02>hello<00><02>world<00>"));
 
 			// even though the subspace prefix is a tuple, appending to it will only return the new items
-			var k = subspace.Pack(("world", 123, false));
+			var k = subspace.Tuple(("world", 123, false)).ToSlice();
 			Assert.That(k.ToString(), Is.EqualTo("<02>hello<00><02>world<00><15>{&"));
 
 			// if we unpack the key with the binary prefix, we should get a valid tuple
@@ -185,21 +191,29 @@ namespace FoundationDB.Client.Tests
 			Assert.That(location.Key("hello", 123, "world", 456, "!").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
 			Assert.That(location.Key("hello", 123, "world", 456, "!", 789).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
 
-			// Pack(ITuple)
-			Assert.That(location.Pack((IVarTuple) STuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
-			Assert.That(location.Pack((IVarTuple) STuple.Create("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
-			Assert.That(location.Pack((IVarTuple) STuple.Create("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
-			Assert.That(location.Pack((IVarTuple) STuple.Create("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
-			Assert.That(location.Pack((IVarTuple) STuple.Create("hello", 123, "world", 456, "!")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
-			Assert.That(location.Pack((IVarTuple) STuple.Create("hello", 123, "world", 456, "!", 789)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
+			// Pack(IVarTuple)
+			Assert.That(location.Tuple((IVarTuple) STuple.Create("hello")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Tuple((IVarTuple) STuple.Create("hello", 123)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Tuple((IVarTuple) STuple.Create("hello", 123, "world")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Tuple((IVarTuple) STuple.Create("hello", 123, "world", 456)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Tuple((IVarTuple) STuple.Create("hello", 123, "world", 456, "!")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
+			Assert.That(location.Tuple((IVarTuple) STuple.Create("hello", 123, "world", 456, "!", 789)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
+
+			// Pack(STuple<...>)
+			Assert.That(location.Tuple(STuple.Create("hello")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Tuple(STuple.Create("hello", 123)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Tuple(STuple.Create("hello", 123, "world")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Tuple(STuple.Create("hello", 123, "world", 456)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Tuple(STuple.Create("hello", 123, "world", 456, "!")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
+			Assert.That(location.Tuple(STuple.Create("hello", 123, "world", 456, "!", 789)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
 
 			// Pack(ValueTuple)
-			Assert.That(location.Pack(ValueTuple.Create("hello")).ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
-			Assert.That(location.Pack(("hello", 123)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
-			Assert.That(location.Pack(("hello", 123, "world")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
-			Assert.That(location.Pack(("hello", 123, "world", 456)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
-			Assert.That(location.Pack(("hello", 123, "world", 456, "!")).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
-			Assert.That(location.Pack(("hello", 123, "world", 456, "!", 789)).ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
+			Assert.That(location.Tuple(ValueTuple.Create("hello")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00>"));
+			Assert.That(location.Tuple(ValueTuple.Create("hello", 123)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{"));
+			Assert.That(location.Tuple(ValueTuple.Create("hello", 123, "world")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00>"));
+			Assert.That(location.Tuple(ValueTuple.Create("hello", 123, "world", 456)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8>"));
+			Assert.That(location.Tuple(ValueTuple.Create("hello", 123, "world", 456, "!")).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00>"));
+			Assert.That(location.Tuple(ValueTuple.Create("hello", 123, "world", 456, "!", 789)).ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00><15>{<02>world<00><16><01><C8><02>!<00><16><03><15>"));
 
 			// ITuple Unpack(Slice)
 			Assert.That(location.Unpack(Slice.Unescape("PREFIX<02>hello<00>")), Is.EqualTo(STuple.Create("hello")));

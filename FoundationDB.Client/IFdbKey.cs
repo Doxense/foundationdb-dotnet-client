@@ -36,6 +36,9 @@ namespace FoundationDB.Client
 	public interface IFdbKey : ISpanEncodable, ISpanFormattable
 		, IEquatable<FdbRawKey>, IComparable<FdbRawKey>
 		, IEquatable<Slice>, IComparable<Slice>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>, IComparable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		/// <summary>Optional subspace that contains this key</summary>
@@ -53,10 +56,16 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IEquatable{T}.Equals(T?)"/>
 		[Pure]
+#if NET9_0_OR_GREATER
+		new // required to fix weird ambiguity resolution with Equals<TOtherKey> .. ???
+#endif
 		bool Equals(ReadOnlySpan<byte> other);
 
 		/// <inheritdoc cref="IComparable{T}.CompareTo(T?)"/>
 		[Pure]
+#if NET9_0_OR_GREATER
+		new // required to fix weird ambiguity resolution with Equals<TOtherKey> .. ???
+#endif
 		int CompareTo(ReadOnlySpan<byte> other);
 
 		/// <summary>Tests if the key is <c>Nil</c></summary>

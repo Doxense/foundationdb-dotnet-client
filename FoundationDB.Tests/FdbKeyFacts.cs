@@ -48,9 +48,14 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.Empty));
 
+				Assert.That(k, Is.EqualTo(new FdbRawKey(Slice.Empty)));
 				Assert.That(k, Is.EqualTo(Slice.Empty));
+
 				Assert.That(k, Is.Not.EqualTo(Slice.Nil));
 				Assert.That(k, Is.Not.EqualTo(hello));
+
+				Assert.That(k, Is.EqualTo((object) new FdbRawKey(Slice.Empty)));
+				Assert.That(k, Is.EqualTo((object) Slice.Empty));
 
 				Assert.That(k.CompareTo(Slice.Empty), Is.Zero);
 			}
@@ -581,13 +586,16 @@ namespace FoundationDB.Client.Tests
 				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.FromString("/status/json"), special: true)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(expectedBytes)));
 				Assert.That(k, Is.EqualTo(expectedBytes));
-				Assert.That(k.Equals(new FdbTupleKey(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))));
 
 				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/json"), special: false)));
 				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/JSON"), special: true)));
 				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/json/"), special: true)));
 				Assert.That(k, Is.Not.EqualTo(new FdbVarTupleValue(STuple.Create(TuPackUserType.SystemKey("/status/json")))));
+
+				Assert.That(k.Equals<FdbSystemKey>(new(Slice.FromString("/status/json"), special: true)), Is.True);
+				Assert.That(k.Equals<FdbRawKey>(new(expectedBytes)), Is.True);
+				Assert.That(k.Equals<FdbTupleKey>(new(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))), Is.True);
 			}
 		}
 
