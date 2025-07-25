@@ -99,7 +99,7 @@ private static void Main(string[] args)
     var fdb = builder
         .AddFoundationDb("fdb",
             apiVersion: 730,
-            root: "/Sandbox/MySuperApp",
+            root: "/Tenant/ACME/MySuperApp/v1",
             clusterVersion: "7.3.68",
             rollForward: FdbVersionPolicy.Exact
          );
@@ -128,7 +128,11 @@ private static void Main(string[] args)
 
     // Define an external FoundationDB cluster connection
     var fdb = builder
-        .AddFoundationDbCluster("fdb", apiVersion: 720, root: "/Sandbox/MySuperApp", clusterFile: "/SOME/PATH/TO/testing.cluster")		;
+        .AddFoundationDbCluster("fdb",
+            apiVersion: 730,
+            root: "/Tenant/ACME/MySuperApp/v1",
+            clusterFile: "/SOME/PATH/TO/testing.cluster"
+         );
 
     // Project that needs a reference to this cluster
     var backend = builder
@@ -266,7 +270,12 @@ In your AppHost:
 
     // Define a locally hosted FoundationDB cluster
     var fdb = builder
-        .AddFoundationDb("fdb", apiVersion: 730, root: "/Tenant/ACME/MySuperApp/v1", clusterVersion: "7.3.54", rollForward: FdbVersionPolicy.Exact);
+        .AddFoundationDb("fdb",
+            apiVersion: 730,
+            root: "/Tenant/ACME/MySuperApp/v1",
+            clusterVersion: "7.3.68",
+            rollForward: FdbVersionPolicy.Exact
+        );
 ```
 
 In you web application project:
@@ -274,7 +283,7 @@ In you web application project:
 public sealed class BookOptions
 {
 
-    /// <summary>Path to the root directory subspace of the application where all data will be stored</summary>
+    /// <summary>Path to the root subspace of the application, where all data is stored</summary>
     public FdbPath BasePath { get; set; } // ex: "Documents/Books"
 
 }
@@ -372,7 +381,7 @@ This service would be injected into the controller and provide a set of nicer me
 public sealed class BooksProviderOptions
 {
 
-    /// <summary>Path to the root directory subspace of the application where all data will be stored</summary>
+    /// <summary>Path to the root subspace of the application, where all data is stored</summary>
     public FdbPath BasePath { get; set; } // ex: "Documents/Books"
 
     // any other relevant options...
