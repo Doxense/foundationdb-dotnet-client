@@ -1,4 +1,4 @@
-﻿
+
 namespace FdbBurner
 {
 	using System;
@@ -106,7 +106,7 @@ namespace FdbBurner
 								? rnd.Next()
 								: pos + i;
 
-							tr.Set(folder.Encode(x, Suffix), Value);
+							tr.Set(folder.Key(x, Suffix), Value);
 							Interlocked.Increment(ref Keys);
 						}
 						pos += N;
