@@ -47,7 +47,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Allocator()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix(Slice.FromString("hca"));
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("hca"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -93,7 +93,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -158,7 +158,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -238,7 +238,7 @@ namespace FoundationDB.Client.Tests
 
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -329,7 +329,7 @@ namespace FoundationDB.Client.Tests
 
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -409,7 +409,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var directory = FdbDirectoryLayer.Create(location);
@@ -474,7 +474,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var dl = FdbDirectoryLayer.Create(location);
@@ -517,7 +517,7 @@ namespace FoundationDB.Client.Tests
 
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -580,7 +580,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Remove_Folder()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var dl = FdbDirectoryLayer.Create(location);
@@ -641,7 +641,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Change_Layer_Of_Existing_Directory()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var directory = FdbDirectoryLayer.Create(location);
@@ -689,7 +689,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Directory_Partitions()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -755,7 +755,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Directory_Cannot_Move_To_Another_Partition()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -803,7 +803,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Directory_Cannot_Move_To_A_Sub_Partition()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -894,7 +894,7 @@ namespace FoundationDB.Client.Tests
 			// - Verify that DL.List() now returns only "bar"
 
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var dl = FdbDirectoryLayer.Create(location);
@@ -955,7 +955,7 @@ namespace FoundationDB.Client.Tests
 			// - Verify that dir.ExistsAsync() returns false
 
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var dl = FdbDirectoryLayer.Create(location);
@@ -996,7 +996,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Directory_Methods_Should_Fail_With_Empty_Paths()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var directory = FdbDirectoryLayer.Create(location);
@@ -1037,7 +1037,7 @@ namespace FoundationDB.Client.Tests
 			// => this is because keys created directly will most certainly conflict with directory subspaces
 
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var dl = FdbDirectoryLayer.Create(location);
@@ -1130,7 +1130,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Concurrent_Directory_Creation()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			var dl = FdbDirectoryLayer.Create(location);
@@ -1185,7 +1185,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Concurrent_Directory_Creation_With_Custom_Prefix()
 		{
 			using var db = await OpenTestDatabaseAsync();
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 			// to keep the test db in a good shape, we will still use tuples for our custom prefix,
@@ -1266,7 +1266,7 @@ namespace FoundationDB.Client.Tests
 
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -1373,7 +1373,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -1429,7 +1429,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING
@@ -1461,7 +1461,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using var db = await OpenTestDatabaseAsync();
 			// we will put everything under a custom namespace
-			var location = db.Root.WithKeyPrefix("DL");
+			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
 #if ENABLE_LOGGING

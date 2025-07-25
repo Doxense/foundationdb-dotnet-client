@@ -42,16 +42,15 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 #if ENABLE_LOGGING
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(location.WithKeyPrefix("Foos"), FdbUtf8ValueCodec.Instance);
+				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(db.Root, FdbUtf8ValueCodec.Instance);
 
-				string secret = "world:" + Guid.NewGuid().ToString();
+				string secret = $"world:{Guid.NewGuid()}";
 
 				// read non existing value
 				await mapFoos.WriteAsync(db, async (tr, foos) =>
@@ -66,7 +65,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// write value
 				await mapFoos.WriteAsync(db, (tr, foos) => foos.Set(tr, "hello", secret), this.Cancellation);
 #if FULL_DEBUG
-				await DumpSubspace(db, location);
+				await DumpSubspace(db);
 #endif
 
 				// read value back
@@ -91,7 +90,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// delete the value
 				await mapFoos.WriteAsync(db, (tr, foos) => foos.Remove(tr, "hello"), this.Cancellation);
 #if FULL_DEBUG
-				await DumpSubspace(db, location);
+				await DumpSubspace(db);
 #endif
 
 				// verifiy that it is gone
@@ -103,8 +102,8 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(value.HasValue, Is.False);
 
 					// also check directly
-					var folder = await location.Resolve(tr);
-					var data = await tr.GetAsync(folder.Key("Foos", "hello"));
+					var folder = await db.Root.Resolve(tr);
+					var data = await tr.GetAsync(folder.Key("hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);
 
@@ -117,14 +116,13 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 #if ENABLE_LOGGING
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(location.WithKeyPrefix("Foos"), FdbUtf8ValueCodec.Instance);
+				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(db.Root, FdbUtf8ValueCodec.Instance);
 
 				// write a bunch of keys
 				await mapFoos.WriteAsync(db, (tr, foos) =>
@@ -133,7 +131,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					foos.Set(tr, "bar", "bar_value");
 				}, this.Cancellation);
 #if FULL_DEBUG
-				await DumpSubspace(db, location);
+				await DumpSubspace(db);
 #endif
 
 				// read them back
@@ -176,15 +174,14 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 #if ENABLE_LOGGING
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
 				var mapHosts = new FdbMap<IPEndPoint, STuple<IPAddress, int>, string, FdbUtf8Value>(
-					location.WithKeyPrefix("Hosts"),
+					db.Root,
 					keyCodec,
 					FdbValueCodec.Utf8
 				);
@@ -198,7 +195,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					}
 				}, this.Cancellation);
 #if FULL_DEBUG
-				await DumpSubspace(db, location);
+				await DumpSubspace(db);
 #endif
 
 				// test the rules

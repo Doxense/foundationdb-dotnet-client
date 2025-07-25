@@ -40,15 +40,13 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 #if ENABLE_LOGGING
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapFoos = new FdbMultiMap<string, string>(location.WithKeyPrefix("Foos"), allowNegativeValues: false);
+				var mapFoos = new FdbMultiMap<string, string>(db.Root, allowNegativeValues: false);
 
 				// read non existing value
 				await mapFoos.ReadAsync(db, async (tr, foos) =>

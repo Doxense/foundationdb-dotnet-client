@@ -325,7 +325,7 @@ namespace FoundationDB.Tests.Sandbox
 			var rnd = new Random();
 			var tmp = new byte[size];
 
-			var location = db.Root.WithKeyPrefix("Batch");
+			var location = db.Root["Batch"];
 
 			var times = new List<TimeSpan>();
 			for (int k = 0; k <= 4; k++)
@@ -444,7 +444,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine($"=== BenchSerialWrite(N={N:N0}) ===");
 
-			var location = db.Root.WithKeyPrefix("hello");
+			var location = db.Root["Hello"];
 			var sw = Stopwatch.StartNew();
 			IFdbTransaction trans = null;
 			IKeySubspace subspace = null;
@@ -487,7 +487,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine($"=== BenchSerialRead(N={N:N0}) ===");
 			Console.WriteLine($"Reading {N:N0} keys (serial, slow!)");
 
-			var location = db.Root.WithKeyPrefix("hello");
+			var location = db.Root["Hello"];
 
 			var sw = Stopwatch.StartNew();
 			for (int k = 0; k < N; k += 1000)
@@ -515,7 +515,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine($"=== BenchConcurrentRead(N={N:N0}) ===");
 			Console.WriteLine($"Reading {N:N0} keys (concurrent)");
 
-			var location = db.Root.WithKeyPrefix("hello");
+			var location = db.Root["Hello"];
 
 			Console.WriteLine("# Task.WhenAll+GetAsync");
 			var sw = Stopwatch.StartNew();
@@ -560,7 +560,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine($"=== BenchClear(N={N:N0}) ===");
 
-			var location = db.Root.WithKeyPrefix(Slice.FromStringAscii("hello"));
+			var location = db.Root["Hello"];
 
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
@@ -610,7 +610,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine($"=== BenchUpdateLotsOfKeys(N={N:N0}) ===");
 
-			var location = db.Root.WithKeyPrefix("lists");
+			var location = db.Root["Lists"];
 
 			var rnd = new Random();
 
@@ -670,7 +670,7 @@ namespace FoundationDB.Tests.Sandbox
 			var timings = instrumented ? new List<KeyValuePair<double, double>>() : null;
 
 			// put test values inside a namespace
-			var location = db.Root.WithKeyPrefix("BulkInsert");
+			var location = db.Root["BulkInsert"];
 
 			// cleanup everything
 			using (var tr = db.BeginTransaction(ct))
@@ -762,7 +762,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine($"=== BenchMergeSort(N={N:N0}, K={K:N0}, B={B:N0}) ===");
 
 			// create multiple lists
-			var location = db.Root.WithKeyPrefix("MergeSort");
+			var location = db.Root["MergeSort"];
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);

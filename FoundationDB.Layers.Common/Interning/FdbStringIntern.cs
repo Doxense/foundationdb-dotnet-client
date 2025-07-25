@@ -86,12 +86,12 @@ namespace FoundationDB.Layers.Interning
 
 		public FdbStringIntern(ISubspaceLocation location)
 		{
-			if (location == null) throw new ArgumentNullException(nameof(location));
+			Contract.NotNull(location);
 
-			this.Location = location.AsDynamic();
+			this.Location = location;
 		}
 
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
@@ -107,9 +107,9 @@ namespace FoundationDB.Layers.Interning
 
 			private FdbStringIntern Layer { get; }
 
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
-			internal State(FdbStringIntern layer, IDynamicKeySubspace subspace)
+			internal State(FdbStringIntern layer, IKeySubspace subspace)
 			{
 				this.Layer = layer;
 				this.Subspace = subspace;

@@ -38,13 +38,9 @@ namespace FoundationDB.Layers.Tables.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root;
+				await CleanLocation(db);
 
-				// clear previous values
-				await CleanLocation(db, location);
-
-				var subspace = location.WithKeyPrefix("FoosByColor");
-				var index = new FdbIndex<int, string>(subspace);
+				var index = new FdbIndex<int, string>(db.Root);
 
 				// add items to the index
 				await db.WriteAsync(async (tr) =>
@@ -57,7 +53,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}, this.Cancellation);
 
 #if DEBUG
-				await DumpSubspace(db, subspace);
+				await DumpSubspace(db);
 #endif
 
 				// lookup values
@@ -65,16 +61,16 @@ namespace FoundationDB.Layers.Tables.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var reds = await index.Lookup(tr, "red").ToListAsync();
-					Assert.That(reds, Is.EqualTo(new int[] { 1 }));
+					Assert.That(reds, Is.EqualTo([ 1 ]));
 
 					var greens = await index.Lookup(tr, "green").ToListAsync();
-					Assert.That(greens, Is.EqualTo(new int[] { 2, 4 }));
+					Assert.That(greens, Is.EqualTo([ 2, 4 ]));
 
 					var blues = await index.Lookup(tr, "blue").ToListAsync();
-					Assert.That(blues, Is.EqualTo(new int[] { 3 }));
+					Assert.That(blues, Is.EqualTo([ 3 ]));
 
 					var yellows = await index.Lookup(tr, "yellow").ToListAsync();
-					Assert.That(yellows, Is.EqualTo(new int[] { 5 }));
+					Assert.That(yellows, Is.EqualTo([ 5 ]));
 				}
 
 				// update
@@ -86,7 +82,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}, this.Cancellation);
 
 #if DEBUG
-				await DumpSubspace(db, subspace);
+				await DumpSubspace(db);
 #endif
 
 				// check values
@@ -94,10 +90,10 @@ namespace FoundationDB.Layers.Tables.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var reds = await index.Lookup(tr, "red").ToListAsync();
-					Assert.That(reds, Is.EqualTo(new int[] { 1 }));
+					Assert.That(reds, Is.EqualTo([ 1 ]));
 
 					var greens = await index.Lookup(tr, "green").ToListAsync();
-					Assert.That(greens, Is.EqualTo(new int[] { 2, 4 }));
+					Assert.That(greens, Is.EqualTo([ 2, 4 ]));
 
 					var blues = await index.Lookup(tr, "blue").ToListAsync();
 					Assert.That(blues.Count, Is.Zero);
@@ -106,7 +102,7 @@ namespace FoundationDB.Layers.Tables.Tests
 					Assert.That(yellows.Count, Is.Zero);
 
 					var indigos = await index.Lookup(tr, "indigo").ToListAsync();
-					Assert.That(indigos, Is.EqualTo(new int[] { 3 }));
+					Assert.That(indigos, Is.EqualTo([ 3 ]));
 				}
 
 			}
@@ -119,24 +115,22 @@ namespace FoundationDB.Layers.Tables.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 				// summon our main cast
-				var characters = new List<Character>()
-				{
-					new Character { Id = 1, Name = "Super Man", Brand="DC", HasSuperPowers = true, IsVilain = false },
-					new Character { Id = 2, Name = "Batman", Brand="DC", IsVilain = false },
-					new Character { Id = 3, Name = "Joker", Brand="DC", IsVilain = true },
-					new Character { Id = 4, Name = "Iron Man", Brand="Marvel", IsVilain = false },
-					new Character { Id = 5, Name = "Magneto", Brand="Marvel", HasSuperPowers = true, IsVilain = true },
-					new Character { Id = 6, Name = "Cat Woman", Brand="DC", IsVilain = default(bool?) },
-				};
+				List<Character> characters =
+				[
+					new() { Id = 1, Name = "Super Man", Brand = "DC", HasSuperPowers = true, IsVillain = false },
+					new() { Id = 2, Name = "Batman", Brand = "DC", IsVillain = false },
+					new() { Id = 3, Name = "Joker", Brand = "DC", IsVillain = true },
+					new() { Id = 4, Name = "Iron Man", Brand = "Marvel", IsVillain = false },
+					new() { Id = 5, Name = "Magneto", Brand = "Marvel", HasSuperPowers = true, IsVillain = true },
+					new() { Id = 6, Name = "Cat Woman", Brand = "DC", IsVillain = null }
+				];
 
-				var indexBrand = new FdbIndex<long, string>(location.WithKeyPrefix("CharactersByBrand"));
-				var indexSuperHero = new FdbIndex<long, bool>(location.WithKeyPrefix("SuperHeroes"));
-				var indexAlignment = new FdbIndex<long, bool?>(location.WithKeyPrefix("FriendsOrFoe"));
+				var indexBrand = new FdbIndex<long, string>(db.Root.WithPrefix(TuPack.EncodeKey("CharactersByBrand")));
+				var indexSuperHero = new FdbIndex<long, bool>(db.Root.WithPrefix(TuPack.EncodeKey("SuperHeroes")));
+				var indexAlignment = new FdbIndex<long, bool?>(db.Root.WithPrefix(TuPack.EncodeKey("FriendsOrFoe")));
 
 				// index everything
 				await db.WriteAsync(async (tr) =>
@@ -149,13 +143,13 @@ namespace FoundationDB.Layers.Tables.Tests
 					{
 						indexBrandState.Add(tr, character.Id, character.Brand);
 						indexSuperHeroState.Add(tr, character.Id, character.HasSuperPowers);
-						indexAlignmentState.Add(tr, character.Id, character.IsVilain);
+						indexAlignmentState.Add(tr, character.Id, character.IsVillain);
 					}
 
 				}, this.Cancellation);
 
 #if DEBUG
-				await DumpSubspace(db, location);
+				await DumpSubspace(db);
 #endif
 
 				// super hereos only (sorry Batman!)
@@ -205,7 +199,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 			public bool HasSuperPowers { get; init; }
 
-			public bool? IsVilain { get; init; }
+			public bool? IsVillain { get; init; }
 		}
 
 	}

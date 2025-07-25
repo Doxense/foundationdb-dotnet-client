@@ -37,11 +37,10 @@ namespace FoundationDB.Layers.Interning.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
-				var stringSpace = location.WithKeyPrefix("Strings");
-				var dataSpace = location.WithKeyPrefix("Data").AsTyped<string>();
+				var stringSpace = db.Root.WithPrefix(TuPack.EncodeKey("Strings"));
+				var dataSpace = db.Root.WithPrefix(TuPack.EncodeKey("Data"));
 
 				var stringTable = new FdbStringIntern(stringSpace);
 
@@ -49,6 +48,7 @@ namespace FoundationDB.Layers.Interning.Tests
 				await stringTable.WriteAsync(db, async (tr, table) =>
 				{
 					Assert.That(table, Is.Not.Null);
+
 					var va = await table.InternAsync(tr, "testing 123456789");
 					var vb = await table.InternAsync(tr, "dog");
 					var vc = await table.InternAsync(tr, "testing 123456789");
@@ -56,11 +56,11 @@ namespace FoundationDB.Layers.Interning.Tests
 					var ve = await table.InternAsync(tr, "cat");
 
 					var subspace = await dataSpace.Resolve(tr);
-					tr.Set(subspace["a"], va);
-					tr.Set(subspace["b"], vb);
-					tr.Set(subspace["c"], vc);
-					tr.Set(subspace["d"], vd);
-					tr.Set(subspace["e"], ve);
+					tr.Set(subspace.Key("a"), va);
+					tr.Set(subspace.Key("b"), vb);
+					tr.Set(subspace.Key("c"), vc);
+					tr.Set(subspace.Key("d"), vd);
+					tr.Set(subspace.Key("e"), ve);
 				}, this.Cancellation);
 
 #if DEBUG
@@ -72,34 +72,34 @@ namespace FoundationDB.Layers.Interning.Tests
 				await stringTable.ReadAsync(db, async (tr, table) =>
 				{
 					var subspace = await dataSpace.Resolve(tr);
-					var uid_a = await tr.GetAsync(subspace["a"]);
-					var uid_b = await tr.GetAsync(subspace["b"]);
-					var uid_c = await tr.GetAsync(subspace["c"]);
-					var uid_d = await tr.GetAsync(subspace["d"]);
-					var uid_e = await tr.GetAsync(subspace["e"]);
+					var uidA = await tr.GetAsync(subspace.Key("a"));
+					var uidB = await tr.GetAsync(subspace.Key("b"));
+					var uidC = await tr.GetAsync(subspace.Key("c"));
+					var uidD = await tr.GetAsync(subspace.Key("d"));
+					var uidE = await tr.GetAsync(subspace.Key("e"));
 
 					// a, b, d should be different
-					Assert.That(uid_b, Is.Not.EqualTo(uid_a));
-					Assert.That(uid_d, Is.Not.EqualTo(uid_a));
+					Assert.That(uidB, Is.Not.EqualTo(uidA));
+					Assert.That(uidD, Is.Not.EqualTo(uidA));
 
 					// a should equal c
-					Assert.That(uid_c, Is.EqualTo(uid_a));
+					Assert.That(uidC, Is.EqualTo(uidA));
 
 					// d should equal e
-					Assert.That(uid_e, Is.EqualTo(uid_d));
+					Assert.That(uidE, Is.EqualTo(uidD));
 
 					// perform a lookup
-					var str_a = await table.LookupAsync(tr, uid_a);
-					var str_b = await table.LookupAsync(tr, uid_b);
-					var str_c = await table.LookupAsync(tr, uid_c);
-					var str_d = await table.LookupAsync(tr, uid_d);
-					var str_e = await table.LookupAsync(tr, uid_e);
+					var strA = await table.LookupAsync(tr, uidA);
+					var strB = await table.LookupAsync(tr, uidB);
+					var strC = await table.LookupAsync(tr, uidC);
+					var strD = await table.LookupAsync(tr, uidD);
+					var strE = await table.LookupAsync(tr, uidE);
 
-					Assert.That(str_a, Is.EqualTo("testing 123456789"));
-					Assert.That(str_b, Is.EqualTo("dog"));
-					Assert.That(str_c, Is.EqualTo(str_a));
-					Assert.That(str_d, Is.EqualTo("cat"));
-					Assert.That(str_e, Is.EqualTo(str_d));
+					Assert.That(strA, Is.EqualTo("testing 123456789"));
+					Assert.That(strB, Is.EqualTo("dog"));
+					Assert.That(strC, Is.EqualTo(strA));
+					Assert.That(strD, Is.EqualTo("cat"));
+					Assert.That(strE, Is.EqualTo(strD));
 				}, this.Cancellation);
 
 				stringTable.Dispose();

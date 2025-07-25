@@ -35,10 +35,9 @@ namespace FoundationDB.Layers.Blobs.Tests
 		public async Task Test_NotFound_Blob_Is_Empty()
 		{
 			using var db = await OpenTestPartitionAsync();
-			var location = db.Root;
-			await CleanLocation(db, location);
+			await CleanLocation(db);
 
-			var blob = new FdbBlob(location.WithKeyPrefix("Empty"));
+			var blob = new FdbBlob(db.Root);
 
 			long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
 			Assert.That(size, Is.Null, "Non existing blob should have no size");
@@ -48,10 +47,9 @@ namespace FoundationDB.Layers.Blobs.Tests
 		public async Task Test_Can_Append_To_Blob()
 		{
 			using var db = await this.OpenTestPartitionAsync();
-			var location = db.Root;
-			await this.CleanLocation(db, location);
+			await this.CleanLocation(db);
 
-			var blob = new FdbBlob(location);
+			var blob = new FdbBlob(db.Root);
 
 			Log("Insert blob in 3 chunks...");
 			await blob.WriteAsync(db, async (tr, state) =>
@@ -62,7 +60,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 
 			}, this.Cancellation);
 #if DEBUG
-			await this.DumpSubspace(db, location);
+			await this.DumpSubspace(db);
 #endif
 
 			Log("Checking blob size...");
@@ -80,10 +78,9 @@ namespace FoundationDB.Layers.Blobs.Tests
 		public async Task Test_Can_Append_Large_Chunks()
 		{
 			using var db = await this.OpenTestPartitionAsync();
-			var location = db.Root;
-			await this.CleanLocation(db, location);
+			await this.CleanLocation(db);
 
-			var blob = new FdbBlob(location.WithKeyPrefix("BigBlob"));
+			var blob = new FdbBlob(db.Root);
 
 			var data = Slice.Zero(100_000);
 			for (int i = 0; i < data.Count; i++) data.Array[data.Offset + i] = (byte)i;
@@ -104,7 +101,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 			Log($"> {s.Count:N0} bytes");
 			Assert.That(s.Count, Is.EqualTo(1_000_000));
 
-			// should contains the correct data
+			// should contain the correct data
 			for (int i = 0; i < s.Count; i++)
 			{
 				if (s[i] != (byte) ((1234567 + i) % data.Count))

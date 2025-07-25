@@ -90,15 +90,13 @@ namespace FoundationDB.Linq.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 #if ENABLE_LOGGING
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var indexFoos = new FdbIndex<long, string>(location.WithKeyPrefix("Foos", "ByColor"));
+				var indexFoos = new FdbIndex<long, string>(db.Root);
 
 				await db.WriteAsync(async (tr) =>
 				{
@@ -132,14 +130,13 @@ namespace FoundationDB.Linq.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 #if ENABLE_LOGGING
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var index = new FdbIndex<string, int>(location.WithKeyPrefix("Foos", "ByScore"));
+				var index = new FdbIndex<string, int>(db.Root);
 
 				await db.WriteAsync(async (tr) =>
 				{

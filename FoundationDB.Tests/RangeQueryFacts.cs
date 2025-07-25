@@ -857,9 +857,9 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root;
 				await CleanLocation(db, location);
 
-				var a = location.WithKeyPrefix("a");
-				var b = location.WithKeyPrefix("b");
-				var c = location.WithKeyPrefix("c");
+				var a = location.WithPrefix(TuPack.EncodeKey("a"));
+				var b = location.WithPrefix(TuPack.EncodeKey("b"));
+				var c = location.WithPrefix(TuPack.EncodeKey("c"));
 
 				// insert a bunch of keys under 'a', only one under 'b', and nothing under 'c'
 				await db.WriteAsync(async (tr) =>
@@ -1025,33 +1025,29 @@ namespace FoundationDB.Client.Tests
 			{
 
 				// put test values in a namespace
-				var location = db.Root;
-				await CleanLocation(db, location);
-
-				var a = location.WithKeyPrefix("a");
+				await CleanLocation(db);
 
 				// insert a bunch of keys under 'a'
 				await db.WriteAsync(async tr =>
 				{
-					var f = await location.Resolve(tr);
-					var fa = await a.Resolve(tr);
+					var subspace = await  db.Root.Resolve(tr);
 
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(fa.Key(i), FdbValue.ToCompactLittleEndian(i));
+						tr.Set(subspace.Key("a", i), FdbValue.ToCompactLittleEndian(i));
 					}
 					// add guard keys
-					tr.Set(f.GetPrefix(), Slice.FromInt32(-1));
-					tr.Set(f.GetPrefix() + 0xFF, Slice.FromInt32(-1));
+					tr.Set(subspace.Key(), FdbValue.MaxValue32);
+					tr.Set(subspace.Last(), FdbValue.MaxValue32);
 				}, this.Cancellation);
 
 				// Take(5) should return the first 5 items
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var fa = await a.Resolve(tr);
+					var subspace = await db.Root.Resolve(tr);
 
-					var query = tr.GetRange(fa.ToRange()).Take(5);
+					var query = tr.GetRange(subspace.Key("a").ToRange()).Take(5);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(5));
 
@@ -1060,7 +1056,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(elements.Count, Is.EqualTo(5));
 					for (int i = 0; i < 5; i++)
 					{
-						Assert.That(elements[i].Key, Is.EqualTo(fa.Key(i)));
+						Assert.That(elements[i].Key, Is.EqualTo(subspace.Key("a", i)));
 						Assert.That(elements[i].Value, Is.EqualTo(Slice.FromInt32(i)));
 					}
 				}
@@ -1069,9 +1065,9 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var fa = await a.Resolve(tr);
+					var subspace = await db.Root.Resolve(tr);
 
-					var query = tr.GetRange(fa.ToRange()).Take(12);
+					var query = tr.GetRange(subspace.Key("a").ToRange()).Take(12);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(12));
 
@@ -1080,7 +1076,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(elements.Count, Is.EqualTo(10));
 					for (int i = 0; i < 10; i++)
 					{
-						Assert.That(elements[i].Key, Is.EqualTo(fa.Key(i)));
+						Assert.That(elements[i].Key, Is.EqualTo(subspace.Key("a", i)));
 						Assert.That(elements[i].Value, Is.EqualTo(Slice.FromInt32(i)));
 					}
 				}
@@ -1089,7 +1085,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var fa = await a.Resolve(tr);
+					var fa = await db.Root.Resolve(tr);
 
 					var query = tr.GetRange(fa.ToRange()).Take(0);
 					Assert.That(query, Is.Not.Null);
@@ -1108,16 +1104,14 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				// put test values in a namespace
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 				var dataSet = Enumerable.Range(0, 100).Select(x => (Index: x, Value: Slice.FromFixed32(x))).ToArray();
 
 				// import test data
 				await db.WriteAsync(async tr =>
 				{
-					var folder = await location.Resolve(tr);
+					var folder = await db.Root.Resolve(tr);
 					foreach(var (k, v) in dataSet)
 					{
 						tr.Set(folder.Key(k), v);
@@ -1127,7 +1121,7 @@ namespace FoundationDB.Client.Tests
 				// from the start
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var folder = await location.Resolve(tr);
+					var folder = await db.Root.Resolve(tr);
 
 					var query = tr.GetRange(folder.ToRange());
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToArray();
@@ -1157,7 +1151,7 @@ namespace FoundationDB.Client.Tests
 				// from the end
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var folder = await location.Resolve(tr);
+					var folder = await db.Root.Resolve(tr);
 
 					var query = tr.GetRange(folder.ToRange());
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToList();
@@ -1187,7 +1181,7 @@ namespace FoundationDB.Client.Tests
 				// from both sides
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var folder = await location.Resolve(tr);
+					var folder = await db.Root.Resolve(tr);
 
 					var query = tr.GetRange(folder.ToRange());
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToArray();
@@ -1486,14 +1480,12 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				// get a clean new directory
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 				// Items contains a list of all ("user", id) that were created
-				var locItems = location.WithKeyPrefix("Items");
+				var locItems = db.Root.WithPrefix(TuPack.EncodeKey("Items"));
 				// Processed contain the list of all ("user", id) that were processed
-				var locProcessed = location.WithKeyPrefix("Processed");
+				var locProcessed = db.Root.WithPrefix(TuPack.EncodeKey("Processed"));
 
 				// the goal is to have a query that returns the list of all unprocessed items (ie: in Items but not in Processed)
 
@@ -1579,9 +1571,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				// put test values in a namespace
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
 				// insert all values (batched)
 				Log($"Inserting {N:N0} keys...");
@@ -1589,7 +1579,7 @@ namespace FoundationDB.Client.Tests
 				var insert = Stopwatch.StartNew();
 				await db.WriteAsync(async tr =>
 				{
-					var folder = await location.Resolve(tr);
+					var folder = await db.Root.Resolve(tr);
 					foreach (int i in Enumerable.Range(0, N))
 					{
 						tr.Set(folder.Key(i), Slice.FromInt32(i));
@@ -1603,7 +1593,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var folder = await location.Resolve(tr);
+					var folder = await db.Root.Resolve(tr);
 
 					Log("Visiting range ...");
 
