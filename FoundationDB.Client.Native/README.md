@@ -28,6 +28,7 @@ The package includes the `fdb_c` client library and `fdbcli` utility for the fol
 - `win-x64`
 - `linux-x64`
 - `linux-arm64` (aka `aarch64`)
+- `osx-arm64`
 
 This package can be used in two ways:
 
@@ -139,7 +140,7 @@ Example of a `Dockerfile` that will grab v7.3.x binaries and inject them into yo
 
 ```Dockerfile
 # Version of the FoundationDB Client Library
-ARG FDB_VERSION=7.3.52
+ARG FDB_VERSION=7.3.68
 
 # We will need the official fdb docker image to obtain the client binaries
 FROM foundationdb/foundationdb:${FDB_VERSION} as fdb

@@ -12,17 +12,17 @@
 		<ProduceReferenceAssembly>true</ProduceReferenceAssembly>
 		<!--<IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>-->
 		<!-- Define the platforms that we support -->
-		<RuntimeIdentifiers>win-x64;linux-x64;linux-arm64</RuntimeIdentifiers>
+		<RuntimeIdentifiers>win-x64;linux-x64;linux-arm64;osx-arm64</RuntimeIdentifiers>
 	</PropertyGroup>
 	
 	<Import Project="..\Common\VersionInfo.props" />
 
 	<PropertyGroup>
 		<!-- Override the version here, because it must match the verison of the native dlls, NOT the .NET binding itself! -->
-		<VersionPrefix>7.3.52</VersionPrefix>
+		<VersionPrefix>7.3.68</VersionPrefix>
 		<VersionSuffix></VersionSuffix>
 		<AssemblyTitle>Native Client Libraries for FoundationDB</AssemblyTitle>
-		<Description>Includes the FoundationDB Native Client (fdb_c.dll, libfdbc.so, ...) for different runtimes.</Description>
+		<Description>FoundationDB Native Client libraries for Windows (fdb_c.dll), Linux (libfdb_c.so) and macOS (libfdb_c.dylib).</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageIcon>foundationdb.png</PackageIcon>
 		<IsPackable>true</IsPackable>
@@ -46,7 +46,7 @@
 	
 	<ItemGroup Condition="'$(IsPackingSelf)' == 'true'">
 		<!-- Reference FoundationDB.Client via NuGet -->
-		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.0-preview.1,7.4)" />
+		<PackageReference Include="FoundationDB.Client" VersionOverride="[7.3.1,8.0)" />
 		<!-- Exclude the other dependencies to prevent them from appearing in the .nuspec -->
 		<!-- How to update: comment all of them, rebuild the package, inspect the .nuspec, and re-add the deps that have appeared (only keep FoundationDB.Client) -->
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" ExcludeAssets="All" />
@@ -76,7 +76,7 @@
 		<None Include="runtimes\linux-arm64\native\libfdb_c.so" Pack="true" PackagePath="runtimes/linux-arm64/native/" />
 
 		<!-- macOS arm64 -->
-		<None Include="runtimes\osx-arm64\native\libfdb_c.dylib" Pack="true" PackagePath="runtimes/macos-arm64/native/" />
+		<None Include="runtimes\osx-arm64\native\libfdb_c.dylib" Pack="true" PackagePath="runtimes/osx-arm64/native/" />
 
 	</ItemGroup>
 
