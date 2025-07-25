@@ -13,13 +13,13 @@ C#/.NET binding for the [FoundationDB](https://www.foundationdb.org/) client lib
 
 To get started, install the [FoundationDB.Client](https://www.nuget.org/packages/FoundationDB.Client) package into your application.
 
-```bash
+```powershell
 dotnet add package FoundationDB.Client
 ```
 
 You will also probably require the [FoundationDB.Client.Native](https://www.nuget.org/packages/FoundationDB.Client.Native) package that redistributes the native FoundationDB Client libraries for your platform: `fdb_c.dll` on Windows, `libfdb_c.so` on Linux, and `libfdb_c.dylib` on macOS. They are available for x64 and arm64.
 
-```bash
+```powershell
 dotnet add package FoundationDB.Client.Native
 ```
 
@@ -76,12 +76,12 @@ It is possible to add a FoundationDB cluster resource to your Aspire application
 For this, you will need to install the following NuGet packages:
 
 In the AppHost project:
-```bash
+```powershell
 dotnet add package FoundationDB.Aspire.Hosting
 ```
 
 In each of the projects that need to connect to the FoundationDB cluster:
-```bash
+```powershell
 dotnet add package FoundationDB.Aspire
 ```
 
