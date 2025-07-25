@@ -97,7 +97,12 @@ private static void Main(string[] args)
 
     // Define a locally hosted FoundationDB cluster
     var fdb = builder
-        .AddFoundationDb("fdb", apiVersion: 730, root: "/Sandbox/MySuperApp", clusterVersion: "7.3.54", rollForward: FdbVersionPolicy.Exact);
+        .AddFoundationDb("fdb",
+            apiVersion: 730,
+            root: "/Sandbox/MySuperApp",
+            clusterVersion: "7.3.68",
+            rollForward: FdbVersionPolicy.Exact
+         );
 
     // Project that needs a reference to this cluster
     var backend = builder
@@ -140,12 +145,13 @@ Then, in the Program.cs, or where you are declaring your services with the DI, u
 ```c#
 var builder = WebApplication.CreateBuilder(args);
 
-// setup Aspire services...
+// Setup Aspire services...
 builder.AddServiceDefaults();
 //...
 
-// hookup the FoundationDB component
-builder.AddFoundationDb("fdb"); // "fdb" is the same name we used in AddFoundationDb(...) or AddFoundationDbCLuster(...) in the AppHost above.
+// Hookup the FoundationDB component
+// note: "fdb" is the same name we used with AddFoundationDb(...) in the AppHost above.
+builder.AddFoundationDb("fdb");
 
 // ...rest of the startup logic....
 ```
@@ -221,10 +227,12 @@ namespace MyWebApp.Pages
                 return NotFound();
             }
 
-            // If the key exists, then GetAsync(...) will return its value as bytes, that can be deserialized
+            // If the key exists, then GetAsync(...) will return its value as bytes,
+            // that can be deserialized into a Book instance.
             Book book = JsonSerializer.Deserialize<Book>(jsonBytes.Span);
 
-            // perform any checks and validation here, like converting the Model (from the database) into a ViewModel (for the razor template)
+            // perform any checks and validation here, like converting the Model
+            // from the database into a ViewModel (for the razor template)
 
             this.Book = book;
         }
@@ -299,26 +307,28 @@ public class BooksModel : PageModel
 
     public async Task OnGet(string id, CancellationToken ct)
     {
-        // starts a transaction to read the value of the document in the database
+        // Starts a transaction to read the value of the document in the database
         Slice jsonBytes = await this.Db.ReadAsync((tr) =>
         {
-            // get the location that corresponds to this path
+            // Get the location that corresponds to this path
             var location = this.Db.Root[this.Options.Value.BasePath];
 
-            // "resolve" this location into a Directory Subspace that will add the matching prefix to our keys
+            // "Resolve" this location into a Directory Subspace
+            // that will add the matching prefix to our keys
             var subspace = await location.Resolve(tr);
 
-            // use this subspace to generate our key:
+            // Use this subspace to generate our key:
             var key = subspace.Key(id);
 
-            // read the value of the key in the database
-            // - inside GetAsync, the key will be rendered into bytes, using pooled buffers (or the stack for small keys)
+            // Read the value of the key in the database.
             Slice value = await tr.GetAsync(key);
+            // note: the key will be rendered into bytes inside GetAsync(),
+            // using pooled buffers or the stack for small keys
 
             return value;
         }, ct);
 
-        // the rest of the logic is the same a the previous version
+        // The rest of the logic is the same a the previous version
         // ...
     }
 
@@ -486,7 +496,11 @@ public async Task OnPost(Book book, CancellationToken ct)
             await this.Books.InsertAsync(book)
 
             // instruct a worker to start converting the various thumbnails for the book
-            await this.WorkerPool.QueueWorkItemAsync(new GenerateThumbnailsForNewBook() { Id = book.Id, /* args ... */ });
+            await this.WorkerPool.QueueWorkItemAsync(new GenerateThumbnailsForNewBookEvent()
+            {
+                Id = book.Id,
+                /* args ... */
+            });
 
             // push an event notifying subscribers that a new book was created
             await this.PubSub.Notify(new BookCreationEvent { Id = book.Id, /* args... */});
