@@ -26,11 +26,13 @@
 
 namespace SnowBank.Collections.CacheOblivious
 {
+	using System;
 	using System.Buffers;
 	using System.Globalization;
 
 	/// <summary>Represent an ordered list of ranges, stored in a Cache Oblivious Lookup Array</summary>
 	/// <typeparam name="TKey">Type of keys stored in the set</typeparam>
+	/// <seealso cref="ColaRangeDictionary{TKey,TValue}"/>
 	[PublicAPI]
 	[DebuggerDisplay("Count={m_items.Count}, Bounds={m_bounds.Begin}..{m_bounds.End}")]
 	public sealed class ColaRangeSet<TKey> : IEnumerable<ColaRangeSet<TKey>.Entry>, IDisposable
@@ -47,11 +49,15 @@ namespace SnowBank.Collections.CacheOblivious
 		// This should give us a sorted set of disjoint ranges
 
 		/// <summary>Mutable range</summary>
-		public sealed class Entry
+		public sealed class Entry : ISpanFormattable
 		{
+			/// <summary>Begin key of this range (inclusive)</summary>
 			public TKey? Begin { get; internal set; }
+
+			/// <summary>End key of this range (exclusive)</summary>
 			public TKey? End { get; internal set; }
 
+			/// <summary>Constructs a new <see cref="Entry"/></summary>
 			public Entry(TKey? begin, TKey? end)
 			{
 				this.Begin = begin;
@@ -75,10 +81,17 @@ namespace SnowBank.Collections.CacheOblivious
 				return comparer.Compare(key, this.Begin) >= 0 && comparer.Compare(key, this.End) < 0;
 			}
 
-			public override string ToString()
-			{
-				return string.Format(CultureInfo.InvariantCulture, "[{0}, {1})", this.Begin, this.End);
-			}
+			/// <inheritdoc />
+			public override string ToString() => ToString(null);
+
+			/// <inheritdoc />
+			public string ToString(string? format, IFormatProvider? formatProvider = null)
+				=> string.Create(formatProvider ?? CultureInfo.InvariantCulture, $"[{this.Begin}, {this.End})");
+
+			/// <inheritdoc />
+			public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+				=> destination.TryWrite(provider ?? CultureInfo.InvariantCulture, $"[{this.Begin}, {this.End})", out charsWritten);
+
 		}
 
 		/// <summary>Range comparer that only test the Begin key</summary>
@@ -103,18 +116,22 @@ namespace SnowBank.Collections.CacheOblivious
 		private readonly IComparer<TKey> m_comparer;
 		private readonly Entry m_bounds;
 
+		/// <summary>Constructs a new <see cref="ColaRangeSet{TKey}"/></summary>
 		public ColaRangeSet(ArrayPool<Entry>? pool = null)
 			: this(0, null, pool)
 		{ }
 
+		/// <summary>Constructs a new <see cref="ColaRangeSet{TKey}"/> with the given initial capacity</summary>
 		public ColaRangeSet(int capacity, ArrayPool<Entry>? pool = null)
 			: this(capacity, null, pool)
 		{ }
 
+		/// <summary>Constructs a new <see cref="ColaRangeSet{TKey}"/> with the given key comparer</summary>
 		public ColaRangeSet(IComparer<TKey>? keyComparer, ArrayPool<Entry>? pool = null)
 			: this(0, keyComparer, pool)
 		{ }
 
+		/// <summary>Constructs a new <see cref="ColaRangeSet{TKey}"/> with the given initial capacity and key comparer</summary>
 		public ColaRangeSet(int capacity, IComparer<TKey>? keyComparer, ArrayPool<Entry>? pool = null)
 		{
 			m_comparer = keyComparer ?? Comparer<TKey>.Default;
@@ -123,6 +140,7 @@ namespace SnowBank.Collections.CacheOblivious
 			m_bounds = new(default(TKey), default(TKey));
 		}
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			m_items.Dispose();
@@ -131,12 +149,16 @@ namespace SnowBank.Collections.CacheOblivious
 			m_bounds.End = default;
 		}
 
+		/// <summary>Number of distinct ranges in this instance</summary>
 		public int Count => m_items.Count;
 
+		/// <summary>Allocated capacity of this instance</summary>
 		public int Capacity => m_items.Capacity;
 
+		/// <summary>Helper used to compare and sort keys of this instance</summary>
 		public IComparer<TKey> Comparer => m_comparer;
 
+		/// <summary>Current bounds of this instance (minimum and maximum value)</summary>
 		public Entry Bounds => m_bounds;
 
 		private bool Resolve(Entry previous, Entry candidate)
@@ -187,12 +209,18 @@ namespace SnowBank.Collections.CacheOblivious
 			return m_comparer.Compare(a, b) >= 0 ? a : b;
 		}
 
+		/// <summary>Removes all ranges from this instance</summary>
 		public void Clear()
 		{
 			m_items.Clear();
 			m_bounds.Update(default(TKey), default(TKey));
 		}
 
+		/// <summary>Adds a range to this set</summary>
+		/// <param name="begin">Begin key of the range (included)</param>
+		/// <param name="end">End key of the range (excluded)</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="end"/> is less than or equal to <paramref name="begin"/></exception>
+		/// <remarks>If the range overlaps existing ranges, they will be merged as required.</remarks>
 		public void Mark(TKey begin, TKey end)
 		{
 			if (m_comparer.Compare(begin, end) >= 0) throw new InvalidOperationException($"End key `{begin}` must be greater than the Begin key `{end}`.");
@@ -319,25 +347,28 @@ namespace SnowBank.Collections.CacheOblivious
 
 		/// <summary>Checks if there is at least one range that contains the specified key</summary>
 		/// <param name="key">Key to test</param>
-		/// <returns>True if the key is contained by one range; otherwise, false.</returns>
+		/// <returns><c>true</c> if the key is contained by one range; otherwise, <c>false</c>.</returns>
 		public bool ContainsKey(TKey key)
 		{
 			if (m_bounds.Contains(key, m_comparer))
 			{
 				int level = m_items.FindPrevious(new(key, key), orEqual: true, out _, out var entry);
-				return level >= 0 && entry!.Contains(key, m_comparer);
+				return level >= 0 && entry.Contains(key, m_comparer);
 			}
 			return false;
 		}
 
+		/// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
 		public ColaStore.Enumerator<Entry> GetEnumerator() => new(m_items, reverse: false);
 
+		/// <summary>Returns a sequence of all the ranges in this set, ordered by their keys.</summary>
 		public IEnumerable<Entry> IterateOrdered() => m_items.IterateOrdered();
 
 		IEnumerator<Entry> IEnumerable<Entry>.GetEnumerator() => this.GetEnumerator();
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => this.GetEnumerator();
 
+		/// <summary>Writes the contents of this set into a log, for debugging purpose [DEBUG ONLY]</summary>
 		[Conditional("DEBUG")]
 		public void Debug_Dump(TextWriter output)
 		{
@@ -347,6 +378,7 @@ namespace SnowBank.Collections.CacheOblivious
 #endif
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			if (m_items.Count == 0) return "{ }";

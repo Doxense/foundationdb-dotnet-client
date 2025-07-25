@@ -37,7 +37,7 @@ namespace SnowBank.Buffers
 	/// </remarks>
 	[DebuggerDisplay("Pos={m_pos}, Remaining={m_remaining}, PageSize={m_pageSize}, Size={Size}, Allocated={Allocated}")]
 	[PublicAPI]
-	public sealed class SliceBuffer
+	public sealed class SliceBuffer : IBufferWriter<byte>
 	{
 		private const int DefaultPageSize = 256;
 		private const int MaxPageSize = 64 * 1024; // 64KB (small enough to not go into the LOH)
@@ -161,7 +161,14 @@ namespace SnowBank.Buffers
 			return buffer.AsSlice(0, count);
 		}
 
-		public Span<byte> GetSpan(int sizeHint)
+		/// <summary>
+		/// Returns a <see cref="Span{byte}"/> to write to that is at least the requested length (specified by <paramref name="sizeHint"/>).
+		/// If no <paramref name="sizeHint"/> is provided (or it's equal to <code>0</code>), some non-empty buffer is returned.
+		/// </summary>
+		/// <param name="sizeHint">Minimum size required, or <c>0</c> to return all the remaining allocated space</param>
+		/// <returns>Span that can hold at least <paramref name="sizeHint"/> bytes (if <paramref name="sizeHint"/> is greater than <c>0</c>), or all the space remaining in the buffer (if <paramref name="sizeHint"/> is <c>0</c>)</returns>
+		/// <exception cref="ArgumentException"> <paramref name="sizeHint"/> is negative.</exception>
+		public Span<byte> GetSpan(int sizeHint = 0)
 		{
 			if (sizeHint < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", nameof(sizeHint));
 
@@ -222,19 +229,94 @@ namespace SnowBank.Buffers
 			return buffer.AsSpan();
 		}
 
-		public Slice Advance(int consumed)
+		/// <summary>
+		/// Returns a <see cref="Memory{byte}"/> to write to that is at least the requested length (specified by <paramref name="sizeHint"/>).
+		/// If no <paramref name="sizeHint"/> is provided (or it's equal to <code>0</code>), some non-empty buffer is returned.
+		/// </summary>
+		/// <param name="sizeHint">Minimum size required, or <c>0</c> to return all the remaining allocated space</param>
+		/// <returns>Memory that can hold at least <paramref name="sizeHint"/> bytes (if <paramref name="sizeHint"/> is greater than <c>0</c>), or all the space remaining in the buffer (if <paramref name="sizeHint"/> is <c>0</c>)</returns>
+		/// <exception cref="ArgumentException"> <paramref name="sizeHint"/> is negative.</exception>
+		public Memory<byte> GetMemory(int sizeHint = 0)
+		{
+			if (sizeHint < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", nameof(sizeHint));
+
+			int p = m_pos;
+			if (sizeHint > m_remaining)
+			{ // does not fit
+				return GetMemoryFallback(sizeHint);
+			}
+
+			//note: we rely on the fact that the buffer was pre-filled with zeroes
+			return m_current.AsMemory(p);
+		}
+		
+		private Memory<byte> GetMemoryFallback(int count)
+		{
+			if (count > MaxPageSize)
+			{
+				throw new InvalidOperationException("Cannot return a span that is larger than the maximum allowed page size");
+			}
+
+			// keys that are too large are best kept in their own chunks
+
+			int pageSize = m_pageSize;
+			if (count > pageSize * 2)
+			{
+				// allocate a larger page just once
+			}
+			else if (count > pageSize)
+			{ // double the page size
+				pageSize *= 2;
+				pageSize = Math.Min(pageSize, MaxPageSize); // already checked for overflow at the start
+				count = pageSize;
+			}
+			else
+			{
+				count = pageSize;
+			}
+
+			if (m_current != null)
+			{
+				if (m_pos > 0)
+				{
+					Keep(m_current, m_pos);
+				}
+				else
+				{ // we did not use the current buffer, return it to the pool
+					m_pool?.Return(m_current);
+				}
+			}
+			m_pageSize = pageSize;
+
+			// switch to the new buffer, but keeps at the start of the buffer
+			var buffer = m_pool?.Rent(count) ?? new byte[count];
+			m_current = buffer;
+			m_pos = 0;
+			m_remaining = buffer.Length;
+
+			return buffer.AsMemory();
+		}
+
+		/// <summary>Notifies <see cref="SliceBuffer"/> that <paramref name="count"/> amount of data was written to the output <see cref="Span{T}"/> returned by a previous call to <see cref="GetSpan"/></summary>
+		/// <param name="count">Number of bytes written</param>
+		/// <returns>Slice with the data that was written</returns>
+		/// <exception cref="InvalidOperationException"></exception>
+		public Slice Advance(int count)
 		{
 			int p = m_pos;
 			int r = m_remaining;
 
-			if (consumed > r)
+			if (count > r)
 			{
 				throw new InvalidOperationException("Cannot advance more than the remaining allocated capacity.");
 			}
-			m_pos = p + consumed;
-			m_remaining = r - consumed;
-			return m_current.AsSlice(p, consumed);
+			m_pos = p + count;
+			m_remaining = r - count;
+			return m_current.AsSlice(p, count);
 		}
+
+		/// <inheritdoc />
+		void IBufferWriter<byte>.Advance(int count) => Advance(count);
 
 		/// <summary>Allocate an empty space in the buffer</summary>
 		/// <param name="count">Number of bytes to allocate</param>

@@ -29,12 +29,14 @@
 
 namespace SnowBank.Collections.CacheOblivious
 {
+	using System;
 	using System.Buffers;
 	using System.Globalization;
 
 	/// <summary>Represent an ordered list of ranges, each associated with a specific value, stored in a Cache Oblivious Lookup Array</summary>
 	/// <typeparam name="TKey">Type of the keys stored in the set</typeparam>
 	/// <typeparam name="TValue">Type of the values associated with each range</typeparam>
+	/// <seealso cref="ColaRangeSet{TKey}"/>
 	[PublicAPI]
 	[DebuggerDisplay("Count={m_items.Count}, Bounds={m_bounds.Begin}..{m_bounds.End}")]
 	public sealed class ColaRangeDictionary<TKey, TValue> : IEnumerable<ColaRangeDictionary<TKey, TValue>.Entry>, IDisposable
@@ -51,7 +53,7 @@ namespace SnowBank.Collections.CacheOblivious
 
 		/// <summary>Mutable range</summary>
 		[DebuggerDisplay("{ToString(),nq}")]
-		public sealed record Entry
+		public sealed record Entry : ISpanFormattable
 		{
 			//REVIEW: consider making this a struct, if we refactor the rest of the code to use "ref Entry" ?
 
@@ -64,6 +66,7 @@ namespace SnowBank.Collections.CacheOblivious
 			/// <summary>Value for this range</summary>
 			public TValue? Value { get; set; }
 
+			/// <summary>Constructs a new <see cref="Entry"/></summary>
 			public Entry(TKey? begin, TKey? end, TValue? value)
 			{
 				this.Begin = begin;
@@ -80,11 +83,18 @@ namespace SnowBank.Collections.CacheOblivious
 				this.Value = other.Value;
 			}
 
-			public override string ToString()
-			{
-				return string.Format(CultureInfo.InvariantCulture, "({0} ~ {1}, {2})", this.Begin, this.End, this.Value);
-			}
+			/// <inheritdoc />
+			public override string ToString() => ToString(null);
 
+			/// <inheritdoc />
+			public string ToString(string? format, IFormatProvider? formatProvider = null)
+				=> string.Create(formatProvider ?? CultureInfo.InvariantCulture, $"({this.Begin} ~ {this.End}, {this.Value})");
+
+			/// <inheritdoc />
+			public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+				=> destination.TryWrite(provider ?? CultureInfo.InvariantCulture, $"({this.Begin} ~ {this.End}, {this.Value})", out charsWritten);
+
+			/// <summary>Deconstructs this entry into the <paramref name="begin"/>, <paramref name="end"/> and <paramref name="value"/> parts</summary>
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
 			public void Deconstruct(out TKey? begin, out TKey? end, out TValue? value)
 			{
@@ -136,18 +146,22 @@ namespace SnowBank.Collections.CacheOblivious
 		private readonly IEqualityComparer<TValue> m_valueComparer;
 		private readonly Entry m_bounds;
 
+		/// <summary>Constructs a new <see cref="ColaRangeDictionary{TKey,TValue}"/></summary>
 		public ColaRangeDictionary(ArrayPool<Entry>? pool = null)
 			: this(0, null, null, pool)
 		{ }
 
+		/// <summary>Constructs a new <see cref="ColaRangeDictionary{TKey,TValue}"/> with the given initial capacity</summary>
 		public ColaRangeDictionary(int capacity, ArrayPool<Entry>? pool = null)
 			: this(capacity, null, null, pool)
 		{ }
 
+		/// <summary>Constructs a new <see cref="ColaRangeDictionary{TKey,TValue}"/> with the given key and value comparer</summary>
 		public ColaRangeDictionary(IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer = null, ArrayPool<Entry>? pool = null)
 			: this(0, keyComparer, valueComparer, pool)
 		{ }
 
+		/// <summary>Constructs a new <see cref="ColaRangeDictionary{TKey,TValue}"/> with the given key and value comparer, and initial capacity</summary>
 		public ColaRangeDictionary(int capacity, IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer = null, ArrayPool<Entry>? pool = null)
 		{
 			m_keyComparer = keyComparer ?? Comparer<TKey>.Default;
@@ -157,16 +171,19 @@ namespace SnowBank.Collections.CacheOblivious
 			m_bounds = new(default(TKey), default(TKey), default(TValue));
 		}
 
-		public ColaRangeDictionary(ColaRangeDictionary<TKey, TValue> copy)
+		/// <summary>Constructs a new <see cref="ColaRangeDictionary{TKey,TValue}"/> by copying the contents of another dictionary</summary>
+		public ColaRangeDictionary(ColaRangeDictionary<TKey, TValue> source)
 		{
-			m_keyComparer = copy.m_keyComparer;
-			m_valueComparer = copy.m_valueComparer;
-			m_items = copy.m_items.Copy();
-			m_bounds = new(copy.m_bounds.Begin, copy.m_bounds.End, copy.m_bounds.Value);
+			m_keyComparer = source.m_keyComparer;
+			m_valueComparer = source.m_valueComparer;
+			m_items = source.m_items.Copy();
+			m_bounds = new(source.m_bounds.Begin, source.m_bounds.End, source.m_bounds.Value);
 		}
 
+		/// <summary>Creates a copy of this dictionary</summary>
 		public ColaRangeDictionary<TKey, TValue> Copy() => new(this);
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			m_items.Dispose();
@@ -996,7 +1013,7 @@ namespace SnowBank.Collections.CacheOblivious
 											entry.End = cursor.End;
 										}
 										//note: we can't really delete while iterating with a cursor, so just mark it for deletion
-										deleted ??= new List<Entry>();
+										deleted ??= [ ];
 										deleted.Add(cursor);
 									}
 									else
@@ -1343,6 +1360,7 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 		}
 
+		/// <summary>Returns an iterator that can read the contents of this dictionary</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[MustDisposeResource]
 		public ColaStore<Entry>.Iterator GetIterator()
@@ -1350,6 +1368,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return m_items.GetIterator();
 		}
 
+		/// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[MustDisposeResource]
 		public ColaStore.Enumerator<Entry> GetEnumerator()
@@ -1357,6 +1376,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return new ColaStore.Enumerator<Entry>(m_items, reverse: false);
 		}
 
+		/// <summary>Returns a sequence of all the ranges in this dictionary, ordered by their keys.</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[CollectionAccess(CollectionAccessType.Read)]
 		public IEnumerable<Entry> IterateOrdered() => m_items.IterateOrdered();
@@ -1367,9 +1387,9 @@ namespace SnowBank.Collections.CacheOblivious
 		[MustDisposeResource]
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => this.GetEnumerator();
 
+		/// <summary>Writes the contents of this dictionary into a log, for debugging purpose [DEBUG ONLY]</summary>
 		[Conditional("DEBUG")]
 		[CollectionAccess(CollectionAccessType.Read)]
-		//TODO: remove or set to internal !
 		public void Debug_Dump(TextWriter output)
 		{
 #if DEBUG
@@ -1378,6 +1398,7 @@ namespace SnowBank.Collections.CacheOblivious
 #endif
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			if (m_items.Count == 0) return "{ }";
@@ -1404,7 +1425,7 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 			if (previous != null)
 			{
-				sb.Append(previous.End).Append(")");
+				sb.Append(previous.End).Append(')');
 			}
 
 			return sb.ToString();

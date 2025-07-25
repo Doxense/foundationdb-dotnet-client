@@ -81,6 +81,7 @@ namespace SnowBank.Buffers
 			this.Pool = pool;
 		}
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			if (this.Pool != null)

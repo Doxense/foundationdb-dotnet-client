@@ -72,7 +72,7 @@ namespace SnowBank.Buffers.Binary
 	/// <summary>Represents the size (in bytes) of a buffer or range of data, with its associated "natural" unit (KB, KiB, GiB, ...)</summary>
 	/// <example>A size of 8 GiB can be expressed as (8589934592, GiB) so that the value can be nicely formated as "8 GiB".</example>
 	[PublicAPI]
-	public readonly struct ByteSize : IEquatable<ByteSize>, IEquatable<long>, IEquatable<int>, IEquatable<ulong>, IEquatable<uint>
+	public readonly struct ByteSize : IEquatable<ByteSize>, IEquatable<long>, IEquatable<int>, IEquatable<ulong>, IEquatable<uint>, IFormattable
 	{
 
 		/// <summary>Zero size (0 bytes)</summary>
@@ -230,6 +230,7 @@ namespace SnowBank.Buffers.Binary
 		/// <inheritdoc />
 		public override string ToString() => this.ToString(null, null);
 
+		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? provider)
 		{
 			if (this.Unit == SizeUnit.Byte)

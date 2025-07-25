@@ -260,6 +260,7 @@ namespace SnowBank.Buffers.Text
 			this.Position += s.Length;
 		}
 
+		/// <summary>Appends an interpolated string at the end of the buffer</summary>
 		public void Append(ref DefaultInterpolatedStringHandler handler)
 		{
 #if NET10_0_OR_GREATER
@@ -270,6 +271,7 @@ namespace SnowBank.Buffers.Text
 #endif
 		}
 
+		/// <summary>Appends an interpolated string at the end of the buffer</summary>
 		public void Append(IFormatProvider? provider, [InterpolatedStringHandlerArgument(nameof(provider))] ref DefaultInterpolatedStringHandler handler)
 		{
 #if NET10_0_OR_GREATER
@@ -280,6 +282,8 @@ namespace SnowBank.Buffers.Text
 #endif
 		}
 
+		/// <summary>Appends an interpolated string, followed by a line return, at the end of the buffer</summary>
+		/// <remarks>This method uses CRLF (<c>\r\n</c>) as the new line, independent of the current operating system.</remarks>
 		public void AppendLine(ref DefaultInterpolatedStringHandler handler)
 		{
 #if NET10_0_OR_GREATER
@@ -290,6 +294,8 @@ namespace SnowBank.Buffers.Text
 #endif
 		}
 
+		/// <summary>Appends an interpolated string, followed by a line return, at the end of the buffer</summary>
+		/// <remarks>This method uses CRLF (<c>\r\n</c>) as the new line, independent of the current operating system.</remarks>
 		public void AppendLine(IFormatProvider? provider, [InterpolatedStringHandlerArgument(nameof(provider))] ref DefaultInterpolatedStringHandler handler)
 		{
 #if NET10_0_OR_GREATER
@@ -560,7 +566,8 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
-		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
+		/// <summary>Appends a formattable value to the end of the buffer</summary>
+		/// <typeparam name="T">Type of the value, which must implement <see cref="ISpanFormattable"/></typeparam>
 		public void Append<T>(T value) where T : ISpanFormattable
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, default, CultureInfo.InvariantCulture))
@@ -573,7 +580,8 @@ namespace SnowBank.Buffers.Text
 			}
 		}
 
-		/// <summary>Appends a base 10 integer to the end of the buffer</summary>
+		/// <summary>Appends a formattable value to the end of the buffer</summary>
+		/// <typeparam name="T">Type of the value, which must implement <see cref="ISpanFormattable"/></typeparam>
 		public void Append<T>(T value, string? format) where T : ISpanFormattable
 		{
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, CultureInfo.InvariantCulture))
@@ -692,7 +700,7 @@ namespace SnowBank.Buffers.Text
 
 		/// <summary>Appends a formattable value to the end of the buffer</summary>
 		/// <typeparam name="T">Type of the value, which must implement <see cref="ISpanFormattable"/></typeparam>
-		public void Append<T>(T value, string? format, IFormatProvider? provider = null) where T : ISpanFormattable
+		public void Append<T>(T value, string? format, IFormatProvider? provider) where T : ISpanFormattable
 		{
 			provider ??= CultureInfo.InvariantCulture;
 			if (value.TryFormat(this.Chars[this.Position..], out int charsWritten, format, provider))

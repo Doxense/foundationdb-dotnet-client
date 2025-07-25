@@ -34,8 +34,11 @@ namespace SnowBank.Numerics
 	[PublicAPI]
 	public sealed class RobustCounters
 	{
+
+		/// <summary>Array of individual counters</summary>
 		public RobustCounter[] Counters { get; }
 
+		/// <summary>Constructs a new <see cref="RobustCounters"/> instance</summary>
 		public RobustCounters(int count)
 		{
 			var counters = new RobustCounter[count];
@@ -69,9 +72,11 @@ namespace SnowBank.Numerics
 
 		private PaddedInt32 Counter;
 
+		/// <summary>Constructs a new <see cref="RobustCounter"/>, initialized to <c>0</c></summary>
 		public RobustCounter()
 		{ }
 
+		/// <summary>Constructs a new <see cref="RobustCounter"/> with the given initial value</summary>
 		public RobustCounter(int initialValue)
 		{
 			Volatile.Write(ref this.Counter.Value, initialValue);

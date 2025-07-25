@@ -33,16 +33,22 @@ namespace SnowBank.Runtime
 	//TODO: maybe move this to a more global namespace?
 
 	/// <summary>Interface for expressions or AST nodes that can generate a human-readable description of their part in a query or command</summary>
+	[PublicAPI]
 	public interface ICanExplain
 	{
+
 		/// <summary>Adds a human-readable description of this node into the log</summary>
 		/// <param name="builder"></param>
 		void Explain(ExplanationBuilder builder);
 
 	}
 
+	/// <summary>Builder for generating text descriptions of types that implement <see cref="ICanExplain"/></summary>
+	[PublicAPI]
 	public sealed class ExplanationBuilder
 	{
+
+		/// <summary>Destination buffer</summary>
 		public TextWriter Output { get; }
 		
 		/// <summary>Current depth level (add a TAB (<c>'\t'</c>) for each depth level</summary>
@@ -54,6 +60,7 @@ namespace SnowBank.Runtime
 		/// <summary>Prefix added to the beginning of each line</summary>
 		public string? Prefix { get; }
 
+		/// <summary>Constructs a new <see cref="ExplanationBuilder"/></summary>
 		public ExplanationBuilder(TextWriter output, bool recursive = true, string? prefix = null)
 		{
 			this.Output = output;
@@ -62,14 +69,18 @@ namespace SnowBank.Runtime
 			this.Indentation = prefix ?? "";
 		}
 
+		/// <summary>Current indentation level</summary>
 		public string Indentation { get; private set; }
 
 		private Stack<string> Previous { get; } = [ ];
 		
+		/// <summary>Appends a new line to the buffer</summary>
 		public void WriteLine(string message) => this.Output.WriteLine(this.Indentation + message);
 
+		/// <summary>Appends a new line to the buffer</summary>
 		public void WriteLine(ref DefaultInterpolatedStringHandler message) => this.Output.WriteLine(this.Indentation + message.ToStringAndClear());
 
+		/// <summary>Appends a new line to the buffer, with an extra indentation level</summary>
 		public void WriteChildrenLine(string message)
 		{
 			Enter();
@@ -77,6 +88,7 @@ namespace SnowBank.Runtime
 			Leave();
 		}
 
+		/// <summary>Appends a new line to the buffer, with an extra indentation level</summary>
 		public void WriteChildrenLine(ref DefaultInterpolatedStringHandler message)
 		{
 			Enter();
@@ -84,6 +96,7 @@ namespace SnowBank.Runtime
 			Leave();
 		}
 
+		/// <summary>Explain a child of the current instance</summary>
 		public void ExplainChild<TExplainable>(TExplainable? child, string? label = null)
 			where TExplainable : ICanExplain
 		{
@@ -99,6 +112,7 @@ namespace SnowBank.Runtime
 			}
 		}
 		
+		/// <summary>Explain one or more children of the current instance</summary>
 		public void ExplainChildren<TExplainable>(ReadOnlySpan<TExplainable?> children)
 			where TExplainable : ICanExplain
 		{
@@ -110,6 +124,7 @@ namespace SnowBank.Runtime
 			Leave();
 		}
 
+		/// <summary>Explain one or more children of the current instance</summary>
 		public void ExplainChildren<TExplainable>(TExplainable?[]? children)
 			where TExplainable : ICanExplain
 		{
@@ -117,6 +132,7 @@ namespace SnowBank.Runtime
 			ExplainChildren(new ReadOnlySpan<TExplainable?>(children));
 		}
 
+		/// <summary>Explain one or more children of the current instance</summary>
 		public void ExplainChildren<TExplainable>(IEnumerable<TExplainable?> children)
 			where TExplainable : ICanExplain
 		{
@@ -134,6 +150,7 @@ namespace SnowBank.Runtime
 			Leave();
 		}
 
+		/// <summary>Increase the indentation level</summary>
 		public void Enter()
 		{
 			++this.Depth;
@@ -141,6 +158,7 @@ namespace SnowBank.Runtime
 			this.Indentation = this.Prefix + new string('\t', this.Depth - 1) + "- ";
 		}
 
+		/// <summary>Decrease the indentation level</summary>
 		public void Leave()
 		{
 			--this.Depth;

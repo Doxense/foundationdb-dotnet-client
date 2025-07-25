@@ -84,28 +84,28 @@ namespace SnowBank.Numerics
 		//
 		#endregion
 		
-		/// <summary>Buffer permettant de dessiner sur une frame</summary>
+		/// <summary>Buffer use for rendering a frame</summary>
 		[DebuggerDisplay("Size={Width}x{Height}")]
 		[PublicAPI]
 		public readonly struct FrameBuffer : IFormattable
 		{
 
-			// Frame contenant une grille de "texel" (~ pixel représentés par des caractères ASCII)
-			// - Width et Height correspondant à la larger et hauteur du buffer en texel
-			// - L'axe X va de droite à gauche
-			// - L'axe Y va de bas en haut (inversé par rpt à une bitmap classique, mais dans le "bon sens" pour des graphes)
-			// => (0, 0) correspond au texel en bas a gauche, (Width-1, Height-1) au texel en haut à droite
+			// Frame that contains a "texel" grid (~ pixel approximated by an ASCII character)
+			// - the X axis goes from left to right
+			// - the Y axis goes from bottom to top (to match the conventions when plotting charts, reversed compared to bitmap or computer graphics)
+			// => (0, 0) maps to the texel at the bottom left of the frame, and (Width-1, Height-1) maps to the texel at the top right of the frame.
 
-			/// <summary>Largeur du buffer (en texels)</summary>
+			/// <summary>Width of the buffer (in texels)</summary>
 			public readonly int Width;
 
-			/// <summary>Hauteur du buffer (en texels)</summary>
+			/// <summary>Height of the buffer (in texels)</summary>
 			public readonly int Height;
 
-			/// <summary>Tableau contenant les texels, lignes par lignes, DE HAUT EN BAS!</summary>
-			/// <remarks>Le texel (X, Y) est situé à l'offset (HEIGHT - Y - 1) * WIDTH + X</remarks>
+			/// <summary>Flatten texels array, grouped by row, with top-most row first, and the bottom-most row last)</summary>
+			/// <remarks>The texel (X, Y) is located at offset (HEIGHT - Y - 1) * WIDTH + X</remarks>
 			public readonly char[] Buffer;
 
+			/// <summary>Constructs a new <see cref="FrameBuffer"/></summary>
 			public FrameBuffer(int width, int height)
 			{
 				Contract.GreaterThan(width, 0);
@@ -118,6 +118,7 @@ namespace SnowBank.Numerics
 				this.Buffer = buffer;
 			}
 
+			/// <summary>Constructs a new <see cref="FrameBuffer"/></summary>
 			public FrameBuffer(char[] buffer, int width, int height)
 			{
 				Contract.NotNull(buffer);
@@ -130,32 +131,32 @@ namespace SnowBank.Numerics
 				this.Buffer = buffer;
 			}
 
-			/// <summary>Convertit une coordonnée X vers l'échelle du buffer</summary>
-			/// <param name="x">Coordonnée 0 &lt;= x &lt; WIDTH</param>
-			/// <returns>Coordonnée X arrondi en entier, dans l'espace du buffer</returns>
+			/// <summary>Maps a X coordinates into the buffer space</summary>
+			/// <param name="x"><c>0</c> &lt;= x &lt; <see cref="Width"/></param>
+			/// <returns>Rounded integer, that fits inside the buffer</returns>
 			[Pure]
-			private int RoundX(double x) => Math.Min(this.Width - 1, Math.Max(0, (int)Math.Floor(x)));
+			private int RoundX(double x) => Math.Min(this.Width - 1, Math.Max(0, (int) Math.Floor(x)));
 
-			/// <summary>Convertit une coordonnée Y vers l'échelle du buffer</summary>
-			/// <param name="y">Coordonnée 0 &lt;= y &lt; HEIGHT (0 en bas)</param>
-			/// <returns>Coordonnée Y arrondi en entier, dans l'espace du buffer (0 en haut)</returns>
+			/// <summary>Maps a X coordinates into the buffer space</summary>
+			/// <param name="y"><c>0</c> &lt;= y &lt; <see cref="Height"/> (0 = bottom)</param>
+			/// <returns>Rounded integer, that fits inside the buffer, reversed with (0 on top)</returns>
 			[Pure]
 			private int RoundY(double y) => this.Height - 1 - Math.Min(this.Height - 1, Math.Max(0, (int)Math.Floor(y)));
 
-			/// <summary>Clip une coordonnée X en fonction de la largeur du buffer</summary>
-			/// <returns>0 si <paramref name="x"/> &lt; 0, ou WIDTH-1 si <paramref name="x"/> &gt;= WIDTH</returns>
+			/// <summary>Clips the X coordinate to fit within the width of the frame</summary>
+			/// <returns>0 if <paramref name="x"/> &lt; 0, or WIDTH-1 if <paramref name="x"/> &gt;= WIDTH</returns>
 			[Pure]
 			private int BoundX(int x) => Math.Min(this.Width - 1, Math.Max(0, x));
 
-			/// <summary>Clip une coordonnée Y en fonction de la hauteur du buffer</summary>
-			/// <returns>0 si <paramref name="y"/> &lt; 0, ou HEIGHT-1 si <paramref name="y"/> &gt;= HEIGHT</returns>
+			/// <summary>Clips the Y coordinate to fit within the height of the frame</summary>
+			/// <returns>0 if <paramref name="y"/> &lt; 0, or HEIGHT-1 si <paramref name="y"/> &gt;= HEIGHT</returns>
 			[Pure]
 			private int BoundY(int y) => this.Height - 1 - Math.Min(this.Height - 1, Math.Max(0, y));
 
-			/// <summary>Modifie la valeur d'un texel aux coordonnées indiquées</summary>
-			/// <param name="x">Coordonnée X (0 à gauche), qui sera arrondie vers la gauche</param>
-			/// <param name="y">Coordonnée Y (0 en bas), qui sera arrondie vers la bas</param>
-			/// <param name="c">"Couleur" du texel</param>
+			/// <summary>Sets the value of the texel at the given coordinates</summary>
+			/// <param name="x">X coordinate (0 = left)</param>
+			/// <param name="y">Y coordinate (0 = bottom)</param>
+			/// <param name="c">"Color" of this texel</param>
 			public void Set(double x, double y, char c)
 			{
 				int xx = RoundX(x);
@@ -167,10 +168,10 @@ namespace SnowBank.Numerics
 				}
 			}
 
-			/// <summary>Modifie la valeur d'un texel aux coordonnées indiquées</summary>
-			/// <param name="x">Coordonnée X (0 à gauche)</param>
-			/// <param name="y">Coordonnée Y (0 en bas)</param>
-			/// <param name="c">"Couleur" du texel</param>
+			/// <summary>Sets the value of the texel at the given coordinates</summary>
+			/// <param name="x">X coordinate (0 = left)</param>
+			/// <param name="y">Y coordinate (0 = bottom)</param>
+			/// <param name="c">"Color" of this texel</param>
 			public void Set(int x, int y, char c)
 			{
 				int w = this.Width;
@@ -181,11 +182,11 @@ namespace SnowBank.Numerics
 				}
 			}
 
-			/// <summary>Dessine une ligne horizontale</summary>
-			/// <param name="x0">Coordonnée X gauche</param>
-			/// <param name="y0">Coordonnée Y</param>
-			/// <param name="x1">Coordonnée Y droite</param>
-			/// <param name="c">"Couleur" de la ligne</param>
+			/// <summary>Draws a horizontal line</summary>
+			/// <param name="x0">Left X coordinate</param>
+			/// <param name="y0">Y coordinate</param>
+			/// <param name="x1">Right X coordinate</param>
+			/// <param name="c">"Color" of this line</param>
 			public void HorizontalLine(double x0, double y0, double x1, char c = '.')
 			{
 				int cx0 = RoundX(x0);
@@ -202,11 +203,11 @@ namespace SnowBank.Numerics
 				}
 			}
 
-			/// <summary>Dessine une ligne horizontale</summary>
-			/// <param name="x0">Coordonnée X</param>
-			/// <param name="y0">Coordonnée Y basse</param>
-			/// <param name="y1">Coordonnée Y haute</param>
-			/// <param name="c">"Couleur" de la ligne</param>
+			/// <summary>Draws a vertical line</summary>
+			/// <param name="x0">X coordinate</param>
+			/// <param name="y0">Bottom Y coordinate</param>
+			/// <param name="y1">Top Y coordinate</param>
+			/// <param name="c">"Color" of this line</param>
 			public void VerticalLine(double x0, double y0, double y1, char c = ':')
 			{
 				int cy0 = RoundY(y0);
@@ -223,7 +224,7 @@ namespace SnowBank.Numerics
 				}
 			}
 
-			/// <summary>Ecrit du texte</summary>
+			/// <summary>Writes a text label</summary>
 			public void DrawText(int x, int y, string text, int align = 0)
 			{
 				int l = align > 0 ? align - text.Length : 0;
@@ -233,7 +234,10 @@ namespace SnowBank.Numerics
 				}
 			}
 
-			/// <summary>Copie un buffer dans un autre buffer</summary>
+			/// <summary>Copies another frame into this frame</summary>
+			/// <param name="x">X coordinate (left) where to draw the image</param>
+			/// <param name="y">Y coordinate (bottom) where to draw the image</param>
+			/// <param name="image">Image to copy (truncated to fit)</param>
 			public void DrawFrame(int x, int y, FrameBuffer image)
 			{
 				Contract.Positive(x);
@@ -255,6 +259,7 @@ namespace SnowBank.Numerics
 				}
 			}
 
+			/// <summary>Draws the X axis (horizontal)</summary>
 			public void DrawXAxis(int w, int x0 = 0, int y0 = 0, char c = '-', char start = '+', char end = '>')
 			{
 				HorizontalLine(x0, y0, x0 + w, c);
@@ -262,6 +267,7 @@ namespace SnowBank.Numerics
 				if (w > 1 && end != 0) Set(x0 + w - 1, y0, end);
 			}
 
+			/// <summary>Draws the vertical grid lines for the X axis</summary>
 			public void DrawXGridLine(int w, int x0 = 0, int y0 = 0, char c = '.', char start = '+', char end = '\0')
 			{
 				if (w > 1) Set(x0, y0, start != '\0' ? start : c);
@@ -269,6 +275,7 @@ namespace SnowBank.Numerics
 				if (w > 0) Set(x0 + w - 1, y0, end != '\0' ? end : c);
 			}
 
+			/// <summary>Draws the Y axis (vertical)</summary>
 			public void DrawYAxis(int h, int x0 = 0, int y0 = 0, char c = '|', char start = '+', char end = '^')
 			{
 				VerticalLine(x0, y0, y0 + h, c);
@@ -276,6 +283,7 @@ namespace SnowBank.Numerics
 				if (h > 1 && end != '\0') Set(x0, y0 + h - 1, end);
 			}
 
+			/// <summary>Draws the horizontal grid lines for the Y axis</summary>
 			public void DrawYGridLine(int h, int x0 = 0, int y0 = 0, char c = ':', char start = '+', char end = '\0')
 			{
 				if (h > 1) Set(x0, y0, start != '\0' ? start : c);
@@ -283,6 +291,12 @@ namespace SnowBank.Numerics
 				if (h > 0) Set(x0, y0 + h - 1, end != '\0' ? end : c);
 			}
 
+			/// <summary>Stitch to frames horizontally</summary>
+			/// <param name="left">Frame that goes to the left</param>
+			/// <param name="right">Frame that goes to the right</param>
+			/// <param name="pad">Optional padding inserted between the frames</param>
+			/// <returns>Frame with both frames stacked horizontally</returns>
+			/// <exception cref="InvalidOperationException"> the frames have different heights</exception>
 			[Pure]
 			public static FrameBuffer CombineHorizontal(FrameBuffer left, FrameBuffer right, int pad = 0)
 			{
@@ -293,6 +307,12 @@ namespace SnowBank.Numerics
 				return frame;
 			}
 
+			/// <summary>Stitch to frames vertically</summary>
+			/// <param name="top">Frame that goes to the top</param>
+			/// <param name="bottom">Frame that goes to the bottom</param>
+			/// <param name="pad">Optional padding inserted between the frames</param>
+			/// <returns>Frame with both frames stacked vertically</returns>
+			/// <exception cref="InvalidOperationException"> the frames have different widths</exception>
 			[Pure]
 			public static FrameBuffer CombineVertical(FrameBuffer top, FrameBuffer bottom, int pad = 0)
 			{
@@ -303,10 +323,10 @@ namespace SnowBank.Numerics
 				return frame;
 			}
 
-			/// <summary>Ecrit le buffer dans une StringBuilder</summary>
-			/// <param name="output"></param>
-			/// <param name="prefix">Texte ajouté au début de chaque ligne (utilisé pour simuler une indentation)</param>
-			/// <param name="suffix">Texte ajouté en fin de chaque ligne (utilisé pour injecter une frame et/ou une fin de ligne spécifique)</param>
+			/// <summary>Output the frame into a <see cref="StringBuilder"/></summary>
+			/// <param name="output">Destination buffer</param>
+			/// <param name="prefix">Text added to the start of each line</param>
+			/// <param name="suffix">Text added to the end of each line</param>
 			public void Output(StringBuilder output, string? prefix = null, string suffix = "\r\n")
 			{
 				Contract.Debug.Requires(output != null);
@@ -319,7 +339,7 @@ namespace SnowBank.Numerics
 				}
 			}
 
-			/// <summary>Retourne le buffer sous forme de texte multi-ligne</summary>
+			/// <summary>Renders the frame into a multi-line string</summary>
 			public override string ToString()
 			{
 				var sb = new StringBuilder((this.Width + 2) * this.Height);
@@ -327,13 +347,8 @@ namespace SnowBank.Numerics
 				return sb.ToString();
 			}
 
-			[Pure]
-			public string ToString(string? format)
-			{
-				return ToString(format, null);
-			}
-
-			public string ToString(string? format, IFormatProvider? formatProvider)
+			/// <summary>Renders the frame into a multi-line string</summary>
+			public string ToString(string? format, IFormatProvider? formatProvider = null)
 			{
 				switch (format ?? "D")
 				{
@@ -345,26 +360,28 @@ namespace SnowBank.Numerics
 			}
 		}
 
-		/// <summary>Série de valeurs</summary>
+		/// <summary>Series of data</summary>
 		[DebuggerDisplay("Count={Count}; Name={Name}")]
 		[PublicAPI]
 		public readonly struct Data
 		{
 
-			/// <summary>Liste des valeurs de cette série</summary>
+			/// <summary>Sampled values</summary>
 			public readonly double?[] Values;
 
+			/// <summary>Name of the series</summary>
 			public readonly string? Name;
 
 			#region Constructors...
 
+			/// <summary>Constructs a new series of data</summary>
 			public Data(double?[] values, string? name = null)
 			{
 				this.Values = values;
 				this.Name = null;
 			}
 
-			/// <summary>Convertit une séquence d'éléments en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert<T>(IEnumerable<T> values, [InstantHandle] Func<T, double> transform, string? name = null)
 			{
@@ -392,7 +409,7 @@ namespace SnowBank.Numerics
 				}
 			}
 
-			/// <summary>Convertit une séquence d'éléments en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert<T>(IEnumerable<T> values, [InstantHandle] Func<T, double?> transform, string? name = null)
 			{
@@ -413,7 +430,7 @@ namespace SnowBank.Numerics
 				return new Data(values.Select(transform).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(int[] values, string? name = null)
 			{
@@ -425,14 +442,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<int> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(int?[] values, string? name = null)
 			{
@@ -444,14 +461,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<int?> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(uint[] values, string? name = null)
 			{
@@ -463,14 +480,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<uint> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(uint?[] values, string? name = null)
 			{
@@ -482,14 +499,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<uint?> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(long[] values, string? name = null)
 			{
@@ -501,14 +518,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<long> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(long?[] values, string? name = null)
 			{
@@ -520,14 +537,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<long?> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(ulong[] values, string? name = null)
 			{
@@ -539,14 +556,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<ulong> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(ulong?[] values, string? name = null)
 			{
@@ -558,14 +575,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence d'entiers en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<ulong?> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence de nombres décimaux en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(double[] values, string? name = null)
 			{
@@ -577,14 +594,14 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence de nombres décimaux en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<double> values, string? name = null)
 			{
 				return new Data(values.Select(x => (double?) x).ToArray(), name);
 			}
 
-			/// <summary>Convertit une séquence de nombres décimaux en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(double?[] values, string? name = null)
 			{
@@ -593,23 +610,26 @@ namespace SnowBank.Numerics
 				return new Data(xs, name);
 			}
 
-			/// <summary>Convertit une séquence de nombres décimaux en série de données</summary>
+			/// <summary>Creates a series of data from raw values</summary>
 			[Pure]
 			public static Data Convert(IEnumerable<double?> values, string? name = null)
 			{
 				return new Data(values.ToArray(), name);
 			}
 
+			/// <summary>Transforms the data of this series into a new series</summary>
 			public Data Convert(Func<double?, double?> transform)
 			{
 				return new Data(this.Values.Select(transform).ToArray(), this.Name);
 			}
 
+			/// <summary>Creates a new series by computing the natural log of this series</summary>
 			public Data Log()
 			{
 				return new Data(this.Values.Select(x => x.HasValue ? Math.Log(x.Value) : default(double?)).ToArray(), this.Name);
 			}
 
+			/// <summary>Creates a new series by computing the log base 10 of this series</summary>
 			public Data Log10()
 			{
 				return new Data(this.Values.Select(x => x.HasValue ? Math.Log10(x.Value) : default(double?)).ToArray(), this.Name);
@@ -617,10 +637,11 @@ namespace SnowBank.Numerics
 
 			#endregion
 
+			/// <summary>Number of sampled values</summary>
 			public int Count => this.Values.Length;
 
-			/// <summary>Retourne la valeur minimale</summary>
-			/// <remarks>Peut retourner null si tous les points sont null</remarks>
+			/// <summary>Computes the minimum value in the series</summary>
+			/// <remarks>Returns <c>null</c> if all the samples are <c>null</c></remarks>
 			public double? Min()
 			{
 				var min = default(double?);
@@ -631,8 +652,8 @@ namespace SnowBank.Numerics
 				return min;
 			}
 
-			/// <summary>Retourne la valeur maximale</summary>
-			/// <remarks>Peut retourner null si tous les points sont null</remarks>
+			/// <summary>Computes the maximum value in the series</summary>
+			/// <remarks>Returns <c>null</c> if all the samples are <c>null</c></remarks>
 			public double? Max()
 			{
 				var max = default(double?);
@@ -643,7 +664,7 @@ namespace SnowBank.Numerics
 				return max;
 			}
 
-			/// <summary>Indique s'il y a au moins une valeur nulle</summary>
+			/// <summary>Tests if at least one sample is <c>null</c></summary>
 			public bool HasNulls()
 			{
 				foreach (var v in this.Values)
@@ -653,8 +674,8 @@ namespace SnowBank.Numerics
 				return false;
 			}
 
-			/// <summary>Génère une nouvelle série de donnés contenant la dérivée de cette série</summary>
-			/// <returns>Série de données de taille N-1, ou RESULT[i] = THIS[i+1] - THIS[i]</returns>
+			/// <summary>Generates a new series with the derivative of this series</summary>
+			/// <returns>New instance of size N-1, with RESULT[i] = THIS[i+1] - THIS[i]</returns>
 			[Pure]
 			public Data Derive()
 			{
@@ -667,7 +688,7 @@ namespace SnowBank.Numerics
 				return new Data(d, this.Name != null ? (this.Name + " (d/dt)") : null);
 			}
 
-			/// <summary>Remplace tous les 0 par des null</summary>
+			/// <summary>Replaces all 0 values with <c>null</c></summary>
 			[Pure]
 			public Data WithoutZero()
 			{
@@ -681,9 +702,12 @@ namespace SnowBank.Numerics
 			}
 		}
 
+		/// <summary>Helper class for generating axis</summary>
 		[PublicAPI]
 		public static class Axis
 		{
+
+			/// <summary>Performs a linear transformation</summary>
 			[Pure]
 			public static Func<double, double> Linear(double min, double max, double range)
 			{
@@ -694,6 +718,15 @@ namespace SnowBank.Numerics
 
 		}
 
+		/// <summary>Draws a series of data onto a frame</summary>
+		/// <param name="frame">Frame where to draw</param>
+		/// <param name="xs">Series of data</param>
+		/// <param name="xAxis">Scaler for the X axis</param>
+		/// <param name="yAxis">Scaler for the Y axis</param>
+		/// <param name="x0">X coordinate of the origin</param>
+		/// <param name="y0">Y coordinate of the origin</param>
+		/// <param name="c">"Color" for the points</param>
+		/// <param name="nc">"Color" for the missing values</param>
 		public static void DrawData(FrameBuffer frame, Data xs, [InstantHandle] Func<double, double> xAxis, [InstantHandle] Func<double, double> yAxis, int x0 = 0, int y0 = 0, char c = '*', char nc = 'x')
 		{
 			var values = xs.Values;
@@ -711,6 +744,16 @@ namespace SnowBank.Numerics
 			}
 		}
 
+		/// <summary>Draws an X/Y plot onto a frame</summary>
+		/// <param name="frame">Frame where to draw</param>
+		/// <param name="xs">Series of data for the X coordinates</param>
+		/// <param name="ys">Series of data for the Y coordinates</param>
+		/// <param name="xAxis">Scaler for the X axis</param>
+		/// <param name="yAxis">Scaler for the Y axis</param>
+		/// <param name="x0">X coordinate of the origin</param>
+		/// <param name="y0">Y coordinate of the origin</param>
+		/// <param name="c">"Color" for the points</param>
+		/// <param name="nc">"Color" for the missing values</param>
 		public static void DrawData(FrameBuffer frame, Data xs, Data ys, [InstantHandle] Func<double, double> xAxis, [InstantHandle] Func<double, double> yAxis, int x0 = 0, int y0 = 0, char c = '*', char nc = 'x')
 		{
 			int n = xs.Count;
@@ -730,10 +773,10 @@ namespace SnowBank.Numerics
 			}
 		}
 
-		/// <summary>Arrondi un valeur vers le bas, en fonction de l'arrondi sélectionné</summary>
-		/// <param name="x">Valeur à arrondir</param>
-		/// <param name="digits">Si positif, nombre de décimales. Si négatif, nombre de digits entiers supprimés</param>
-		/// <returns>Nombre &lt;= à <paramref name="x"/></returns>
+		/// <summary>Rounds a value down to the specified number of digits</summary>
+		/// <param name="x">Value to round down</param>
+		/// <param name="digits">If positive, number of decimal digits. If negative, number of significant digits</param>
+		/// <returns>Rounded value</returns>
 		/// <example>
 		/// - SigFloor(PI, 2) => 3.14
 		/// - SigFloor(123456789, 3) => 123,456,000
@@ -754,13 +797,13 @@ namespace SnowBank.Numerics
 			return Math.Floor(x);
 		}
 
-		/// <summary>Calcule la valeur vers le haut, en fonction de l'arrondi sélectionné</summary>
-		/// <param name="x">Valeur à arrondir</param>
-		/// <param name="digits">Si positif, nombre de décimales. Si négatif, nombre de digits entiers supprimés</param>
-		/// <returns>Nombre &gt;= à <paramref name="x"/></returns>
+		/// <summary>Rounds a value up to the specified number of digits</summary>
+		/// <param name="x">Value to round down</param>
+		/// <param name="digits">If positive, number of decimal digits. If negative, number of significant digits</param>
+		/// <returns>Rounded value</returns>
 		/// <example>
 		/// - SigCeiling(PI, 2) => 3.15
-		/// - SigCeiling(123456789, 3) => 123,457,000
+		/// - SigCeiling(123456789, -3) => 123,457,000
 		/// </example>
 		[Pure]
 		public static double SigCeiling(double x, int digits)
@@ -778,11 +821,11 @@ namespace SnowBank.Numerics
 			return Math.Ceiling(x);
 		}
 
-		/// <summary>Formate un nombre, avec gestion d'arrondi</summary>
-		/// <param name="x">Valeur à formatter</param>
-		/// <param name="digits">Si positif, nombre de décimales. Si négatif, nombre de digits entiers supprimés</param>
+		/// <summary>Formats a value</summary>
+		/// <param name="x">Value to format</param>
+		/// <param name="digits">If positive, number of decimal digits. If negative, number of significant digits</param>
 		/// <example>
-		/// - SigFormat(PI, 3) => "3.145"
+		/// - SigFormat(PI, 2) => "3.15"
 		/// - SigFormat(123456789, -3) => "123,456,000"
 		/// </example>
 		[Pure]
@@ -800,45 +843,38 @@ namespace SnowBank.Numerics
 			return x.ToString("N0", CultureInfo.InvariantCulture);
 		}
 
-		/// <summary>Render un Plot à partir d'une séries de données</summary>
-		/// <param name="ys">Valeurs sur l'axe Y des points pour chaque X dans l'ensemble { 0, 1, .., N-1 }</param>
-		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="min">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="max">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="c">Caractère utilisés pour le dessin des points de la série</param>
-		/// <returns>Texte correspondant au graph généré</returns>
+		/// <summary>Renders a Plot</summary>
+		/// <param name="ys">Values for the Y coordinates of the points</param>
+		/// <param name="width">Width (in characters) of the plot. Final width will be larger to accomodate for the axis and labels</param>
+		/// <param name="height">Height (in characters) of the plot. Final eight will be larger to accomodate for the axis and labels</param>
+		/// <param name="min">Minimum value on the Y axis (automatically computed if <c>null</c>)</param>
+		/// <param name="max">Maximum value on the Y axis (automatically computed if <c>null</c>)</param>
+		/// <param name="digits">Number of digits used for rounding. If positive, number of decimal digits (ex: 2 for 1.2345=>'1.23'). If positive, number of significant digits (ex: -3 for 123456=>'123000').</param>
+		/// <param name="c">Character used for drawing the points of the series</param>
+		/// <returns>Multi-line string that contains the rendered plot</returns>
 		[Pure]
 		public static string Render(Data ys, int width, int height, double? min = null, double? max = null, [Positive] int digits = 0, char c = '#')
 		{
 			return RenderFrame(ys, width, height, min, max, digits, c).ToString();
 		}
 
-		/// <summary>Render un Plot à partir d'une liste de séries de données</summary>
-		/// <param name="series">Liste des séries de données. chaque série contient les valeurs sur l'axe Y des points pour X dans l'ensemble { 0, 1, .., N-1 }</param>
-		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="min">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="max">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="chars">String contenant les caractères utilisés pour le dessin des points de chaque série. <paramref name="chars"/>[0] est utilisé pour dessiner <paramref name="series"/>[0], etc... (modulo si pas assez de caractères)</param>
-		/// <returns>Texte correspondant au graph généré</returns>
+		/// <summary>Renders a Plot</summary>
+		/// <param name="series">List of series to plot</param>
+		/// <param name="width">Width (in characters) of the plot. Final width will be larger to accomodate for the axis and labels</param>
+		/// <param name="height">Height (in characters) of the plot. Final eight will be larger to accomodate for the axis and labels</param>
+		/// <param name="min">Minimum value on the Y axis (automatically computed if <c>null</c>)</param>
+		/// <param name="max">Maximum value on the Y axis (automatically computed if <c>null</c>)</param>
+		/// <param name="digits">Number of digits used for rounding. If positive, number of decimal digits (ex: 2 for 1.2345=>'1.23'). If positive, number of significant digits (ex: -3 for 123456=>'123000').</param>
+		/// <param name="chars">String with all the characters used for drawing the points of each series. <paramref name="chars"/>[0] is used to draw <paramref name="series"/>[0], and so on. Modulo is used if there is more series than "colors"</param>
+		/// <returns>Multi-line string that contains the rendered plot</returns>
 		[Pure]
 		public static string Render(Data[] series, int width, int height, double? min = null, double? max = null, int digits = 0, string? chars = null)
 		{
 			return RenderFrame(series, width, height, min, max, digits, chars).ToString();
 		}
 
-		/// <summary>Render un Plot à partir d'une séries de données</summary>
-		/// <param name="ys">Valeurs sur l'axe Y des points pour chaque X dans l'ensemble { 0, 1, .., N-1 }</param>
-		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="min">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="max">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="c">Caractère utilisés pour le dessin des points de la série</param>
-		/// <returns>Buffer contenant le graph généré</returns>
+		/// <inheritdoc cref="Render(SnowBank.Numerics.RobustChart.Data,int,int,double?,double?,int,char)"/>
+		/// <remarks>Rendered frame</remarks>
 		[Pure]
 		public static FrameBuffer RenderFrame(Data ys, int width, int height, double? min = null, double? max = null, [Positive] int digits = 0, char c = '#')
 		{
@@ -847,15 +883,8 @@ namespace SnowBank.Numerics
 			return RenderFrame([ ys ], width, height, yMin, yMax, digits, new string(c, 1));
 		}
 
-		/// <summary>Render un Plot à partir d'une liste de séries de données</summary>
-		/// <param name="series">Liste des séries de données. chaque série contient les valeurs sur l'axe Y des points pour chaque X dans l'ensemble { 0, 1, .., N-1 }</param>
-		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="min">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="max">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="chars">String contenant les caractères utilisés pour le dessin des points de chaque série. <paramref name="chars"/>[0] est utilisé pour dessiner <paramref name="series"/>[0], etc... (modulo si pas assez de caractères)</param>
-		/// <returns>Buffer contenant le graph généré</returns>
+		/// <inheritdoc cref="Render(SnowBank.Numerics.RobustChart.Data[],int,int,double?,double?,int,string?)"/>
+		/// <returns>Rendered frame</returns>
 		[Pure]
 		public static FrameBuffer RenderFrame(Data[] series, int width, int height, double? min = null, double? max = null, int digits = 0, string? chars = null)
 		{
@@ -902,18 +931,18 @@ namespace SnowBank.Numerics
 			return frame;
 		}
 
-		/// <summary>Render un XY Plot à partir d'une série de données (x, y)</summary>
-		/// <param name="xs">Liste des coordonnées X des points</param>
-		/// <param name="ys">Liste des coordonnées Y des points</param>
-		/// <param name="width">Largeur (en caractères) de la zone de dessin (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="height">Hauteur (en caractères) de la frame (le buffer sera plus grand car incluant les axes, labels, ...)</param>
-		/// <param name="xMin">Valeur mini sur l'axe X, ou calculé automatiquement si null</param>
-		/// <param name="xMax">Valeur maxi sur l'axe X, ou calculé automatiquement si null</param>
-		/// <param name="yMin">Valeur mini sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="yMax">Valeur maxi sur l'axe Y, ou calculé automatiquement si null</param>
-		/// <param name="digits">Nombre de digits utilisé pour l'arrondi. Si positif, nombre de décimales. Si négatif, arrondi en millers/millions, etc.. (ex: 2 pour 1.2345=>'1.23', ou -3 pour 123456=>'123000'</param>
-		/// <param name="c">Caractère utilisé pour le dessin des points</param>
-		/// <returns>Buffer contenant le graph généré</returns>
+		/// <summary>Renders a XY Plot</summary>
+		/// <param name="xs">Series for the X coordinates</param>
+		/// <param name="ys">Series for the Y coordinates</param>
+		/// <param name="width">Width (in characters) of the plot. Final width will be larger to accomodate for the axis and labels</param>
+		/// <param name="height">Height (in characters) of the plot. Final eight will be larger to accomodate for the axis and labels</param>
+		/// <param name="xMin">Minimum value of the X axis (automatically computed if <c>null</c>)</param>
+		/// <param name="xMax">Maximum value of the X axis (automatically computed if <c>null</c>)</param>
+		/// <param name="yMin">Minimum value of the Y axis (automatically computed if <c>null</c>)</param>
+		/// <param name="yMax">Maximum value of the Y axis (automatically computed if <c>null</c>)</param>
+		/// <param name="digits">Number of digits used for rounding. If positive, number of decimal digits (ex: 2 for 1.2345=>'1.23'). If positive, number of significant digits (ex: -3 for 123456=>'123000').</param>
+		/// <param name="c">Character used for drawing the points of the series</param>
+		/// <returns>Rendered frame</returns>
 		[Pure]
 		public static FrameBuffer RenderFrame(Data xs, Data ys, int width, int height, double? xMin = null, double? xMax = null, double? yMin = null, double? yMax = null, int digits = 0, char c = '#')
 		{

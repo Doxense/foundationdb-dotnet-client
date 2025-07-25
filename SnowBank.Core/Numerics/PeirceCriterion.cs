@@ -26,11 +26,15 @@
 
 namespace SnowBank.Numerics
 {
+	using SnowBank.Buffers;
 
+	/// <summary>Helper for computing Peirce's Criterion</summary>
+	/// <remarks>See https://en.wikipedia.org/wiki/Peirce%27s_criterion</remarks>
+	[PublicAPI]
 	public static class PeirceCriterion
 	{
 
-		public static readonly double[][] Tables =
+		private static readonly double[][] Tables =
 		[
 			[ 1.196 ],
 			[ 1.383, 1.078 ],
@@ -92,7 +96,7 @@ namespace SnowBank.Numerics
 			[ 2.663,  2.401,  2.237,  2.116,  2.019,  1.939,  1.869,  1.808,  1.753 ]
 		];
 
-		private static double PeircesTable(int n, int k)
+		private static double Lookup(int n, int k)
 		{
 			if (n < 3) throw new ArgumentOutOfRangeException(nameof(n), n, "Source list must have at least 3 elements");
 			if (n > 60) throw new ArgumentOutOfRangeException(nameof(n), n, "Source list must have at most 60 elements");
@@ -104,7 +108,7 @@ namespace SnowBank.Numerics
 			return table[k - 1];
 		}
 
-		public static double StandardDeviation(ReadOnlySpan<double> source, out double mean)
+		private static double StandardDeviation(ReadOnlySpan<double> source, out double mean)
 		{
 			double sum = 0d;
 			foreach (var x in source)
@@ -127,12 +131,27 @@ namespace SnowBank.Numerics
 			return stdDev;
 		}
 
+		/// <summary>Removes the outliers of a series of measurements, using Peirce's Criterion</summary>
+		/// <param name="source">Source of measurements</param>
+		/// <param name="outliers">Receives the list of indexes of the removed outliers</param>
+		/// <returns>Filtered list of measurements</returns>
 		public static List<double> FilterOutliers(IEnumerable<double> source, out List<int> outliers)
 			=> FilterOutliers<double>(source, null, out outliers);
 
+		/// <summary>Removes the outliers of a series of measurements, using Peirce's Criterion</summary>
+		/// <param name="source">Source of measurements</param>
+		/// <param name="selector">Function used to convert the measurements into a <see cref="double"/></param>
+		/// <param name="outliers">Receives the list of indexes of the removed outliers</param>
+		/// <returns>Filtered list of measurements</returns>
 		public static List<TSource> FilterOutliers<TSource>(IEnumerable<TSource> source, Func<TSource, double>? selector, out List<int> outliers)
 		{
 			Contract.NotNull(source);
+
+			if (source.TryGetSpan(out var span))
+			{
+				return FilterOutliers(span, selector, out outliers);
+			}
+
 			if (selector == null && typeof(TSource) != typeof(double))
 			{
 				throw new ArgumentException("You must provide a valid selector when both types are not equal", nameof(selector));
@@ -149,10 +168,10 @@ namespace SnowBank.Numerics
 			int last = 0;
 			while (true)
 			{
-				double r = PeircesTable(values.Length, last + 1);
+				double r = Lookup(values.Length, last + 1);
 
 				double maxDeviation = r * stdDev;
-				var eliminated = values.Count(v => Math.Abs(v - mean) > maxDeviation);
+				var eliminated = GetEliminatedCount(values, mean, maxDeviation);
 				if (last >= eliminated)
 				{
 					var res = new List<TSource>(values.Length);
@@ -173,6 +192,88 @@ namespace SnowBank.Numerics
 				}
 				last = eliminated;
 			}
+		}
+
+		/// <summary>Removes the outliers of a series of measurements, using Peirce's Criterion</summary>
+		/// <param name="source">Source of measurements</param>
+		/// <param name="outliers">Receives the list of indexes of the removed outliers</param>
+		/// <returns>Filtered list of measurements</returns>
+		public static List<double> FilterOutliers(ReadOnlySpan<double> source, out List<int> outliers)
+			=> FilterOutliers(source, null, out outliers);
+
+		/// <summary>Removes the outliers of a series of measurements, using Peirce's Criterion</summary>
+		/// <param name="source">Source of measurements</param>
+		/// <param name="selector">Function used to convert the measurements into a <see cref="double"/></param>
+		/// <param name="outliers">Receives the list of indexes of the removed outliers</param>
+		/// <returns>Filtered list of measurements</returns>
+		public static List<TSource> FilterOutliers<TSource>(ReadOnlySpan<TSource> source, Func<TSource, double>? selector, out List<int> outliers)
+		{
+			if (selector == null && typeof(TSource) != typeof(double))
+			{
+				throw new ArgumentException("You must provide a valid selector when both types are not equal", nameof(selector));
+			}
+
+			var items = source;
+			Contract.GreaterOrEqual(items.Length, 3, "Source must have at least 3 elements");
+			Contract.LessOrEqual(items.Length, 60, "Source cannot have more than 60 elements");
+
+			Span<double> values = source.Length <= 128 ? stackalloc double[source.Length] : new double[source.Length];
+			if (selector == null)
+			{
+				for (int i = 0; i < source.Length; i++)
+				{
+					values[i] = (double) (object) (source[i]!);
+				}
+			}
+			else
+			{
+				for (int i = 0; i < source.Length; i++)
+				{
+					values[i] = selector(source[i]);
+				}
+			}
+			var stdDev = StandardDeviation(values, out var mean);
+
+			int last = 0;
+			while (true)
+			{
+				double r = Lookup(values.Length, last + 1);
+
+				double maxDeviation = r * stdDev;
+				var eliminated = GetEliminatedCount(values, mean, maxDeviation);
+				if (last >= eliminated)
+				{
+					var res = new List<TSource>(values.Length);
+					outliers = [ ];
+
+					for(int i = 0; i < values.Length; i++)
+					{
+						if (Math.Abs(values[i] - mean) > maxDeviation)
+						{
+							outliers.Add(i);
+						}
+						else
+						{
+							res.Add(items[i]);
+						}
+					}
+					return res;
+				}
+				last = eliminated;
+			}
+		}
+
+		private static int GetEliminatedCount(ReadOnlySpan<double> values, double mean, double maxDeviation)
+		{
+			int count = 0;
+			foreach (var v in values)
+			{
+				if (Math.Abs(v - mean) > maxDeviation)
+				{
+					++count;
+				}
+			}
+			return count;
 		}
 
 	}

@@ -28,7 +28,6 @@ namespace SnowBank.Buffers
 {
 	using System.Buffers;
 	using System.Collections.Immutable;
-	using System.Drawing;
 	using System.Runtime.InteropServices;
 
 	/// <summary>Lightweight wrapper over a pooled buffer, that can be resized whenever necessary.</summary>
@@ -317,7 +316,6 @@ namespace SnowBank.Buffers
 		/// <param name="destination">Destination buffer, that must be large enough.</param>
 		/// <param name="clear">If <c>true</c>, this section of the buffer will be cleared, so that it can be reused immediately without leaking references.</param>
 		/// <returns><c>true</c> if the buffer was large enough; otherwise, <c>false</c>.</returns>
-		/// <remarks>The wrapper makes no attempt at verifying that items where written to the buffer. It only ensures that <paramref name="length"/> does not exceed the current <see cref="Capacity"/></remarks>
 		public bool TryCopyTo(Span<T> destination, bool clear = false)
 		{
 			if (!this.AsSpan().TryCopyTo(destination))

@@ -172,10 +172,13 @@ namespace SnowBank.Collections.CacheOblivious
 			CheckInvariants();
 		}
 
-		public ColaStore(ColaStore<T> copy)
+		/// <summary>Constructs a <see cref="ColaStore{T}"/> with a copy of the contents of another store</summary>
+		/// <param name="source">Store to use as the source</param>
+		/// <remarks>Adding or removing elements to this new instance will not impact the source, and vice versa.</remarks>
+		public ColaStore(ColaStore<T> source)
 		{
-			m_pool = copy.m_pool;
-			m_count = copy.m_count;
+			m_pool = source.m_pool;
+			m_count = source.m_count;
 
 			// copy the levels from the original
 			var levels = Math.Max(ColaStore.GetLevelCount(m_count), ColaStore.INITIAL_LEVELS);
@@ -186,24 +189,28 @@ namespace SnowBank.Collections.CacheOblivious
 			m_levels = new T[ColaStore.MAX_LEVEL + 1][];
 			m_scratch = new T[2];
 #endif
-			m_root = copy.m_root.ToArray();
+			m_root = source.m_root.ToArray();
 			m_levels[0] = m_root;
 			for (int i = 1; i < levels; i++)
 			{
 				var (tmp, _) = RentLevel(i);
 				if (!IsFree(i))
 				{
-					copy.GetLevel(i).CopyTo(tmp);
+					source.GetLevel(i).CopyTo(tmp);
 				}
 				m_levels[i] = tmp;
 			}
 
 			m_allocatedLevels = levels;
-			m_comparer = copy.m_comparer;
+			m_comparer = source.m_comparer;
 		}
 
+		/// <summary>Returns a copy of this store</summary>
+		/// <returns>New store with a copy of the contents of this instance</returns>
+		/// <remarks>Adding or removing elements to this new instance will not impact the source, and vice versa.</remarks>
 		public ColaStore<T> Copy() => new(this);
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			Span<T[]?> levels = m_levels;
@@ -517,12 +524,26 @@ namespace SnowBank.Collections.CacheOblivious
 			return ColaStore.FindPrevious<T>(this, m_count, value, orEqual, comparer ?? m_comparer, out offset, out result);
 		}
 
+		/// <summary>Enumerates all the items in the store that are between two bounds</summary>
+		/// <param name="beginInclusive">Inclusive lower bound</param>
+		/// <param name="endExclusive">Exclusive upper bound</param>
+		/// <param name="limit">Maximum number of items to return</param>
+		/// <param name="comparer">Optional comparer (if <c>null</c> use the comparer used by the store)</param>
+		/// <returns>Sequence that will return all elements in this store that are greater than or equal to <paramref name="beginInclusive"/> and strictly less than <paramref name="endExclusive"/>, up to a maximum of <paramref name="limit"/> results.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public IEnumerable<T> FindBetween(T beginInclusive, T endExclusive, int limit)
+		public IEnumerable<T> FindBetween(T beginInclusive, T endExclusive, int limit, IComparer<T>? comparer = null)
 		{
-			return ColaStore.FindBetween<T>(this, m_count, beginInclusive, true, endExclusive, false, limit, m_comparer);
+			return ColaStore.FindBetween<T>(this, m_count, beginInclusive, true, endExclusive, false, limit, comparer ?? m_comparer);
 		}
 
+		/// <summary>Enumerates all the items in the store that are between two bounds</summary>
+		/// <param name="begin">Lower bound</param>
+		/// <param name="beginOrEqual">Specifies if the lower bound is included (<c>true</c>) or not (<c>false</c>)</param>
+		/// <param name="end">Upper bound</param>
+		/// <param name="endOrEqual">Specifies if the upper bound is included (<c>true</c>) or not (<c>false</c>)</param>
+		/// <param name="limit">Maximum number of items to return</param>
+		/// <param name="comparer">Optional comparer (if <c>null</c> use the comparer used by the store)</param>
+		/// <returns>Sequence that will return all elements in this store that are greater than (or equal to) <paramref name="begin"/> and less than (or equal to) <paramref name="end"/>, up to a maximum of <paramref name="limit"/> results.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public IEnumerable<T> FindBetween(T begin, bool beginOrEqual, T end, bool endOrEqual, int limit, IComparer<T>? comparer = null)
 		{
@@ -1109,11 +1130,9 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Iterator GetIterator()
-		{
-			return new Iterator(this);
-		}
+		/// <summary>Returns a new iterator that can access the contents of this store</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Iterator GetIterator() => new(this);
 
 		/// <summary>Pre-allocate memory in the store so that it can store a specified amount of items</summary>
 		/// <param name="minimumRequired">Number of items that will be inserted in the store</param>
@@ -1237,7 +1256,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return ColaStore.IterateUnordered(this);
 		}
 
-		//TODO: remove or set to internal !
+		/// <summary>Writes the contents of this store into a log, for debugging purpose [DEBUG ONLY]</summary>
 		[Conditional("DEBUG")]
 		public void Debug_Dump(TextWriter output, Func<T, string>? dump = null)
 		{
@@ -1263,6 +1282,7 @@ namespace SnowBank.Collections.CacheOblivious
 #endif
 		}
 
+		/// <summary>Iterator for scanning the contents of a <see cref="ColaStore{T}"/></summary>
 		[DebuggerDisplay("Current={m_current}, Level={m_currentLevel} ({m_min})")]
 		[PublicAPI]
 		public sealed class Iterator
@@ -1296,9 +1316,9 @@ namespace SnowBank.Collections.CacheOblivious
 #endif
 			}
 
+			/// <summary>Writes the internal state of this iterator into a log, for debugging purpose [DEBUG ONLY]</summary>
 			[Conditional("FULL_DEBUG")]
-			// ReSharper disable once UnusedParameter.Local
-			private void Debug_Dump(string? label = null)
+			public void Debug_Dump(string? label = null)
 			{
 #if FULL_DEBUG
 				System.Diagnostics.Trace.WriteLine("* Cursor State: " + label);

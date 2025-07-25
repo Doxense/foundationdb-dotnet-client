@@ -29,6 +29,7 @@ namespace SnowBank.Collections.CacheOblivious
 	using System.Numerics;
 	using System.Runtime.InteropServices;
 
+	/// <summary>Helper methods used by <see cref="ColaStore"/> and derived implementations</summary>
 	public static class ColaStore
 	{
 
@@ -155,6 +156,8 @@ namespace SnowBank.Collections.CacheOblivious
 #endif
 		}
 
+		/// <summary>Returns the position of the highest bit set</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int HighestBit(int value)
 		{
 			Contract.Debug.Requires(value >= 0);
@@ -222,6 +225,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return (NOT_FOUND, 0);
 		}
 
+		/// <summary>Computes the absolute location from a (level, offset) pair (in the allocated levels)</summary>
 		public static int MapLocationToOffset(int count, int level, int offset)
 		{
 			Contract.Debug.Assert(count >= 0 && level >= 0 && offset >= 0 && offset < 1 << level);
@@ -246,10 +250,10 @@ namespace SnowBank.Collections.CacheOblivious
 			return p + offset;
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static InvalidOperationException ErrorDuplicateKey<T>(T value)
 		{
-			return new InvalidOperationException($"Cannot insert '{value}' because the key already exists in the set");
+			return new($"Cannot insert '{value}' because the key already exists in the set");
 		}
 
 		internal static int BinarySearch<T>(ReadOnlySpan<T> array, T value, IComparer<T> comparer)
@@ -628,6 +632,16 @@ namespace SnowBank.Collections.CacheOblivious
 			return level;
 		}
 
+		/// <summary>Enumerates all the elements between two bounds of a store</summary>
+		/// <typeparam name="T">Type of the elements</typeparam>
+		/// <param name="store">Store to scan</param>
+		/// <param name="count">Number of elements in the store</param>
+		/// <param name="begin">Lower bound</param>
+		/// <param name="beginOrEqual">If <c>true</c> the lower bound is included in the scan</param>
+		/// <param name="end">Upper bound</param>
+		/// <param name="endOrEqual">If <c>true</c> the upper bound is included in the scan</param>
+		/// <param name="limit">Maximum number of elements to return</param>
+		/// <param name="comparer">Element comparer</param>
 		public static IEnumerable<T> FindBetween<T>(ColaStore<T> store, int count, T begin, bool beginOrEqual, T end, bool endOrEqual, int limit, IComparer<T> comparer)
 		{
 			if (limit > 0)

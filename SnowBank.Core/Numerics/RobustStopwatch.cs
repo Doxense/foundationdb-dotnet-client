@@ -26,6 +26,12 @@
 
 namespace SnowBank.Numerics
 {
+
+	/// <summary>Helper for measuring precise elapsed time</summary>
+	/// <remarks>
+	/// <para>This type is used as a shim for <see cref="Stopwatch"/> for .NET 7 or lower.</para>
+	/// <para>If you are on .NET 8 or higher, you can use <see cref="Stopwatch.GetTimestamp"/> and <see cref="Stopwatch.GetElapsedTime(long)"/> directly.</para>
+	/// </remarks>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
 	public struct RobustStopwatch
@@ -51,28 +57,32 @@ namespace SnowBank.Numerics
 		internal RobustStopwatch(long timestamp)
 		{
 			this.LastStart = timestamp;
-			this.Tally = default;
+			this.Tally = TimeSpan.Zero;
 		}
 
 		private long LastStart;
 
 		private TimeSpan Tally;
 
+		/// <summary>Creates a new stopwatch with the clock already running</summary>
 		public static RobustStopwatch StartNew() => new(Stopwatch.GetTimestamp());
 
+		/// <summary>Restarts the stopwatch</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Restart()
 		{
-			this.Tally = default;
+			this.Tally = TimeSpan.Zero;
 			this.LastStart = Stopwatch.GetTimestamp();
 		}
 
+		/// <summary>Starts the stopwatch</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Start()
 		{
 			this.LastStart = Stopwatch.GetTimestamp();
 		}
 
+		/// <summary>Stops the stopwatch</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TimeSpan Stop()
 		{
@@ -82,39 +92,46 @@ namespace SnowBank.Numerics
 			return elapsed;
 		}
 
+		/// <summary>Stops and reset the stopwatch</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Reset()
 		{
-			this.Tally = default;
+			this.Tally = TimeSpan.Zero;
 			this.LastStart = 0;
 		}
 
+		/// <summary>Tests if the stopwatch is running</summary>
 		public readonly bool IsRunning
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.LastStart != 0;
 		}
 
+		/// <summary>Returns the elapsed time</summary>
 		public readonly TimeSpan Elapsed
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => (this.LastStart != 0 ? GetElapsedTime(this.LastStart) : default) + this.Tally;
+			get => (this.LastStart != 0 ? GetElapsedTime(this.LastStart) : TimeSpan.Zero) + this.Tally;
 		}
 
+		/// <summary>Returns the elapsed time (in ticks)</summary>
 		public readonly long ElapsedTicks
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Elapsed.Ticks;
 		}
 
+		/// <summary>Returns the resolution of the stopwatch, i.e. the minimum time interval that can be measured</summary>
 		public static TimeSpan MinimumResolution => System.TimeSpan.FromTicks((long) Math.Ceiling((double) TimeSpan.TicksPerSecond / Stopwatch.Frequency));
 
 		/// <inheritdoc />
 		public override string ToString() => $"{Elapsed} (IsRunning = {this.IsRunning})";
 
+		/// <summary>Returns a timestamp for the current time</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static long GetTimestamp() => Stopwatch.GetTimestamp();
 
+		/// <summary>Computes the elapsed time since the given timestamp</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TimeSpan GetElapsedTime(long startingTimestamp)
 #if NET8_0_OR_GREATER
@@ -123,6 +140,7 @@ namespace SnowBank.Numerics
 			=> GetElapsedTime(startingTimestamp, Stopwatch.GetTimestamp());
 #endif
 
+		/// <summary>Computes the elapsed time between two timestamps</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static TimeSpan GetElapsedTime(long startingTimestamp, long endingTimestamp)
 #if NET8_0_OR_GREATER

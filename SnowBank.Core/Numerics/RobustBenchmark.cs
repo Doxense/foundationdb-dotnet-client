@@ -29,71 +29,107 @@ namespace SnowBank.Numerics
 	using System.Linq;
 	using SnowBank.Runtime;
 
+	/// <summary>Helper for measuring the results of benchmarks</summary>
 	[PublicAPI]
 	public static class RobustBenchmark
 	{
 
+		/// <summary>Pre-JIT this type before starting a benchmark</summary>
 		public static void Warmup()
 		{
 			PlatformHelpers.PreJit(typeof(RobustBenchmark));
 		}
 
+		/// <summary>Data for a run of the benchmark</summary>
+		/// <typeparam name="TResult"></typeparam>
 		[DebuggerDisplay("Index={Index}, {Rejected?\"BAD \":\"GOOD \"}, Duration={Duration}, Iterations={Iterations}, Result={Result}")]
 		[PublicAPI]
 		public sealed class RunData<TResult>
 		{
+			/// <summary>Run number</summary>
 			public int Index { get; set; }
+
+			/// <summary>Number of iterations in this run</summary>
 			public long Iterations { get; set; }
+
+			/// <summary>Total duration of this run</summary>
 			public TimeSpan Duration { get; set; }
+
+			/// <summary>If <c>true</c> this run is rejected (outlier)</summary>
 			public bool Rejected { get; set; }
+
+			/// <summary>Result of this run</summary>
 			public required TResult Result { get; set; }
+
 		}
 
-		[DebuggerDisplay("R={NumberOfRuns}, ITER={IterationsPerRun}, DUR={TotalDuration}, BIPS={BestIterationsPerSecond}, NANOS={BestIterationsNanos}")]
+		/// <summary>Report for a benchmark session</summary>
+		/// <typeparam name="TResult"></typeparam>
+		[DebuggerDisplay("Runs={NumberOfRuns}, Iterations={IterationsPerRun}, Duration={TotalDuration}, BestIps={BestIterationsPerSecond}, BestNanos={BestIterationsNanos}")]
 		[PublicAPI]
 		public sealed class Report<TResult>
 		{
 
+			/// <summary>Number of runs in the session</summary>
 			public int NumberOfRuns { get; set; }
 
+			/// <summary>Number of iterations per run</summary>
 			public int IterationsPerRun { get; set; }
 
+			/// <summary>Total duration of all runs</summary>
 			public TimeSpan RawTotal { get; set; }
 
+			/// <summary>List of the durations for each run</summary>
 			public required List<TimeSpan> RawTimes { get; set; }
 
+			/// <summary>List of the results for each run</summary>
 			public required List<TResult> Results { get; set; }
 
+			/// <summary>List of the raw data for each run</summary>
 			public List<RunData<TResult>>? Runs { get; set; }
 
+			/// <summary>Number of rejected runs</summary>
 			public int RejectedRuns { get; set; }
 
+			/// <summary>List of the durations of each accepted run</summary>
 			public List<TimeSpan>? Times { get; set; }
 
+			/// <summary>Total number of iterations across all accepted runs</summary>
 			public long TotalIterations { get; set; }
 
+			/// <summary>Total duration of all accepted runs</summary>
 			public TimeSpan TotalDuration { get; set;  }
 
+			/// <summary>Average duration of all accepted runs</summary>
 			public TimeSpan AverageDuration { get; set; }
 
+			/// <summary>Median duration of all accepted runs</summary>
 			public TimeSpan MedianDuration { get; set; }
 
+			/// <summary>Median iterations per second of all accepted runs</summary>
 			public double MedianIterationsPerSecond { get; set; }
 
+			/// <summary>Median nanoseconds par iteration of all accepted runs</summary>
 			public double MedianIterationsNanos { get; set; }
 
+			/// <summary>Duration of the fastest accepted run</summary>
 			public TimeSpan BestDuration { get; set; }
 
+			/// <summary>Iterations per seconds of the fastest accepted run</summary>
 			public double BestIterationsPerSecond { get; set; }
 
+			/// <summary>Nanoseconds per iteration of the fastest accepted run</summary>
 			public double BestIterationsNanos { get; set; }
 
+			/// <summary>Standard deviation of the duration of all accepted runs</summary>
 			public TimeSpan StdDevDuration { get; set; }
 
+			/// <summary>Standard deviation of the nanoseconds per iteration of all accepted runs</summary>
 			public double StdDevIterationNanos { get; set; }
 
 			// ReSharper disable InconsistentNaming
 
+			/// <summary>Number of garbage collections observed on the current thread during the execution of the session</summary>
 			public long GcAllocatedOnThread { get; set; }
 
 			/// <summary>Number of gen0 collection per 1 million iterations</summary>
@@ -107,13 +143,16 @@ namespace SnowBank.Numerics
 
 			// ReSharper restore InconsistentNaming
 
+			/// <summary>Total raw time of the best run</summary>
 			public TimeSpan BestRunTotalTime { get; set; }
 
+			/// <summary>Histogram of the measurements (if enabled)</summary>
 			public RobustHistogram? Histogram { get; set; }
 
 		}
 
-		public static Report<long> Run(Action test, int runs, int iterations, RobustHistogram? histo = null)
+		/// <summary>Runs a benchmark</summary>
+		public static Report<long> Run(Action test, int runs, int iterations, RobustHistogram? h = null)
 		{
 			return Run(
 				global: test,
@@ -126,11 +165,12 @@ namespace SnowBank.Numerics
 				cleanup: (_, _) => (long) iterations,
 				runs,
 				iterations,
-				histo
+				h
 			);
 		}
 
-		public static Report<long> Run<T>(Func<T> test, int runs, int iterations, RobustHistogram? histo = null)
+		/// <summary>Runs a benchmark</summary>
+		public static Report<long> Run<T>(Func<T> test, int runs, int iterations, RobustHistogram? h = null)
 		{
 			return Run(
 				global: test,
@@ -139,11 +179,12 @@ namespace SnowBank.Numerics
 				cleanup: (_, _) => (long) iterations,
 				runs,
 				iterations,
-				histo
+				h
 			);
 		}
 
-		public static Report<long> Run(Action<int> test, int runs, int iterations, RobustHistogram? histo = null)
+		/// <summary>Runs a benchmark</summary>
+		public static Report<long> Run(Action<int> test, int runs, int iterations, RobustHistogram? h = null)
 		{
 			return Run(
 				global: test,
@@ -156,11 +197,12 @@ namespace SnowBank.Numerics
 				cleanup: static (_, s) => s,
 				runs,
 				iterations,
-				histo
+				h
 			);
 		}
 
-		public static Report<TResult> Run<TState, TResult>(TState state, Action<TState> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
+		/// <summary>Runs a benchmark</summary>
+		public static Report<TResult> Run<TState, TResult>(TState state, Action<TState> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? h = null)
 		{
 			return Run(
 				global: (state, test, cleanup),
@@ -173,11 +215,12 @@ namespace SnowBank.Numerics
 				cleanup: static (g, s) => g.cleanup(s),
 				runs,
 				iterations,
-				histo
+				h
 			);
 		}
 
-		public static Report<TResult> Run<TState, TResult>(TState state, Action<TState, int> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
+		/// <summary>Runs a benchmark</summary>
+		public static Report<TResult> Run<TState, TResult>(TState state, Action<TState, int> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? h = null)
 		{
 			return Run(
 				global: (State: state, Test: test, Cleanup: cleanup),
@@ -190,11 +233,12 @@ namespace SnowBank.Numerics
 				cleanup: static (g, s) => g.Cleanup(s),
 				runs,
 				iterations,
-				histo
+				h
 			);
 		}
 
-		public static Report<TResult> Run<TState, TResult, TIntermediate>(TState state, Func<TState, int, TIntermediate> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
+		/// <summary>Runs a benchmark</summary>
+		public static Report<TResult> Run<TState, TResult, TIntermediate>(TState state, Func<TState, int, TIntermediate> test, Func<TState, TResult> cleanup, int runs, int iterations, RobustHistogram? h = null)
 		{
 			return Run(
 				global: (State: state, Test: test, Cleanup: cleanup),
@@ -203,7 +247,7 @@ namespace SnowBank.Numerics
 				cleanup: static (g, s) => g.Cleanup(s),
 				runs,
 				iterations,
-				histo
+				h
 			);
 		}
 
@@ -219,7 +263,8 @@ namespace SnowBank.Numerics
 		private static readonly double s_tickFrequency = (double) TimeSpan.TicksPerSecond / Stopwatch.Frequency;
 #endif
 
-		public static Report<TResult> Run<TGlobal, TState, TResult, TIntermediate>(TGlobal global, Func<TGlobal, TState> setup, Func<TGlobal, TState, int, TIntermediate> test, Func<TGlobal, TState, TResult> cleanup, int runs, int iterations, RobustHistogram? histo = null)
+		/// <summary>Runs a benchmark</summary>
+		public static Report<TResult> Run<TGlobal, TState, TResult, TIntermediate>(TGlobal global, Func<TGlobal, TState> setup, Func<TGlobal, TState, int, TIntermediate> test, Func<TGlobal, TState, TResult> cleanup, int runs, int iterations, RobustHistogram? h = null)
 		{
 			var times = new List<TimeSpan>(runs);
 			var results = new List<TResult>(runs);
@@ -253,8 +298,8 @@ namespace SnowBank.Numerics
 				long allocatedAtStart = GC.GetAllocatedBytesForCurrentThread();
 
 				var overhead = GetElapsedTime(ts);
-				long iterStart = Stopwatch.GetTimestamp();
-				if (histo != null)
+				long iterationStart = Stopwatch.GetTimestamp();
+				if (h != null)
 				{
 					for (int i = 0; i < iterations; i++)
 					{
@@ -263,7 +308,7 @@ namespace SnowBank.Numerics
 						test(global, state, i);
 						var testElapsed = GetElapsedTime(ts);
 
-						histo.Add(testElapsed);
+						h.Add(testElapsed);
 						overhead += GetElapsedTime(ts) - testElapsed;
 					}
 				}
@@ -274,7 +319,7 @@ namespace SnowBank.Numerics
 						test(global, state, i);
 					}
 				}
-				var iterElapsed = GetElapsedTime(iterStart);
+				var iterationElapsed = GetElapsedTime(iterationStart);
 
 				long allocatedOnThread = GC.GetAllocatedBytesForCurrentThread() - allocatedAtStart;
 
@@ -287,13 +332,13 @@ namespace SnowBank.Numerics
 				}
 
 				var result = cleanup(global, state);
-				totalElapsed += iterElapsed;
+				totalElapsed += iterationElapsed;
 
 				if (k >= 0)
 				{
-					var t = iterElapsed - overhead;
+					var t = iterationElapsed - overhead;
 					if (t.Ticks < 1) t = new TimeSpan(1);
-					times.Add(iterElapsed - overhead);
+					times.Add(t);
 					results.Add(result);
 				}
 			}
@@ -306,14 +351,14 @@ namespace SnowBank.Numerics
 				RawTimes = times,
 				RawTotal = GetElapsedTime(startTimestamp),
 				BestRunTotalTime = bestRunTotalTime,
-				Histogram = histo,
+				Histogram = h,
 				GcAllocatedOnThread = totalAllocatedOnThread,
 				GC0 = totalGc0, //(totalGC0 * 1000000.0) / (runs * iterations),
 				GC1 = totalGc1, //(totalGC1 * 1000000.0) / (runs * iterations),
 				GC2 = totalGc2, //(totalGC2 * 1000000.0) / (runs * iterations),
 			};
 
-			var filtered = PeirceCriterion.FilterOutliers(times, x => (double) x.Ticks, out var outliers);
+			var filtered = PeirceCriterion.FilterOutliers(times, x => x.Ticks, out var outliers);
 
 			var outliersMap = outliers.ToArray();
 
@@ -354,13 +399,14 @@ namespace SnowBank.Numerics
 		private static TimeSpan Median(TimeSpan[] sortedData)
 		{
 			int n = sortedData.Length;
-			return n == 0 ? default : (n & 1) == 1 ? sortedData[n >> 1] : TimeSpan.FromTicks((sortedData[n >> 1].Ticks + sortedData[(n >> 1) - 1].Ticks) >> 1);
+			return n == 0 ? TimeSpan.Zero
+				: (n & 1) == 1 ? sortedData[n >> 1]
+				: TimeSpan.FromTicks((sortedData[n >> 1].Ticks + sortedData[(n >> 1) - 1].Ticks) >> 1);
 		}
 
 		private static TimeSpan MeanAbsoluteDeviation(TimeSpan[] sortedData, TimeSpan med)
 		{
-			// calcule la variance
-			// NOTE: on la calcule par rpt au median, *PAS* la moyenne arithmétique !
+			// note: the MAD is computed relative to the Median, and not the arithmetic mean.
 			long sum = 0;
 			foreach (var data in sortedData)
 			{

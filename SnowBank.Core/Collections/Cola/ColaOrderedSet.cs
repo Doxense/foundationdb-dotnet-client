@@ -45,18 +45,30 @@ namespace SnowBank.Collections.CacheOblivious
 
 		#region Constructors...
 
+		/// <summary>Constructs a <see cref="ColaOrderedSet{T}"/></summary>
+		/// <param name="pool">Pool used to allocate the internal levels (optional)</param>
 		public ColaOrderedSet(ArrayPool<T>? pool = null)
 			: this(0, Comparer<T>.Default, pool)
 		{ }
 
+		/// <summary>Constructs a <see cref="ColaOrderedSet{T}"/> with the given initial capacity</summary>
+		/// <param name="capacity">Initial capacity</param>
+		/// <param name="pool">Pool used to allocate the internal levels (optional)</param>
 		public ColaOrderedSet(int capacity, ArrayPool<T>? pool = null)
 			: this(capacity, Comparer<T>.Default, pool)
 		{ }
 
+		/// <summary>Constructs a <see cref="ColaOrderedSet{T}"/> with the given comparer</summary>
+		/// <param name="comparer">Value comparer</param>
+		/// <param name="pool">Pool used to allocate the internal levels (optional)</param>
 		public ColaOrderedSet(IComparer<T>? comparer, ArrayPool<T>? pool = null)
 			: this(0, comparer, pool)
 		{ }
 
+		/// <summary>Constructs a <see cref="ColaOrderedSet{T}"/> with the given initial capacity and comparer</summary>
+		/// <param name="capacity">Initial capacity</param>
+		/// <param name="comparer">Value comparer</param>
+		/// <param name="pool">Pool used to allocate the internal levels (optional)</param>
 		public ColaOrderedSet(int capacity, IComparer<T>? comparer, ArrayPool<T>? pool = null)
 		{
 			Contract.Positive(capacity);
@@ -73,8 +85,13 @@ namespace SnowBank.Collections.CacheOblivious
 		/// <summary>Current capacity of the set</summary>
 		public int Capacity => m_items.Capacity;
 
+		/// <summary>Instance used to compare values in the set</summary>
 		public IComparer<T> Comparer => m_items.Comparer;
 
+		/// <summary>Returns the value at the given index</summary>
+		/// <param name="index">Index (0-based) of the value, using the natural ordering of the set</param>
+		/// <returns>Corresponding value</returns>
+		/// <exception cref="IndexOutOfRangeException"> <paramref name="index"/> is out of bounds</exception>
 		public T this[int index]
 		{
 			get
@@ -86,21 +103,21 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 		}
 
-		private static void ThrowIndexOutOfRangeException()
-		{
-			throw new IndexOutOfRangeException("Index is out of range");
-		}
+		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		private static void ThrowIndexOutOfRangeException() => throw new IndexOutOfRangeException("Index is out of range");
 
 		#endregion
 
 		#region Public Methods...
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			m_version = int.MinValue;
 			m_items.Dispose();
 		}
 
+		/// <summary>Removes all the elements in the set</summary>
 		public void Clear()
 		{
 			Interlocked.Increment(ref m_version);
@@ -130,6 +147,10 @@ namespace SnowBank.Collections.CacheOblivious
 			return m_items.SetOrAdd(value, overwriteExistingValue: true);
 		}
 
+		/// <summary>Removes the specified value from the set, if it exists.</summary>
+		/// <param name="value">The value to remove.</param>
+		/// <param name="actualValue">Receives the actual value that was removed.</param>
+		/// <returns><c>true</c> if the value was found and removed; otherwise, <c>false</c></returns>
 		public bool TryRemove(T value, [MaybeNullWhen(false)] out T actualValue)
 		{
 			ref var slot = ref m_items.Find(value, out var level, out var offset);
@@ -145,11 +166,18 @@ namespace SnowBank.Collections.CacheOblivious
 			return false;
 		}
 
+		/// <summary>Removes the specified value from the set.</summary>
+		/// <param name="value">The value to remove.</param>
+		/// <returns><c>true</c> if the value was found and removed; otherwise, <c>false</c></returns>
 		public bool Remove(T value)
 		{
 			return TryRemove(value, out _);
 		}
 
+		/// <summary>Removes the value at the specified location</summary>
+		/// <param name="arrayIndex">Index (0-based) of the value to remove, using the natural order of the set</param>
+		/// <returns>Value that was removed</returns>
+		/// <exception cref="ArgumentOutOfRangeException"> <paramref name="arrayIndex"/> if outside the bounds of the set</exception>
 		public T RemoveAt(int arrayIndex)
 		{
 			if (arrayIndex < 0 || arrayIndex >= m_items.Count)
@@ -166,7 +194,7 @@ namespace SnowBank.Collections.CacheOblivious
 
 		/// <summary>Determines whether this immutable sorted set contains the specified value.</summary>
 		/// <param name="value">The value to check for.</param>
-		/// <returns>true if the set contains the specified value; otherwise, false.</returns>
+		/// <returns><c>true</c> if the set contains the specified value; otherwise, <c>false</c>.</returns>
 		public bool Contains(T value)
 		{
 			return !Unsafe.IsNullRef(ref m_items.Find(value, out _,out _));
@@ -227,14 +255,18 @@ namespace SnowBank.Collections.CacheOblivious
 			m_items.CopyTo(destination);
 		}
 
+		/// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
 		public ColaStore.Enumerator<T> GetEnumerator() => new(m_items, reverse: false);
 
+		/// <inheritdoc />
 		IEnumerator<T> IEnumerable<T>.GetEnumerator() => this.GetEnumerator();
 
+		/// <inheritdoc />
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => this.GetEnumerator();
 
 		#endregion
 
+		/// <summary>Writes the contents of this set into a log, for debugging purpose [DEBUG ONLY]</summary>
 		[Conditional("DEBUG")]
 		public void Debug_Dump(TextWriter output)
 		{
@@ -247,6 +279,7 @@ namespace SnowBank.Collections.CacheOblivious
 		/// <summary>Debug view helper</summary>
 		private sealed class DebugView
 		{
+
 			private readonly ColaOrderedSet<T> m_set;
 
 			public DebugView(ColaOrderedSet<T> set)
@@ -270,8 +303,11 @@ namespace SnowBank.Collections.CacheOblivious
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Enumerator : IEnumerator<T>
 		{
+
 			private readonly int m_version;
+
 			private readonly ColaOrderedSet<T> m_parent;
+
 			private ColaStore.Enumerator<T> m_iterator;
 
 			internal Enumerator(ColaOrderedSet<T> parent, bool reverse)
@@ -310,7 +346,7 @@ namespace SnowBank.Collections.CacheOblivious
 				{
 					throw ColaStore.ErrorStoreVersionChanged();
 				}
-				m_iterator = new ColaStore.Enumerator<T>(m_parent.m_items, m_iterator.Reverse);
+				m_iterator = new(m_parent.m_items, m_iterator.Reverse);
 			}
 
 		}

@@ -37,31 +37,47 @@ namespace SnowBank.Numerics
 	public sealed class RobustHistogram
 	{
 
+		/// <summary>Specifies the type of the measurement</summary>
 		public enum DimensionType
 		{
+			/// <summary>Use the type that corresponds to the context</summary>
 			Unspecified = 0,
-			/// <summary>Measuring a duration, or amount of time</summary>
+
+			/// <summary>Duration, or Amount of Time</summary>
 			Time = 1,
+
 			/// <summary>Size (in bytes, powers of 10, 1GB = 10^9 bytes)</summary>
 			Size = 2,
+
 			/// <summary>Ratio (0..1)</summary>
 			Ratio = 3,
 		}
 
+		/// <summary>Specifies the scale and/or type of units for the measurement</summary>
 		public enum TimeScale
 		{
 			// TIME
+			/// <summary>Duration, measured in BCL ticks (<see cref="TimeSpan.Ticks"/>)</summary>
 			Ticks,
+			/// <summary>Duration, measured in nanoseconds (10E-9 seconds)</summary>
 			Nanoseconds,
+			/// <summary>Duration, measured in microseconds (10E-6 seconds)</summary>
 			Microseconds,
+			/// <summary>Duration, measured in milliseconds (10E-3 seconds)</summary>
 			Milliseconds,
+			/// <summary>Duration, measured in seconds</summary>
 			Seconds,
 			// SIZE
+			/// <summary>Size, measured in bytes</summary>
 			Bytes,
+			/// <summary>Size, measured in KibiBytes (1_024 bytes)</summary>
 			KiloBytes,
+			/// <summary>Size, measured in MebiBytes (1_048_576 bytes)</summary>
 			MegaBytes,
+			/// <summary>Size, measured in GibiBytes (1_073_741_824 bytes)</summary>
 			GigaBytes,
 			// RATIO
+			/// <summary>Ratio between two values, scalar with no unit, ...</summary>
 			Ratio,
 		}
 
@@ -116,13 +132,22 @@ namespace SnowBank.Numerics
 		}
 
 
+		/// <summary>First row of the horizontal scale (includes the number literals)</summary>
 		public const string HorizontalScale = "0.001      .    0.01       .    0.1        .    1          .    10         .    100        .    1k         .    10k        .    100k            1M         .    10M        .    100M       .    1G         .    10G        .    100G       .    1T         .    10T        .    100T       .    ";
+
+		/// <summary>Second row of the horizontal scale (includes the ticks and markers)</summary>
 		public const string HorizontalShade = "|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤|---------------|===============|¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤";
 
 		private const int NumDecades = 13;
+
 		private const int NumBuckets = NumDecades * 16 + 1;
+
+		/// <summary>Minimum value that can be measured (<c>0</c>)</summary>
 		public const double MinValue = 0;
+
+		/// <summary>Maximum value that can be measured (<c>10E200</c>)</summary>
 		public const double MaxValue = 1e200;
+
 		private static ReadOnlySpan<double> BucketLimits =>
 		[
 			/*   [0] */ 0.001, 0.0012, 0.0014, 0.0016, 0.0018, 0.002, 0.0025, 0.003, 0.0035, 0.0040, 0.0045, 0.005, 0.006, 0.007, 0.008, 0.009,
@@ -153,10 +178,13 @@ namespace SnowBank.Numerics
 		private static readonly string BarChartChars = " .:;+=xX$&#";
 		private static readonly string VerticalChartChars = " _.-:=xX&#@";
 
+		/// <summary>Constructs a new <see cref="RobustHistogram"/> for measuring durations with microsecond precision.</summary>
 		public RobustHistogram()
 			: this(TimeScale.Microseconds)
 		{ }
 
+		/// <summary>Constructs a new <see cref="RobustHistogram"/> with the given <see cref="TimeScale"/></summary>
+		/// <param name="scale"></param>
 		public RobustHistogram(TimeScale scale)
 		{
 			this.Min = MaxValue;
@@ -192,6 +220,7 @@ namespace SnowBank.Numerics
 			this.TicksToUnit = GetScaleToTicksRatio(scale);
 		}
 
+		/// <summary>Pre-JIT this type, before running a benchmark</summary>
 		public static void Warmup()
 		{
 			PlatformHelpers.PreJit(typeof(RobustHistogram));
@@ -356,6 +385,8 @@ namespace SnowBank.Numerics
 			this.Buckets.AsSpan().Clear();
 		}
 
+		/// <summary>Merge the measurements of another histogram into this instance</summary>
+		/// <param name="other">Histogram that contains measurements from another run</param>
 		public void Merge(RobustHistogram other)
 		{
 			if (other.Min < this.Min) this.Min = other.Min;
@@ -916,6 +947,7 @@ namespace SnowBank.Numerics
 			return new string(cs);
 		}
 
+		/// <summary>Computes the distribution of data between the specified bounds</summary>
 		[MustUseReturnValue, Pure]
 		public double[] GetDistributionData(double start = 1.0d, double end = MaxValue)
 		{
@@ -929,6 +961,7 @@ namespace SnowBank.Numerics
 			return xs;
 		}
 
+		/// <summary>Computes the distribution of data between the computed <see cref="LowThreshold"/> and <see cref="HighThreshold"/></summary>
 		[MustUseReturnValue, Pure]
 		public string GetDistributionAuto() => GetDistribution(this.LowThreshold, this.HighThreshold);
 
@@ -999,27 +1032,32 @@ namespace SnowBank.Numerics
 			});
 		}
 
+		/// <summary>Formats the percentile distribution between the computed <see cref="LowThreshold"/> and <see cref="HighThreshold"/></summary>
 		[MustUseReturnValue, Pure]
 		public string GetPercentileAuto() => GetPercentile(this.LowThreshold, this.HighThreshold);
 
+		/// <summary>Computes the minimum threshold for the given value</summary>
 		[MustUseReturnValue, Pure]
 		public static double GetMinThreshold(double value)
 		{
 			return Math.Pow(1_000, Math.Floor(Math.Log10(value) / 3));
 		}
 
+		/// <summary>Computes the maximum threshold for the given value</summary>
 		[MustUseReturnValue, Pure]
 		public static double GetMaxThreshold(double value)
 		{
 			return Math.Pow(1_000, Math.Ceiling(Math.Log10(value) / 3));
 		}
 
+		/// <summary>Minimum value of the lowest bucket with at least one measurement</summary>
 		public double LowThreshold
 		{
 			[MustUseReturnValue, Pure]
 			get => GetMinThreshold(this.Min);
 		}
 
+		/// <summary>Maximum value of the highest bucket with at least one measurement</summary>
 		public double HighThreshold
 		{
 			[MustUseReturnValue, Pure]
@@ -1040,6 +1078,7 @@ namespace SnowBank.Numerics
 			return scaleString.Substring(from, len);
 		}
 
+		/// <summary>Formats the scale between the computed <see cref="LowThreshold"/> and <see cref="HighThreshold"/></summary>
 		[MustUseReturnValue, Pure]
 		public string GetScaleAuto(string? scaleString = null) => GetScale(this.LowThreshold, this.HighThreshold, scaleString);
 
@@ -1141,6 +1180,7 @@ namespace SnowBank.Numerics
 			return r.ToString();
 		}
 
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return string.Create(CultureInfo.InvariantCulture, $"Count={this.Count}, Avg={this.Average}, Min={(this.Count > 0 ? this.Min : 0)}, Max={this.Max}, Med={this.Median}");

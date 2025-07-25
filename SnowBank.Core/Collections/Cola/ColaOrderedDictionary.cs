@@ -88,14 +88,17 @@ namespace SnowBank.Collections.CacheOblivious
 
 		#region Constructors...
 
+		/// <summary>Constructs a new <see cref="ColaOrderedDictionary{TKey,TValue}"/></summary>
 		public ColaOrderedDictionary(IComparer<TKey>? keyComparer = null, IEqualityComparer<TValue>? valueComparer = null, ArrayPool<KeyValuePair<TKey, TValue>>? pool = null)
 			: this(0, keyComparer, valueComparer, pool)
 		{ }
 
+		/// <summary>Constructs a new <see cref="ColaOrderedDictionary{TKey,TValue}"/> with the given initial capacity</summary>
 		public ColaOrderedDictionary(int capacity, ArrayPool<KeyValuePair<TKey, TValue>>? pool = null)
 			: this(capacity, null, null, pool)
 		{ }
 
+		/// <summary>Constructs a new <see cref="ColaOrderedDictionary{TKey,TValue}"/> with the given initial capacity and key/value comparer</summary>
 		public ColaOrderedDictionary(int capacity, IComparer<TKey>? keyComparer, IEqualityComparer<TValue>? valueComparer, ArrayPool<KeyValuePair<TKey, TValue>>? pool = null)
 		{
 			m_keyComparer = keyComparer ?? Comparer<TKey>.Default;
@@ -103,23 +106,30 @@ namespace SnowBank.Collections.CacheOblivious
 			m_items = new(capacity, new KeyOnlyComparer(m_keyComparer), pool);
 		}
 
-		public ColaOrderedDictionary(ColaOrderedDictionary<TKey, TValue> copy)
+		/// <summary>Constructs a new <see cref="ColaOrderedDictionary{TKey,TValue}"/> by copying the content of another dictionary.</summary>
+		public ColaOrderedDictionary(ColaOrderedDictionary<TKey, TValue> source)
 		{
-			m_keyComparer = copy.m_keyComparer;
-			m_valueComparer = copy.m_valueComparer;
-			m_items = copy.m_items.Copy();
+			m_keyComparer = source.m_keyComparer;
+			m_valueComparer = source.m_valueComparer;
+			m_items = source.m_items.Copy();
 		}
 
+		/// <summary>Creates a new copy of this dictionary</summary>
 		public ColaOrderedDictionary<TKey, TValue> Copy() => new(this);
 
 		#endregion
 
 		#region Public Properties...
 
+		/// <summary>Number of distinct ranges in this instance</summary>
 		public int Count => m_items.Count;
 
+		/// <summary>Allocated capacity of this instance</summary>
 		public int Capacity => m_items.Capacity;
 
+		/// <summary>Gets or sets the value for the specified key</summary>
+		/// <returns>Corresponding value</returns>
+		/// <exception cref="KeyNotFoundException"> the key does not exist in the dictionary.</exception>
 		public TValue this[TKey key]
 		{
 			get => GetValue(key);
@@ -128,20 +138,24 @@ namespace SnowBank.Collections.CacheOblivious
 
 		#endregion
 
+		/// <inheritdoc />
 		public void Dispose()
 		{
 			m_version = int.MinValue;
 			m_items.Dispose();
 		}
 
+		/// <summary>Removes all ranges from this instance</summary>
 		public void Clear()
 		{
 			Interlocked.Increment(ref m_version);
 			m_items.Clear();
 		}
 
+		/// <summary>Helper used to compare and sort keys of this instance</summary>
 		public IComparer<TKey> KeyComparer => m_keyComparer;
 
+		/// <summary>Helper used to check values of this instance for equality</summary>
 		public IEqualityComparer<TValue> ValueComparer => m_valueComparer;
 
 		internal ColaStore<KeyValuePair<TKey, TValue>> Items => m_items;
@@ -216,6 +230,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return true;
 		}
 
+		/// <summary>Tests if there is a range that contains a given key</summary>
 		public bool ContainsKey(TKey key)
 		{
 			Contract.NotNull(key);
@@ -223,6 +238,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return !Unsafe.IsNullRef(ref m_items.Find(new(key, default!), out _, out _));
 		}
 
+		/// <summary>Tests if there is a range that is assigned with a given value</summary>
 		public bool ContainsValue(TValue value)
 		{
 			foreach(var kvp in m_items.IterateUnordered())
@@ -269,6 +285,10 @@ namespace SnowBank.Collections.CacheOblivious
 			return true;
 		}
 
+		/// <summary>Gets the value associated with the specified key</summary>
+		/// <param name="key">Key that is being searched</param>
+		/// <returns>Corresponding value</returns>
+		/// <exception cref="KeyNotFoundException"> the key does not exist in the dictionary.</exception>
 		[Pure]
 		public TValue GetValue(TKey key)
 		{
@@ -338,6 +358,7 @@ namespace SnowBank.Collections.CacheOblivious
 			return count;
 		}
 
+		/// <summary>Iterates and removes all the keys between two bounds</summary>
 		public IEnumerable<TKey> IterateAndRemoveRange(TKey begin, bool beginEqual, TKey end, bool endEqual)
 		{
 			// This is the worst case scenario for COLA: this operation is VERY SLOW!
@@ -365,6 +386,7 @@ namespace SnowBank.Collections.CacheOblivious
 			while (true);
 		}
 
+		/// <summary>Removes all the keys between two bounds</summary>
 		public int RemoveRange(TKey begin, bool beginEqual, TKey end, bool endEqual)
 		{
 			// This is the worst case scenario for COLA: this operation is VERY SLOW!
@@ -396,6 +418,11 @@ namespace SnowBank.Collections.CacheOblivious
 			return removed;
 		}
 
+		/// <summary>Finds the closest key in the dictionary </summary>
+		/// <param name="key">Key that is being searched</param>
+		/// <param name="orEqual">if <c>false</c> find the next key</param>
+		/// <param name="item">Receives either the entry for <paramref name="key"/> itself (if it exists, and <paramref name="orEqual"/> is <c>true</c>), or the next key in the dictionary</param>
+		/// <returns><c>true</c> if a key was found; otherwise, <c>false</c></returns>
 		public bool Lookup(TKey key, bool orEqual, out KeyValuePair<TKey, TValue> item)
 		{
 			return -1 != m_items.FindNext(new(key, default!), orEqual, out _, out item);
@@ -423,7 +450,7 @@ namespace SnowBank.Collections.CacheOblivious
 
 				var cmp = m_keyComparer;
 
-				// we may end up _before_ the begin key!
+				// we may end up _before_ the Begin key!
 				int p = cmp.Compare(it.Current.Key, begin);
 				if (beginOrEqual ? (p < 0) : (p <= 0))
 				{
@@ -482,6 +509,7 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 		}
 
+		/// <summary>Returns an iterator that can read the contents of this dictionary</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public ColaStore<KeyValuePair<TKey, TValue>>.Iterator GetIterator()
 			=> m_items.GetIterator();
@@ -491,6 +519,7 @@ namespace SnowBank.Collections.CacheOblivious
 		public ColaStore.Enumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
 			=> new (m_items, reverse: false);
 
+		/// <summary>Returns a sequence of all the key/value pairs in this dictionary, ordered by their keys.</summary>
 		public IEnumerable<KeyValuePair<TKey, TValue>> IterateOrdered()
 			=> m_items.IterateOrdered();
 
@@ -506,12 +535,13 @@ namespace SnowBank.Collections.CacheOblivious
 			m_items.CopyTo(destination);
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception ErrorKeyNotFound() => new KeyNotFoundException();
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static KeyNotFoundException ErrorKeyNotFound() => new();
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		private static Exception ErrorKeyAlreadyExists() => new InvalidOperationException("An entry with the same key but a different value already exists.");
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException ErrorKeyAlreadyExists() => new("An entry with the same key but a different value already exists.");
 
+		/// <summary>Writes the contents of this dictionary into a log, for debugging purpose [DEBUG ONLY]</summary>
 		[Conditional("DEBUG")]
 		public void Debug_Dump(TextWriter output)
 		{
