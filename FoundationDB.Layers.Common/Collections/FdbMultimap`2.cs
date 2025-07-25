@@ -70,14 +70,14 @@ namespace FoundationDB.Layers.Collections
 		public FdbMultiMap(ISubspaceLocation location, IFdbKeyCodec<TKey, TEncodedKey> keyCodec, IFdbKeyCodec<TValue, TEncodedValue> valueCodec, bool allowNegativeValues)
 		{
 			Contract.NotNull(location);
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.AllowNegativeValues = allowNegativeValues;
 			this.KeyCodec = keyCodec;
 			this.ValueCodec = valueCodec;
 		}
 
 		/// <summary>Subspace used to encode the keys for the items</summary>
-		public IDynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		/// <summary>If true, allow negative or zero values to stay in the map.</summary>
 		public bool AllowNegativeValues { get; }
@@ -90,11 +90,11 @@ namespace FoundationDB.Layers.Collections
 		public sealed class State
 		{
 
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
 			public FdbMultiMap<TKey, TEncodedKey, TValue, TEncodedValue> Parent { get; }
 
-			internal State(IDynamicKeySubspace subspace, FdbMultiMap<TKey, TEncodedKey, TValue, TEncodedValue> parent)
+			internal State(IKeySubspace subspace, FdbMultiMap<TKey, TEncodedKey, TValue, TEncodedValue> parent)
 			{
 				Contract.Debug.Requires(subspace is not null && parent is not null);
 				this.Subspace = subspace;

@@ -30,20 +30,11 @@ namespace FoundationDB.Client
 	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
 	[DebuggerDisplay("Path={FullName}, Prefix={Key}, Layer={Layer}")]
 	[PublicAPI]
-	public class FdbDirectorySubspace : DynamicKeySubspace, IFdbDirectory
+	public class FdbDirectorySubspace : KeySubspace, IFdbDirectory
 	{
 
 		internal FdbDirectorySubspace(FdbDirectoryLayer.DirectoryDescriptor descriptor, ISubspaceContext? context, bool cached)
 			: base(descriptor.Prefix, context ?? SubspaceContext.Default)
-		{
-			Contract.Debug.Requires(descriptor != null && descriptor.Partition != null);
-			this.Descriptor = descriptor;
-			this.Cached = cached;
-		}
-
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		internal FdbDirectorySubspace(FdbDirectoryLayer.DirectoryDescriptor descriptor, IDynamicKeyEncoder encoder, ISubspaceContext? context, bool cached)
-			: base(descriptor.Prefix, encoder, context ?? SubspaceContext.Default)
 		{
 			Contract.Debug.Requires(descriptor != null && descriptor.Partition != null);
 			this.Descriptor = descriptor;
@@ -83,9 +74,7 @@ namespace FoundationDB.Client
 
 			if (context == this.Context) return this;
 
-#pragma warning disable CS0618 // Type or member is obsolete
-			return new(this.Descriptor, this.KeyEncoder, context, true);
-#pragma warning restore CS0618 // Type or member is obsolete
+			return new(this.Descriptor, context, true);
 		}
 
 		/// <summary>Convert a path relative to this directory, into a path relative to the root of the current partition</summary>
@@ -156,9 +145,7 @@ namespace FoundationDB.Client
 			// and return the new version of the subspace
 			var changed = new FdbDirectoryLayer.DirectoryDescriptor(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, newLayer, descriptor.Partition, descriptor.ValidationChain);
 
-#pragma warning disable CS0618 // Type or member is obsolete
-			return new(changed, this.KeyEncoder, this.Context, false);
-#pragma warning restore CS0618 // Type or member is obsolete
+			return new(changed, this.Context, false);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.

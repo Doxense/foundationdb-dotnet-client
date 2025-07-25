@@ -133,18 +133,18 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Returns a "fake" subspace that pretends to be at the given path and with the given prefix</summary>
 		/// <returns>This subspace is NOT real and does not query the Directory Layer in any way</returns>
 		[DebuggerNonUserCode]
-		protected static IDynamicKeySubspace GetSubspace(FdbPath path, Slice prefix, ISubspaceContext? context = null) => new FakeSubspace(path, prefix, context);
+		protected static IKeySubspace GetSubspace(FdbPath path, Slice prefix, ISubspaceContext? context = null) => new FakeSubspace(path, prefix, context);
 
 		/// <summary>Returns a "fake" subspace that pretends to be at the given path and with the given prefix</summary>
 		/// <returns>This subspace is NOT real and does not query the Directory Layer in any way</returns>
 		[DebuggerNonUserCode]
-		protected static IDynamicKeySubspace GetSubspace(FdbPath path, IVarTuple prefix, ISubspaceContext? context = null) => new FakeSubspace(path, TuPack.Pack(prefix), context);
+		protected static IKeySubspace GetSubspace(FdbPath path, IVarTuple prefix, ISubspaceContext? context = null) => new FakeSubspace(path, TuPack.Pack(prefix), context);
 
 		/// <summary>Returns a "fake" subspace that pretends to use the given prefix</summary>
-		protected static IDynamicKeySubspace GetSubspace(Slice prefix, ISubspaceContext? context = null) => KeySubspace.CreateDynamic(prefix, context);
+		protected static IKeySubspace GetSubspace(Slice prefix, ISubspaceContext? context = null) => new KeySubspace(prefix, context ?? SubspaceContext.Default);
 
 		/// <summary>Returns a "fake" subspace that pretends to use the given prefix</summary>
-		protected static IDynamicKeySubspace GetSubspace(IVarTuple prefix, ISubspaceContext? context = null) => KeySubspace.CreateDynamic(TuPack.Pack(prefix), context);
+		protected static IKeySubspace GetSubspace(IVarTuple prefix, ISubspaceContext? context = null) => new KeySubspace(TuPack.Pack(prefix), context ?? SubspaceContext.Default);
 
 	}
 }

@@ -37,11 +37,11 @@ namespace FoundationDB.Layers.Blobs
 		{
 			Contract.NotNull(subspace);
 
-			this.Subspace = subspace.AsDynamic();
+			this.Subspace = subspace;
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
-		public IDynamicKeySubspace Subspace { get; }
+		public IKeySubspace Subspace { get; }
 
 		/// <summary>Returns the key prefix of an HashSet: (subspace, id)</summary>
 		protected virtual Slice GetKey(IVarTuple id)

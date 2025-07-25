@@ -857,9 +857,9 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root;
 				await CleanLocation(db, location);
 
-				var a = location.ByKey("a");
-				var b = location.ByKey("b");
-				var c = location.ByKey("c");
+				var a = location.WithKeyPrefix("a");
+				var b = location.WithKeyPrefix("b");
+				var c = location.WithKeyPrefix("c");
 
 				// insert a bunch of keys under 'a', only one under 'b', and nothing under 'c'
 				await db.WriteAsync(async (tr) =>
@@ -1028,7 +1028,7 @@ namespace FoundationDB.Client.Tests
 				var location = db.Root;
 				await CleanLocation(db, location);
 
-				var a = location.ByKey("a");
+				var a = location.WithKeyPrefix("a");
 
 				// insert a bunch of keys under 'a'
 				await db.WriteAsync(async tr =>
@@ -1267,7 +1267,7 @@ namespace FoundationDB.Client.Tests
 			// lists[1] contains all multiples of K, offset by 1 ([1, 0], [K+1, 1], [2K+1, 2], ...)
 			// lists[k-1] contains all multiples of K, offset by k-1 ([K-1, 0], [2K-1, 1], [3K-1, 2], ...)
 			// more generally: lists[k][i] = (..., MergeSort, k, (i * K) + k) = (k, i)
-			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
+			IKeySubspace GetList(IKeySubspace folder, int k)
 			{
 				return folder.Key(k).ToSubspace();
 			}
@@ -1332,7 +1332,7 @@ namespace FoundationDB.Client.Tests
 			// lists[1] contains all multiples of 2
 			// lists[k-1] contains all multiples of K
 			// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
-			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
+			IKeySubspace GetList(IKeySubspace folder, int k)
 			{
 				return folder.Key(k).ToSubspace();
 			}
@@ -1410,7 +1410,7 @@ namespace FoundationDB.Client.Tests
 			// lists[1] contains all multiples of 2
 			// lists[k-1] contains all multiples of K
 			// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
-			IDynamicKeySubspace GetList(IDynamicKeySubspace folder, int k)
+			IKeySubspace GetList(IKeySubspace folder, int k)
 			{
 				return folder.Key(k).ToSubspace();
 			}
@@ -1491,9 +1491,9 @@ namespace FoundationDB.Client.Tests
 				await CleanLocation(db, location);
 
 				// Items contains a list of all ("user", id) that were created
-				var locItems = location.ByKey("Items");
+				var locItems = location.WithKeyPrefix("Items");
 				// Processed contain the list of all ("user", id) that were processed
-				var locProcessed = location.ByKey("Processed");
+				var locProcessed = location.WithKeyPrefix("Processed");
 
 				// the goal is to have a query that returns the list of all unprocessed items (ie: in Items but not in Processed)
 

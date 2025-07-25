@@ -61,15 +61,7 @@ namespace FoundationDB.Layers.Messaging
 
 		private readonly RandomNumberGenerator m_rng = RandomNumberGenerator.Create();
 
-		public DynamicKeySubspaceLocation Location { get; }
-
-		//internal IDynamicKeySubspace TaskStore { get; }
-
-		//internal IDynamicKeySubspace IdleRing { get; }
-
-		//internal IDynamicKeySubspace BusyRing { get; }
-
-		//internal IDynamicKeySubspace UnassignedTaskRing { get; }
+		public ISubspaceLocation Location { get; }
 
 		internal FdbCounterMap<int> Counters { get; }
 
@@ -108,7 +100,7 @@ namespace FoundationDB.Layers.Messaging
 		{
 			Contract.NotNull(location);
 
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.Counters = new(this.Location.WithPrefix(TuPack.EncodeKey(COUNTERS)));
 		}
 
@@ -125,11 +117,11 @@ namespace FoundationDB.Layers.Messaging
 		public sealed class State
 		{
 
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
 			public FdbWorkerPool Parent { get; }
 
-			public State(IDynamicKeySubspace subspace, FdbWorkerPool parent)
+			public State(IKeySubspace subspace, FdbWorkerPool parent)
 			{
 				this.Subspace = subspace;
 				this.Parent = parent;
@@ -257,7 +249,7 @@ namespace FoundationDB.Layers.Messaging
 				// store the task in the db
 				state.StoreTask(tr, taskId, now, taskBody);
 			}, 
-			success: (tr) =>
+			success: (_) =>
 			{
 				Interlocked.Increment(ref m_schedulingMessages);
 			},
@@ -372,7 +364,7 @@ namespace FoundationDB.Layers.Messaging
 							watch = tr.Watch(watchKey, ct);
 						}
 					},
-					success: (tr) =>
+					success: (_) =>
 					{ // we have successfully acquired some work, or got a watch
 						previousTaskId = Slice.Nil;
 						workerId = myId;

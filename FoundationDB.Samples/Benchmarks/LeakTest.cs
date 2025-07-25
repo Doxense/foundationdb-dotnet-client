@@ -35,14 +35,14 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public LeakTest(ISubspaceLocation location, int k, int m, int n, TimeSpan delay)
 		{
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.K = k;
 			this.M = m;
 			this.N = n;
 			this.Delay = delay;
 		}
 
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		public int K { get; }
 

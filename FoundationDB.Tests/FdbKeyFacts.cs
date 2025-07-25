@@ -111,7 +111,6 @@ namespace FoundationDB.Client.Tests
 		public void Test_FdbTupleKey_Basics()
 		{
 			var subspace = GetSubspace(FdbPath.Absolute("Foo", "Bar"), STuple.Create(42));
-			var copy = GetSubspace(STuple.Create(42));
 			var other = GetSubspace(STuple.Create(37));
 			var child = GetSubspace(STuple.Create(42, "hello"));
 
@@ -348,8 +347,8 @@ namespace FoundationDB.Client.Tests
 		{
 			static void Verify(Slice prefix, IVarTuple items)
 			{
-				var subspace = new DynamicKeySubspace(prefix, SubspaceContext.Default);
-				var packed = subspace.Pack(items);
+				var subspace = KeySubspace.FromKey(prefix);
+				var packed = prefix + TuPack.Pack(items);
 				Log($"# {prefix:x} + {items}: -> {packed:x}");
 				if (!packed.StartsWith(prefix)) throw new InvalidOperationException();
 
@@ -499,7 +498,7 @@ namespace FoundationDB.Client.Tests
 				so.Dispose();
 			}
 
-			var subspace = new DynamicKeySubspace(TuPack.EncodeKey(42), SubspaceContext.Default);
+			var subspace = KeySubspace.FromKey(TuPack.EncodeKey(42));
 
 			var now = DateTime.Now;
 			var vs = VersionStamp.Incomplete(0x1234);

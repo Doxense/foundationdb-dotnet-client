@@ -47,11 +47,11 @@ namespace FoundationDB.Layers.Collections
 		public FdbRankedSet(ISubspaceLocation location)
 		{
 			Contract.NotNull(location);
-			this.Location = location.AsDynamic();
+			this.Location = location;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		/// <summary>Make sure that the set is initialized</summary>
 		public async Task OpenAsync(IFdbTransaction trans)
@@ -69,9 +69,9 @@ namespace FoundationDB.Layers.Collections
 		public sealed class State
 		{
 
-			public IDynamicKeySubspace Subspace { get;}
+			public IKeySubspace Subspace { get;}
 
-			public State(IDynamicKeySubspace subspace)
+			public State(IKeySubspace subspace)
 			{
 				this.Subspace = subspace;
 			}

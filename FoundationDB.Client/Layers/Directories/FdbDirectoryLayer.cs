@@ -63,7 +63,7 @@ namespace FoundationDB.Client
 		public static bool AnnotateTransactions { get; set; }
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
-		public IDynamicKeySubspaceLocation Content { get; }
+		public ISubspaceLocation Content { get; }
 
 		/// <summary>Random generator used by the internal allocators</summary>
 		internal Random AllocatorRng { get; }
@@ -113,9 +113,9 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		/// <summary>Creates a new instance that will manages directories in FoundationDB.</summary>
+		/// <summary>Creates a new instance that will manage directories in FoundationDB.</summary>
 		/// <param name="location">Location of the root of all the directories managed by this Directory Layer. Usually empty for the root partition of the database.</param>
-		internal FdbDirectoryLayer(IDynamicKeySubspaceLocation location)
+		internal FdbDirectoryLayer(ISubspaceLocation location)
 		{
 			Contract.Debug.Requires(location != null);
 
@@ -128,8 +128,7 @@ namespace FoundationDB.Client
 		public static FdbDirectoryLayer Create(ISubspaceLocation location)
 		{
 			Contract.NotNull(location);
-
-			return new FdbDirectoryLayer(location.AsDynamic());
+			return new(location);
 		}
 
 		#endregion
@@ -1561,13 +1560,13 @@ namespace FoundationDB.Client
 
 			public PartitionDescriptor? Parent { get; }
 
-			public IDynamicKeySubspace Content { get; }
+			public IKeySubspace Content { get; }
 
-			public IDynamicKeySubspace Nodes { get; }
+			public IKeySubspace Nodes { get; }
 
 			private Slice CachedStampValue { get; set; }
 
-			public PartitionDescriptor(FdbPath path, IDynamicKeySubspace content, PartitionDescriptor? parent)
+			public PartitionDescriptor(FdbPath path, IKeySubspace content, PartitionDescriptor? parent)
 			{
 				Contract.Debug.Requires(path.IsAbsolute && content != null);
 
@@ -1596,7 +1595,7 @@ namespace FoundationDB.Client
 			public PartitionDescriptor CreateChild(FdbPath path, Slice prefix)
 			{
 				Contract.Debug.Requires(path.IsChildOf(this.Path), "Partition path is outside parent");
-				return new PartitionDescriptor(path, KeySubspace.CreateDynamic(prefix), this);
+				return new PartitionDescriptor(path, KeySubspace.FromKey(prefix), this);
 			}
 
 			public ValueTask<Slice> GetStampValue(IFdbReadOnlyTransaction tr)

@@ -43,7 +43,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				// clear previous values
 				await CleanLocation(db, location);
 
-				var subspace = location.ByKey("FoosByColor");
+				var subspace = location.WithKeyPrefix("FoosByColor");
 				var index = new FdbIndex<int, string>(subspace);
 
 				// add items to the index
@@ -134,9 +134,9 @@ namespace FoundationDB.Layers.Tables.Tests
 					new Character { Id = 6, Name = "Cat Woman", Brand="DC", IsVilain = default(bool?) },
 				};
 
-				var indexBrand = new FdbIndex<long, string>(location.ByKey("CharactersByBrand"));
-				var indexSuperHero = new FdbIndex<long, bool>(location.ByKey("SuperHeroes"));
-				var indexAlignment = new FdbIndex<long, bool?>(location.ByKey("FriendsOrFoe"));
+				var indexBrand = new FdbIndex<long, string>(location.WithKeyPrefix("CharactersByBrand"));
+				var indexSuperHero = new FdbIndex<long, bool>(location.WithKeyPrefix("SuperHeroes"));
+				var indexAlignment = new FdbIndex<long, bool?>(location.WithKeyPrefix("FriendsOrFoe"));
 
 				// index everything
 				await db.WriteAsync(async (tr) =>

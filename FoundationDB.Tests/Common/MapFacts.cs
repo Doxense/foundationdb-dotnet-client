@@ -49,7 +49,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(location.ByKey("Foos"), FdbUtf8ValueCodec.Instance);
+				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(location.WithKeyPrefix("Foos"), FdbUtf8ValueCodec.Instance);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
@@ -83,7 +83,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
-					var value = await tr.GetAsync(foos.Subspace.AsDynamic().Key("hello"));
+					var value = await tr.GetAsync(foos.Subspace.Key("hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToString(), Is.EqualTo(secret));
 				}, this.Cancellation);
@@ -124,7 +124,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(location.ByKey("Foos"), FdbUtf8ValueCodec.Instance);
+				var mapFoos = new FdbMap<string, string, FdbUtf8Value>(location.WithKeyPrefix("Foos"), FdbUtf8ValueCodec.Instance);
 
 				// write a bunch of keys
 				await mapFoos.WriteAsync(db, (tr, foos) =>
@@ -184,7 +184,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 				var mapHosts = new FdbMap<IPEndPoint, STuple<IPAddress, int>, string, FdbUtf8Value>(
-					location.ByKey("Hosts"),
+					location.WithKeyPrefix("Hosts"),
 					keyCodec,
 					FdbValueCodec.Utf8
 				);

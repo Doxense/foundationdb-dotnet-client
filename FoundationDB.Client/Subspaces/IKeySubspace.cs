@@ -73,6 +73,8 @@ namespace FoundationDB.Client
 		/// <summary>Return the key that is composed of the subspace prefix and a binary suffix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Full binary key</returns>
+		[Obsolete("Use subspace.Bytes(...) instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		Slice Append(ReadOnlySpan<byte> relativeKey);
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>

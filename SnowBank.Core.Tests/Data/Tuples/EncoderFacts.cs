@@ -31,6 +31,7 @@ namespace SnowBank.Data.Tuples.Tests
 	[TestFixture]
 	[Category("Core-SDK")]
 	[Parallelizable(ParallelScope.All)]
+	[Obsolete("This is for a legacy API")]
 	public class TupleEncoderFacts : SimpleTest
 	{
 

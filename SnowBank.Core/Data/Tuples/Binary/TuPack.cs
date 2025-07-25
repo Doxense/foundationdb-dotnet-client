@@ -1851,11 +1851,9 @@ namespace SnowBank.Data.Tuples
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
 		[Pure]
-		public static IVarTuple Unpack(Slice packedKey)
+		public static IVarTuple Unpack(Slice packedKey) //REVIEW: consider changing return type to SlicedTuple ?
 		{
-			if (packedKey.IsNull) throw new ArgumentNullException(nameof(packedKey), "Cannot unpack tuple from Nil");
-			if (packedKey.Count == 0) return STuple.Empty;
-			return Unpack(packedKey.Span).ToTuple(packedKey);
+			return SlicedTuple.Unpack(packedKey);
 		}
 
 		/// <summary>Unpack a tuple from a serialized key blob</summary>

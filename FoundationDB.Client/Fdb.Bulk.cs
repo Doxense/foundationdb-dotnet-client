@@ -1495,8 +1495,7 @@ namespace FoundationDB.Client
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <returns>Number of keys exported</returns>
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
-			public static async Task<long> ExportAsync<TSubspace>(IFdbDatabase db, ISubspaceLocation<TSubspace> path, [InstantHandle] Func<KeyValuePair<Slice, Slice>[], TSubspace, long, CancellationToken, Task> handler, CancellationToken ct)
-				where TSubspace : class, IKeySubspace
+			public static async Task<long> ExportAsync(IFdbDatabase db, ISubspaceLocation path, [InstantHandle] Func<KeyValuePair<Slice, Slice>[], IKeySubspace, long, CancellationToken, Task> handler, CancellationToken ct)
 			{
 				Contract.NotNull(db);
 				Contract.NotNull(handler);
@@ -1522,7 +1521,7 @@ namespace FoundationDB.Client
 				//	W:           [*B1]-----[*B2]-----[*B3]-----[ *B4 + flush to disk ...... |*B5]-----[*B6]------....
 
 				Slice previous = default;
-				TSubspace location = default!;
+				IKeySubspace location = null!;
 				KeySelector begin = default;
 				KeySelector end = default;
 

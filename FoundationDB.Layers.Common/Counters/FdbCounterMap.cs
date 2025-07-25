@@ -54,12 +54,12 @@ namespace FoundationDB.Layers.Counters
 		{
 			Contract.NotNull(location);
 
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.Codec = codec;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this counter list</summary>
-		public IDynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		public IFdbKeyCodec<TKey, TEncodedKey> Codec { get; }
 
@@ -80,11 +80,11 @@ namespace FoundationDB.Layers.Counters
 		public sealed class State
 		{
 
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
 			public FdbCounterMap<TKey, TEncodedKey> Parent { get; }
 
-			internal State(IDynamicKeySubspace subspace, FdbCounterMap<TKey, TEncodedKey> parent)
+			internal State(IKeySubspace subspace, FdbCounterMap<TKey, TEncodedKey> parent)
 			{
 				this.Subspace = subspace;
 				this.Parent = parent;

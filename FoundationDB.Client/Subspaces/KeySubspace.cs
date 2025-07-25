@@ -42,8 +42,8 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		/// <summary>Subspace with no prefix</summary>
-		public static readonly IDynamicKeySubspace Empty = new DynamicKeySubspace(Slice.Empty, SubspaceContext.Default);
+		/// <summary>Root keyspace of the database (with no prefix)</summary>
+		public static readonly IKeySubspace Empty = new KeySubspace(Slice.Empty, SubspaceContext.Default);
 
 		#region FromKey...
 
@@ -76,6 +76,7 @@ namespace FoundationDB.Client
 		/// <summary>Initializes a new subspace with the given binary <paramref name="prefix"/>.</summary>
 		/// <returns>A subspace that can handle keys of any types and size.</returns>
 		[Pure]
+		[Obsolete("use FromKey(...) instead")]
 		public static IDynamicKeySubspace CreateDynamic(Slice prefix, ISubspaceContext? context = null)
 		{
 			return new DynamicKeySubspace(prefix, context ?? SubspaceContext.Default);
@@ -197,17 +198,10 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		internal KeySubspace(Slice prefix, ISubspaceContext context)
+		public KeySubspace(Slice prefix, ISubspaceContext context)
 		{
 			this.Key = prefix;
 			this.Range = KeyRange.StartsWith(prefix);
-			this.Context = context ?? throw new ArgumentNullException(nameof(context));
-		}
-
-		internal KeySubspace(Slice prefix, KeyRange range, ISubspaceContext context)
-		{
-			this.Key = prefix;
-			this.Range = range;
 			this.Context = context ?? throw new ArgumentNullException(nameof(context));
 		}
 

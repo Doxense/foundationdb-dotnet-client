@@ -325,7 +325,7 @@ namespace FoundationDB.Tests.Sandbox
 			var rnd = new Random();
 			var tmp = new byte[size];
 
-			var location = db.Root.ByKey("Batch");
+			var location = db.Root.WithKeyPrefix("Batch");
 
 			var times = new List<TimeSpan>();
 			for (int k = 0; k <= 4; k++)
@@ -374,7 +374,7 @@ namespace FoundationDB.Tests.Sandbox
 			// total estimated size of all transactions
 			long totalPayloadSize = 0;
 
-			var location = db.Root.AsBinary();
+			var location = db.Root;
 
 			var tasks = new List<Task>();
 			var sem = new ManualResetEventSlim();
@@ -444,10 +444,10 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine($"=== BenchSerialWrite(N={N:N0}) ===");
 
-			var location = db.Root.ByKey("hello");
+			var location = db.Root.WithKeyPrefix("hello");
 			var sw = Stopwatch.StartNew();
 			IFdbTransaction trans = null;
-			IDynamicKeySubspace subspace = null;
+			IKeySubspace subspace = null;
 			try
 			{
 				for (int i = 0; i < N; i++)
@@ -487,7 +487,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine($"=== BenchSerialRead(N={N:N0}) ===");
 			Console.WriteLine($"Reading {N:N0} keys (serial, slow!)");
 
-			var location = db.Root.ByKey("hello");
+			var location = db.Root.WithKeyPrefix("hello");
 
 			var sw = Stopwatch.StartNew();
 			for (int k = 0; k < N; k += 1000)
@@ -515,7 +515,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine($"=== BenchConcurrentRead(N={N:N0}) ===");
 			Console.WriteLine($"Reading {N:N0} keys (concurrent)");
 
-			var location = db.Root.ByKey("hello").AsDynamic();
+			var location = db.Root.WithKeyPrefix("hello");
 
 			Console.WriteLine("# Task.WhenAll+GetAsync");
 			var sw = Stopwatch.StartNew();
@@ -560,7 +560,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine($"=== BenchClear(N={N:N0}) ===");
 
-			var location = db.Root.ByKey(Slice.FromStringAscii("hello"));
+			var location = db.Root.WithKeyPrefix(Slice.FromStringAscii("hello"));
 
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
@@ -610,7 +610,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine($"=== BenchUpdateLotsOfKeys(N={N:N0}) ===");
 
-			var location = db.Root.ByKey("lists").AsDynamic();
+			var location = db.Root.WithKeyPrefix("lists");
 
 			var rnd = new Random();
 
@@ -670,7 +670,7 @@ namespace FoundationDB.Tests.Sandbox
 			var timings = instrumented ? new List<KeyValuePair<double, double>>() : null;
 
 			// put test values inside a namespace
-			var location = db.Root.ByKey("BulkInsert");
+			var location = db.Root.WithKeyPrefix("BulkInsert");
 
 			// cleanup everything
 			using (var tr = db.BeginTransaction(ct))
@@ -712,7 +712,7 @@ namespace FoundationDB.Tests.Sandbox
 							var localDuration = start.Elapsed.TotalSeconds - localStart;
 							if (instrumented)
 							{
-								lock (timings) { timings.Add(new KeyValuePair<double, double>(localStart, localDuration)); }
+								lock (timings) { timings.Add(new(localStart, localDuration)); }
 							}
 							Interlocked.Increment(ref batches);
 							Interlocked.Add(ref bytes, tr.Size);
@@ -762,7 +762,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine($"=== BenchMergeSort(N={N:N0}, K={K:N0}, B={B:N0}) ===");
 
 			// create multiple lists
-			var location = db.Root.ByKey("MergeSort");
+			var location = db.Root.WithKeyPrefix("MergeSort");
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await location.Resolve(tr);
@@ -778,10 +778,10 @@ namespace FoundationDB.Tests.Sandbox
 			{
 				using (var tr = db.BeginTransaction(ct))
 				{
-					var list = await location.ByKey(source).Resolve(tr);
+					var list = await location.Resolve(tr);
 					for (int i = 0; i < N; i++)
 					{
-						tr.Set(list.Key(rnd.Next()), Slice.FromInt32(i));
+						tr.Set(list.Key(source, rnd.Next()), Slice.FromInt32(i));
 					}
 					await tr.CommitAsync();
 				}

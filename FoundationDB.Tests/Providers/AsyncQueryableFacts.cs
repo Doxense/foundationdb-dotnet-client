@@ -98,7 +98,7 @@ namespace FoundationDB.Linq.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var indexFoos = new FdbIndex<long, string>(location.ByKey("Foos", "ByColor"));
+				var indexFoos = new FdbIndex<long, string>(location.WithKeyPrefix("Foos", "ByColor"));
 
 				await db.WriteAsync(async (tr) =>
 				{
@@ -139,7 +139,7 @@ namespace FoundationDB.Linq.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var index = new FdbIndex<string, int>(location.ByKey("Foos", "ByScore"));
+				var index = new FdbIndex<string, int>(location.WithKeyPrefix("Foos", "ByScore"));
 
 				await db.WriteAsync(async (tr) =>
 				{

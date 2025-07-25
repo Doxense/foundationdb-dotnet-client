@@ -28,6 +28,7 @@ namespace FoundationDB.Client
 {
 	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys as binary literals.</summary>
 	[PublicAPI]
+	[Obsolete("There is no need to this type anymore. You can use IKeySubspace to achieve the same behavior")]
 	public interface IBinaryKeySubspace : IKeySubspace
 	{
 
@@ -64,6 +65,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys as binary literals.</summary>
+	[Obsolete("There is no need to this type anymore. You can use KeySubspace to achieve the same behavior")]
 	public sealed class BinaryKeySubspace : KeySubspace, IBinaryKeySubspace
 	{
 
@@ -107,6 +109,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Extension methods for <see cref="IBinaryKeySubspace"/></summary>
+	[Obsolete("There is no need to this type anymore. You can use IKeySubspace to achieve the same behavior")]
 	public static class BinaryKeySubspaceExtensions
 	{
 

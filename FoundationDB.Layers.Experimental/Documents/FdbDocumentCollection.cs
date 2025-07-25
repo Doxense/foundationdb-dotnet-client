@@ -40,12 +40,12 @@ namespace FoundationDB.Layers.Documents
 			Contract.NotNull(selector);
 			Contract.NotNull(valueEncoder);
 
-			this.Location = subspace.AsDynamic();
+			this.Location = subspace;
 			this.IdSelector = selector;
 			this.ValueEncoder = valueEncoder;
 		}
 
-		protected virtual Task<List<Slice>> LoadPartsAsync(IDynamicKeySubspace subspace, IFdbReadOnlyTransaction trans, TId id)
+		protected virtual Task<List<Slice>> LoadPartsAsync(IKeySubspace subspace, IFdbReadOnlyTransaction trans, TId id)
 		{
 			return trans
 				.GetRange(subspace.Key(id).ToRange(inclusive: true)) //TODO: options ?
@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Documents
 		}
 
 		/// <summary>Subspace used as a prefix for all hashset in this collection</summary>
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		/// <summary>Encoder that packs/unpacks the documents</summary>
 		public IValueEncoder<TDocument> ValueEncoder { get; }

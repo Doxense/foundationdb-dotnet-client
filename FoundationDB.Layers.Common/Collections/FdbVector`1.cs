@@ -86,13 +86,13 @@ namespace FoundationDB.Layers.Collections
 			Contract.NotNull(location);
 			Contract.NotNull(codec);
 
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.DefaultValue = defaultValue;
 			this.Codec = codec;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this vector</summary>
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		/// <summary>Default value for sparse entries</summary>
 		public TValue? DefaultValue { get; }
@@ -103,11 +103,11 @@ namespace FoundationDB.Layers.Collections
 		public sealed class State
 		{
 
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
 			public FdbVector<TValue, TEncoded> Parent { get; }
 
-			internal State(IDynamicKeySubspace subspace, FdbVector<TValue, TEncoded> parent)
+			internal State(IKeySubspace subspace, FdbVector<TValue, TEncoded> parent)
 			{
 				this.Subspace = subspace;
 				this.Parent = parent;
@@ -304,8 +304,6 @@ namespace FoundationDB.Layers.Collections
 			private async Task<long> ComputeSizeAsync(IFdbReadOnlyTransaction tr)
 			{
 				Contract.Debug.Requires(tr != null);
-
-				var keyRange = this.Subspace.GetRange();
 
 				// get the last key in the range (if there is any)
 				var lastKey = await tr.GetRangeKeys(this.Subspace.ToRange()).LastOrDefaultAsync().ConfigureAwait(false);

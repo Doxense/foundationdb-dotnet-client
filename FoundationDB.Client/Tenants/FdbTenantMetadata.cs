@@ -56,13 +56,6 @@ namespace FoundationDB.Client
 			return new FdbTenantSubspace(this, context ?? SubspaceContext.Default);
 		}
 
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public FdbTenantSubspace GetSubspace(IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
-		{
-			Contract.NotNull(encoder);
-			return new FdbTenantSubspace(this, encoder, context ?? SubspaceContext.Default);
-		}
-
 	}
 
 }

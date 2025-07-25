@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
 #endif
 
-				var mapFoos = new FdbMultiMap<string, string>(location.ByKey("Foos"), allowNegativeValues: false);
+				var mapFoos = new FdbMultiMap<string, string>(location.WithKeyPrefix("Foos"), allowNegativeValues: false);
 
 				// read non existing value
 				await mapFoos.ReadAsync(db, async (tr, foos) =>
@@ -100,7 +100,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				await mapFoos.ReadAsync(db, async (tr, foos) =>
 				{
-					var loc = foos.Subspace.AsDynamic();
+					var loc = foos.Subspace;
 					var value = await tr.GetAsync(loc.Key("hello", "world"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToInt64(), Is.EqualTo(1));
@@ -119,7 +119,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(count, Is.Null);
 
 					// also check directly
-					var loc = foos.Subspace.AsDynamic();
+					var loc = foos.Subspace;
 					var data = await tr.GetAsync(loc.Key("hello", "world"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}, this.Cancellation);

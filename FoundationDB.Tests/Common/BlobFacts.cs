@@ -38,7 +38,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 			var location = db.Root;
 			await CleanLocation(db, location);
 
-			var blob = new FdbBlob(location.ByKey("Empty"));
+			var blob = new FdbBlob(location.WithKeyPrefix("Empty"));
 
 			long? size = await blob.ReadAsync(db, (tr, state) => state.GetSizeAsync(tr), this.Cancellation);
 			Assert.That(size, Is.Null, "Non existing blob should have no size");
@@ -83,7 +83,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 			var location = db.Root;
 			await this.CleanLocation(db, location);
 
-			var blob = new FdbBlob(location.ByKey("BigBlob"));
+			var blob = new FdbBlob(location.WithKeyPrefix("BigBlob"));
 
 			var data = Slice.Zero(100_000);
 			for (int i = 0; i < data.Count; i++) data.Array[data.Offset + i] = (byte)i;

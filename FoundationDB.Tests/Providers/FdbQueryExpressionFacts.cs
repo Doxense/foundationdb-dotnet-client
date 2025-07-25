@@ -30,12 +30,12 @@
 	using FoundationDB.Layers.Indexing;
 
 	[TestFixture]
-	public class FdbQueryExpressionFacts : FdbTest
+	public class FdbQueryExpressionFacts : FdbSimpleTest
 	{
 
-		private readonly FdbIndex<int, string> FooBarIndex = new(DynamicKeySubspaceLocation.Root.ByKey("Foos", 1));
+		private readonly FdbIndex<int, string> FooBarIndex = new(SubspaceLocation.FromPath(FdbPath.Absolute("Foos", "IDX_Bar")));
 
-		private readonly FdbIndex<int, long> FooBazIndex = new(DynamicKeySubspaceLocation.Root.ByKey("Foos", 2));
+		private readonly FdbIndex<int, long> FooBazIndex = new(SubspaceLocation.FromPath(FdbPath.Absolute("Foos", "IDX_Baz")));
 
 		private static void Dump(FdbQueryExpression? expr)
 		{

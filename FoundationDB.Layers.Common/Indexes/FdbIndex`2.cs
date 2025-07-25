@@ -38,12 +38,12 @@ namespace FoundationDB.Layers.Indexing
 		public FdbIndex(ISubspaceLocation location, IEqualityComparer<TValue>? valueComparer = null, bool indexNullValues = false)
 		{
 			Contract.NotNull(location);
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
 		}
 
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		public IEqualityComparer<TValue> ValueComparer { get; }
 
@@ -58,9 +58,9 @@ namespace FoundationDB.Layers.Indexing
 			public FdbIndex<TId, TValue> Schema { get; }
 
 			/// <summary>Resolved subspace containing the index</summary>
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
-			public State(FdbIndex<TId, TValue> schema, IDynamicKeySubspace subspace)
+			public State(FdbIndex<TId, TValue> schema, IKeySubspace subspace)
 			{
 				this.Schema = schema;
 				this.Subspace = subspace;

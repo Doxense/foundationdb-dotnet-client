@@ -36,7 +36,7 @@ namespace FoundationDB.Client
 	{
 		/// <summary>The "empty" path</summary>
 		/// <remarks>This path is relative</remarks>
-		public static readonly FdbPath Empty = new(default, absolute: false);
+		public static readonly FdbPath Empty;
 
 		/// <summary>The "root" path ("/").</summary>
 		/// <remarks>This path is absolute</remarks>
@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 		/// <summary>If <see langword="true"/>, this is an absolute path (ex: "/Foo/Bar"); otherwise, this a relative path ("Foo/Bar")</summary>
 		public readonly bool IsAbsolute;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal FdbPath(ReadOnlyMemory<FdbPathSegment> path, bool absolute)
 		{
 			this.Segments = path;

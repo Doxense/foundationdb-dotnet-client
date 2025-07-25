@@ -38,8 +38,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Empty_Subspace_Is_Empty()
 		{
-			var subspace = KeySubspace.FromKey(Slice.Empty);
-			Assert.That(subspace, Is.Not.Null, "FdbSubspace.Empty should not return null");
+			var subspace = KeySubspace.Empty;
+			Assert.That(subspace, Is.Not.Null, "FdbSubspace.Root should not return null");
 			Assert.That(subspace.GetPrefix(), Is.EqualTo(Slice.Empty), "FdbSubspace.Empty.Key should be equal to Slice.Empty");
 			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
 		}
@@ -48,7 +48,7 @@ namespace FoundationDB.Client.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Binary_Prefix()
 		{
-			var subspace = KeySubspace.CreateDynamic(new byte[] { 42, 255, 0, 127 }.AsSlice());
+			var subspace = KeySubspace.FromKey(new byte[] { 42, 255, 0, 127 }.AsSlice());
 
 			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("*<FF><00><7F>"));
 			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
@@ -120,7 +120,7 @@ namespace FoundationDB.Client.Tests
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{
-			var subspace = KeySubspace.CreateDynamic(TuPack.EncodeKey("hello"));
+			var subspace = KeySubspace.FromKey(TuPack.EncodeKey("hello"));
 
 			Assert.That(subspace.GetPrefix().ToString(), Is.EqualTo("<02>hello<00>"));
 			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
@@ -152,7 +152,7 @@ namespace FoundationDB.Client.Tests
 		public void Test_Subspace_Partitioning_With_Binary_Suffix()
 		{
 			// start from a parent subspace
-			var parent = KeySubspace.CreateDynamic(Slice.Empty);
+			var parent = KeySubspace.Empty;
 			Assert.That(parent.GetPrefix().ToString(), Is.EqualTo("<empty>"));
 
 			// create a child subspace using a tuple
@@ -179,7 +179,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_DynamicKeySpace_API()
 		{
-			var location = KeySubspace.CreateDynamic(Slice.FromString("PREFIX"));
+			var location = KeySubspace.FromKey(Slice.FromString("PREFIX"));
 
 			Assert.That(location.Bytes(Slice.FromString("SUFFIX")).ToSlice().ToString(), Is.EqualTo("PREFIXSUFFIX"));
 

@@ -28,19 +28,11 @@ namespace FoundationDB.Client
 {
 
 	[DebuggerDisplay("Tenant={Metadata.Name}, Prefix={Metadata.Prefix}")]
-	public sealed class FdbTenantSubspace : DynamicKeySubspace
+	public sealed class FdbTenantSubspace : KeySubspace
 	{
 
 		internal FdbTenantSubspace(FdbTenantMetadata metadata, ISubspaceContext context)
 			: base(metadata.Prefix, context)
-		{
-			this.Metadata = metadata;
-			this.NamePrefix = "{" + metadata.Name.ToString() + "}:";
-		}
-
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		internal FdbTenantSubspace(FdbTenantMetadata metadata, IDynamicKeyEncoder encoder, ISubspaceContext context)
-			: base(metadata.Prefix, encoder, context)
 		{
 			this.Metadata = metadata;
 			this.NamePrefix = "{" + metadata.Name.ToString() + "}:";

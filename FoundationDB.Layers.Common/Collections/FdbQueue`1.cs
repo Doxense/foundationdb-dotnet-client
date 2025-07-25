@@ -66,12 +66,12 @@ namespace FoundationDB.Layers.Collections
 			Contract.NotNull(location);
 			Contract.NotNull(codec);
 
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.Codec = codec;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
 		public IFdbValueCodec<TValue, TEncoded> Codec { get; }
@@ -89,11 +89,11 @@ namespace FoundationDB.Layers.Collections
 		public sealed class State
 		{
 
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
 			public FdbQueue<TValue, TEncoded> Parent { get; }
 
-			internal State(IDynamicKeySubspace subspace, FdbQueue<TValue, TEncoded> parent)
+			internal State(IKeySubspace subspace, FdbQueue<TValue, TEncoded> parent)
 			{
 				Contract.Debug.Requires(subspace is not null && parent is not null);
 				this.Subspace = subspace;

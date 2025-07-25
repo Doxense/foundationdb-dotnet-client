@@ -48,13 +48,13 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="location">Subspace to be used for storing the blob data and metadata</param>
 		public FdbBlob(ISubspaceLocation location)
 		{
-			if (location == null) throw new ArgumentNullException(nameof(location));
+			Contract.NotNull(location);
 
-			this.Location = location.AsDynamic();
+			this.Location = location;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		private readonly struct Chunk
 		{
@@ -77,7 +77,8 @@ namespace FoundationDB.Layers.Blobs
 		/// <inheritdoc />
 		public async ValueTask<State> Resolve(IFdbReadOnlyTransaction tr)
 		{
-			return new(await this.Location.Resolve(tr).ConfigureAwait(false));
+			var subspace = await this.Location.Resolve(tr).ConfigureAwait(false);
+			return new(subspace);
 		}
 
 		/// <inheritdoc />
@@ -88,9 +89,9 @@ namespace FoundationDB.Layers.Blobs
 		public sealed class State
 		{
 
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
-			public State(IDynamicKeySubspace subspace)
+			public State(IKeySubspace subspace)
 			{
 				Contract.Debug.Requires(subspace != null);
 				this.Subspace = subspace;

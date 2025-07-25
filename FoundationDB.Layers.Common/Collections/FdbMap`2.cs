@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Collections
 			Contract.NotNull(keyCodec);
 			Contract.NotNull(valueCodec);
 
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.KeyCodec = keyCodec;
 			this.ValueCodec = valueCodec;
 		}
@@ -97,7 +97,7 @@ namespace FoundationDB.Layers.Collections
 		#region Public Properties...
 
 		/// <summary>Subspace used to encode the keys for the items</summary>
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		/// <summary>Codec used to serialize/deserializes the keys</summary>
 		public IFdbKeyCodec<TKey, TEncodedKey> KeyCodec { get; }
@@ -113,12 +113,12 @@ namespace FoundationDB.Layers.Collections
 		{
 
 			/// <summary>Resolved subspace of the map</summary>
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
 			/// <summary>Map that resolved this state</summary>
 			public FdbMap<TKey, TEncodedKey, TValue, TEncodedValue> Parent { get; }
 
-			internal State(IDynamicKeySubspace subspace, FdbMap<TKey, TEncodedKey, TValue, TEncodedValue> parent)
+			internal State(IKeySubspace subspace, FdbMap<TKey, TEncodedKey, TValue, TEncodedValue> parent)
 			{
 				Contract.Debug.Requires(subspace is not null && parent is not null);
 				this.Subspace = subspace;
@@ -509,7 +509,7 @@ namespace FoundationDB.Layers.Collections
 			return result!;
 		}
 
-		private KeyValuePair<TKey, TValue?> DecodeItem(IDynamicKeySubspace subspace, KeyValuePair<Slice, Slice> item)
+		private KeyValuePair<TKey, TValue?> DecodeItem(IKeySubspace subspace, KeyValuePair<Slice, Slice> item)
 		{
 			return new(
 				this.KeyCodec.DecodeKey(subspace.Decode<TEncodedKey>(item.Key)!),
@@ -517,7 +517,7 @@ namespace FoundationDB.Layers.Collections
 			);
 		}
 
-		private KeyValuePair<TKey, TValue?>[] DecodeItems(IDynamicKeySubspace subspace, KeyValuePair<Slice, Slice>[] batch)
+		private KeyValuePair<TKey, TValue?>[] DecodeItems(IKeySubspace subspace, KeyValuePair<Slice, Slice>[] batch)
 		{
 			Contract.Debug.Requires(batch is not null);
 

@@ -40,12 +40,12 @@ namespace FoundationDB.Layers.Allocators
 		{
 			Contract.NotNull(location);
 
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.Rng = rng ?? new();
 		}
 
 		/// <summary>Location of the allocator</summary>
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		private Random Rng { get; }
 
@@ -63,11 +63,11 @@ namespace FoundationDB.Layers.Allocators
 		public sealed class State
 		{
 			/// <summary>Location of the allocator</summary>
-			public IDynamicKeySubspace Subspace { get; }
+			public IKeySubspace Subspace { get; }
 
 			public FdbHighContentionAllocator Parent { get; }
 
-			public State(IDynamicKeySubspace subspace, FdbHighContentionAllocator parent)
+			public State(IKeySubspace subspace, FdbHighContentionAllocator parent)
 			{
 				this.Subspace = subspace;
 				this.Parent = parent;
@@ -85,7 +85,7 @@ namespace FoundationDB.Layers.Allocators
 
 		}
 
-		public static async Task<long> AllocateAsync(IFdbTransaction trans, IDynamicKeySubspace subspace, Random rng)
+		public static async Task<long> AllocateAsync(IFdbTransaction trans, IKeySubspace subspace, Random rng)
 		{
 			Contract.NotNull(trans);
 

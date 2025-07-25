@@ -47,7 +47,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		public string[] ClassNames { get; }
 
-		public IDynamicKeySubspace? Subspace { get; private set; }
+		public IKeySubspace? Subspace { get; private set; }
 
 		protected FdbTupleKey<string, string> ClassKey(string c)
 		{

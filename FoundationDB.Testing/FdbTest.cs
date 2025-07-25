@@ -238,6 +238,13 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[DebuggerStepThrough]
+		protected Task CleanLocation(IFdbDatabaseProvider db)
+		{
+			Assert.That(db.Root.IsPartition, Is.False);
+			return CleanLocation(db, db.Root);
+		}
+
+		[DebuggerStepThrough]
 		protected Task CleanLocation(IFdbDatabaseProvider db, FdbPath path)
 		{
 			return CleanLocation(db, db.Root[path]);
@@ -247,6 +254,13 @@ namespace FoundationDB.Client.Tests
 		protected async Task CleanLocation(IFdbDatabaseProvider db, ISubspaceLocation location)
 		{
 			await CleanLocation(await db.GetDatabase(this.Cancellation), location);
+		}
+
+		[DebuggerStepThrough]
+		protected Task CleanLocation(IFdbDatabase db)
+		{
+			Assert.That(db.Root.IsPartition, Is.False);
+			return CleanLocation(db, db.Root);
 		}
 
 		[DebuggerStepThrough]
@@ -316,6 +330,12 @@ namespace FoundationDB.Client.Tests
 
 			tr.StopLogging();
 			await DumpSubspace(tr, subspace).ConfigureAwait(false);
+		}
+
+		[DebuggerStepThrough]
+		protected Task DumpSubspace(IFdbDatabase db, bool recursive = true)
+		{
+			return DumpSubspace(db, db.Root, recursive);
 		}
 
 		[DebuggerStepThrough]

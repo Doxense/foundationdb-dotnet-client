@@ -27,6 +27,7 @@
 namespace FoundationDB.Client
 {
 	using System;
+	using System.ComponentModel;
 
 	/// <summary>Extension methods for working with <see cref="FdbKey{TKey,TEncoder}"/></summary>
 	[PublicAPI]
@@ -127,7 +128,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="TKey"></typeparam>
 		/// <param name="key"></param>
 		/// <returns></returns>
-		public static IDynamicKeySubspace ToSubspace<TKey>(this TKey key)
+		public static IKeySubspace ToSubspace<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
 		{
 			var parent = key.GetSubspace();
@@ -136,7 +137,7 @@ namespace FoundationDB.Client
 			var context = parent?.Context ?? SubspaceContext.Default;
 			context.EnsureIsValid();
 
-			return new DynamicKeySubspace(FdbKeyHelpers.ToSlice(in key), context);
+			return new KeySubspace(FdbKeyHelpers.ToSlice(in key), context);
 		}
 
 		/// <summary>Returns a new subspace with an additional prefix</summary>
@@ -148,6 +149,8 @@ namespace FoundationDB.Client
 		/// then the new subspace will have the prefix <c>(42, 123)</c> (<c>`\x15\x2A\x15\x7B`</c>)</para>
 		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
 		/// </remarks>
+		[Obsolete("Use subspace.Bytes(...).ToSubspace() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static IDynamicKeySubspace ToSubspace(this IKeySubspace subspace, ReadOnlySpan<byte> prefix)
 		{
 			Contract.NotNull(subspace);
@@ -164,6 +167,8 @@ namespace FoundationDB.Client
 		/// then the new subspace will have the prefix <c>(42, 123)</c> (<c>`\x15\x2A\x15\x7B`</c>)</para>
 		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
 		/// </remarks>
+		[Obsolete("Use subspace.Bytes(...).ToSubspace() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static IDynamicKeySubspace ToSubspace(this IKeySubspace subspace, Slice prefix)
 		{
 			Contract.NotNull(subspace);
@@ -184,6 +189,7 @@ namespace FoundationDB.Client
 		/// <para>This key can be used to create ranges that match all keys that could be located in this subspace</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Always)]
 		public static FdbSubspaceKey Key(this IKeySubspace subspace) => new(subspace);
 
 		/// <summary>Returns a key that represents the first possible child of this subspace</summary>
@@ -191,6 +197,7 @@ namespace FoundationDB.Client
 		/// <returns>Key that is equal to the prefix of the subspace with an extra <c>`\x00`</c> byte at the end</returns>
 		/// <remarks>
 		/// <para>This key can be used to create ranges that match all keys that could be located in this subspace, except the subspace prefix itself.</para>
+		/// <para>This is equivalent to <c>subspace.Key(null)</c>, since <c>null</c> is encoded as <c>`\x00`</c> as well.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbSuccessorKey<FdbSubspaceKey> First(this IKeySubspace subspace)
@@ -383,55 +390,55 @@ namespace FoundationDB.Client
 
 		#region IKeySubspace.Tuple(STuple<...>)
 
-		/// <summary>Returns a key that packs the given items inside a subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">Elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey Tuple(this IKeySubspace subspace, IVarTuple items) => new(subspace, items);
 
-		/// <summary>Returns a key that packs the elements of a tuple under this subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1> Tuple<T1>(this IKeySubspace subspace, STuple<T1> items) => new(subspace, in items);
 
-		/// <summary>Returns a key that packs the elements of a tuple under this subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2> Tuple<T1, T2>(this IKeySubspace subspace, in STuple<T1, T2> items) => new(subspace, in items);
 
-		/// <summary>Returns a key that packs the elements of a tuple under this subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3> Tuple<T1, T2, T3>(this IKeySubspace subspace, in STuple<T1, T2, T3> items) => new(subspace, in items);
 
-		/// <summary>Returns a key that packs the elements of a tuple under this subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4> Tuple<T1, T2, T3, T4>(this IKeySubspace subspace, in STuple<T1, T2, T3, T4> items) => new(subspace, in items);
 
-		/// <summary>Returns a key that packs the elements of a tuple under this subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5> Tuple<T1, T2, T3, T4, T5>(this IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5> items) => new(subspace, in items);
 
-		/// <summary>Returns a key that packs the elements of a tuple under this subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6> Tuple<T1, T2, T3, T4, T5, T6>(this IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6> items) => new(subspace, in items);
 
-		/// <summary>Returns a key that packs the elements of a tuple under this subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbTupleKey<T1, T2, T3, T4, T5, T6, T7> Tuple<T1, T2, T3, T4, T5, T6, T7>(this IKeySubspace subspace, in STuple<T1, T2, T3, T4, T5, T6, T7> items) => new(subspace, in items);
 
-		/// <summary>Returns a key that packs the elements of a tuple under this subspace</summary>
+		/// <summary>Returns a key that appends the packed items of the given tuple to subspace's prefix</summary>
 		/// <param name="subspace">Subspace that contains the key</param>
 		/// <param name="items">elements of the key</param>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -574,7 +581,7 @@ namespace FoundationDB.Client
 
 		#region IKeySubspace.Bytes(...)
 
-		/// <summary>Returns a key that adds a binary suffix to the subspace's prefix</summary>
+		/// <summary>Returns a key that appends a binary suffix to the subspace's prefix</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="suffix">Binary suffix</param>
 		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
@@ -585,7 +592,7 @@ namespace FoundationDB.Client
 			return new(subspace, Slice.FromBytes(suffix));
 		}
 
-		/// <summary>Returns a key that adds a binary suffix to the subspace's prefix</summary>
+		/// <summary>Returns a key that appends a binary suffix to the subspace's prefix</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="suffix">Binary suffix</param>
 		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
@@ -596,7 +603,7 @@ namespace FoundationDB.Client
 			return new(subspace, suffix);
 		}
 
-		/// <summary>Returns a key that adds a binary suffix to the subspace's prefix</summary>
+		/// <summary>Returns a key that appends a binary suffix to the subspace's prefix</summary>
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="suffix">Binary suffix</param>
 		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
@@ -607,36 +614,61 @@ namespace FoundationDB.Client
 			return new(subspace, suffix.AsSlice());
 		}
 
+		/// <summary>Returns a key that appends a string encoded as UTF-8 to the subspace's prefix</summary>
+		/// <param name="subspace">Parent subspace</param>
+		/// <param name="suffix">Binary suffix</param>
+		/// <returns>Key that will output the subspace prefix, followed by the binary suffix</returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey Bytes(this IKeySubspace subspace, string suffix)
+		{
+			Contract.NotNull(subspace);
+			Contract.NotNull(suffix);
+			return new(subspace, Slice.FromStringUtf8(suffix));
+		}
+
 		#endregion
 
 		#region IFdbKey.Bytes(...)
 
-		/// <summary>Returns a key that adds a binary suffix to the current key prefix</summary>
+		/// <summary>Returns a key that appends a binary suffix to the current key</summary>
 		/// <param name="key">Parent key</param>
 		/// <param name="suffix">Binary suffix</param>
 		/// <returns>Key that will append the binary suffix to the current key</returns>
+		/// <remarks>Please note that this will generate a different encoding than calling <see cref="Key{Slice}"/> with a slice (which uses the Tuple Encoding).</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbSuffixKey<TKey> Bytes<TKey>(this TKey key, ReadOnlySpan<byte> suffix)
 			where TKey : struct, IFdbKey
 			=> new(key, Slice.FromBytes(suffix));
 
-		/// <summary>Returns a key that adds a binary suffix to the current key prefix</summary>
+		/// <summary>Returns a key that appends a binary suffix to the current key</summary>
 		/// <param name="key">Parent key</param>
 		/// <param name="suffix">Binary suffix</param>
 		/// <returns>Key that will append the binary suffix to the current key</returns>
+		/// <remarks>Please note that this will generate a different encoding than calling <see cref="Key{Slice}"/> with a slice (which uses the Tuple Encoding).</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbSuffixKey<TKey> Bytes<TKey>(this TKey key, Slice suffix)
 			where TKey : struct, IFdbKey
 			=> new(key, suffix);
 
-		/// <summary>Returns a key that adds a binary suffix to the current key prefix</summary>
+		/// <summary>Returns a key that appends a binary suffix to the current key</summary>
 		/// <param name="key">Parent key</param>
 		/// <param name="suffix">Binary suffix</param>
 		/// <returns>Key that will append the binary suffix to the current key</returns>
+		/// <remarks>Please note that this will generate a different encoding than calling <see cref="Key{Slice}"/> with a slice (which uses the Tuple Encoding).</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbSuffixKey<TKey> Bytes<TKey>(this TKey key, byte[]? suffix)
 			where TKey : struct, IFdbKey
 			=> new(key, suffix.AsSlice());
+
+		/// <summary>Returns a key that appends a string encoded as UTF-8 to the current key</summary>
+		/// <param name="key">Parent key</param>
+		/// <param name="suffix">Suffix string, encoded as UTF-8 bytes</param>
+		/// <returns>Key that will append the binary suffix to the current key</returns>
+		/// <remarks>Please note that this will generate a different encoding than calling <see cref="Key{string}"/> with a string (which uses the Tuple Encoding).</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbSuffixKey<TKey> Bytes<TKey>(this TKey key, string suffix)
+			where TKey : struct, IFdbKey
+			=> new(key, Slice.FromStringUtf8(suffix));
 
 		#endregion
 

@@ -40,8 +40,8 @@ namespace FoundationDB.Layers.Interning.Tests
 				var location = db.Root;
 				await CleanLocation(db, location);
 
-				var stringSpace = location.ByKey("Strings");
-				var dataSpace = location.ByKey("Data").AsTyped<string>();
+				var stringSpace = location.WithKeyPrefix("Strings");
+				var dataSpace = location.WithKeyPrefix("Data").AsTyped<string>();
 
 				var stringTable = new FdbStringIntern(stringSpace);
 

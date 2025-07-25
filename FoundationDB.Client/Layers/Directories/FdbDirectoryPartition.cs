@@ -42,17 +42,9 @@ namespace FoundationDB.Client
 			this.Parent = parent;
 		}
 
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		internal FdbDirectoryPartition(FdbDirectoryLayer.DirectoryDescriptor descriptor, FdbDirectoryLayer.PartitionDescriptor parent, IDynamicKeyEncoder keyEncoder, ISubspaceContext? context, bool cached)
-			: base(descriptor, keyEncoder, context, cached)
-		{
-			Contract.NotNull(parent);
-			this.Parent = parent;
-		}
-
 		internal static FdbDirectoryLayer.DirectoryDescriptor MakePartition(FdbDirectoryLayer.DirectoryDescriptor descriptor)
 		{
-			var partition = new FdbDirectoryLayer.PartitionDescriptor(descriptor.Path, KeySubspace.CreateDynamic(descriptor.Prefix), descriptor.Partition);
+			var partition = new FdbDirectoryLayer.PartitionDescriptor(descriptor.Path, KeySubspace.FromKey(descriptor.Prefix), descriptor.Partition);
 			return new(descriptor.DirectoryLayer, descriptor.Path, descriptor.Prefix, descriptor.Layer, partition, descriptor.ValidationChain);
 		}
 
@@ -95,9 +87,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(context);
 
 			if (context == this.Context) return this;
-#pragma warning disable CS0618 // Type or member is obsolete
-			return new FdbDirectoryPartition(this.Descriptor, this.Parent, this.KeyEncoder, context, true);
-#pragma warning restore CS0618 // Type or member is obsolete
+			return new FdbDirectoryPartition(this.Descriptor, this.Parent, context, true);
 		}
 
 		public override bool IsPartition => true;

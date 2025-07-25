@@ -55,7 +55,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public BenchMode Mode { get; }
 
-		public IDynamicKeySubspace? Subspace { get; private set; }
+		public IKeySubspace? Subspace { get; private set; }
 
 		public RobustHistogram Histo { get; }
 

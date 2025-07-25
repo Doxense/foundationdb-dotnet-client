@@ -43,6 +43,7 @@ namespace SnowBank.Data.Tuples.Binary
 		, IEquatable<SlicedTuple>, IComparable<SlicedTuple>, IComparable
 		, ITupleSpanPackable, ITupleFormattable, ISliceSerializable
 	{
+		//REVIEW: consider renaming the type to DecodedTuple or UnpackedTuple or RawTuple ?
 
 		/// <summary>Buffer containing the original slices.</summary>
 		private readonly ReadOnlyMemory<Slice> m_slices;

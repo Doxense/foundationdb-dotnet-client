@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
 
 	/// <summary>Represents a <see cref="IKeySubspace">Key Subspace</see> which can encode and decode keys of arbitrary size and types.</summary>
 	/// <remarks>This is useful when dealing with subspaces that store keys of different types and shapes.</remarks>
@@ -39,6 +40,7 @@ namespace FoundationDB.Client
 	/// </code>
 	/// </example>
 	[PublicAPI]
+	[Obsolete("There is no need for this type anymore. Replace with IKeySubspace which now has the same feature set.")]
 	public interface IDynamicKeySubspace : IKeySubspace
 	{
 
@@ -108,7 +110,10 @@ namespace FoundationDB.Client
 	/// </code>
 	/// </example>
 	[PublicAPI]
-	public class DynamicKeySubspace : KeySubspace, IDynamicKeySubspace, IBinaryKeySubspace
+	[Obsolete("Use KeySubspace directly")]
+	public class DynamicKeySubspace : KeySubspace
+		, IDynamicKeySubspace
+		, IBinaryKeySubspace
 	{
 
 		/// <summary>Encoder for the keys of this subspace</summary>
@@ -121,10 +126,8 @@ namespace FoundationDB.Client
 		public DynamicKeySubspace(Slice prefix, ISubspaceContext context)
 			: base(prefix, context)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder = TuPack.Encoding.GetDynamicKeyEncoder();
 			this.Partition = new DynamicPartition(this);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 
@@ -160,9 +163,7 @@ namespace FoundationDB.Client
 			Contract.NotNull(tuple);
 
 			var sw = this.OpenWriter();
-#pragma warning disable CS0618 // Type or member is obsolete
 			this.KeyEncoder.PackKey(ref sw, tuple);
-#pragma warning restore CS0618 // Type or member is obsolete
 			return sw.ToSlice();
 		}
 
@@ -179,12 +180,10 @@ namespace FoundationDB.Client
 				goto too_small;
 			}
 
-#pragma warning disable CS0618 // Type or member is obsolete
 			if (!this.KeyEncoder.TryPackKey(destination[prefixLen..], out int tupleLen, tuple))
 			{
 				goto too_small;
 			}
-#pragma warning restore CS0618 // Type or member is obsolete
 
 			bytesWritten = prefixLen + tupleLen;
 			return true;
@@ -200,9 +199,7 @@ namespace FoundationDB.Client
 		/// <returns>Original tuple</returns>
 		public IVarTuple Unpack(Slice packedKey)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.UnpackKey(ExtractKey(packedKey));
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
@@ -211,9 +208,7 @@ namespace FoundationDB.Client
 		/// <returns><see langword="true"/> if <paramref name="packedKey"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
 		public bool TryUnpack(Slice packedKey, [NotNullWhen(true)] out IVarTuple? tuple)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.TryUnpackKey(ExtractKey(packedKey), out tuple);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 #if NET9_0_OR_GREATER
@@ -223,9 +218,7 @@ namespace FoundationDB.Client
 		/// <returns>Original tuple</returns>
 		public SpanTuple Unpack(ReadOnlySpan<byte> packedKey)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.UnpackKey(ExtractKey(packedKey));
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
@@ -234,9 +227,7 @@ namespace FoundationDB.Client
 		/// <returns><see langword="true"/> if <paramref name="packedKey"/> was a legal binary representation; otherwise, <see langword="false"/>.</returns>
 		public bool TryUnpack(ReadOnlySpan<byte> packedKey, out SpanTuple tuple)
 		{
-#pragma warning disable CS0618 // Type or member is obsolete
 			return this.KeyEncoder.TryUnpackKey(ExtractKey(packedKey), out tuple);
-#pragma warning restore CS0618 // Type or member is obsolete
 		}
 
 #endif
@@ -246,12 +237,10 @@ namespace FoundationDB.Client
 		{
 			if (packedKey.IsNull) return "<null>";
 			var key = ExtractKey(packedKey, boundCheck: true);
-#pragma warning disable CS0618 // Type or member is obsolete
 			if (this.KeyEncoder.TryUnpackKey(key, out var tuple))
 			{
 				return tuple.ToString() ?? string.Empty;
 			}
-#pragma warning restore CS0618 // Type or member is obsolete
 			return key.PrettyPrint();
 		}
 
@@ -280,9 +269,12 @@ namespace FoundationDB.Client
 	public static class DynamicKeysExtensions
 	{
 
+		#region Packing...
+
 		/// <summary>Encode a batch of tuples</summary>
 		[Pure]
-		[Obsolete("Use IFdbKey instead")]
+		[Obsolete("Use one of the GetValuesAsync overloads instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, ReadOnlySpan<TTuple> items)
 			where TTuple : IVarTuple
 		{
@@ -296,7 +288,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples</summary>
 		[Pure]
-		[Obsolete("Use IFdbKey instead")]
+		[Obsolete("Use one of the GetValuesAsync overloads instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, TTuple[] items)
 			where TTuple : IVarTuple
 		{
@@ -310,7 +303,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples</summary>
 		[Pure]
-		[Obsolete("Use IFdbKey instead")]
+		[Obsolete("Use one of the GetValuesAsync overloads instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] PackMany<TTuple>(this IDynamicKeySubspace self, IEnumerable<TTuple> items)
 			where TTuple : IVarTuple
 		{
@@ -324,7 +318,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples extracted from each element</summary>
 		[Pure]
-		[Obsolete("Use IFdbKey instead")]
+		[Obsolete("Use one of the GetValuesAsync overloads instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, ReadOnlySpan<TSource> items, Func<TSource, TTuple> selector)
 			where TTuple : IVarTuple
 		{
@@ -338,7 +333,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples extracted from each element</summary>
 		[Pure]
-		[Obsolete("Use IFdbKey instead")]
+		[Obsolete("Use one of the GetValuesAsync overloads instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, TSource[] items, Func<TSource, TTuple> selector)
 			where TTuple : IVarTuple
 		{
@@ -352,7 +348,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a batch of tuples extracted from each element</summary>
 		[Pure]
-		[Obsolete("Use IFdbKey instead")]
+		[Obsolete("Use one of the GetValuesAsync overloads instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] PackMany<TSource, TTuple>(this IDynamicKeySubspace self, IEnumerable<TSource> items, Func<TSource, TTuple> selector)
 			where TTuple : IVarTuple
 		{
@@ -364,168 +361,187 @@ namespace FoundationDB.Client
 			);
 		}
 
-#pragma warning disable CS0618 // Type or member is obsolete
-
 		/// <summary>Packs a tuple which is composed of a single element</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use subspace.Tuple(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Pack<T1>(this IDynamicKeySubspace self, ValueTuple<T1> items)
 		{
-			return self.Encode<T1>(items.Item1);
+			return self.Key(items.Item1).ToSlice();
 		}
 
 		/// <summary>Packs a tuple which is composed of 2 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use subspace.Tuple(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Pack<T1, T2>(this IDynamicKeySubspace self, (T1, T2) items)
 		{
-			return self.Encode<T1, T2>(items.Item1, items.Item2);
+			return self.Key(items.Item1, items.Item2).ToSlice();
 		}
 
 		/// <summary>Packs a tuple which is composed of 3 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use subspace.Tuple(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Pack<T1, T2, T3>(this IDynamicKeySubspace self, (T1, T2, T3) items)
 		{
-			return self.Encode<T1, T2, T3>(items.Item1, items.Item2, items.Item3);
+			return self.Key(items.Item1, items.Item2, items.Item3).ToSlice();
 		}
 
 		/// <summary>Packs a tuple which is composed of 4 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use subspace.Tuple(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Pack<T1, T2, T3, T4>(this IDynamicKeySubspace self, (T1, T2, T3, T4) items)
 		{
-			return self.Encode<T1, T2, T3, T4>(items.Item1, items.Item2, items.Item3, items.Item4);
+			return self.Key(items.Item1, items.Item2, items.Item3, items.Item4).ToSlice();
 		}
 
 		/// <summary>Packs a tuple which is composed of 5 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use subspace.Tuple(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Pack<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) items)
 		{
-			return self.Encode<T1, T2, T3, T4, T5>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5);
+			return self.Key(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5).ToSlice();
 		}
 
 		/// <summary>Packs a tuple which is composed of 6 elements</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[Obsolete("Use subspace.Tuple(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Pack<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) items)
 		{
-			return self.Encode<T1, T2, T3, T4, T5, T6>(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6);
+			return self.Key(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6).ToSlice();
 		}
 
-		/// <summary>Decodes a binary slice into a tuple of arbitrary length</summary>
-		/// <returns>Tuple of any size (0 to N)</returns>
-		public static IVarTuple Unpack(this IDynamicKeySubspace self, Slice packedKey)
-		{
-			return self.KeyEncoder.UnpackKey(self.ExtractKey(packedKey));
-		}
-
-#pragma warning restore CS0618 // Type or member is obsolete
+		#endregion
 
 		#region ToRange()...
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange(this IDynamicKeySubspace self, IVarTuple tuple)
 		{
 			return self.KeyEncoder.ToRange(self.GetPrefix(), tuple);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1>(this IDynamicKeySubspace self, STuple<T1> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2>(this IDynamicKeySubspace self, STuple<T1, T2> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3>(this IDynamicKeySubspace self, STuple<T1, T2, T3> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, STuple<T1, T2, T3, T4, T5, T6> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1>(this IDynamicKeySubspace self, ValueTuple<T1> tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2>(this IDynamicKeySubspace self, (T1, T2) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3>(this IDynamicKeySubspace self, (T1, T2, T3) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, (T1, T2, T3, T4) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7, T8) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8);
 		}
 
 		/// <summary>Returns a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, (T1, T2, T3, T4, T5, T6, T7, T8, T9) tuple)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), tuple.Item1, tuple.Item2, tuple.Item3, tuple.Item4, tuple.Item5, tuple.Item6, tuple.Item7, tuple.Item8, tuple.Item9);
@@ -536,63 +552,72 @@ namespace FoundationDB.Client
 		#region ToKeyRange()...
 
 		/// <summary>Returns a key range using a single element as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1>(this IDynamicKeySubspace self, T1 item1)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1);
 		}
 
 		/// <summary>Returns a key range using 2 elements as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2>(this IDynamicKeySubspace self, T1 item1, T2 item2)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2);
 		}
 
 		/// <summary>Returns a key range using 3 elements as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2, T3>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3);
 		}
 
 		/// <summary>Returns a key range using 4 elements as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4);
 		}
 
 		/// <summary>Returns a key range using 5 elements as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Returns a key range using 6 elements as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6);
 		}
 
 		/// <summary>Returns a key range using 7 elements as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7);
 		}
 
 		/// <summary>Returns a key range using 8 elements as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 		/// <summary>Returns a key range using 8 elements as a prefix</summary>
-		[Obsolete("Use IFdbKeyRange instead")]
+		[Obsolete("Use subspace.Key(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
 		{
 			return self.KeyEncoder.ToKeyRange(self.GetPrefix(), item1, item2, item3, item4, item5, item6, item7, item8, item9);
@@ -604,7 +629,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of a single element</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1>(this IDynamicKeySubspace self, T1? item1)
 		{
 			var sw = self.OpenWriter();
@@ -614,7 +640,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a key which is composed of 2 elements</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1, T2>(this IDynamicKeySubspace self, T1? item1, T2? item2)
 		{
 			var sw = self.OpenWriter();
@@ -624,7 +651,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a key which is composed of 3 elements</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1, T2, T3>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3)
 		{
 			var sw = self.OpenWriter();
@@ -634,7 +662,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a key which is composed of 4 elements</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1, T2, T3, T4>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4)
 		{
 			var sw = self.OpenWriter();
@@ -644,7 +673,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 5 elements</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
 		{
 			var sw = self.OpenWriter();
@@ -654,7 +684,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 6 elements</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
 		{
 			var sw = self.OpenWriter();
@@ -664,7 +695,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 7 elements</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7)
 		{
 			var sw = self.OpenWriter();
@@ -674,7 +706,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 8 elements</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8)
 		{
 			var sw = self.OpenWriter();
@@ -684,7 +717,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encode a key which is composed of 8 elements</summary>
 		[Pure]
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use subspace.Key(...).ToSlice() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8, T9>(this IDynamicKeySubspace self, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6, T7? item7, T8? item8, T9? item9)
 		{
 			var sw = self.OpenWriter();
@@ -705,23 +739,24 @@ namespace FoundationDB.Client
 		/// <example>This will read any new event received on a tenant since the last call:
 		/// <code>
 		/// IDynamicKeySubspace subspace = ...; // base subspace of an event log store
-		/// VersionStamp cursor = ...;   // versionstamp of the last event that was received in a previous call
+		/// VersionStamp cursor = ...;          // versionstamp of the last event that was received in a previous call
 		/// 
 		/// var (begin, end) = KeySelectorPair.Tail(
-		///		prefix:  subspace.EncodeKey("Events", tenantId),
-		///		cursor:  subspace.EncodeCursor(cursor),
-		///		orEqual: false
+		///     prefix:  subspace.EncodeKey("Events", tenantId),
+		///     cursor:  subspace.EncodeCursor(cursor),
+		///     orEqual: false
 		/// );
 		/// await foreach(var (k, v) in tr.GetRange(begin, end))
 		/// {
-		///		// process the new event
+		///     // process the new event
 		///     // var stamp = subspace.DecodeLast&lt;VersionStamp>();
 		///     // ...
-		///     // advance the cursor
-		///		cursor = stamp;
+		///     // advance the cursor:
+		///     cursor = stamp;
 		/// }
 		/// </code></example>
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use IFdbKey instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice EncodeCursor<T1>(this IDynamicKeySubspace self, T1? cursor)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
@@ -743,24 +778,25 @@ namespace FoundationDB.Client
 		/// </remarks>
 		/// <example>This will read any new event received on a tenant since the last call:
 		/// <code>
-		/// IDynamicKeySubspace subspace = ...; // base subspace of an event log store
-		/// (VersionStamp Stamp, long Id) cursor = ...;   // versionstamp of the last event that was received in a previous call
+		/// IDynamicKeySubspace subspace = ...;         // base subspace of an event log store
+		/// (VersionStamp Stamp, long Id) cursor = ...; // versionstamp of the last event that was received in a previous call
 		/// 
 		/// var (begin, end) = KeySelectorPair.Tail(
-		///		prefix:  subspace.EncodeKey("Events", tenantId),
-		///		cursor:  subspace.EncodeCursor(last.Stamp, last.Id),
-		///		orEqual: false
+		///     prefix:  subspace.EncodeKey("Events", tenantId),
+		///     cursor:  subspace.EncodeCursor(last.Stamp, last.Id),
+		///     orEqual: false
 		/// );
 		/// await foreach(var (k, v) in tr.GetRange(begin, end))
 		/// {
-		///		// process the new event
+		///     // process the new event
 		///     // var (stamp, id) = subspace.DecodeLast&lt;VersionStamp, long>();
 		///     // ...
 		///     // advance the cursor
 		///     last = (stamp, id);
 		/// }
 		/// </code></example>
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use IFdbKey instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice EncodeCursor<T1, T2>(this IDynamicKeySubspace self, T1? cursor1, T2? cursor2)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
@@ -802,7 +838,8 @@ namespace FoundationDB.Client
 		///     last = (stamp, id, chunk);
 		/// }
 		/// </code></example>
-		[Obsolete("Use GetKey() instead")]
+		[Obsolete("Use IFdbKey instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice EncodeCursor<T1, T2, T3>(this IDynamicKeySubspace self, T1? cursor1, T2? cursor2, T3? cursor3)
 		{
 			var sw = new SliceWriter(); //TODO: BufferPool ?
@@ -816,193 +853,203 @@ namespace FoundationDB.Client
 
 		#region Decode...
 
-#pragma warning disable CS0618 // Type or member is obsolete
+		/// <summary>Decodes a binary slice into a tuple of arbitrary length</summary>
+		/// <returns>Tuple of any size (0 to N)</returns>
+		public static IVarTuple Unpack(this IKeySubspace self, Slice packedKey) //REVIEW: consider changing return type to SlicedTuple ?
+		{
+			return TuPack.Unpack(self.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decodes a binary slice into a tuple of arbitrary length</summary>
+		/// <returns>Tuple of any size (0 to N)</returns>
+		public static SpanTuple Unpack(this IKeySubspace self, ReadOnlySpan<byte> packedKey) //REVIEW: consider changing return type to SlicedTuple ?
+		{
+			return SpanTuple.Unpack(self.ExtractKey(packedKey));
+		}
 
 		/// <summary>Decode a key of this subspace, composed of a single element</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? Decode<T1>(this IDynamicKeySubspace self, Slice packedKey)
-			=> self.KeyEncoder.DecodeKey<T1>(self.ExtractKey(packedKey));
+		public static T1? Decode<T1>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of a single element</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? Decode<T1>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
-			=> self.KeyEncoder.DecodeKey<T1>(self.ExtractKey(packedKey));
+		public static T1? Decode<T1>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?> Decode<T1, T2>(this IDynamicKeySubspace self, Slice packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?> Decode<T1, T2>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?> Decode<T1, T2>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?> Decode<T1, T2>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IDynamicKeySubspace self, Slice packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IDynamicKeySubspace self, Slice packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, Slice packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, Slice packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, Slice packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?> Decode<T1, T2, T3, T4, T5, T6, T7, T8>(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey)
-			=> self.KeyEncoder.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(self.ExtractKey(packedKey));
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?> Decode<T1, T2, T3, T4, T5, T6, T7, T8>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(self.ExtractKey(packedKey));
 
 		/// <summary>Decode a key of this subspace, and return the element at the given index</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static T1? DecodeAt<T1>(this IDynamicKeySubspace self, Slice packedKey, int index)
-			=> self.KeyEncoder.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
+		public static T1? DecodeAt<T1>(this IKeySubspace self, Slice packedKey, int index)
+			=> TuPack.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
 
 		/// <summary>Decode a key of this subspace, and return the element at the given index</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeAt<T1>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int index)
-			=> self.KeyEncoder.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int index)
+			=> TuPack.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeFirst<T1>
-			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyFirst<T1>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeFirst<T1>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyFirst<T1>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first two elements without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only two elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeFirst<T1, T2>
-			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyFirst<T1, T2>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1, T2>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first two elements without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only two elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeFirst<T1, T2>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyFirst<T1, T2>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1, T2>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first three elements without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only three elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>
-			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyFirst<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the first three elements without decoding the rest the key.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only three elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyFirst<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeLast<T1>
-			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyLast<T1>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static T1? DecodeLast<T1>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyLast<T1>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last two elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeLast<T1, T2>
-			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyLast<T1, T2>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last two elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?) DecodeLast<T1, T2>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyLast<T1, T2>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>
-			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>
-			(this IDynamicKeySubspace self, Slice packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
 
 		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
 		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>
-			(this IDynamicKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
-			=> self.KeyEncoder.DecodeKeyLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
-
-#pragma warning restore CS0618 // Type or member is obsolete
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
 
 		#endregion
 
@@ -1011,6 +1058,7 @@ namespace FoundationDB.Client
 	/// <summary>Partition helper for a dynamic TypeSystem</summary>
 	[DebuggerDisplay("{Subspace.ToString(),nq}")]
 	[PublicAPI]
+	[Obsolete("Do not use this type anymore")]
 	public sealed class DynamicPartition
 	{
 
@@ -1022,8 +1070,6 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(subspace != null);
 			this.Subspace = subspace;
 		}
-
-#pragma warning disable CS0618 // Type or member is obsolete
 
 		/// <summary>Partitions this subspace into a child subspace</summary>
 		public IDynamicKeySubspace this[Slice binarySuffix]
@@ -1111,8 +1157,6 @@ namespace FoundationDB.Client
 		{
 			return new DynamicKeySubspace(this.Subspace.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), this.Subspace.KeyEncoder, this.Subspace.Context);
 		}
-
-#pragma warning restore CS0618 // Type or member is obsolete
 
 	}
 

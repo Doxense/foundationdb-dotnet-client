@@ -24,48 +24,51 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-namespace FoundationDB.Client.Tests;
-
-[DebuggerDisplay("Path={Path}, Key={Key}")]
-public sealed class FakeSubspace : DynamicKeySubspace
+namespace FoundationDB.Client.Tests
 {
 
-	public FakeSubspace(FdbPath path, Slice prefix, ISubspaceContext? context = null)
-		: base(prefix, context ?? SubspaceContext.Default)
+	[DebuggerDisplay("Path={Path}, Key={Key}")]
+	public sealed class FakeSubspace : KeySubspace
 	{
-		this.Path = path;
-	}
 
-	public FdbPath Path { get; }
-
-	public Slice Prefix { get; }
-
-	/// <summary>Returns a user-friendly description of this directory</summary>
-	public override string ToString(string? format, IFormatProvider? provider = null)
-	{
-		switch (format ?? "")
+		public FakeSubspace(FdbPath path, Slice prefix, ISubspaceContext? context = null)
+			: base(prefix, context ?? SubspaceContext.Default)
 		{
-			case "" or "D" or "d" or "P" or "p":
+			this.Path = path;
+		}
+
+		public FdbPath Path { get; }
+
+		public Slice Prefix { get; }
+
+		/// <summary>Returns a user-friendly description of this directory</summary>
+		public override string ToString(string? format, IFormatProvider? provider = null)
+		{
+			switch (format ?? "")
 			{
-				return this.Path.ToString();
-			}
-			case "K" or "k":
-			{
-				return FdbKey.Dump(this.GetPrefix());
-			}
-			case "X" or "x":
-			{
-				return this.GetPrefix().ToString(format);
-			}
-			case "G" or "g":
-			{
-				return $"FakeSubspace(path={this.Path}, key={FdbKey.Dump(this.GetPrefix())})";
-			}
-			default:
-			{
-				throw new FormatException("Unsupported format");
+				case "" or "D" or "d" or "P" or "p":
+				{
+					return this.Path.ToString();
+				}
+				case "K" or "k":
+				{
+					return FdbKey.Dump(this.GetPrefix());
+				}
+				case "X" or "x":
+				{
+					return this.GetPrefix().ToString(format);
+				}
+				case "G" or "g":
+				{
+					return $"FakeSubspace(path={this.Path}, key={FdbKey.Dump(this.GetPrefix())})";
+				}
+				default:
+				{
+					throw new FormatException("Unsupported format");
+				}
 			}
 		}
+
 	}
 
 }

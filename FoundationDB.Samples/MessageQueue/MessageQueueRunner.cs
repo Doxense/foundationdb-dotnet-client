@@ -43,7 +43,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		public MessageQueueRunner(ISubspaceLocation location, string id, AgentRole role, TimeSpan delayMin, TimeSpan delayMax)
 		{
-			this.Location = location.AsDynamic();
+			this.Location = location;
 			this.Id = id;
 			this.Role = role;
 			this.DelayMin = delayMin;
@@ -73,13 +73,11 @@ namespace FoundationDB.Samples.Tutorials
 
 		public TimeSpan DelayMax { get; }
 
-		public KeySubspace? Subspace { get; private set; }
-
-		public FdbWorkerPool? WorkerPool { get; private set; }
+		public FdbWorkerPool? WorkerPool { get; }
 
 		public RobustTimeLine TimeLine { get; }
 
-		public DynamicKeySubspaceLocation Location { get; }
+		public ISubspaceLocation Location { get; }
 
 		/// <summary>
 		/// Setup the initial state of the database
