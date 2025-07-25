@@ -26,12 +26,14 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
+
 	/// <summary>Represents a key subspace than can encoded pairs of statically typed values to and from their binary representation</summary>
 	/// <typeparam name="T1">Type of the first element of the key</typeparam>
 	/// <typeparam name="T2">Type of the second element of the key</typeparam>
 	/// <typeparam name="T3">Type of the third element of the key</typeparam>
 	[PublicAPI]
-	[Obsolete("Use IDynamicKeySubspace instead")]
+	[Obsolete("Use IKeySubspace instead", error: true)]
 	public interface ITypedKeySubspace<T1, T2, T3> : IKeySubspace
 	{
 
@@ -74,7 +76,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="T2">Type of the second element of the key</typeparam>
 	/// <typeparam name="T3">Type of the third element of the key</typeparam>
 	[PublicAPI]
-	[Obsolete("Use IDynamicKeySubspace instead")]
+	[Obsolete("Use IKeySubspace instead", error: true)]
 	public sealed class TypedKeySubspace<T1, T2, T3> : KeySubspace, ITypedKeySubspace<T1, T2, T3>
 	{
 
@@ -86,7 +88,7 @@ namespace FoundationDB.Client
 			this.KeyEncoder = TuPack.Encoding.GetKeyEncoder<T1, T2, T3>();
 		}
 
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		internal TypedKeySubspace(Slice prefix, ICompositeKeyEncoder<T1, T2, T3> encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
@@ -173,7 +175,8 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, STuple<T1, T2, T3> tuple)
 		{
 			return KeyRange.PrefixedBy(self.Encode(tuple.Item1, tuple.Item2, tuple.Item3));
@@ -182,7 +185,8 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, tuple.Item2, tuple.Item3)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, (T1, T2, T3) tuple)
 		{
 			return KeyRange.PrefixedBy(self.Encode(tuple.Item1, tuple.Item2, tuple.Item3));
@@ -190,7 +194,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		[Obsolete]
+		[Obsolete("Use subspace.Key(...).ToRange() instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodeRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, T1 item1, T2 item2, T3 item3)
 		{
 			return KeyRange.PrefixedBy(self.Encode(item1, item2, item3));
@@ -198,7 +203,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackPartialRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, STuple<T1, T2> tuple)
 		{
 			return KeyRange.PrefixedBy(self.EncodePartial(tuple.Item1, tuple.Item2));
@@ -206,7 +212,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange PackPartialRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, (T1, T2) tuple)
 		{
 			return KeyRange.PrefixedBy(self.EncodePartial(tuple.Item1, tuple.Item2));
@@ -214,7 +221,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		[Obsolete]
+		[Obsolete("Use subspace.Key(...).ToRange() instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodePartialRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, T1 item1, T2 item2)
 		{
 			return KeyRange.PrefixedBy(self.EncodePartial(item1, item2));
@@ -222,7 +230,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified triple of values</summary>
 		/// <returns>Range that encompass all keys that start with (item1, item2, item3)</returns>
-		[Obsolete]
+		[Obsolete("Use subspace.Key(...).ToRange() instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange EncodePartialRange<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, T1 item1)
 		{
 			return KeyRange.PrefixedBy(self.EncodePartial(item1));
@@ -233,14 +242,16 @@ namespace FoundationDB.Client
 		#region Pack()
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...) instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Pack<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, (T1, T2, T3) tuple)
 		{
 			return self.Encode(tuple.Item1, tuple.Item2, tuple.Item3);
 		}
 
 		[Pure]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...) instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Pack<T1, T2, T3, TTuple>(this ITypedKeySubspace<T1, T2, T3> self, TTuple tuple)
 			where TTuple : IVarTuple
 		{
@@ -250,7 +261,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes an array of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...) instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] Pack<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, params (T1, T2, T3)[] items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
@@ -258,7 +270,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a span of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...) instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice[] Pack<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, params ReadOnlySpan<(T1, T2, T3)> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
@@ -266,7 +279,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a sequence of items into a sequence of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...) instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static IEnumerable<Slice> Pack<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, IEnumerable<(T1, T2, T3)> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
@@ -276,41 +290,47 @@ namespace FoundationDB.Client
 
 		#region Decode()
 
-		[Obsolete]
+		[Obsolete("Use IKeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static void Decode<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, out T1? item1, out T2? item2, out T3? item3)
 		{
 			(item1, item2, item3) = self.Decode(packedKey);
 		}
 
-		[Obsolete]
+		[Obsolete("Use IKeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static void DecodePartial<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, out T1? item1, out T2? item2)
 		{
 			(item1, item2, _) = self.DecodePartial(packedKey, 2);
 		}
 
 		/// <summary>Decode only the first element of the key</summary>
-		[Obsolete]
+		[Obsolete("Use IKeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static T1? DecodeFirst<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey)
 		{
 			return self.DecodePartial(packedKey, 1).Item1;
 		}
 
 		/// <summary>Decode only the first element of the key</summary>
-		[Obsolete]
+		[Obsolete("Use IKeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static void DecodeFirst<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, out T1? first)
 		{
 			(first, _, _) = self.DecodePartial(packedKey, 1);
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
-		[Obsolete]
+		[Obsolete("Use IKeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static T3? DecodeLast<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey)
 		{
 			return self.Decode(packedKey).Item3;
 		}
 
 		/// <summary>Decode only the last element of the key</summary>
-		[Obsolete]
+		[Obsolete("Use IKeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static void DecodeLast<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> self, Slice packedKey, out T3? last)
 		{
 			last = self.Decode(packedKey).Item3;

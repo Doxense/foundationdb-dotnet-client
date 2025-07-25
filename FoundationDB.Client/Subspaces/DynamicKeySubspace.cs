@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 	/// </code>
 	/// </example>
 	[PublicAPI]
-	[Obsolete("There is no need for this type anymore. Replace with IKeySubspace which now has the same feature set.")]
+	[Obsolete("There is no need for this type anymore. Replace with IKeySubspace which now has the same feature set.", error: true)]
 	public interface IDynamicKeySubspace : IKeySubspace
 	{
 
@@ -110,43 +110,39 @@ namespace FoundationDB.Client
 	/// </code>
 	/// </example>
 	[PublicAPI]
-	[Obsolete("Use KeySubspace directly")]
+	[Obsolete("There is no need for this type anymore. Replace with KeySubspace which now has the same feature set.", error: true)]
 	public class DynamicKeySubspace : KeySubspace
 		, IDynamicKeySubspace
 		, IBinaryKeySubspace
 	{
-
-		/// <summary>Encoder for the keys of this subspace</summary>
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public IDynamicKeyEncoder KeyEncoder { get; }
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="prefix">Prefix of the new subspace</param>
 		/// <param name="context">Context that controls the lifetime of this subspace</param>
 		public DynamicKeySubspace(Slice prefix, ISubspaceContext context)
 			: base(prefix, context)
-		{
-			this.KeyEncoder = TuPack.Encoding.GetDynamicKeyEncoder();
-			this.Partition = new DynamicPartition(this);
-		}
+		{ }
 
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="prefix">Prefix of the new subspace</param>
 		/// <param name="encoder">Encoder that will be used by this subspace</param>
 		/// <param name="context">Context that controls the lifetime of this subspace</param>
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		public DynamicKeySubspace(Slice prefix, IDynamicKeyEncoder encoder, ISubspaceContext context)
 			: base(prefix, context)
 		{
-			Contract.Debug.Requires(encoder != null);
-			this.KeyEncoder = encoder;
-			this.Partition = new DynamicPartition(this);
+			throw new NotSupportedException();
 		}
 
+		/// <summary>Encoder for the keys of this subspace</summary>
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
+		public IDynamicKeyEncoder KeyEncoder => throw new NotSupportedException();
+
 		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
-		[Obsolete("Combine GetKey() with Append() or GetRange() to achieve the same result")]
-		public DynamicPartition Partition { get; }
+		[Obsolete("Combine GetKey() with Append() or GetRange() to achieve the same result", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public DynamicPartition Partition => throw new NotSupportedException();
 
 		/// <inheritdoc />
 		public Slice this[IVarTuple item]
@@ -161,7 +157,6 @@ namespace FoundationDB.Client
 			where TTuple : IVarTuple
 		{
 			Contract.NotNull(tuple);
-
 			var sw = this.OpenWriter();
 			this.KeyEncoder.PackKey(ref sw, tuple);
 			return sw.ToSlice();
@@ -853,6 +848,8 @@ namespace FoundationDB.Client
 
 		#region Decode...
 
+		//TODO: move this to FdbKeyExtensions
+
 		/// <summary>Decodes a binary slice into a tuple of arbitrary length</summary>
 		/// <returns>Tuple of any size (0 to N)</returns>
 		public static IVarTuple Unpack(this IKeySubspace self, Slice packedKey) //REVIEW: consider changing return type to SlicedTuple ?
@@ -1058,7 +1055,7 @@ namespace FoundationDB.Client
 	/// <summary>Partition helper for a dynamic TypeSystem</summary>
 	[DebuggerDisplay("{Subspace.ToString(),nq}")]
 	[PublicAPI]
-	[Obsolete("Do not use this type anymore")]
+	[Obsolete("Do not use this type anymore", error: true)]
 	public sealed class DynamicPartition
 	{
 

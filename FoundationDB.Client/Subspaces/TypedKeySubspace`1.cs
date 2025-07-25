@@ -29,7 +29,7 @@ namespace FoundationDB.Client
 	/// <summary>Represents a key subspace than can statically typed values to and from their binary representation</summary>
 	/// <typeparam name="T1">Type of values</typeparam>
 	[PublicAPI]
-	[Obsolete("Use IDynamicKeySubspace instead")]
+	[Obsolete("Use IKeySubspace instead", error: true)]
 	public interface ITypedKeySubspace<T1> : IKeySubspace
 	{
 
@@ -78,7 +78,7 @@ namespace FoundationDB.Client
 	/// <summary>Represents a key subspace than can statically typed values to and from their binary representation</summary>
 	/// <typeparam name="T1">Type of values</typeparam>
 	[PublicAPI]
-	[Obsolete("Use IDynamicKeySubspace instead")]
+	[Obsolete("Use KeySubspace instead", error: true)]
 	public sealed class TypedKeySubspace<T1> : KeySubspace, ITypedKeySubspace<T1>
 	{
 
@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 		public bool TryEncode(Span<byte> destination, out int bytesWritten, T1? item1)
 		{
 			if (!this.GetPrefix().TryCopyTo(destination, out var prefixLen)
-			 || !KeyEncoder.TryWriteKeyTo(destination[prefixLen..], out var keyLen, item1))
+			 || !this.KeyEncoder.TryWriteKeyTo(destination[prefixLen..], out var keyLen, item1))
 			{
 				bytesWritten = 0;
 				return false;
@@ -170,7 +170,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified value</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead", error: true)]
 		public static KeyRange PackRange<T1>(this ITypedKeySubspace<T1> self, STuple<T1> tuple)
 		{
 			return KeyRange.PrefixedBy(self.Encode(tuple.Item1));
@@ -179,14 +179,14 @@ namespace FoundationDB.Client
 		/// <summary>Return the range of all legal keys in this subspace, that start with the specified value</summary>
 		/// <returns>Range that encompass all keys that start with (tuple.Item1, ...)</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead", error: true)]
 		public static KeyRange PackRange<T1>(this ITypedKeySubspace<T1> self, ValueTuple<T1> tuple)
 		{
 			return KeyRange.PrefixedBy(self.Encode(tuple.Item1));
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Key(...).ToRange() instead", error: true)]
 		public static KeyRange EncodeRange<T1>(this ITypedKeySubspace<T1> self, T1? item1)
 		{
 			return KeyRange.PrefixedBy(self.Encode(item1));
@@ -198,7 +198,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Pack a 1-tuple into a key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead", error: true)]
 		public static Slice Pack<T1>(this ITypedKeySubspace<T1> self, ValueTuple<T1> tuple)
 		{
 			return self.Encode(tuple.Item1);
@@ -206,7 +206,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Pack a 1-tuple into a key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Tuple(...).ToRange() instead", error: true)]
 		public static Slice Pack<T1, TTuple>(this ITypedKeySubspace<T1> self, TTuple tuple)
 			where TTuple : IVarTuple
 		{
@@ -219,7 +219,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes an array of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Key(...) instead", error: true)]
 		public static Slice[] Encode<T1>(this ITypedKeySubspace<T1> self, params T1[] items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
@@ -227,7 +227,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a span of items into an array of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Key(...) instead", error: true)]
 		public static Slice[] Encode<T1>(this ITypedKeySubspace<T1> self, params ReadOnlySpan<T1> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
@@ -235,7 +235,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Encodes a sequence of items into a sequence of keys</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[Obsolete]
+		[Obsolete("Use subspace.Key(...) instead", error: true)]
 		public static IEnumerable<Slice> Encode<T1>(this ITypedKeySubspace<T1> self, IEnumerable<T1> items)
 		{
 			return self.KeyEncoder.EncodeKeys(self.GetPrefix(), items);
@@ -246,7 +246,7 @@ namespace FoundationDB.Client
 		#region Decode()
 
 		/// <summary>Decode a key from this subspace back into a value</summary>
-		[Obsolete]
+		[Obsolete("Use IKeySubspace instead", error: true)]
 		public static void Decode<T1>(this ITypedKeySubspace<T1> self, Slice packedKey, out T1? item1)
 		{
 			item1 = self.Decode(packedKey)!;

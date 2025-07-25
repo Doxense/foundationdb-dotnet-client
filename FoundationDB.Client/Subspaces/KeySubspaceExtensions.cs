@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("There is no need for IBinaryKeySubspace any more, since IKeySubspace now offers the same feature set.")]
+		[Obsolete("There is no need for IBinaryKeySubspace any more, since IKeySubspace now offers the same feature set.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static IBinaryKeySubspace AsBinary(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
@@ -57,7 +57,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("There is no need for IDynamicKeySubspace any more, since IKeySubspace now offers the same feature set.")]
+		[Obsolete("There is no need for IDynamicKeySubspace any more, since IKeySubspace now offers the same feature set.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static IDynamicKeySubspace AsDynamic(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static IDynamicKeySubspace AsDynamic(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
@@ -94,7 +94,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("There is no need for ITypedKeySubspace any more, since IKeySubspace now offers the same feature set.")]
+		[Obsolete("There is no need for ITypedKeySubspace any more, since IKeySubspace now offers the same feature set.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T> AsTyped<T>(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
@@ -112,7 +112,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T> AsTyped<T>(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
@@ -131,7 +131,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("There is no need for ITypedKeySubspace any more, since IKeySubspace now offers the same feature set.")]
+		[Obsolete("There is no need for ITypedKeySubspace any more, since IKeySubspace now offers the same feature set.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
@@ -149,7 +149,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2> AsTyped<T1, T2>(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
@@ -167,7 +167,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("There is no need for ITypedKeySubspace any more, since IKeySubspace now offers the same feature set.")]
+		[Obsolete("There is no need for ITypedKeySubspace any more, since IKeySubspace now offers the same feature set.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
@@ -185,7 +185,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2, T3> AsTyped<T1, T2, T3>(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
@@ -203,7 +203,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("There is no need for ITypedKeySubspace any more, since IKeySubspace now offers the same feature set.")]
+		[Obsolete("There is no need for ITypedKeySubspace any more, since IKeySubspace now offers the same feature set.", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>(this IKeySubspace subspace, ISubspaceContext? context = null)
 		{
@@ -221,7 +221,7 @@ namespace FoundationDB.Client
 		/// <param name="context">If non-null, overrides the current subspace context.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2, T3, T4> AsTyped<T1, T2, T3, T4>(this IKeySubspace subspace, IKeyEncoding encoding, ISubspaceContext? context = null)
 		{
@@ -244,7 +244,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static IDynamicKeySubspace UsingEncoder(this IKeySubspace subspace, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
 		{
@@ -259,7 +259,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T> UsingEncoder<T>(this IKeySubspace subspace, IKeyEncoder<T> encoder, ISubspaceContext? context = null)
 		{
@@ -274,7 +274,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2> UsingEncoder<T1, T2>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2> encoder, ISubspaceContext? context = null)
 		{
@@ -289,7 +289,7 @@ namespace FoundationDB.Client
 		/// <param name="context">Optional context used by the new subspace</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2, T3> encoder, ISubspaceContext? context = null)
 		{
@@ -304,7 +304,7 @@ namespace FoundationDB.Client
 		/// <param name="encoder">Encoder used to serialize the keys of this namespace.</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static ITypedKeySubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>(this IKeySubspace subspace, ICompositeKeyEncoder<T1, T2, T3, T4> encoder, ISubspaceContext? context = null)
 		{
@@ -338,7 +338,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static DynamicKeySubspace Copy(this IKeySubspace subspace, IDynamicKeyEncoding encoding, ISubspaceContext? context = null)
 		{
@@ -349,7 +349,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a copy of a generic subspace, sharing the same binary prefix</summary>
 		[Pure]
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
+		[Obsolete("Use a custom IFdbKeyEncoder<T> instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static DynamicKeySubspace Copy(this IKeySubspace subspace, IDynamicKeyEncoder encoder, ISubspaceContext? context = null)
 		{
@@ -358,10 +358,10 @@ namespace FoundationDB.Client
 			return new DynamicKeySubspace(StealPrefix(subspace), encoder, context ?? subspace.Context);
 		}
 
-#pragma warning disable CS0618 // Type or member is obsolete
-
 		/// <summary>Create a copy of a dynamic subspace, sharing the same binary prefix and encoder</summary>
 		[Pure]
+		[Obsolete("Use KeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static DynamicKeySubspace Copy(this IDynamicKeySubspace subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -370,6 +370,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
 		[Pure]
+		[Obsolete("Use KeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TypedKeySubspace<T1> Copy<T1>(this ITypedKeySubspace<T1> subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -378,6 +380,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
 		[Pure]
+		[Obsolete("Use KeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TypedKeySubspace<T1, T2> Copy<T1, T2>(this ITypedKeySubspace<T1, T2> subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -386,6 +390,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
 		[Pure]
+		[Obsolete("Use KeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TypedKeySubspace<T1, T2, T3> Copy<T1, T2, T3>(this ITypedKeySubspace<T1, T2, T3> subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
@@ -394,18 +400,18 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a copy of a typed subspace, sharing the same binary prefix and encoder</summary>
 		[Pure]
+		[Obsolete("Use KeySubspace instead", error: true)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static TypedKeySubspace<T1, T2, T3, T4> Copy<T1, T2, T3, T4>(this ITypedKeySubspace<T1, T2, T3, T4> subspace, ISubspaceContext? context = null)
 		{
 			Contract.NotNull(subspace);
 			return new TypedKeySubspace<T1, T2, T3, T4>(StealPrefix(subspace), subspace.KeyEncoder, context ?? subspace.Context);
 		}
 
-#pragma warning restore CS0618 // Type or member is obsolete
-
 		#endregion
 
 		/// <summary>Return a key range that contains all the keys in a sub-partition of this subspace</summary>
-		[Obsolete("Use subspace.Bytes(...).ToRange() instead")]
+		[Obsolete("Use subspace.Bytes(...).ToRange() instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static KeyRange GetRange(this KeySubspace subspace, Slice suffix)
 		{
@@ -417,7 +423,7 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Parent subspace</param>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>Full binary key</returns>
-		[Obsolete("Use subspace.Bytes(...) instead")]
+		[Obsolete("Use subspace.Bytes(...) instead", error: true)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice Append(this IKeySubspace subspace, Slice relativeKey)
 		{
