@@ -13,13 +13,13 @@ C#/.NET binding for the [FoundationDB](https://www.foundationdb.org/) client lib
 
 To get started, install the [FoundationDB.Client](https://www.nuget.org/packages/FoundationDB.Client) package into your application.
 
-```powershell
+```console
 dotnet add package FoundationDB.Client
 ```
 
 You will also probably require the [FoundationDB.Client.Native](https://www.nuget.org/packages/FoundationDB.Client.Native) package that redistributes the native FoundationDB Client libraries for your platform: `fdb_c.dll` on Windows, `libfdb_c.so` on Linux, and `libfdb_c.dylib` on macOS. They are available for x64 and arm64.
 
-```powershell
+```console
 dotnet add package FoundationDB.Client.Native
 ```
 
@@ -76,12 +76,12 @@ It is possible to add a FoundationDB cluster resource to your Aspire application
 For this, you will need to install the following NuGet packages:
 
 In the AppHost project:
-```powershell
+```console
 dotnet add package FoundationDB.Aspire.Hosting
 ```
 
 In each of the projects that need to connect to the FoundationDB cluster:
-```powershell
+```console
 dotnet add package FoundationDB.Aspire
 ```
 
@@ -246,7 +246,7 @@ Here is a description of each steps:
 
 ## Using the Directory Layer
 
-In real-world usage, it is __strongly encouraged__ to use the __Directory Layer__ to organize your data into <b>subspaces</b>, that can help you split the database into independent "chunks", called **Subspaces**.
+In real-world usage, it is __strongly encouraged__ to use the __Directory Layer__ to organize your data into <b>subspaces</b>, that can help you split the database into independent "containers".
 
 The Directory Layer emulates a tree of "Subspace Directories", and maintains a mapping from paths to short integer prefixes.
 Each directory can be seen as the equivalent of a "folder" in a traditional disk volume, where the file system would allocate a cluster or i-node number: applications will think using paths and folder names, while the file system will use integers to point to location on the disk.
