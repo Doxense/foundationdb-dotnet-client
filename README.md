@@ -13,13 +13,13 @@ C#/.NET binding for the [FoundationDB](https://www.foundationdb.org/) client lib
 
 To get started, install the [FoundationDB.Client](https://www.nuget.org/packages/FoundationDB.Client) package into your application.
 
-```shell
+```bash
 dotnet add package FoundationDB.Client
 ```
 
-You will also probably require the [FoundationDB.Client.Native](https://www.nuget.org/packages/FoundationDB.Client.Native) package that redistributes the native FoundationDB Client libraries for your platform: `fdb_c.dll` on Windows, `libfdb_c.so` on Linux, and `libfdb_c.dylib` on Macos. They are available for x64 and arm64.
+You will also probably require the [FoundationDB.Client.Native](https://www.nuget.org/packages/FoundationDB.Client.Native) package that redistributes the native FoundationDB Client libraries for your platform: `fdb_c.dll` on Windows, `libfdb_c.so` on Linux, and `libfdb_c.dylib` on macOS. They are available for x64 and arm64.
 
-```shell
+```bash
 dotnet add package FoundationDB.Client.Native
 ```
 
@@ -29,11 +29,11 @@ For local development, you can use [.NET Aspire](https://learn.microsoft.com/en-
 
 ## Using Dependency Injection
 
-While you can use the binding without dependency injection, it's simple to register the `IFdbDatabaseProvider` service with the DI container and inject it into any controller, razor page, or other service that needs to query the database.
+While you can use the binding without dependency injection, it is very easy to register the `IFdbDatabaseProvider` service with the DI container and inject it into any controller, razor page, or other service that needs to query the database.
 
-You can either manually setup the services, in which case you will need to provide a valid set of settings (API level, root path, ...) as well as copy a valid `fdb.cluster` file so that the process can connect to an existing FoundationDB cluster.
+You can decide to manually configure the database connection, in which case you will need to provide a valid set of settings (API level, root path, ...) as well as copy a valid `fdb.cluster` file so that the process can connect to an existing FoundationDB cluster.
 
-Alternatively, you can use __.NET Aspire__ to automatically setup a local FoundationDB Docker container, and inject the correct connection string.
+Alternatively, you can use the __.NET Aspire__ integration to automatically setup a local FoundationDB Docker container, and inject the correct connection string.
 
 ### Manual configuration
 
@@ -73,9 +73,21 @@ This will register an instance of the `IFdbDatabaseProvider` singleton, that you
 
 It is possible to add a FoundationDB cluster resource to your Aspire application model, and pass a reference to this cluster to the projects that need it.
 
+For this, you will need to install the following NuGet packages:
+
+In the AppHost project:
+```bash
+dotnet add package FoundationDB.Aspire.Hosting
+```
+
+In each of the projects that need to connect to the FoundationDB cluster:
+```bash
+dotnet add package FoundationDB.Aspire
+```
+
 For local development, a local FoundationDB node will be started using the `foundationdb/foundationdb` Docker image, and all projects that use the cluster reference will have a temporary Cluster file pointing to the local instance.
 
-> **Note:** You must have Docker installed on your development machine. See the [Aspire getting started guid](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/add-aspire-existing-app#prerequisites) for details.
+> **Note:** You must have Docker installed on your development machine. See the [Aspire getting started guide](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/add-aspire-existing-app#prerequisites) for details.
 
 In the Program.cs of your AppHost project:
 ```c#
@@ -140,20 +152,14 @@ builder.AddFoundationDb("fdb"); // "fdb" is the same name we used in AddFoundati
 
 This will automatically register an instance of the `IFdbDatabaseProvider` service, automatically configured to connect the FDB local or external cluster defined in the AppHost.
 
-## Simple Collection
+## Writing a simple Document Collection
 
-Let's say we have a `Books` Razor Page, accessible via the `/Books/{id}` route:
+Let's say we have a `Books` Razor Page, accessible via the `/Books/{id}` route, that will display a summary page for the corresponding book.
 
-- We first inject an instance of the `IFdbDatabaseProvider` via the constructor.
-- Inside the `OnGet(...)` action, we can call any of the `ReadAsync`, `ReadWriteAsync` or `WriteAsync` methods on this instance, to start a transaction retry-loop.
-- Inside the retry-loop, you'll receive either an `IFdbReadOnlyTransaction` (read-only) or an `IFdbTransaction` (read-write).
-- We use this transaction to read the value of the `("Books", <id>)` key from the database.
-  - Please DO NOT mutate any global state from within the transaction handler! The handler could be called MULTIPLE TIMES if there are any conflicts or retryable errors!
-  - Try to perform any pre-processing or post-processing OUTSIDE of the retry-loop. Remember, the transaction instance is only valid for 5 seconds!
-- After the retry loop, inspect the result:
-  - If the key was not found in the database, `GetAsync(...)` will have returned `Slice.Nil`, in which case `IsNull` will be `true`.
-  - Otherwise, `GetAsync(...)` will have returned a `Slice` containing the bytes of the value, which are expected to be a JSON document.
-- We de-serialize the JSON document into a `Book` record, that we can then pass to the Razor Template to be rendered into an HTML page.
+Assuming that we already have stored each book as a JSON document in a "collection" or key/value pairs,
+where the key is the ID of the book, and the value is the book encoded as JSON bytes.
+
+The `OnGet` method of this page needs to retrieve the JSON bytes for this document, deserialize the `Book` instance, and store it in the PageModel before rendering the HTML page.
 
 ```c#
 namespace MyWebApp.Pages
@@ -226,11 +232,26 @@ namespace MyWebApp.Pages
 }
 ```
 
+Here is a description of each steps:
+- We first inject an instance of the `IFdbDatabaseProvider` via the constructor.
+- Inside the `OnGet(...)` action, we can call any of the `ReadAsync`, `ReadWriteAsync` or `WriteAsync` methods on this instance, to start a transaction retry-loop.
+- Inside the retry-loop, you'll receive either an `IFdbReadOnlyTransaction` (read-only) or an `IFdbTransaction` (read-write).
+- We use this transaction to read the value of the `("Books", <id>)` key from the database.
+  - Please DO NOT mutate any global state from within the transaction handler! The handler could be called MULTIPLE TIMES if there are any conflicts or retryable errors!
+  - Try to perform any pre-processing or post-processing OUTSIDE of the retry-loop. Remember, the transaction instance is only valid for 5 seconds!
+- After the retry loop, inspect the result:
+  - If the key was not found in the database, `GetAsync(...)` will have returned `Slice.Nil`, in which case `IsNull` will be `true`.
+  - Otherwise, `GetAsync(...)` will have returned a `Slice` containing the bytes of the value, which are expected to be a JSON document.
+- We de-serialize the JSON document into a `Book` record, that we can then pass to the Razor Template to be rendered into an HTML page.
+
 ## Using the Directory Layer
 
-In real-world usage, it is __strongly encouraged__ to the __Directory Layer__ to generate shorter prefixes for the keys, instead of the very long `("Tenant", "ACME", "MySuperApp", "v1", "Documents", "Books", "BOOK_123")`.
+In real-world usage, it is __strongly encouraged__ to use the __Directory Layer__ to organize your data into <b>subspaces</b>, that can help you split the database into independent "chunks", called **Subspaces**.
 
-This layer emulates a tree of "Directories", and maintains a mapping of paths to short integer prefixes. Each directory can be seen as the equivalent of a folder in a disk volume, where the file system would allocate a cluster or inode number: applications will think using paths and folder names, while the file system will use integers to point to location on the disk.
+The Directory Layer emulates a tree of "Subspace Directories", and maintains a mapping from paths to short integer prefixes.
+Each directory can be seen as the equivalent of a "folder" in a traditional disk volume, where the file system would allocate a cluster or i-node number: applications will think using paths and folder names, while the file system will use integers to point to location on the disk.
+
+For example, if the path `/Tenant/ACME/MySuperApp/v1/Documents/Books` is given the prefix `42`, then the keys in this subspace will be shortened to `(42, "BOOK_123")` instead of the very long `("Tenant", "ACME", "MySuperApp", "v1", "Documents", "Books", "BOOK_123")`, allowing for a reduction of almost 50 bytes per key.
 
 In your AppHost:
 ```csharp
@@ -288,7 +309,7 @@ public class BooksModel : PageModel
             var subspace = await location.Resolve(tr);
 
             // use this subspace to generate our key:
-            var key = subspace.GetKey(id);
+            var key = subspace.Key(id);
 
             // read the value of the key in the database
             // - inside GetAsync, the key will be rendered into bytes, using pooled buffers (or the stack for small keys)
@@ -304,20 +325,22 @@ public class BooksModel : PageModel
 }
 ```
 
-The call to `location.Resolve()` queries the Directory Layer to resolve the logical path into a key _prefix_.
+The call to `location.Resolve()` queries the Directory Layer to resolve the logical path into a key _prefix_, which will usually be two or three bytes long.
 
-This key prefix will typically be a much shorter byte sequence than the original path. For example, if the full path for the location is `"/Tenants/ACME/MyApp/v1/Documents/Books"`,
-the prefix will probably be a small integer (ex: `42`), which in this case encodes into only two bytes (`\x15\x2A`) using the Tuple Encoding.
+The call to `subspace.Key(...)` returns a key that is a small struct wrapping the id (ex: `"BOOK_123"`) and the resolved `subspace` prefix.
 
-The call to `GetKey(...)` returns a struct that wraps the id (ex: `"BOOK_123"`) and the resolved `subspace` prefix.
+This key will not be immediately "rendered" into bytes, meaning it can be further manipulated, converted into a range, other items can be added to it. It is only when it is passed to `tr.GetAsync(...)` that the key will be converted into bytes, using pooled buffers (or the stack for short keys).
 
-This key will not be immediately "rendered" into bytes, meaning it can be further manipulated, converted into a range, items can be added to it. It is only when it is passed to `tr.GetAsync(...)` that the key will be converted into bytes, using pooled buffers or the stack for short keys.
-
-In this example, the subspace prefix (`\x15\x2A`) and the encoding of `"BOOK_123"` (`\x02BOOK_123_\x00`) will be combined
-into the complete binary key `\x15\x2A\x02BOOK_123_\x00` which (hopefully) contains the bytes for our JSON document.
+In this example, the subspace prefix (`'\x15\x2A'`) and the binary representation of the string `"BOOK_123"` (`'\x02BOOK_123_\x00'`) will be combined
+into the complete binary key `'\x15\x2A\x02BOOK_123_\x00'` which (hopefully) contains the bytes for our JSON document in the database.
 
 A nice property of the Directory Layer is that it also uses the Tuple Encoding to generate the prefixes (from small integers), meaning that decoding the complete key back into a tuple (using `TuPack.Unpack(...)`) will produce a tuple with the subspace prefix as the first element,
 followed by the rest of the elements that make up the key. In our example, it will decode into the tuple `(42, "BOOK_123")`.
+
+Please note that, if you are using **Directory Partitions**, the prefix can be composed of multiple integers (one per partition level).
+If, for example, the `/Tenants/ACME` directory is a **partition** with allocated prefix `(42, ...)` (`'\x15\x2A'` in binary),
+and `./MySuperApp/v1/Documents/Books` is a folder within this partition with allocated prefix `(1234, ...)` (`'\x16\x04\xD2'` in binary),
+then all the keys inside this folder will use the prefix `(42, 1234, ...)` (`'\x15\x2A\x16\x04\xD2'` in binary) adding an overhead of 5 bytes per key.
 
 ## Working with Layers
 
@@ -372,7 +395,7 @@ public sealed class BooksProvider
         var subspace = await this.Location.Resolve(tr);
 
         // define the key that will hold this document in this subspace
-        var key = subspace.GetKey(book.Id);
+        var key = subspace.Key(book.Id);
 
         // set the value of the this key to be the JSON bytes for this new document
         tr.Set(key, jsonBytes);
@@ -384,7 +407,7 @@ public sealed class BooksProvider
         var subspace = await this.Location.Resolve(tr);
 
         // define the key that should hold this document in this subspace
-        var key = subspace.GetKey(id);
+        var key = subspace.Key(id);
 
         // and store the document
         var jsonBytes = await tr.GetAsync(key);
