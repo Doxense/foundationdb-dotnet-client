@@ -80,31 +80,6 @@ namespace FoundationDB.Client
 
 		#region Key Factories...
 
-		#region Generic...
-
-		/// <summary>Returns a key that wraps a value that will be encoded into bytes using a given encoder</summary>
-		/// <typeparam name="TKey">Type of the key, that implements <see cref="ISpanEncodable"/></typeparam>
-		/// <param name="subspace">Subspace that contains the key in the database</param>
-		/// <param name="key">Value of the key</param>
-		public static FdbKey<TKey> Create<TKey>(IKeySubspace subspace, TKey key)
-			where TKey : struct, ISpanEncodable
-		{
-			return new(subspace, key);
-		}
-
-		/// <summary>Returns a key that wraps a value that will be encoded into bytes using a given encoder</summary>
-		/// <typeparam name="TKey">Type of the key that is encoded</typeparam>
-		/// <typeparam name="TEncoder">Type of the encoder for this key, that implements <see cref="ISpanEncoder{TKey}"/></typeparam>
-		/// <param name="subspace">Subspace that contains the key in the database</param>
-		/// <param name="key">Value of the key</param>
-		public static FdbKey<TKey, TEncoder> Create<TKey, TEncoder>(IKeySubspace subspace, TKey key)
-			where TEncoder : struct, ISpanEncoder<TKey>
-		{
-			return new(subspace, key);
-		}
-
-		#endregion
-
 		#region FromBytes...
 
 		#region No Subspace...

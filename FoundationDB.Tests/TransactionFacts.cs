@@ -540,13 +540,13 @@ namespace FoundationDB.Client.Tests
 				// - (test,) + \0
 				// - (test, 0) .. (test, 19)
 				// - (test,) + \xFF
-				tr.Set(subspace.Append(FdbKey.MinValue), Text("min"));
+				tr.Set(subspace.First(), Text("min"));
 				for (int i = 0; i < 20; i++)
 				{
 					tr.Set(subspace.Key(i), Text(i.ToString()));
 				}
 
-				tr.Set(subspace.Append(FdbKey.MaxValue), Text("max"));
+				tr.Set(subspace.Last(), Text("max"));
 				await tr.CommitAsync();
 			}
 
@@ -561,7 +561,7 @@ namespace FoundationDB.Client.Tests
 				// >= 0
 				var sel = subspace.Key(0).FirstGreaterOrEqual();
 				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Key(0)), "fGE(0) should return 0");
-				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Append(FdbKey.MinValue)), "fGE(0)-1 should return minKey");
+				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.First()), "fGE(0)-1 should return minKey");
 				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Key(1)), "fGE(0)+1 should return 1");
 
 				// > 0
@@ -584,17 +584,17 @@ namespace FoundationDB.Client.Tests
 
 				// < 0
 				sel = subspace.Key(0).LastLessThan();
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MinValue)), "lLT(0) should return minKey");
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.First()), "lLT(0) should return minKey");
 				Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(subspace.Key(0)), "lLT(0)+1 should return 0");
 
 				// >= 20
 				sel = subspace.Key(20).FirstGreaterOrEqual();
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MaxValue)), "fGE(20) should return maxKey");
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Last()), "fGE(20) should return maxKey");
 				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Key(19)), "fGE(20)-1 should return 19");
 
 				// > 19
 				sel = subspace.Key(19).FirstGreaterThan();
-				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Append(FdbKey.MaxValue)), "fGT(19) should return maxKey");
+				Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(subspace.Last()), "fGT(19) should return maxKey");
 				Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(subspace.Key(19)), "fGT(19)-1 should return 19");
 			}
 		}
@@ -956,13 +956,13 @@ namespace FoundationDB.Client.Tests
 				// - (test,) + \0
 				// - (test, 0) .. (test, N-1)
 				// - (test,) + \xFF
-				tr.Set(subspace.Append(FdbKey.MinValue), Text("min"));
+				tr.Set(subspace.First(), Text("min"));
 				for (int i = 0; i < 20; i++)
 				{
 					tr.Set(subspace.Key(i), Text(i.ToString()));
 				}
 
-				tr.Set(subspace.Append(FdbKey.MaxValue), Text("max"));
+				tr.Set(subspace.Last(), Text("max"));
 				await tr.CommitAsync();
 			}
 

@@ -81,7 +81,7 @@ namespace FoundationDB.Layers.Counters
 				lock (this.Rng) { right = this.Rng.NextDouble() < 0.5; }
 				var query = right
 					? tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.Key(loc), subspace.Last()), new() { Limit = limit })
-					: tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.GetFirstKey(), subspace.Key(loc)), new() { Limit = limit , IsReversed = true });
+					: tr.Snapshot.GetRange(FdbKeyRange.Between(subspace.First(), subspace.Key(loc)), new() { Limit = limit , IsReversed = true });
 				var shards = await query.ToListAsync().ConfigureAwait(false);
 
 				if (shards.Count > 0)

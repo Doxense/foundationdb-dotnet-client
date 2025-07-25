@@ -193,7 +193,7 @@ namespace FoundationDB.Client
 		/// <para>This key can be used to create ranges that match all keys that could be located in this subspace, except the subspace prefix itself.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbSuccessorKey<FdbSubspaceKey> GetFirstKey(this IKeySubspace subspace)
+		public static FdbSuccessorKey<FdbSubspaceKey> First(this IKeySubspace subspace)
 			=> new(new(subspace));
 
 		/// <summary>Returns the last legal key of this subspace that can be expressed using tuples.</summary>

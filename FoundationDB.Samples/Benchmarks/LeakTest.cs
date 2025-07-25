@@ -66,8 +66,8 @@ namespace FoundationDB.Samples.Benchmarks
 				await db.ClearRangeAsync(subspace, ct);
 
 				// insert all the classes
-				tr.Set(subspace.GetPrefix() + FdbKey.MinValue, Slice.FromString("BEGIN"));
-				tr.Set(subspace.GetPrefix() + FdbKey.MaxValue, Slice.FromString("END"));
+				tr.Set(subspace.First(), Slice.FromString("BEGIN"));
+				tr.Set(subspace.Last(), Slice.FromString("END"));
 
 				return subspace;
 			}, ct);
