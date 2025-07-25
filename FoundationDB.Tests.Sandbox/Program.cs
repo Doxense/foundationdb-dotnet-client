@@ -408,7 +408,7 @@ namespace FoundationDB.Tests.Sandbox
 							tmp[1] = (byte)(i >> 8);
 
 							// ("Batch", batch_index, i) = [..random..]
-							trans.Set(subspace[Slice.FromFixed64BE(i)], tmp.AsSlice());
+							trans.Set(subspace.Bytes(Slice.FromFixed64BE(i)), tmp.AsSlice());
 						}
 						x.Stop();
 						//Console.WriteLine($"> [{offset}] packaged {n:N0} keys ({trans.Size:N0} bytes) in {FormatTimeMilli(x.Elapsed.TotalMilliseconds)}");
@@ -749,7 +749,7 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("Reading all keys...");
 				var subspace = await location.Resolve(tr);
 				var sw = Stopwatch.StartNew();
-				var items = await tr.GetRange(subspace.GetRange()).ToListAsync();
+				var items = await tr.GetRange(subspace.ToRange()).ToListAsync();
 				sw.Stop();
 				Console.WriteLine($"Took {FormatTimeMilli(sw.Elapsed.TotalMilliseconds)} to get {items.Count.ToString("N0", CultureInfo.InvariantCulture)} results ({items.Count / sw.Elapsed.TotalSeconds:N0} keys/sec)");
 			}

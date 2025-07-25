@@ -151,7 +151,7 @@ namespace FoundationDB.Samples.Tutorials
 			await db.WriteAsync(async tr =>
 			{
 				var subspace = await this.Location.Resolve(tr);
-				tr.ClearRange(subspace.GetRange());
+				tr.ClearRange(subspace.ToRange());
 			}, ct);
 		}
 

@@ -55,8 +55,8 @@ namespace FoundationDB.Client.Tests
 			Assert.That(subspace.Copy().GetPrefix(), Is.EqualTo(subspace.GetPrefix()));
 
 			// concat(Slice) should append the slice to the binary prefix directly
-			Assert.That(subspace.Append(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("*<FF><00><7F><04><03><02><01>"));
-			Assert.That(subspace.Append(Slice.FromStringAscii("hello")).ToString(), Is.EqualTo("*<FF><00><7F>hello"));
+			Assert.That(subspace.Bytes(Slice.FromInt32(0x01020304)).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><04><03><02><01>"));
+			Assert.That(subspace.Bytes(Slice.FromStringAscii("hello")).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F>hello"));
 
 			// Key(...) should use tuple serialization
 			Assert.That(subspace.Key(123).ToSlice().ToString(), Is.EqualTo("*<FF><00><7F><15>{"));
@@ -127,8 +127,8 @@ namespace FoundationDB.Client.Tests
 			Assert.That(subspace.Copy().GetPrefix(), Is.EqualTo(subspace.GetPrefix()));
 
 			// concat(Slice) should append the slice to the tuple prefix directly
-			Assert.That(subspace.Append(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("<02>hello<00><04><03><02><01>"));
-			Assert.That(subspace.Append(Slice.FromStringAscii("world")).ToString(), Is.EqualTo("<02>hello<00>world"));
+			Assert.That(subspace.Bytes(Slice.FromInt32(0x01020304)).ToSlice().ToString(), Is.EqualTo("<02>hello<00><04><03><02><01>"));
+			Assert.That(subspace.Bytes(Slice.FromStringAscii("world")).ToSlice().ToString(), Is.EqualTo("<02>hello<00>world"));
 
 			// pack(...) should use tuple serialization
 			Assert.That(subspace.Key(123).ToSlice().ToString(), Is.EqualTo("<02>hello<00><15>{"));
@@ -156,7 +156,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(parent.GetPrefix().ToString(), Is.EqualTo("<empty>"));
 
 			// create a child subspace using a tuple
-			var child = parent.ToSubspace(FdbKey.DirectoryPrefix);
+			var child = parent.Bytes(FdbKey.DirectoryPrefix).ToSubspace();
 			Assert.That(child, Is.Not.Null);
 			Assert.That(child.GetPrefix().ToString(), Is.EqualTo("<FE>"));
 
@@ -165,7 +165,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(key.ToString(), Is.EqualTo("<FE><04><03><02><01>"));
 
 			// create another child
-			var grandChild = child.ToSubspace(Slice.FromStringAscii("hello"));
+			var grandChild = child.Bytes(Slice.FromStringAscii("hello")).ToSubspace();
 			Assert.That(grandChild, Is.Not.Null);
 			Assert.That(grandChild.GetPrefix().ToString(), Is.EqualTo("<FE>hello"));
 
@@ -173,7 +173,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(key.ToString(), Is.EqualTo("<FE>hello<04><03><02><01>"));
 
 			// corner case
-			Assert.That(child.ToSubspace(Slice.Empty).GetPrefix(), Is.EqualTo(child.GetPrefix()));
+			Assert.That(child.Bytes(Slice.Empty).ToSubspace().GetPrefix(), Is.EqualTo(child.GetPrefix()));
 		}
 
 		[Test]
@@ -181,7 +181,7 @@ namespace FoundationDB.Client.Tests
 		{
 			var location = KeySubspace.CreateDynamic(Slice.FromString("PREFIX"));
 
-			Assert.That(location.Append(Slice.FromString("SUFFIX")).ToString(), Is.EqualTo("PREFIXSUFFIX"));
+			Assert.That(location.Bytes(Slice.FromString("SUFFIX")).ToSlice().ToString(), Is.EqualTo("PREFIXSUFFIX"));
 
 			// Encode<T...>(...)
 			Assert.That(location.Key("hello").ToSlice().ToString(), Is.EqualTo("PREFIX<02>hello<00>"));

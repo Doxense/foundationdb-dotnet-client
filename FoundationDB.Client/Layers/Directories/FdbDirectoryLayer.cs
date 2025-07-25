@@ -1580,7 +1580,7 @@ namespace FoundationDB.Client
 				this.Path = path;
 				this.Parent = parent;
 				this.Content = content;
-				this.Nodes = content.ToSubspace(FdbKey.DirectoryPrefixSpan);
+				this.Nodes = content.Bytes(FdbKey.DirectoryPrefixSpan).ToSubspace();
 			}
 
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

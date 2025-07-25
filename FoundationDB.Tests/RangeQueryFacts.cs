@@ -880,7 +880,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var fa = await a.Resolve(tr);
 
-					var query = tr.GetRange(fa.GetRange());
+					var query = tr.GetRange(fa.ToRange());
 
 					// should return the first one
 					res = await query.FirstOrDefaultAsync();
@@ -914,7 +914,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var fb = await b.Resolve(tr);
 
-					var query = tr.GetRange(fb.GetRange());
+					var query = tr.GetRange(fb.ToRange());
 
 					// should return the first one
 					res = await query.FirstOrDefaultAsync();
@@ -952,7 +952,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var fc = await c.Resolve(tr);
 
-					var query = tr.GetRange(fc.GetRange());
+					var query = tr.GetRange(fc.ToRange());
 
 					// should return nothing
 					res = await query.FirstOrDefaultAsync();
@@ -984,7 +984,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var fa = await a.Resolve(tr);
 
-					var query = tr.GetRange(fa.GetRange()).Take(5);
+					var query = tr.GetRange(fa.ToRange()).Take(5);
 
 					// should return the fifth one
 					res = await query.LastOrDefaultAsync();
@@ -1002,7 +1002,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var fa = await a.Resolve(tr);
 
-					var query = tr.GetRange(fa.GetRange()).Skip(5);
+					var query = tr.GetRange(fa.ToRange()).Skip(5);
 
 					// should return the fifth one
 					res = await query.FirstOrDefaultAsync();
@@ -1051,7 +1051,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var fa = await a.Resolve(tr);
 
-					var query = tr.GetRange(fa.GetRange()).Take(5);
+					var query = tr.GetRange(fa.ToRange()).Take(5);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(5));
 
@@ -1071,7 +1071,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var fa = await a.Resolve(tr);
 
-					var query = tr.GetRange(fa.GetRange()).Take(12);
+					var query = tr.GetRange(fa.ToRange()).Take(12);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(12));
 
@@ -1091,7 +1091,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var fa = await a.Resolve(tr);
 
-					var query = tr.GetRange(fa.GetRange()).Take(0);
+					var query = tr.GetRange(fa.ToRange()).Take(0);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.Zero);
 
@@ -1129,7 +1129,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await location.Resolve(tr);
 
-					var query = tr.GetRange(folder.GetRange());
+					var query = tr.GetRange(folder.ToRange());
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToArray();
 
 					// |>>>>>>>>>>>>(50---------->99)|
@@ -1159,7 +1159,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await location.Resolve(tr);
 
-					var query = tr.GetRange(folder.GetRange());
+					var query = tr.GetRange(folder.ToRange());
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToList();
 
 					// |(0 <--------- 49)<<<<<<<<<<<<<|
@@ -1189,7 +1189,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var folder = await location.Resolve(tr);
 
-					var query = tr.GetRange(folder.GetRange());
+					var query = tr.GetRange(folder.ToRange());
 					var data = dataSet.Select(kv => new KeyValuePair<Slice, Slice>(folder.Key(kv.Index).ToSlice(), kv.Value)).ToArray();
 
 					// |>>>>>>>>>(25<------------74)<<<<<<<<|
@@ -1302,7 +1302,7 @@ namespace FoundationDB.Client.Tests
 					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
 
 					var merge = tr.MergeSort(
-						lists.Select(list => KeySelectorPair.Create(list.GetRange().ToKeyRange())),
+						lists.Select(list => KeySelectorPair.Create(list.ToRange().ToKeyRange())),
 						kvp => folder.DecodeLast<int>(kvp.Key)
 					);
 
@@ -1379,7 +1379,7 @@ namespace FoundationDB.Client.Tests
 					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
 
 					var merge = tr.Intersect(
-						lists.Select(list => KeySelectorPair.Create(list.GetRange().ToKeyRange())),
+						lists.Select(list => KeySelectorPair.Create(list.ToRange().ToKeyRange())),
 						kvp => folder.DecodeLast<int>(kvp.Key)
 					);
 
@@ -1458,7 +1458,7 @@ namespace FoundationDB.Client.Tests
 					var lists = Enumerable.Range(0, K).Select(k => GetList(folder, k)).ToArray();
 
 					var merge = tr.Except(
-						lists.Select(list => KeySelectorPair.Create(list.GetRange().ToKeyRange())),
+						lists.Select(list => KeySelectorPair.Create(list.ToRange().ToKeyRange())),
 						kvp => folder.DecodeLast<int>(kvp.Key)
 					);
 
@@ -1520,7 +1520,7 @@ namespace FoundationDB.Client.Tests
 					var processed = await locProcessed.Resolve(tr);
 
 					var query = tr.Except(
-						[ items.GetRange().ToKeyRange(), processed.GetRange().ToKeyRange() ],
+						[ items.ToRange().ToKeyRange(), processed.ToRange().ToKeyRange() ],
 						(kv) => TuPack.Unpack(kv.Key)[^2..], // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
 						TupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);
@@ -1546,11 +1546,11 @@ namespace FoundationDB.Client.Tests
 					var processed = await locProcessed.Resolve(tr);
 
 					var resItems = tr
-						.GetRange(items.GetRange())
+						.GetRange(items.ToRange())
 						.Select(kv => items.Decode<string, int>(kv.Key));
 
 					var resProcessed = tr
-						.GetRange(processed.GetRange())
+						.GetRange(processed.ToRange())
 						.Select(kv => processed.Decode<string, int>(kv.Key));
 
 					// items and processed are lists of (string, int) tuples, we can compare them directly

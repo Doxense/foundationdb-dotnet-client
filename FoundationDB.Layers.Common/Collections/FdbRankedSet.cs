@@ -204,7 +204,6 @@ namespace FoundationDB.Layers.Collections
 				var key = Slice.Empty;
 				for (int level = MAX_LEVELS - 1; level >= 0; level--)
 				{
-					var lss = this.Subspace.Key(level);
 					var kcs = await trans.GetRange(
 						FdbKeyRange.Between(this.Subspace.Key(level), this.Subspace.Key(level, key))
 					).ToListAsync().ConfigureAwait(false);
@@ -234,7 +233,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Clears the entire set.</summary>
 			public Task ClearAllAsync(IFdbTransaction trans)
 			{
-				trans.ClearRange(this.Subspace.GetRange());
+				trans.ClearRange(this.Subspace.ToRange());
 				return SetupLevelsAsync(trans);
 			}
 

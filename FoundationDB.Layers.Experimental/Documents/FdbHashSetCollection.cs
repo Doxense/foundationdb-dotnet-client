@@ -47,14 +47,14 @@ namespace FoundationDB.Layers.Blobs
 		protected virtual Slice GetKey(IVarTuple id)
 		{
 			//REVIEW: should the id be encoded as an embedded tuple or not?
-			return this.Subspace.Pack(id);
+			return this.Subspace.Tuple(id).ToSlice();
 		}
 
 		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field)</summary>
 		protected virtual Slice GetFieldKey(IVarTuple id, string field)
 		{
 			//REVIEW: should the id be encoded as an embedded tuple or not?
-			return this.Subspace.Pack(id.Append(field));
+			return this.Subspace.Tuple(id).Key(field).ToSlice();
 		}
 
 		protected virtual string ParseFieldKey(IVarTuple key)

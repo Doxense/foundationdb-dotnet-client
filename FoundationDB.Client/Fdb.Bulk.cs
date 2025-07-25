@@ -1539,7 +1539,7 @@ namespace FoundationDB.Client
 
 						previous = folder.GetPrefix();
 						location = folder;
-						var range = folder.GetRange();
+						var range = folder.ToRange();
 						begin = range.GetBeginSelector().ToSelector();
 						end = range.GetEndSelector().ToSelector();
 					}

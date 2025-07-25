@@ -131,7 +131,7 @@ namespace FoundationDB.Layers.Indexing
 				{ // (> "abc", *) => (..., "abd") < x < (..., <FF>)
 					return trans.GetRangeKeys(
 						this.Subspace.Key(value).NextSibling().FirstGreaterOrEqual(),
-						this.Subspace.GetRange().GetEndSelector(),
+						this.Subspace.ToRange().GetEndSelector(),
 						this.Subspace, static (s, k) => s.DecodeLast<TId>(k)!,
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);

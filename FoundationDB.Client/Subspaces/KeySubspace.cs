@@ -245,13 +245,13 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Obsolete("Use GetRange() instead")]
-		public KeyRange ToRange()
+		public KeyRange GetRange()
 		{
 			return GetKeyRange();
 		}
 
 		/// <inheritdoc />
-		public FdbRawKeyRange GetRange()
+		public FdbRawKeyRange ToRange()
 		{
 			var range = GetKeyRange();
 			return new(range.Begin, range.End);

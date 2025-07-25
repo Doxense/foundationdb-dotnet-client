@@ -109,7 +109,7 @@ namespace FdbShell
 
 								if (subfolder is not FdbDirectoryPartition)
 								{
-									long count = await Fdb.System.EstimateCountAsync(db, subfolder.GetRange(), ct);
+									long count = await Fdb.System.EstimateCountAsync(db, subfolder.ToRange(), ct);
 									terminal.Markup($"  {symbol} {terminal.Escape(name).PadRight(maxLen)}[/] {FdbKey.Dump(subfolder.Copy().GetPrefix()),-12} {(string.IsNullOrEmpty(subfolder.Layer) ? "-" : terminal.Escape("[" + subfolder.Layer + "]")),-12} {count,9:N0}");
 								}
 								else
@@ -171,7 +171,7 @@ namespace FdbShell
 			var stuff = await db.ReadAsync(async tr =>
 			{
 				var folder = await db.DirectoryLayer.TryOpenAsync(tr, path);
-				return await tr.GetRange(folder!.GetRange()).FirstOrDefaultAsync();
+				return await tr.GetRange<FdbRawKeyRange>(folder!.ToRange()).FirstOrDefaultAsync();
 			}, ct);
 
 			if (stuff.Key.IsPresent)
@@ -476,8 +476,8 @@ namespace FdbShell
 		private static Slice MakeKey(IKeySubspace folder, object? key) =>
 			key switch
 			{
-				IVarTuple t => folder.Append(TuPack.Pack(t)),
-				string s => folder.Append(Slice.FromStringUtf8(s)),
+				IVarTuple t => folder.Tuple(t).ToSlice(),
+				string s => folder.Bytes(s).ToSlice(),
 				_ => throw new FormatException("Unsupported key type: " + key)
 			};
 
@@ -512,7 +512,7 @@ namespace FdbShell
 				KeyRange range;
 				if (extras[0] is "*")
 				{ // clear all!
-					range = folder.GetRange().ToKeyRange();
+					range = folder.ToRange().ToKeyRange();
 				}
 				else
 				{
@@ -536,7 +536,7 @@ namespace FdbShell
 
 				var any = await tr.GetRangeAsync(range, new FdbRangeOptions { Limit = 1 });
 				if (any.Count == 0) return true;
-				tr.ClearRange(folder.GetRange());
+				tr.ClearRange(folder.ToRange());
 				return false;
 			}, ct);
 
@@ -571,7 +571,7 @@ namespace FdbShell
 				terminal.Progress($"\r# Found {state.Count:N0} keys...");
 			});
 
-			long count = await Fdb.System.EstimateCountAsync(db, copy.GetRange(), progress, ct);
+			long count = await Fdb.System.EstimateCountAsync(db, copy.ToRange(), progress, ct);
 			terminal.Progress("\r");
 			terminal.Success($"Found {count:N0} keys in {folder.FullName}");
 		}
@@ -614,7 +614,7 @@ namespace FdbShell
 					terminal.Markup($"[gray]# Layer: [cyan]{terminal.Escape(folder.Layer)}[/][/]");
 				}
 
-				var query = tr.GetRange(folder.GetRange());
+				var query = tr.GetRange(folder.ToRange());
 				var keys = await (reverse
 					? query.Reverse().Take(count)
 					: query.Take(count + 1)
@@ -673,7 +673,7 @@ namespace FdbShell
 
 				var count = await Fdb.Bulk.ExportAsync(
 					db,
-					folder.GetRange().ToKeyRange(),
+					folder.ToRange().ToKeyRange(),
 					(batch, _, _) =>
 					{
 						if (progress) terminal.Progress($"\r{kr[(p++) % kr.Length]} {FormatSize(bytes)}");
@@ -767,7 +767,7 @@ namespace FdbShell
 
 			var dirLayer = path.Count > 0 ? folder.DirectoryLayer : db.DirectoryLayer;
 			// note: this may break in future versions of the DL! Maybe we need a custom API to get a flat list of all directories in a DL that span a specific range ?
-			var span = await db.ReadAsync(async tr => (await dirLayer.Content.Resolve(tr)).GetRange().ToKeyRange(), ct);
+			var span = await db.ReadAsync(async tr => (await dirLayer.Content.Resolve(tr)).ToRange().ToKeyRange(), ct);
 
 			var shards = await Fdb.System.GetChunksAsync(db, span, ct);
 			int totalShards = shards.Count;

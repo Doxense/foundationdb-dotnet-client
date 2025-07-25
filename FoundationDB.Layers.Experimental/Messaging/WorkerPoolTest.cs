@@ -163,7 +163,7 @@ namespace FoundationDB.Layers.Messaging
 					{
 						var subspace = await location.Resolve(tr);
 						await tr.Snapshot
-							.GetRange(subspace.GetRange())
+							.GetRange(subspace.ToRange())
 							.ForEachAsync((kvp) =>
 							{
 								Console.WriteLine($" - {subspace.PrettyPrint(kvp.Key)} = {kvp.Value:V}");

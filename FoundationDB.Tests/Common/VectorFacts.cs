@@ -414,7 +414,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			bool first = true;
 			var sb = new StringBuilder();
 
-			await foreach(var kvp in tr.GetRange(vector.Subspace.GetRange()))
+			await foreach(var kvp in tr.GetRange(vector.Subspace.ToRange()))
 			{
 				if (!first)
 				{

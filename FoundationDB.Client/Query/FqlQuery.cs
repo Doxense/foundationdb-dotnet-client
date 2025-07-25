@@ -246,7 +246,7 @@ namespace FoundationDB.Client
 
 			var path = subspace.Path.GetRelativePath(root);
 			
-			await foreach (var kv in tr.GetRange(subspace.GetRange()))
+			await foreach (var kv in tr.GetRange(subspace.ToRange()))
 			{
 				// decode the tuple
 				var tuple = subspace.Unpack(kv.Key);

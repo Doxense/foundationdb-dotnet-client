@@ -202,7 +202,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				return trans
-					.GetRange(this.Subspace.GetRange(), options)
+					.GetRange(this.Subspace.ToRange(), options)
 					.Select(kv => this.Parent.DecodeItem(this.Subspace, kv));
 			}
 
@@ -240,7 +240,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(trans);
 
-				trans.ClearRange(this.Subspace.GetRange());
+				trans.ClearRange(this.Subspace.ToRange());
 			}
 
 			#region Import...

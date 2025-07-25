@@ -1096,13 +1096,12 @@ namespace FoundationDB.Client.Tests
 
 				// Keys
 
-				ShouldFail(() => partition.Append(Slice.FromString("hello")));
+				ShouldFail(() => partition.Bytes("hello"u8).ToSlice());
 				var subspace = await location.Resolve(tr, dl);
 
-				ShouldFail(() => partition.Append(subspace.GetPrefix()));
-				ShouldFail(() => partition[STuple.Create("hello", 123)]);
+				ShouldFail(() => partition.Bytes(subspace.GetPrefix()).ToSlice());
 
-				ShouldFail(() => partition.GetRange().ToKeyRange());
+				ShouldFail(() => partition.ToRange().ToKeyRange());
 				ShouldFail(() => partition.Key("hello").ToRange().ToKeyRange());
 				ShouldFail(() => FdbKeyRange.Between(partition.Key("hello", 123), partition.Key("hello", 456)).ToKeyRange());
 

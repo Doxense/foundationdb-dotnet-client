@@ -140,7 +140,7 @@ namespace FoundationDB.Layers.Collections
 				//PERF: TODO: use GetRange with value decoder!
 				return tr
 					.GetRangeValues(
-						this.Subspace.GetRange(),
+						this.Subspace.ToRange(),
 						this.Parent.Codec, static (codec, bytes) => codec.DecodeValue(bytes)
 					)
 					.LastOrDefaultAsync();
@@ -162,7 +162,7 @@ namespace FoundationDB.Layers.Collections
 				// is being represented sparsely. If so, we will be required to set it
 				// to the default value
 				var lastTwo = await tr
-					.GetRange(this.Subspace.GetRange(), FdbRangeOptions.Reversed.WithLimit(2))
+					.GetRange(this.Subspace.ToRange(), FdbRangeOptions.Reversed.WithLimit(2))
 					.ToListAsync()
 					.ConfigureAwait(false);
 
@@ -230,7 +230,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.Positive(index);
 
 				var start = GetKeyAt(index);
-				var end = this.Subspace.GetRange().End;
+				var end = this.Subspace.ToRange().End;
 
 				var output = await tr
 					.GetRange(start, end)
@@ -277,7 +277,7 @@ namespace FoundationDB.Layers.Collections
 
 				if (length < currentSize)
 				{
-					tr.ClearRange(GetKeyAt(length), this.Subspace.GetRange().End);
+					tr.ClearRange(GetKeyAt(length), this.Subspace.ToRange().End);
 
 					// Check if the new end of the vector was being sparsely represented
 					if (await ComputeSizeAsync(tr).ConfigureAwait(false) < length)
@@ -296,7 +296,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(tr);
 
-				tr.ClearRange(this.Subspace.GetRange());
+				tr.ClearRange(this.Subspace.ToRange());
 			}
 
 			#region Private Helpers...
@@ -308,7 +308,7 @@ namespace FoundationDB.Layers.Collections
 				var keyRange = this.Subspace.GetRange();
 
 				// get the last key in the range (if there is any)
-				var lastKey = await tr.GetRangeKeys(this.Subspace.GetRange()).LastOrDefaultAsync().ConfigureAwait(false);
+				var lastKey = await tr.GetRangeKeys(this.Subspace.ToRange()).LastOrDefaultAsync().ConfigureAwait(false);
 
 				if (lastKey.IsNull)
 				{ // the range is empty

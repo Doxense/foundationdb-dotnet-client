@@ -394,7 +394,9 @@ namespace FoundationDB.Client
 		#endregion
 
 		/// <summary>Return a key range that contains all the keys in a sub-partition of this subspace</summary>
-		public static KeyRange ToRange(this KeySubspace subspace, Slice suffix)
+		[Obsolete("Use subspace.Bytes(...).ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public static KeyRange GetRange(this KeySubspace subspace, Slice suffix)
 		{
 			if (suffix.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(suffix));
 			return subspace.ToRange(suffix.Span);
@@ -426,7 +428,7 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(trans != null && subspace != null);
 
 			//BUGBUG: should we call subspace.ToRange() ?
-			trans.ClearRange(subspace.GetRange());
+			trans.ClearRange(subspace.ToRange());
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>

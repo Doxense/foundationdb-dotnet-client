@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
 
 	/// <summary>Represents a sub-partition of the global key space.</summary>
 	/// <remarks>
@@ -60,13 +61,14 @@ namespace FoundationDB.Client
 		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		[Pure]
-		[Obsolete("Use GetRange() instead")]
-		KeyRange ToRange();
+		[Obsolete("Use ToRange() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		KeyRange GetRange();
 
 		/// <summary>Return a range that will match all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		[Pure]
-		FdbRawKeyRange GetRange();
+		FdbRawKeyRange ToRange();
 
 		/// <summary>Return the key that is composed of the subspace prefix and a binary suffix</summary>
 		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>

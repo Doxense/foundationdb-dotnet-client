@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using SnowBank.Data.Tuples.Binary;
 
 	[TestFixture]
 	public class TenantFacts : FdbTest
@@ -241,7 +240,7 @@ namespace FoundationDB.Client.Tests
 
 			static void TestEncode(FdbTenantSubspace subspace, Slice key)
 			{
-				var encoded = subspace.Append(key);
+				var encoded = subspace.Bytes(key).ToSlice();
 				Log($"> Append({key:K}) => {encoded}");
 
 				var expected = subspace.Metadata.Prefix + key;
@@ -255,7 +254,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var raw = TuPack.Pack(key);
 
-				var encoded = subspace.Pack(key);
+				var encoded = subspace.Tuple(key).ToSlice();
 
 				Log($"> Pack({key}) => {encoded}");
 

@@ -144,7 +144,7 @@ namespace FoundationDB.Layers.Counters
 
 			long total = 0;
 			await trans
-				.GetRange(subspace.GetRange())
+				.GetRange(subspace.ToRange())
 				.ForEachAsync((kvp) => { checked { total += TuPack.DecodeKey<long>(kvp.Value); } })
 				.ConfigureAwait(false);
 

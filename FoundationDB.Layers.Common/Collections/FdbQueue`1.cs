@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Collections
 			public void Clear(IFdbTransaction tr)
 			{
 				Contract.NotNull(tr);
-				tr.ClearRange(this.Subspace.GetRange());
+				tr.ClearRange(this.Subspace.ToRange());
 			}
 
 			/// <summary>Push a single item onto the queue.</summary>
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Collections
 				tr.Annotate("Pop()");
 #endif
 
-				var first = await tr.GetRangeAsync(this.Subspace.GetRange(), FdbRangeOptions.First);
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), FdbRangeOptions.First);
 				if (first.IsEmpty)
 				{
 #if DEBUG
@@ -148,7 +148,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Test whether the queue is empty.</summary>
 			public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 			{
-				var first = await tr.GetRangeAsync(this.Subspace.GetRange(), FdbRangeOptions.First);
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), FdbRangeOptions.First);
 				return first.IsEmpty;
 			}
 
@@ -157,7 +157,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(tr);
 
-				var first = await tr.GetRangeAsync(this.Subspace.GetRange(), FdbRangeOptions.First);
+				var first = await tr.GetRangeAsync(this.Subspace.ToRange(), FdbRangeOptions.First);
 				if (first.IsEmpty) return default;
 
 				var value = this.Parent.Codec.DecodeValue(first[0].Value.Span);
