@@ -533,7 +533,7 @@ Example of a `Dockerfile` that will grab v7.3.x binaries and inject them into yo
 
 ```Dockerfile
 # Version of the FoundationDB Client Library
-ARG FDB_VERSION=7.3.53
+ARG FDB_VERSION=7.3.68
 
 # We will need the official fdb docker image to obtain the client binaries
 FROM foundationdb/foundationdb:${FDB_VERSION} as fdb

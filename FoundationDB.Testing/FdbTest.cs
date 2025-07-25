@@ -38,7 +38,7 @@ namespace FoundationDB.Client.Tests
 	public abstract class FdbTest : FdbSimpleTest
 	{
 
-		internal const string DockerImageTag73 = "7.3.54";
+		internal const string DockerImageTag73 = "7.3.68";
 
 		protected int OverrideApiVersion;
 
