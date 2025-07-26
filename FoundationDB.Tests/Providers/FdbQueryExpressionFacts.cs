@@ -99,7 +99,7 @@
 		public void Test_FdbQueryRangeExpression()
 		{
 			var expr = FdbQueryExpressions.Range(
-				KeySelectorPair.Create(TuPack.ToKeyRange("Foo"))
+				KeySelectorPair.Create(KeyRange.ToRange(TuPack.EncodeKey("Foo")))
 			);
 			Dump(expr);
 

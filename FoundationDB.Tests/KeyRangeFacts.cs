@@ -219,20 +219,15 @@ namespace FoundationDB.Client.Tests
 				Assert.That(FdbKey.Dump(TuPack.EncodeKey(uuid64)), Is.EqualTo($"({uuid64:B},)"), "Uuid64s should be displayed as a string literal, surrounded by {{...}}, and without quotes");
 
 				// ranges should be decoded when possible
-				var key = TuPack.ToRange(STuple.Create("hello"));
-				// "<02>hello<00><00>" .. "<02>hello<00><FF>"
-				Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",).<00>"));
-				Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",).<FF>"));
-
-				key = KeyRange.StartsWith(TuPack.EncodeKey("hello"));
+				var key = KeyRange.StartsWith(TuPack.EncodeKey("hello"));
 				// "<02>hello<00>" .. "<02>hello<01>"
 				Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",)"));
 				Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",) + 1"));
 
 				var t = TuPack.EncodeKey(123);
 				Assert.That(FdbKey.PrettyPrint(t, FdbKey.PrettyPrintMode.Single), Is.EqualTo("(123,)"));
-				Assert.That(FdbKey.PrettyPrint(TuPack.ToRange(t).Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(123,).<00>"));
-				Assert.That(FdbKey.PrettyPrint(TuPack.ToRange(t).End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(123,).<FF>"));
+				Assert.That(FdbKey.PrettyPrint(t + 0x00, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(123,).<00>"));
+				Assert.That(FdbKey.PrettyPrint(t + 0xFF, FdbKey.PrettyPrintMode.End), Is.EqualTo("(123,).<FF>"));
 			});
 		}
 

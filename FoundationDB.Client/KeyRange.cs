@@ -86,7 +86,7 @@ namespace FoundationDB.Client
 		/// <summary>Creates a range that selects all keys starting with <paramref name="prefix"/>, but not the prefix itself: <c>prefix.'\0' &lt;= k &lt; increment(prefix)</c></summary>
 		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
-		/// <example><c>KeyRange.PrefixedBy(Slice.FromString("hello"))</c> => <c>(`hello\0`, `hellp`)</c></example>
+		/// <example><c>KeyRange.PrefixedBy(Slice.FromString("hello"))</c> => <c>(`hello\x00`, `hellp`)</c></example>
 		[Pure]
 		public static KeyRange PrefixedBy(Slice prefix)
 		{
@@ -94,8 +94,23 @@ namespace FoundationDB.Client
 
 			// prefix => [ prefix."\0", prefix + 1)
 			return new KeyRange(
-				prefix + FdbKey.MinValue,
+				prefix + 0x00,
 				FdbKey.Increment(prefix)
+			);
+		}
+
+		/// <summary>Creates a range that selects all keys starting with <paramref name="prefix"/> generated using the Tuple Encoding, excluding the prefix itself: <c>prefix.`\x00` &lt;= k &lt; prefix.`\xff`</c></summary>
+		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
+		/// <returns>Range including all keys with the specified prefix, and that are valid encodings of tuples.</returns>
+		/// <example><c>KeyRange.PrefixedBy(TuPack.EncodeKey("hello", 42))</c> => <c>(`\x02hello\x00\x15\x2A\x00`, `\x02hello\x00\x15\x2A\xFF`)</c></example>
+		public static KeyRange ToRange(Slice prefix)
+		{
+			if (prefix.IsNull) throw Fdb.Errors.KeyCannotBeNull(nameof(prefix));
+
+			// prefix => [ prefix."\0", prefix."\xFF" )
+			return new KeyRange(
+				prefix + 0x00,
+				prefix + 0xFF
 			);
 		}
 

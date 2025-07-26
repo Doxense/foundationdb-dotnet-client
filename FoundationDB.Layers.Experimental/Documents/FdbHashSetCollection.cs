@@ -43,25 +43,6 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
 		public IKeySubspace Subspace { get; }
 
-		/// <summary>Returns the key prefix of an HashSet: (subspace, id)</summary>
-		protected virtual Slice GetKey(IVarTuple id)
-		{
-			//REVIEW: should the id be encoded as an embedded tuple or not?
-			return this.Subspace.Tuple(id).ToSlice();
-		}
-
-		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field)</summary>
-		protected virtual Slice GetFieldKey(IVarTuple id, string field)
-		{
-			//REVIEW: should the id be encoded as an embedded tuple or not?
-			return this.Subspace.Tuple(id).Key(field).ToSlice();
-		}
-
-		protected virtual string ParseFieldKey(IVarTuple key)
-		{
-			return key.GetLast<string>()!;
-		}
-
 		#region Get
 
 		/// <summary>Returns the value of a specific field of a hashset</summary>
@@ -75,7 +56,7 @@ namespace FoundationDB.Layers.Blobs
 			Contract.NotNull(id);
 			Contract.NotNullOrEmpty(field);
 
-			return trans.GetAsync(GetFieldKey(id, field));
+			return trans.GetAsync(this.Subspace.Tuple(id).Key(field));
 		}
 
 		/// <summary>Returns all fields of a hashset</summary>
@@ -87,11 +68,10 @@ namespace FoundationDB.Layers.Blobs
 			Contract.NotNull(trans);
 			Contract.NotNull(id);
 
-			var prefix = GetKey(id);
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			await trans
-				.GetRange(KeyRange.StartsWith(prefix))
+				.GetRange(this.Subspace.Tuple(id).ToRange())
 				.ForEachAsync((kvp) =>
 				{
 					string field = this.Subspace.DecodeLast<string>(kvp.Key)!;
@@ -113,9 +93,7 @@ namespace FoundationDB.Layers.Blobs
 			Contract.NotNull(id);
 			Contract.NotNull(fields);
 
-			var keys = TuPack.EncodePrefixedKeys(GetKey(id), fields);
-
-			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
+			var values = await trans.GetValuesAsync(fields, f => this.Subspace.Tuple(id).Key(f)).ConfigureAwait(false);
 			Contract.Debug.Assert(values != null && values.Length == fields.Length);
 
 			var results = new Dictionary<string, Slice>(values.Length, StringComparer.OrdinalIgnoreCase);
@@ -136,7 +114,7 @@ namespace FoundationDB.Layers.Blobs
 			Contract.NotNull(id);
 			Contract.NotNullOrEmpty(field);
 
-			trans.Set(GetFieldKey(id, field), value);
+			trans.Set(this.Subspace.Tuple(id).Key(field), value);
 		}
 
 		public void Set(IFdbTransaction trans, IVarTuple id, IEnumerable<KeyValuePair<string, Slice>> fields)
@@ -148,7 +126,7 @@ namespace FoundationDB.Layers.Blobs
 			foreach (var field in fields)
 			{
 				if (string.IsNullOrEmpty(field.Key)) throw new ArgumentException("Field cannot have an empty name", nameof(fields));
-				trans.Set(GetFieldKey(id, field.Key), field.Value);
+				trans.Set(this.Subspace.Tuple(id).Key(field.Key), field.Value);
 			}
 		}
 
@@ -163,7 +141,7 @@ namespace FoundationDB.Layers.Blobs
 			Contract.NotNull(id);
 			Contract.NotNullOrEmpty(field);
 
-			trans.Clear(GetFieldKey(id, field));
+			trans.Clear(this.Subspace.Tuple(id).Key(field));
 		}
 
 		/// <summary>Removes all fields of a hashset</summary>
@@ -173,7 +151,7 @@ namespace FoundationDB.Layers.Blobs
 			Contract.NotNull(id);
 
 			// remove all fields of the hash
-			trans.ClearRange(KeyRange.StartsWith(GetKey(id)));
+			trans.ClearRange(this.Subspace.Tuple(id).ToRange());
 		}
 
 		/// <summary>Removes one or more fields of a hashset</summary>
@@ -186,7 +164,7 @@ namespace FoundationDB.Layers.Blobs
 			foreach (var field in fields)
 			{
 				if (string.IsNullOrEmpty(field)) throw new ArgumentException("Field cannot have an empty name", nameof(fields));
-				trans.Clear(GetFieldKey(id, field));
+				trans.Clear(this.Subspace.Tuple(id).Key(field));
 			}
 		}
 
@@ -203,10 +181,9 @@ namespace FoundationDB.Layers.Blobs
 			Contract.NotNull(trans);
 			Contract.NotNull(id);
 
-			var prefix = GetKey(id);
 			return trans
-				.GetRangeKeys(KeyRange.StartsWith(prefix))
-				.Select((k) => ParseFieldKey(TuPack.Unpack(k)))
+				.GetRangeKeys(this.Subspace.Tuple(id).ToRange())
+				.Select((k) => this.Subspace.DecodeLast<string>(k)!)
 				.ToListAsync();
 		}
 
