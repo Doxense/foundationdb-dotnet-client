@@ -138,10 +138,13 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		private static InvalidOperationException ErrorCanOnlyBeTopLevel() => new($"Tuples of type {nameof(SlicedTuple)} can only be packed as top-level.");
+
 		/// <inheritdoc />
 		public bool TryPackTo(ref TupleSpanWriter writer)
 		{
-			if (writer.Depth != 0) throw new InvalidOperationException($"Tuples of type {nameof(SlicedTuple)} can only be packed as top-level.");
+			if (writer.Depth != 0) throw ErrorCanOnlyBeTopLevel();
 
 			var buffer = m_buffer;
 			foreach(var slice in m_slices)
@@ -151,6 +154,30 @@ namespace SnowBank.Data.Tuples.Binary
 					return false;
 				}
 			}
+			return true;
+		}
+
+		/// <inheritdoc />
+		public bool TryGetSizeHint(bool embedded, out int sizeHint)
+		{
+			if (embedded) throw ErrorCanOnlyBeTopLevel();
+
+			// we simply have to count the size of the already encoded chunks
+
+			var bufferLen = m_buffer.Length;
+			long total = 0;
+			foreach (var slice in m_slices)
+			{
+				total += slice.GetOffsetAndLength(bufferLen).Length;
+			}
+
+			if (total > int.MaxValue)
+			{
+				sizeHint = 0;
+				return false;
+			}
+
+			sizeHint = unchecked((int) total);
 			return true;
 		}
 
@@ -469,7 +496,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Returns a human-readable representation of this tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <summary>Returns a human-readable representation of this tuple</summary>
 		[Pure]

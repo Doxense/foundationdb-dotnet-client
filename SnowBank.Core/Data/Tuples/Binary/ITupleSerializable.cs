@@ -38,13 +38,8 @@ namespace SnowBank.Data.Tuples.Binary
 
 	}
 
-	[Obsolete("Replace with ITuplePackable and optionally implement ITupleSpanPackable as well")]
-	public interface ITupleSerializable : ITuplePackable
-	{
-		//TODO: remove this once we know all uses have been replaced
-	}
-
 	/// <summary>Represents an object that can serialize itself using the Tuple Binary Encoding format</summary>
+	[PublicAPI]
 	public interface ITupleSpanPackable : ITuplePackable
 	{
 		/// <summary>Appends the packed bytes of this instance to the end of a buffer, if it is large enough</summary>
@@ -55,6 +50,14 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <para>Implementors of this method should ONLY return <c>false</c> when the buffer is too small, and <b>MUST</b> throw exceptions if the data is invalid, or cannot be formatted even with a larger buffer. Failure to do so may cause an infinite loop!</para>
 		/// </remarks>
 		bool TryPackTo(ref TupleSpanWriter writer);
+
+		/// <summary>Attempts to quickly estimate the minimum buffer capacity required to pack this tuple</summary>
+		/// <param name="embedded"><c>true</c> if this is an embedded tuple, <c>false</c> if this is the top-level</param>
+		/// <param name="sizeHint">Receives the estimated size, or <c>0</c></param>
+		/// <returns><c>true</c> if the capacity could be quickly estimated, or <c>false</c> if it would require almost as much work as encoding the tuple.</returns>
+		/// <remarks>The result MUST include the start/stop bytes for embedded tuples (which will be accounted by the parent)</remarks>
+		bool TryGetSizeHint(bool embedded, out int sizeHint);
+
 	}
 
 	/// <summary>Represents a tuple that can formats its item into a string representation</summary>
@@ -65,30 +68,8 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Writes the string representation of the items of this tuple</summary>
 		/// <param name="sb">Output buffer</param>
 		/// <returns>Number of items written</returns>
-		/// <remarks>This method should not emit any <c>'('</c> or <c>')'</c> delimiters, and only adds <c>", "</c> internal separators</remarks>
+		/// <remarks>This method should not emit any <c>"("</c> or <c>")"</c> delimiters, but should insert <c>", "</c> separators between items</remarks>
 		int AppendItemsTo(ref FastStringBuilder sb);
-
-	}
-
-	/// <summary>Represents an object that can serialize or deserialize tuples of type <typeparamref name="TTuple"/>, using the Tuple Binary Encoding format</summary>
-	/// <typeparam name="TTuple">Type of tuples that can be processed by this instance</typeparam>
-	[PublicAPI]
-	public interface ITupleSerializer<TTuple> //REVIEW: ITuplePacker<T> ?
-		where TTuple : IVarTuple
-	{
-		/// <summary>Appends the packed bytes of an item to the end of a buffer</summary>
-		/// <param name="writer">Buffer that will receive the packed bytes of this instance</param>
-		/// <param name="tuple">Tuple that will be packed</param>
-		void PackTo(TupleWriter writer, in TTuple tuple);
-
-		/// <summary>Decode the packed bytes from a buffer, and return the corresponding item</summary>
-		/// <param name="reader">Buffer that contains the bytes to decode</param>
-		/// <param name="tuple">Receives the decoded tuple</param>
-		/// <returns>
-		/// The value of <paramref name="reader"/> will be updated to point to either the end of the buffer, or the next "element" if there are more bytes available.
-		/// </returns>
-		[Pure]
-		void UnpackFrom(ref TupleReader reader, out TTuple tuple);
 
 	}
 

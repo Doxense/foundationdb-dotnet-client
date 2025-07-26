@@ -53,16 +53,32 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Binary prefix to all the keys produced by this tuple</summary>
 		public Slice Prefix => m_prefix;
 
+		/// <inheritdoc />
 		void ITuplePackable.PackTo(TupleWriter writer)
 		{
 			PackTo(writer);
 		}
 
+		/// <inheritdoc />
 		bool ITupleSpanPackable.TryPackTo(ref TupleSpanWriter writer)
 		{
 			return TryPackTo(ref writer);
 		}
 
+		/// <inheritdoc />
+		bool ITupleSpanPackable.TryGetSizeHint(bool embedded, out int sizeHint)
+		{
+			if (m_items is ITupleSpanPackable tsp && tsp.TryGetSizeHint(embedded, out var size))
+			{
+				sizeHint = checked(size + m_prefix.Count);
+				return true;
+			}
+
+			sizeHint = 0;
+			return false;
+		}
+
+		/// <inheritdoc />
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			return STuple.Formatter.AppendItemsTo(ref sb, this);
@@ -121,7 +137,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return Concat(tuple);
 		}
 
-		public PrefixedTuple Append<T>(T value)
+		public PrefixedTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T value)
 		{
 			return new PrefixedTuple(m_prefix, m_items.Append<T>(value));
 		}
@@ -152,7 +168,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Returns a human-readable representation of this tuple</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <summary>Returns a human-readable representation of this tuple</summary>
 		[Pure]

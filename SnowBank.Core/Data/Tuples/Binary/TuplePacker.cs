@@ -29,7 +29,6 @@
 
 namespace SnowBank.Data.Tuples.Binary
 {
-	using SnowBank.Buffers;
 
 	/// <summary>Helper class for serializing and deserializing values of type <typeparamref name="T"/> using the tuple binary format</summary>
 	/// <typeparam name="T">Type of values to be serialized</typeparam>
@@ -39,19 +38,6 @@ namespace SnowBank.Data.Tuples.Binary
 		internal static readonly (TuplePackers.Encoder<T> Direct, TuplePackers.SpanEncoder<T> Span) Encoders = TuplePackers.GetSerializer<T>();
 
 		internal static readonly TuplePackers.Decoder<T?> Decoder = TuplePackers.GetDeserializer<T>(required: true);
-
-		/// <summary>Serializes a <typeparamref name="T"/> to the tuple format using a <see cref="TupleWriter"/>.</summary>
-		/// <param name="writer">The <see cref="TupleWriter"/> into which the value will be serialized.</param>
-		/// <param name="value">The value to be serialized</param>
-		/// <remarks>
-		/// <para>The buffer does not need to be pre-allocated.</para>
-		/// <para>This method supports embedded tuples.</para>
-		/// </remarks>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void SerializeTo(TupleWriter writer, T? value)
-		{
-			Encoders.Direct(writer, value);
-		}
 
 		/// <summary>Serializes a boxed value to the tuple format using a <see cref="TupleWriter"/>.</summary>
 		/// <param name="writer">The <see cref="TupleWriter"/> into which the value will be serialized.</param>
@@ -75,33 +61,6 @@ namespace SnowBank.Data.Tuples.Binary
 		public static bool TrySerializeBoxedTo(ref TupleSpanWriter writer, in object? value)
 		{
 			return Encoders.Span(ref writer, (T) value!);
-		}
-
-		/// <summary>Serializes a <typeparamref name="T"/> to the tuple format using a <see cref="SliceWriter"/>.</summary>
-		/// <param name="writer">The <see cref="SliceWriter"/> into which the value will be serialized.</param>
-		/// <param name="value">The value to be serialized</param>
-		/// <remarks>
-		/// <para>The buffer does not need to be pre-allocated.</para>
-		/// <para>This method <b>DOES NOT</b> support embedded tuples, and assumes that we are serializing a top-level Tuple!</para>
-		/// <para>If you need support for embedded tuples, use <see cref="SerializeTo(TupleWriter,T)"/> instead!</para>
-		/// </remarks>
-		public static void SerializeTo(ref SliceWriter writer, T? value)
-		{
-			var tw = new TupleWriter(ref writer);
-			Encoders.Direct(tw, value);
-			//REVIEW: we loose the depth information here! :(
-		}
-
-		/// <summary>Serializes a <typeparamref name="T"/> to the tuple format into a <see cref="Slice"/>.</summary>
-		/// <param name="value">The value to be serialized</param>
-		/// <returns><see cref="Slice"/> that contains the binary representation of <paramref name="value"/></returns>
-		/// <remarks>This method will allocate memory on each call. Consider using <see cref="SerializeTo(ref SliceWriter,T?)"/>, or any other variant, to reduce allocations.</remarks>
-		public static Slice Serialize(T? value)
-		{
-			var sw = new SliceWriter();
-			var tw = new TupleWriter(ref sw);
-			Encoders.Direct(tw, value);
-			return sw.ToSlice();
 		}
 
 		/// <summary>Deserializes a tuple segment into a value of type <typeparamref name="T"/>.</summary>

@@ -33,13 +33,19 @@ namespace SnowBank.Data.Tuples.Binary
 	using System.Text;
 	using SnowBank.Data.Tuples;
 
+	/// <summary>Buffer for writing tuples into a <see cref="Span{byte}"/></summary>
+	[DebuggerDisplay("{ToString(),nq}"), DebuggerTypeProxy(typeof(DebugView))]
 	public ref struct TupleSpanWriter
 	{
 
+		/// <summary>Fixed-size buffer</summary>
 		public readonly Span<byte> Buffer;
 
+		/// <summary>Current depth of the tuple (0 = top)</summary>
 		public int Depth;
 
+		/// <summary>Number of bytes written so far</summary>
+		/// <remarks>The next free byte is at Buffer[BytesWritten]</remarks>
 		public int BytesWritten;
 
 		[SkipLocalsInit]
@@ -50,6 +56,11 @@ namespace SnowBank.Data.Tuples.Binary
 			this.Depth = depth;
 		}
 
+		/// <summary>Allocates a span with an exact size</summary>
+		/// <param name="size">Requested size</param>
+		/// <param name="span">Span of that size</param>
+		/// <returns><c>true</c> if the buffer was large enough</returns>
+		/// <remarks>The cursor will be advanced by exactly <paramref name="size"/> bytes</remarks>
 		[MustUseReturnValue]
 		public bool TryAllocateSpan(int size, out Span<byte> span)
 		{
@@ -66,6 +77,8 @@ namespace SnowBank.Data.Tuples.Binary
 			return true;
 		}
 
+		/// <summary>Gets a span of all the remaining space in the buffer, if it is not full</summary>
+		/// <remarks>This does not advance the cursor. You must call <see cref="TryAdvance"/> or <see cref="AdvanceUnsafe"/> to "commit" the bytes</remarks>
 		[MustUseReturnValue]
 		public readonly bool TryGetTail(out Span<byte> span)
 		{
@@ -80,6 +93,11 @@ namespace SnowBank.Data.Tuples.Binary
 			return true;
 		}
 
+		/// <summary>Gets a span that can fit at least the given minimum capacity</summary>
+		/// <param name="size">Minimum size requested</param>
+		/// <param name="span">Receives the remaining space in the buffer, which should be at least of length <paramref name="size"/></param>
+		/// <returns><c>true</c> if the buffer has enough remaining capacity</returns>
+		/// <remarks>This does not advance the cursor. You must call <see cref="TryAdvance"/> or <see cref="AdvanceUnsafe"/> to "commit" the bytes</remarks>
 		[MustUseReturnValue]
 		public readonly bool TryGetSpan(int size, out Span<byte> span)
 		{
@@ -95,10 +113,13 @@ namespace SnowBank.Data.Tuples.Binary
 			return true;
 		}
 
+		/// <summary>Advance the cursor by the given offset, if the buffer is large enough</summary>
+		/// <param name="offset">Number of bytes consumed after a previous call to <see cref="TryGetSpan"/> or <see cref="TryGetTail"/></param>
+		/// <returns><c>true</c> if the buffer was large enough</returns>
 		[MustUseReturnValue]
-		public bool TryAdvance(int size)
+		public bool TryAdvance(int offset)
 		{
-			int pos = checked(this.BytesWritten + size);
+			int pos = checked(this.BytesWritten + offset);
 			if (pos > this.Buffer.Length)
 			{
 				return false;
@@ -108,11 +129,15 @@ namespace SnowBank.Data.Tuples.Binary
 			return true;
 		}
 
-		public void AdvanceUnsafe(int size)
+		/// <summary>Advance the cursor by the given offset</summary>
+		/// <param name="offset">Number of bytes consumed after a previous call to <see cref="TryGetSpan"/> or <see cref="TryGetTail"/></param>
+		/// <remarks>The caller <b>MUST</b> already have validated the size, otherwise the state of the writer could become corrupted!</remarks>
+		public void AdvanceUnsafe(int offset)
 		{
-			this.BytesWritten += size;
+			this.BytesWritten += offset;
 		}
 
+		/// <summary>Writes a Null element, and advance the cursor</summary>
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
 		public bool TryWriteNil()
 		{
@@ -140,6 +165,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return false;
 		}
 
+		/// <summary>Writes a single-byte literal, and advance the cursor</summary>
 		[MustUseReturnValue]
 		public bool TryWriteLiteral(byte byte1)
 		{
@@ -154,6 +180,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return false;
 		}
 
+		/// <summary>Writes a two-bytes literal, and advance the cursor</summary>
 		[MustUseReturnValue]
 		public bool TryWriteLiteral(byte byte1, byte byte2)
 		{
@@ -169,6 +196,7 @@ namespace SnowBank.Data.Tuples.Binary
 			return false;
 		}
 
+		/// <summary>Writes a bytes literal, and advance the cursor</summary>
 		[MustUseReturnValue]
 		public bool TryWriteLiteral(scoped ReadOnlySpan<byte> bytes)
 		{
@@ -181,7 +209,25 @@ namespace SnowBank.Data.Tuples.Binary
 			return true;
 		}
 
+		/// <summary>Returns a view of the bytes that have been written so far</summary>
 		public readonly ReadOnlySpan<byte> GetWrittenSpan() => this.Buffer[..this.BytesWritten];
+
+		public override string ToString() => Slice.Dump(GetWrittenSpan());
+
+		private readonly struct DebugView
+		{
+
+			public DebugView(TupleSpanWriter tw) => this.Data = Slice.FromBytes(tw.GetWrittenSpan());
+
+			public readonly Slice Data;
+
+			public int BytesWritten => this.Data.Count;
+
+			public string Text => Slice.Dump(this.Data);
+
+			public string Hex => this.Data.ToHexString(' ');
+
+		}
 
 	}
 
@@ -923,24 +969,26 @@ namespace SnowBank.Data.Tuples.Binary
 
 		#endregion
 
-		public static bool TryWriteDecimal(ref TupleSpanWriter writer, in decimal value)
+		public static bool TryWriteQuadruple(ref TupleSpanWriter writer, in decimal value)
 		{
-			throw new NotImplementedException();
+			//TODO: implement with when Decimal128 is available (in .NET 11)
+			throw new NotSupportedException();
 		}
 
-		public static void WriteDecimal(this TupleWriter writer, decimal value)
+		public static void WriteQuadruple(this TupleWriter writer, decimal value)
 		{
-			throw new NotImplementedException();
+			//TODO: implement with when Decimal128 is available (in .NET 11)
+			throw new NotSupportedException();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool TryWriteDecimal(ref TupleSpanWriter writer, in decimal? value)
-			=> value is null ? writer.TryWriteNil() : TryWriteDecimal(ref writer, value.Value);
+		public static bool TryWriteQuadruple(ref TupleSpanWriter writer, in decimal? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteQuadruple(ref writer, value.Value);
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void WriteDecimal(this TupleWriter writer, decimal? value)
+		public static void WriteQuadruple(this TupleWriter writer, decimal? value)
 		{
-			if (!value.HasValue) WriteNil(writer); else WriteDecimal(writer, value.Value);
+			if (!value.HasValue) WriteNil(writer); else WriteQuadruple(writer, value.Value);
 		}
 
 #if NET8_0_OR_GREATER
@@ -1606,12 +1654,6 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(this TupleWriter writer, byte[] value, int offset, int count)
-		{
-			WriteNulEscapedBytes(writer, TupleTypes.Bytes, value.AsSpan(offset, count));
-		}
-
-		/// <summary>Writes a binary string</summary>
 		public static bool TryWriteBytes(ref TupleSpanWriter writer, in ArraySegment<byte> value)
 		{
 			if (value.Count == 0 && value.Array == null)
@@ -1625,6 +1667,10 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Writes a binary string</summary>
+		public static bool TryWriteBytes(ref TupleSpanWriter writer, in ArraySegment<byte>? value)
+			=> value is null ? writer.TryWriteNil() : TryWriteBytes(ref writer, value.Value);
+
+		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(this TupleWriter writer, ArraySegment<byte> value)
 		{
 			if (value.Count == 0 && value.Array == null)
@@ -1635,6 +1681,12 @@ namespace SnowBank.Data.Tuples.Binary
 			{
 				WriteNulEscapedBytes(writer, TupleTypes.Bytes, value.AsSpan());
 			}
+		}
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(this TupleWriter writer, ArraySegment<byte>? value)
+		{
+			if (value is null) { WriteNil(writer); } else { WriteBytes(writer, value.Value); }
 		}
 
 		/// <summary>Writes a binary string</summary>
@@ -2266,7 +2318,6 @@ namespace SnowBank.Data.Tuples.Binary
 			};
 		}
 
-
 		private static bool ShouldUnescapeByteString(ReadOnlySpan<byte> buffer)
 		{
 			// check for nulls
@@ -2451,9 +2502,9 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-		/// <summary>Parse a tuple segment containing a unicode string</summary>
+		/// <summary>Parse a tuple segment containing a UTF-8 string</summary>
 		[Pure]
-		public static bool TryParseUnicode(ReadOnlySpan<byte> slice, [MaybeNullWhen(false)] out string? value)
+		public static bool TryParseUtf8(ReadOnlySpan<byte> slice, [MaybeNullWhen(false)] out string value)
 		{
 			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.Utf8 && slice[^1] == 0);
 
@@ -2489,9 +2540,9 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-		/// <summary>Parse a tuple segment containing a unicode string</summary>
+		/// <summary>Parse a tuple segment containing a UTF-8 string</summary>
 		[Pure]
-		public static string ParseUnicode(ReadOnlySpan<byte> slice)
+		public static string ParseUtf8(ReadOnlySpan<byte> slice)
 		{
 			Contract.Debug.Requires(slice.Length > 1 && slice[0] == TupleTypes.Utf8 && slice[^1] == 0);
 
@@ -2764,11 +2815,11 @@ namespace SnowBank.Data.Tuples.Binary
 			return value;
 		}
 
-		/// <summary>Parse a tuple segment containing a quadruple precision number (float128)</summary>
+		/// <summary>Parse a tuple segment containing a quadruple precision floating-point number (aka "binary128")</summary>
 		[Pure]
-		public static bool TryParseDecimal(ReadOnlySpan<byte> slice, out decimal value)
+		public static bool TryParseQuadruple(ReadOnlySpan<byte> slice, out decimal value)
 		{
-			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Decimal);
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Quadruple);
 
 			if (slice.Length != 17)
 			{
@@ -2776,24 +2827,24 @@ namespace SnowBank.Data.Tuples.Binary
 				return false;
 			}
 
-			//BUGBUG: TODO: implement this!
+			//BUGBUG: TODO: implement this when Decimal128 drops in .NET 11 (
 
 			value = 0;
 			return false;
 		}
 
-		/// <summary>Parse a tuple segment containing a quadruple precision number (float128)</summary>
+		/// <summary>Parse a tuple segment containing a quadruple precision floating-point number (aka "binary128")</summary>
 		[Pure]
-		public static decimal ParseDecimal(ReadOnlySpan<byte> slice)
+		public static decimal ParseQuadruple(ReadOnlySpan<byte> slice)
 		{
-			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Decimal);
+			Contract.Debug.Requires(slice.Length > 0 && slice[0] == TupleTypes.Quadruple);
 
 			if (slice.Length != 17)
 			{
 				throw new FormatException("Slice has invalid size for a Decimal");
 			}
 
-			//BUGBUG: TODO: implement this!
+			//BUGBUG: TODO: implement this when Decimal128 drops in .NET 11 (
 			throw new NotImplementedException();
 		}
 
@@ -3088,7 +3139,7 @@ namespace SnowBank.Data.Tuples.Binary
 					return reader.TryReadBytes(11, out token, out error);
 				}
 
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{ // <23>(16 bytes)
 					return reader.TryReadBytes(17, out token, out error);
 				}
@@ -3126,7 +3177,7 @@ namespace SnowBank.Data.Tuples.Binary
 				case TupleTypes.Escape:
 				{ // <FE> or <FF>
 
-					// if <FF> and this is the first byte, we are reading a system key like '\xFF/something"
+					// if <FF> and this is the first byte, we are reading a system key like "\xFF/something"
 					if (reader.Cursor == 0)
 					{
 						token = new(reader.Cursor, reader.Input.Length);
@@ -3139,7 +3190,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 			}
 
-			if (type <= TupleTypes.IntPos8 && type >= TupleTypes.IntNeg8)
+			if (type is <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8)
 			{
 				int bytes = type - TupleTypes.IntZero;
 				if (bytes < 0) bytes = -bytes;

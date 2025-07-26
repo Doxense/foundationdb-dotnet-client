@@ -1116,7 +1116,6 @@ namespace SnowBank.Data.Tuples.Binary
 			return true;
 		}
 
-
 		// SliceOwner/ArrayPool
 
 		/// <summary>Efficiently concatenates a prefix with the packed representation of a 1-tuple</summary>
@@ -1351,21 +1350,13 @@ namespace SnowBank.Data.Tuples.Binary
 			return sw.ToSliceOwner();
 		}
 
-		// EncodeKey...
-
-		//REVIEW: do we really need "Key" in the name?
-		// => we want to make it obvious that this is to pack ordered keys, but this could be used for anything else...
-		// => EncodeValues? (maybe confused with unordered encoding)
-		// => EncodeItems?
-		// => Encode?
-
 		/// <summary>Packs a 1-tuple directly into a slice</summary>
 		public static Slice Pack<T1>(ReadOnlySpan<byte> prefix, in STuple<T1> tuple)
 		{
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
 			var tw = new TupleWriter(ref sw);
-			TupleSerializer<T1>.Default.PackTo(tw, tuple);
+			((ITuplePackable) tuple).PackTo(tw);
 			return sw.ToSlice();
 		}
 
@@ -1375,7 +1366,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
 			var tw = new TupleWriter(ref sw);
-			TupleSerializer<T1, T2>.Default.PackTo(tw, tuple);
+			((ITuplePackable) tuple).PackTo(tw);
 			return sw.ToSlice();
 		}
 
@@ -1385,7 +1376,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
 			var tw = new TupleWriter(ref sw);
-			TupleSerializer<T1, T2, T3>.Default.PackTo(tw, tuple);
+			((ITuplePackable) tuple).PackTo(tw);
 			return sw.ToSlice();
 		}
 
@@ -1395,7 +1386,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
 			var tw = new TupleWriter(ref sw);
-			TupleSerializer<T1, T2, T3, T4>.Default.PackTo(tw, tuple);
+			((ITuplePackable) tuple).PackTo(tw);
 			return sw.ToSlice();
 		}
 
@@ -1405,7 +1396,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
 			var tw = new TupleWriter(ref sw);
-			TupleSerializer<T1, T2, T3, T4, T5>.Default.PackTo(tw, tuple);
+			((ITuplePackable) tuple).PackTo(tw);
 			return sw.ToSlice();
 		}
 
@@ -1415,7 +1406,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
 			var tw = new TupleWriter(ref sw);
-			TupleSerializer<T1, T2, T3, T4, T5, T6>.Default.PackTo(tw, tuple);
+			((ITuplePackable) tuple).PackTo(tw);
 			return sw.ToSlice();
 		}
 
@@ -1425,7 +1416,7 @@ namespace SnowBank.Data.Tuples.Binary
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
 			var tw = new TupleWriter(ref sw);
-			TupleSerializer<T1, T2, T3, T4, T5, T6, T7>.Default.PackTo(tw, tuple);
+			((ITuplePackable) tuple).PackTo(tw);
 			return sw.ToSlice();
 		}
 
@@ -1435,23 +1426,8 @@ namespace SnowBank.Data.Tuples.Binary
 			var sw = new SliceWriter();
 			sw.WriteBytes(prefix);
 			var tw = new TupleWriter(ref sw);
-			TupleSerializer<T1, T2, T3, T4, T5, T6, T7, T8>.Default.PackTo(tw, tuple);
+			((ITuplePackable) tuple).PackTo(tw);
 			return sw.ToSlice();
-		}
-
-		/// <summary>Packs a 1-tuple directly into a slice</summary>
-		public static void WriteKeysTo<T1>(ref SliceWriter writer, T1 item1)
-		{
-			var tw = new TupleWriter(ref writer);
-			TuplePackers.SerializeTo(tw, item1);
-		}
-
-		/// <summary>Packs a 2-tuple directly into a slice</summary>
-		public static void WriteKeysTo<T1, T2>(ref SliceWriter writer, T1? item1, T2? item2)
-		{
-			var tw = new TupleWriter(ref writer);
-			TuplePackers.SerializeTo(tw, item1);
-			TuplePackers.SerializeTo(tw, item2);
 		}
 
 		/// <summary>Packs a 2-tuple directly into a slice</summary>
@@ -1459,15 +1435,6 @@ namespace SnowBank.Data.Tuples.Binary
 		{
 			return TuplePackers.TrySerializeTo(ref writer, item1)
 				&& TuplePackers.TrySerializeTo(ref writer, item2);
-		}
-
-		/// <summary>Packs a 3-tuple directly into a slice</summary>
-		public static void WriteKeysTo<T1, T2, T3>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3)
-		{
-			var tw = new TupleWriter(ref writer);
-			TuplePackers.SerializeTo(tw, item1);
-			TuplePackers.SerializeTo(tw, item2);
-			TuplePackers.SerializeTo(tw, item3);
 		}
 
 		/// <summary>Packs a 3-tuple directly into a slice</summary>
@@ -1479,130 +1446,12 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		/// <summary>Packs a 4-tuple directly into a slice</summary>
-		public static void WriteKeysTo<T1, T2, T3, T4>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4)
-		{
-			var tw = new TupleWriter(ref writer);
-			TuplePackers.SerializeTo(tw, item1);
-			TuplePackers.SerializeTo(tw, item2);
-			TuplePackers.SerializeTo(tw, item3);
-			TuplePackers.SerializeTo(tw, item4);
-		}
-
-		/// <summary>Packs a 4-tuple directly into a slice</summary>
 		public static bool TryWriteKeysTo<T1, T2, T3, T4>(ref TupleSpanWriter writer, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return TuplePackers.TrySerializeTo(ref writer, item1)
 				&& TuplePackers.TrySerializeTo(ref writer, item2)
 				&& TuplePackers.TrySerializeTo(ref writer, item3)
 				&& TuplePackers.TrySerializeTo(ref writer, item4);
-		}
-
-		/// <summary>Packs a 5-tuple directly into a slice</summary>
-		public static void WriteKeysTo<T1, T2, T3, T4, T5>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5)
-		{
-			var tw = new TupleWriter(ref writer);
-			TuplePackers.SerializeTo(tw, item1);
-			TuplePackers.SerializeTo(tw, item2);
-			TuplePackers.SerializeTo(tw, item3);
-			TuplePackers.SerializeTo(tw, item4);
-			TuplePackers.SerializeTo(tw, item5);
-		}
-
-		/// <summary>Packs a 6-tuple directly into a slice</summary>
-		public static void WriteKeysTo<T1, T2, T3, T4, T5, T6>(ref SliceWriter writer, T1? item1, T2? item2, T3? item3, T4? item4, T5? item5, T6? item6)
-		{
-			var tw = new TupleWriter(ref writer);
-			TuplePackers.SerializeTo(tw, item1);
-			TuplePackers.SerializeTo(tw, item2);
-			TuplePackers.SerializeTo(tw, item3);
-			TuplePackers.SerializeTo(tw, item4);
-			TuplePackers.SerializeTo(tw, item5);
-			TuplePackers.SerializeTo(tw, item6);
-		}
-
-		/// <summary>Merges a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> prefix, IEnumerable<T> keys)
-		{
-			Contract.NotNull(keys);
-
-			// use optimized version for arrays
-			if (keys is T[] array) return EncodeKeys<T>(prefix, new ReadOnlySpan<T>(array));
-			if (keys is List<T> list) return EncodeKeys<T>(prefix, CollectionsMarshal.AsSpan(list));
-
-			var next = new List<int>(keys.TryGetNonEnumeratedCount(out var count) ? count : 0);
-			var sw = new SliceWriter();
-			var tw = new TupleWriter(ref sw);
-			var packer = TuplePacker<T>.Encoders.Direct;
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			bool hasPrefix = prefix.Length != 0;
-			foreach (var key in keys)
-			{
-				if (hasPrefix) sw.WriteBytes(prefix);
-				packer(tw, key);
-				next.Add(sw.Position);
-			}
-
-			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
-		}
-
-		/// <summary>Merges an array of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> prefix, ReadOnlySpan<T> keys)
-		{
-			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var next = new List<int>(keys.Length);
-			var packer = TuplePacker<T>.Encoders.Direct;
-			var sw = new SliceWriter(checked(keys.Length * (prefix.Length + 8)));
-			var tw = new TupleWriter(ref sw);
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			foreach (var key in keys)
-			{
-				if (prefix.Length > 0) sw.WriteBytes(prefix);
-				packer(tw, key);
-				next.Add(sw.Position);
-			}
-
-			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
-		}
-
-		/// <summary>Merges an array of elements with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="TElement">Type of the elements</typeparam>
-		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
-		/// <param name="prefix">Prefix shared by all keys (can be empty)</param>
-		/// <param name="elements">Sequence of elements to pack</param>
-		/// <param name="selector">Lambda that extract the key from each element</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] EncodeKeys<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TKey, TElement>(ReadOnlySpan<byte> prefix, ReadOnlySpan<TElement> elements, Func<TElement, TKey> selector)
-		{
-			Contract.NotNull(selector);
-
-			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var next = new List<int>(elements.Length);
-			var packer = TuplePacker<TKey>.Encoders.Direct;
-			var sw = new SliceWriter(checked(elements.Length * (prefix.Length + 8)));
-			var tw = new TupleWriter(ref sw);
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			foreach (var value in elements)
-			{
-				if (prefix.Length > 0) sw.WriteBytes(prefix);
-				packer(tw, selector(value));
-				next.Add(sw.Position);
-			}
-
-			return Slice.SplitIntoSegments(sw.GetBufferUnsafe(), 0, next);
 		}
 
 		#endregion
@@ -2662,28 +2511,52 @@ namespace SnowBank.Data.Tuples.Binary
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool TryGetSizeHint<T>(T item, out int sizeHint)
+		public static bool TryGetSizeHint<T>(in T item, bool embedded, out int sizeHint)
 		{
-			if (typeof(T) == typeof(int)) { sizeHint = GetSizeHint((int) (object) item!); return true; }
-			if (typeof(T) == typeof(uint)) { sizeHint = GetSizeHint((uint) (object) item!); return true; }
-			if (typeof(T) == typeof(long)) { sizeHint = GetSizeHint((long) (object) item!); return true; }
-			if (typeof(T) == typeof(ulong)) { sizeHint = GetSizeHint((ulong) (object) item!); return true; }
-			if (typeof(T) == typeof(bool)) { sizeHint = 1; return true; }
-			if (typeof(T) == typeof(VersionStamp)) { sizeHint = ((VersionStamp) (object) item!).HasUserVersion ? 13 : 11; return true; }
-			if (typeof(T) == typeof(Guid) || typeof(T) == typeof(Uuid128)) { sizeHint = 17; return true; }
-			if (typeof(T) == typeof(Uuid96)) { sizeHint = 13; return true; }
-			if (typeof(T) == typeof(Uuid80)) { sizeHint = 11; return true; }
-			if (typeof(T) == typeof(Uuid64)) { sizeHint = 9; return true; }
-			if (typeof(T) == typeof(Uuid48)) { sizeHint = 7; return true; }
-			if (typeof(T) == typeof(float)) { sizeHint = 5; return true; }
-			if (typeof(T) == typeof(double)) { sizeHint = 9; return true; }
+			const int SIZE_OF_BOOL = 1;
+			const int SIZE_OF_UUID128 = 17;
+			const int SIZE_OF_UUID96 = 13;
+			const int SIZE_OF_UUID80 = 11;
+			const int SIZE_OF_UUID64 = 9;
+			const int SIZE_OF_UUID48 = 7;
+			const int SIZE_OF_SINGLE = 5;
+			const int SIZE_OF_DOUBLE = 9;
 
-			if (typeof(T) == typeof(Slice)) { sizeHint = GetSizeHint((Slice) (object) item!); return true; }
-			if (typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(NodaTime.Instant)) { sizeHint = 9; return true; }
+			if (default(T) is not null)
+			{
+				if (typeof(T) == typeof(int)) { sizeHint = GetSizeHint((int) (object) item!); return true; }
+				if (typeof(T) == typeof(uint)) { sizeHint = GetSizeHint((uint) (object) item!); return true; }
+				if (typeof(T) == typeof(long)) { sizeHint = GetSizeHint((long) (object) item!); return true; }
+				if (typeof(T) == typeof(ulong)) { sizeHint = GetSizeHint((ulong) (object) item!); return true; }
+				if (typeof(T) == typeof(bool)) { sizeHint = SIZE_OF_BOOL; return true; }
+				if (typeof(T) == typeof(VersionStamp)) { sizeHint = ((VersionStamp) (object) item!).HasUserVersion ? SIZE_OF_UUID96 : SIZE_OF_UUID80; return true; }
+				if (typeof(T) == typeof(Guid) || typeof(T) == typeof(Uuid128)) { sizeHint = SIZE_OF_UUID128; return true; }
+				if (typeof(T) == typeof(Uuid96)) { sizeHint = SIZE_OF_UUID96; return true; }
+				if (typeof(T) == typeof(Uuid80)) { sizeHint = SIZE_OF_UUID80; return true; }
+				if (typeof(T) == typeof(Uuid64)) { sizeHint = SIZE_OF_UUID64; return true; }
+				if (typeof(T) == typeof(Uuid48)) { sizeHint = SIZE_OF_UUID48; return true; }
+				if (typeof(T) == typeof(float)) { sizeHint = SIZE_OF_SINGLE; return true; }
+				if (typeof(T) == typeof(double)) { sizeHint = SIZE_OF_DOUBLE; return true; }
 
-			if (item is null) { sizeHint = 1; return true; }
+				if (typeof(T) == typeof(Slice)) { sizeHint = GetSizeHint((Slice) (object) item!); return true; }
 
-			if (item is string s) { sizeHint = GetSizeHint(s); return true; }
+				if (typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(NodaTime.Instant) || typeof(T) == typeof(TimeSpan))
+				{
+					sizeHint = SIZE_OF_DOUBLE;
+					return true;
+				}
+			}
+			else
+			{
+				if (item is null) { sizeHint = embedded ? 2 : 1; return true; }
+				if (item is string s) { sizeHint = GetSizeHint(s); return true; }
+			}
+
+			if (item is ITupleSpanPackable tp && tp.TryGetSizeHint(true, out var size))
+			{
+				sizeHint = checked(size + 2);
+				return true;
+			}
 
 			sizeHint = 0;
 			return false;

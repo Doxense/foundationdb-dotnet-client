@@ -77,25 +77,6 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <summary>Tries to read the specified amount of bytes from the buffer</summary>
 		/// <param name="count">Number of bytes to read</param>
 		/// <param name="token">Receives the corresponding range in the original buffer, if there was enough bytes</param>
-		/// <returns><see langword="true"/> if the read was successful, in which case <paramref name="token"/> receives the corresponding range and the cursor is advanced by <paramref name="count"/> bytes, or <see langword="false"/> if there was not enough bytes remaining.</returns>
-		public bool TryReadBytes(int count, out Range token)
-		{
-			int start = this.Cursor;
-			int end = start + count;
-			if (end > this.Input.Length)
-			{
-				token = default;
-				return false;
-			}
-
-			token = new Range(start, end);
-			this.Cursor = end;
-			return true;
-		}
-
-		/// <summary>Tries to read the specified amount of bytes from the buffer</summary>
-		/// <param name="count">Number of bytes to read</param>
-		/// <param name="token">Receives the corresponding range in the original buffer, if there was enough bytes</param>
 		/// <param name="error">Receives an exception if there was not enough bytes</param>
 		/// <returns><see langword="true"/> if the read was successful, in which case <paramref name="token"/> receives the corresponding range and the cursor is advanced by <paramref name="count"/> bytes, or <see langword="false"/> if there was not enough bytes remaining and <paramref name="error"/> receives an exception that can be re-thrown by the caller.</returns>
 		public bool TryReadBytes(int count, out Range token, [NotNullWhen(false)] out Exception? error)

@@ -266,6 +266,20 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
+		bool ITupleSpanPackable.TryGetSizeHint(bool embedded, out int sizeHint)
+		{
+			if (!TupleEncoder.TryGetSizeHint(this.Item1, embedded, out var size1)
+			 || !TupleEncoder.TryGetSizeHint(this.Item2, embedded, out var size2)
+			 || !TupleEncoder.TryGetSizeHint(this.Item3, embedded, out var size3))
+			{
+				sizeHint = 0;
+				return false;
+			}
+			sizeHint = checked(size1 + size2 + size3 + (embedded ? 2 : 0));
+			return true;
+		}
+
+		/// <inheritdoc />
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			sb.Append(STuple.Formatter.Stringify(this.Item1));
@@ -289,7 +303,7 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? provider = null)
@@ -653,20 +667,8 @@ namespace SnowBank.Data.Tuples
 		bool ISpanEncodable.TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
 		/// <inheritdoc />
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		bool ISpanEncodable.TryGetSizeHint(out int sizeHint)
-		{
-			if (!TupleEncoder.TryGetSizeHint(this.Item1, out var size1)
-			 || !TupleEncoder.TryGetSizeHint(this.Item2, out var size2)
-			 || !TupleEncoder.TryGetSizeHint(this.Item3, out var size3))
-			{
-				sizeHint = 0;
-				return false;
-			}
-
-			sizeHint = checked(size1 + size2 + size3);
-			return true;
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ISpanEncodable.TryGetSizeHint(out int sizeHint) => ((ITupleSpanPackable) this).TryGetSizeHint(embedded: false, out sizeHint);
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

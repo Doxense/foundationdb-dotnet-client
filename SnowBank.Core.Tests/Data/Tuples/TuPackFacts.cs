@@ -35,6 +35,7 @@ namespace SnowBank.Data.Tuples.Tests
 {
 	using System.Net;
 	using System.Numerics;
+
 	using SnowBank.Buffers;
 	using SnowBank.Data.Tuples.Binary;
 	using SnowBank.Runtime;
@@ -131,23 +132,23 @@ namespace SnowBank.Data.Tuples.Tests
 			IVarTuple t;
 
 			t = TuPack.Unpack(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>"));
-			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }));
 			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF"));
 
 			t = TuPack.Unpack(Slice.Unescape("<01><42><00><FF><00>"));
-			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x42, 0x00}));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x42, 0x00 }));
 			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("42 00"));
 
 			t = TuPack.Unpack(Slice.Unescape("<01><00><FF><42><00>"));
-			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x00, 0x42}));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x00, 0x42 }));
 			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("00 42"));
 
 			t = TuPack.Unpack(Slice.Unescape("<01><42><00><FF><42><00>"));
-			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x42, 0x00, 0x42}));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x42, 0x00, 0x42 }));
 			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("42 00 42"));
 
 			t = TuPack.Unpack(Slice.Unescape("<01><42><00><FF><00><FF><42><00>"));
-			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] {0x42, 0x00, 0x00, 0x42}));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x42, 0x00, 0x00, 0x42 }));
 			Assert.That(t.Get<Slice>(0).ToHexString(' '), Is.EqualTo("42 00 00 42"));
 
 			Assert.That(TuPack.DecodeKey<byte[]>(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>")), Is.EqualTo(new byte[] { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }));
@@ -526,7 +527,7 @@ namespace SnowBank.Data.Tuples.Tests
 			// - 1..255 => <15><##>
 			// - 256..65535 .. => <16><HH><LL>
 			// - ulong.MaxValue => <1C><FF><FF><FF><FF><FF><FF><FF><FF>
-			
+
 			Assert.That(TuPack.EncodeKey(0).ToHexString(' '), Is.EqualTo("14"));
 			Assert.That(TuPack.EncodeKey(1).ToHexString(' '), Is.EqualTo("15 01"));
 			Assert.That(TuPack.EncodeKey(255).ToHexString(' '), Is.EqualTo("15 FF"));
@@ -756,7 +757,7 @@ namespace SnowBank.Data.Tuples.Tests
 				TuPack.EncodeKey(f).ToHexString(' '),
 				Is.EqualTo("20 00 3F FF FF"),
 				"All variants of NaN must be normalized"
-				//note: if we have 20 00 3F FF 84, that means that the NaN was not normalized
+			//note: if we have 20 00 3F FF 84, that means that the NaN was not normalized
 			);
 		}
 
@@ -836,7 +837,7 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(
 				TuPack.EncodeKey(d).ToHexString(' '),
 				Is.EqualTo("21 00 07 FF FF FF FF FF FF")
-				//note: if we have 21 00 07 FF FF FF FF FF 84, that means that the NaN was not normalized
+			//note: if we have 21 00 07 FF FF FF FF FF 84, that means that the NaN was not normalized
 			);
 
 			// roundtripping vectors of doubles
@@ -1325,7 +1326,7 @@ namespace SnowBank.Data.Tuples.Tests
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			Verify(
-				STuple.Create([ 42, value, docId ]),
+				STuple.Create([42, value, docId]),
 				"15 2A 05 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
 			);
 			Verify(
@@ -1476,10 +1477,10 @@ namespace SnowBank.Data.Tuples.Tests
 				var expected = TuPack.EncodeKey("Hello World");
 				Assert.That(TuPack.Pack(ValueTuple.Create("Hello World")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World")), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create([ "Hello World" ])), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create(["Hello World"])), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World"))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234).Substring(0, 1)), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create([ "Hello World", 1234 ]).Substring(0, 1)), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create(["Hello World", 1234]).Substring(0, 1)), Is.EqualTo(expected));
 			}
 			{
 				var expected = TuPack.EncodeKey("Hello World", 1234);
@@ -1488,9 +1489,9 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World", 1234))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World").Append(1234)), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World")).Append(1234)), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create([ "Hello World", 1234 ])), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create(["Hello World", 1234])), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234, "Foo").Substring(0, 2)), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create([ "Hello World", 1234, "Foo" ]).Substring(0, 2)), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create(["Hello World", 1234, "Foo"]).Substring(0, 2)), Is.EqualTo(expected));
 			}
 			{
 				var expected = TuPack.EncodeKey("Hello World", 1234, "Foo");
@@ -1499,9 +1500,9 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World", 1234, "Foo"))), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World").Append(1234).Append("Foo")), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(((IVarTuple) STuple.Create("Hello World")).Append(1234).Append("Foo")), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create([ "Hello World", 1234, "Foo" ])), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create(["Hello World", 1234, "Foo"])), Is.EqualTo(expected));
 				Assert.That(TuPack.Pack(STuple.Create("Hello World", 1234, "Foo", "Bar").Substring(0, 3)), Is.EqualTo(expected));
-				Assert.That(TuPack.Pack(STuple.Create([ "Hello World", 1234, "Foo", "Bar" ]).Substring(0, 3)), Is.EqualTo(expected));
+				Assert.That(TuPack.Pack(STuple.Create(["Hello World", 1234, "Foo", "Bar"]).Substring(0, 3)), Is.EqualTo(expected));
 			}
 
 			// also, there should be no differences between int,long,uint,... if they have the same value
@@ -1582,7 +1583,7 @@ namespace SnowBank.Data.Tuples.Tests
 				Is.EqualTo("<02>hello world<00><15>{&")
 			);
 			Assert.That(
-				TuPack.Pack(STuple.Create("hello world", 123, false, new byte[] {123, 1, 66, 0, 42})).ToString(),
+				TuPack.Pack(STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 })).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
@@ -1602,15 +1603,15 @@ namespace SnowBank.Data.Tuples.Tests
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 			Assert.That(
-				TuPack.Pack(STuple.Create([ "hello world", 123, false, new byte[] {123, 1, 66, 0, 42} ])).ToString(),
+				TuPack.Pack(STuple.Create(["hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }])).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
-				TuPack.Pack(STuple.FromArray(new object[] {"hello world", 123, false, new byte[] {123, 1, 66, 0, 42}}, 1, 2)).ToString(),
+				TuPack.Pack(STuple.FromArray(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }, 1, 2)).ToString(),
 				Is.EqualTo("<15>{&")
 			);
 			Assert.That(
-				TuPack.Pack(STuple.FromEnumerable(new List<object> {"hello world", 123, false, new byte[] {123, 1, 66, 0, 42}})).ToString(),
+				TuPack.Pack(STuple.FromEnumerable(new List<object> { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } })).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 		}
@@ -1665,7 +1666,7 @@ namespace SnowBank.Data.Tuples.Tests
 				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 			Assert.That(
-				TuPack.Pack(prefix, STuple.Create([ "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } ])).ToString(),
+				TuPack.Pack(prefix, STuple.Create(["hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }])).ToString(),
 				Is.EqualTo("ABC<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
@@ -1731,7 +1732,7 @@ namespace SnowBank.Data.Tuples.Tests
 				Slice.Unescape("<02>hello world<00><15>{&")
 			);
 			Verify(
-				STuple.Create("hello world", 123, false, new byte[] {123, 1, 66, 0, 42}),
+				STuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }),
 				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Verify(
@@ -1751,15 +1752,15 @@ namespace SnowBank.Data.Tuples.Tests
 				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>'")
 			);
 			Verify(
-				STuple.Create([ "hello world", 123, false, new byte[] {123, 1, 66, 0, 42} ]),
+				STuple.Create(["hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }]),
 				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Verify(
-				STuple.FromArray<object>([ "hello world", 123, false, (byte[]) [ 123, 1, 66, 0, 42 ] ], 1, 2),
+				STuple.FromArray<object>(["hello world", 123, false, (byte[]) [123, 1, 66, 0, 42]], 1, 2),
 				Slice.Unescape("<15>{&")
 			);
 			Verify(
-				STuple.FromEnumerable<object>([ "hello world", 123, false, (byte[]) [ 123, 1, 66, 0, 42 ] ]),
+				STuple.FromEnumerable<object>(["hello world", 123, false, (byte[]) [123, 1, 66, 0, 42]]),
 				Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 		}
@@ -2013,7 +2014,7 @@ namespace SnowBank.Data.Tuples.Tests
 				Is.EqualTo("<02>hello world<00><15>{&")
 			);
 			Assert.That(
-				TuPack.EncodeKey("hello world", 123, false, new byte[] {123, 1, 66, 0, 42}).ToString(),
+				TuPack.EncodeKey("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")
 			);
 			Assert.That(
@@ -2107,239 +2108,11 @@ namespace SnowBank.Data.Tuples.Tests
 			slice = TuPack.EncodeKey<object>(true);
 			Assert.That(slice.ToString(), Is.EqualTo("'"));
 
-			slice = TuPack.EncodeKey<object>(new byte[] {4, 5, 6});
+			slice = TuPack.EncodeKey<object>(new byte[] { 4, 5, 6 });
 			Assert.That(slice.ToString(), Is.EqualTo("<01><04><05><06><00>"));
 
 			slice = TuPack.EncodeKey<object>("hello");
 			Assert.That(slice.ToString(), Is.EqualTo("<02>hello<00>"));
-		}
-
-		[Test]
-		public void Test_TuplePack_EncodeKeys()
-		{
-			//Optimized STuple<...> versions
-
-			{ // ReadOnlySpan<string>
-				var packed = TuPack.EncodeKeys([ "foo", "bar", "baz" ]);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // T[]
-				var packed = TuPack.EncodeKeys(new [] { "foo", "bar", "baz" });
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // T[].AsSpan()
-				var packed = TuPack.EncodeKeys(new [] { "invisible", "foo", "bar", "baz", "invisible" }.AsSpan(1, 3));
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<02>foo<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<02>bar<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // ReadOnlySpan<int>
-				var packed = TuPack.EncodeKeys([ 123, 456, 789 ]);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<15>{"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<16><01><C8>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<16><03><15>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // IEnumerable<int>
-				var packed = TuPack.EncodeKeys(Enumerable.Range(0, 3));
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<14>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<15><01>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<15><02>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // IEnumerable<T> + Func
-				var packed = TuPack.EncodeKeys(["Bonjour", "le", "Monde"], (s) => s.Length);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<15><07>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<15><02>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<15><05>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // ReadOnlySpan<T> + Func
-				var packed = TuPack.EncodeKeys(["Bonjour", "le", "Monde"], (s) => s.Length);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<15><07>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<15><02>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<15><05>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // T[] + Func
-				var packed = TuPack.EncodeKeys(new [] { "Bonjour", "le", "Monde" }, (s) => s.Length);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("<15><07>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("<15><02>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("<15><05>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-		}
-
-		[Test]
-		public void Test_TuplePack_EncodeKeys_With_Prefix()
-		{
-			var prefix = Slice.FromString("ABC");
-
-			{ // collection expression
-				var packed = TuPack.EncodePrefixedKeys(prefix, [ "foo", "bar", "baz" ]);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-			{ // span prefix
-				var packed = TuPack.EncodePrefixedKeys("ABC"u8, [ "foo", "bar", "baz" ]);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-			{ // stackalloced prefix
-				Span<byte> pp = stackalloc byte[3];
-				prefix.CopyTo(pp);
-				var packed = TuPack.EncodePrefixedKeys(pp, [ "foo", "bar", "baz" ]);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<02>foo<00>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<02>bar<00>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<02>baz<00>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // params ReadOnlySpan<int>
-				var packed = TuPack.EncodePrefixedKeys(prefix, [ 123, 456, 789 ]);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15>{"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<16><01><C8>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<16><03><15>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // ReadOnlySpan<T> + Func
-				var packed = TuPack.EncodePrefixedKeys(prefix, ["Bonjour", "le", "Monde"], (s) => s.Length);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15><07>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<15><02>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<15><05>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-			{ // T[] + Func
-				var packed = TuPack.EncodePrefixedKeys(prefix, new [] { "Bonjour", "le", "Monde" }, (s) => s.Length);
-				Assert.That(packed, Is.Not.Null.And.Length.EqualTo(3));
-				Assert.That(packed[0].ToString(), Is.EqualTo("ABC<15><07>"));
-				Assert.That(packed[1].ToString(), Is.EqualTo("ABC<15><02>"));
-				Assert.That(packed[2].ToString(), Is.EqualTo("ABC<15><05>"));
-				Assert.That(packed[1].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-				Assert.That(packed[2].Array, Is.SameAs(packed[0].Array), "Should share same buffer");
-			}
-
-		}
-
-		[Test]
-		public void Test_TuplePack_SerializersOfT()
-		{
-			var prefix = Slice.FromString("ABC");
-			{
-				var serializer = TupleSerializer<int>.Default;
-				var t = STuple.Create(123);
-				var sw = new SliceWriter();
-				var tw = new TupleWriter(ref sw);
-				sw.WriteBytes(prefix);
-				serializer.PackTo(tw, in t);
-				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<15>{"));
-			}
-
-			{
-				var serializer = TupleSerializer<string>.Default;
-				var t = STuple.Create("foo");
-				var sw = new SliceWriter();
-				var tw = new TupleWriter(ref sw);
-				sw.WriteBytes(prefix);
-				serializer.PackTo(tw, in t);
-				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>"));
-			}
-
-			{
-				var serializer = TupleSerializer<string, int>.Default;
-				var t = STuple.Create("foo", 123);
-				var sw = new SliceWriter();
-				var tw = new TupleWriter(ref sw);
-				sw.WriteBytes(prefix);
-				serializer.PackTo(tw, in t);
-				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00><15>{"));
-			}
-
-			{
-				var serializer = TupleSerializer<string, bool, int>.Default;
-				var t = STuple.Create("foo", false, 123);
-				var sw = new SliceWriter();
-				var tw = new TupleWriter(ref sw);
-				sw.WriteBytes(prefix);
-				serializer.PackTo(tw, in t);
-				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{"));
-			}
-
-			{
-				var serializer = TupleSerializer<string, bool, int, long>.Default;
-				var t = STuple.Create("foo", false, 123, -1L);
-				var sw = new SliceWriter();
-				var tw = new TupleWriter(ref sw);
-				sw.WriteBytes(prefix);
-				serializer.PackTo(tw, in t);
-				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE>"));
-			}
-
-			{
-				var serializer = TupleSerializer<string, bool, int, long, string>.Default;
-				var t = STuple.Create("foo", false, 123, -1L, "narf");
-				var sw = new SliceWriter();
-				var tw = new TupleWriter(ref sw);
-				sw.WriteBytes(prefix);
-				serializer.PackTo(tw, in t);
-				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>"));
-			}
-
-			{
-				var serializer = TupleSerializer<string, bool, int, long, string, double>.Default;
-				var t = STuple.Create("foo", false, 123, -1L, "narf", Math.PI);
-				var sw = new SliceWriter();
-				var tw = new TupleWriter(ref sw);
-				sw.WriteBytes(prefix);
-				serializer.PackTo(tw, in t);
-				Assert.That(sw.ToSlice().ToString(), Is.EqualTo("ABC<02>foo<00>&<15>{<13><FE><02>narf<00>!<C0><09>!<FB>TD-<18>"));
-			}
 		}
 
 		[Test]
@@ -2889,163 +2662,24 @@ namespace SnowBank.Data.Tuples.Tests
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool, Slice>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>")),
-				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ])))
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([123, 1, 66, 0, 42])))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool, Slice, double>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18>")),
-				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ]), Math.PI))
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([123, 1, 66, 0, 42]), Math.PI))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool, Slice, double, long>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-")),
-				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ]), Math.PI, -1234L))
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([123, 1, 66, 0, 42]), Math.PI, -1234L))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool, Slice, double, long, string>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>")),
-				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ]), Math.PI, -1234L, "こんにちは世界"))
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([123, 1, 66, 0, 42]), Math.PI, -1234L, "こんにちは世界"))
 			);
 			Assert.That(
 				TuPack.DecodeKey<string, int, bool, Slice, double, long, string, bool>(Slice.Unescape("<02>hello world<00><15>{&<01>{<01>B<00><FF>*<00>!<C0><09>!<FB>TD-<18><12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><15><01>")),
-				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([ 123, 1, 66, 0, 42 ]), Math.PI, -1234L, "こんにちは世界", true))
+				Is.EqualTo(("hello world", 123, false, Slice.FromBytes([123, 1, 66, 0, 42]), Math.PI, -1234L, "こんにちは世界", true))
 			);
-		}
-
-		[Test]
-		public void Test_TuplePack_EncodeKeys_Of_T()
-		{
-			Slice[] slices;
-
-			#region PackRange(Tuple, ...)
-
-			var tuple = STuple.Create("hello");
-			int[] items = [ 1, 2, 3, 123, -1, int.MaxValue ];
-
-			// array version
-			slices = TuPack.EncodePrefixedKeys<int>(tuple, items);
-			Assert.That(slices, Is.Not.Null);
-			Assert.That(slices.Length, Is.EqualTo(items.Length));
-			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
-
-			// span version
-			slices = TuPack.EncodePrefixedKeys<int>(tuple, items.AsSpan());
-			Assert.That(slices, Is.Not.Null);
-			Assert.That(slices.Length, Is.EqualTo(items.Length));
-			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
-
-			// IEnumerable version that is passed an array
-			slices = TuPack.EncodePrefixedKeys<int>(tuple, (IEnumerable<int>) items);
-			Assert.That(slices, Is.Not.Null);
-			Assert.That(slices.Length, Is.EqualTo(items.Length));
-			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
-
-			// IEnumerable version but with a "real" enumerable
-			slices = TuPack.EncodePrefixedKeys<int>(tuple, items.Select(t => t));
-			Assert.That(slices, Is.Not.Null);
-			Assert.That(slices.Length, Is.EqualTo(items.Length));
-			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
-
-			#endregion
-
-			#region PackRange(Slice, ...)
-
-			{
-				string?[] words = [ "hello", "world", "très bien", "断トツ", "abc\0def", null, string.Empty ];
-
-				var merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words);
-				Assert.That(merged, Is.Not.Null);
-				Assert.That(merged.Length, Is.EqualTo(words.Length));
-
-				merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words.AsSpan());
-				Assert.That(merged, Is.Not.Null);
-				Assert.That(merged.Length, Is.EqualTo(words.Length));
-
-				for (int i = 0; i < words.Length; i++)
-				{
-					var expected = Slice.FromByte(42) + TuPack.EncodeKey(words[i]);
-					Assert.That(merged[i], Is.EqualTo(expected));
-
-					Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
-					if (i > 0) Assert.That(merged[i].Offset, Is.EqualTo(merged[i - 1].Offset + merged[i - 1].Count), "All slices should be contiguous");
-				}
-
-				// corner cases
-				// ReSharper disable AssignNullToNotNullAttribute
-				Assert.That(
-					() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(int[])!),
-					Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys")
-				);
-				Assert.That(
-					() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(IEnumerable<int>)!),
-					Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys")
-				);
-				// ReSharper restore AssignNullToNotNullAttribute
-			}
-
-			#endregion
-
-			#region PackRange(ReadOnlySpan, ...)
-			{
-				string?[] words = [ "hello", "world", "très bien", "断トツ", "abc\0def", null, string.Empty ];
-				var span = new ReadOnlySpan<string?>(words);
-
-				var merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), span);
-				Assert.That(merged, Is.Not.Null);
-				Assert.That(merged.Length, Is.EqualTo(words.Length));
-
-				merged = TuPack.EncodePrefixedKeys(Slice.FromByte(42), words.AsSpan());
-				Assert.That(merged, Is.Not.Null);
-				Assert.That(merged.Length, Is.EqualTo(words.Length));
-
-				for (int i = 0; i < words.Length; i++)
-				{
-					var expected = Slice.FromByte(42) + TuPack.EncodeKey(words[i]);
-					Assert.That(merged[i], Is.EqualTo(expected));
-
-					Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
-					if (i > 0) Assert.That(merged[i].Offset, Is.EqualTo(merged[i - 1].Offset + merged[i - 1].Count), "All slices should be contiguous");
-				}
-
-				// corner cases
-				// ReSharper disable AssignNullToNotNullAttribute
-				Assert.That(
-					() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(int[])!),
-					Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys")
-				);
-				Assert.That(
-					() => TuPack.EncodePrefixedKeys<int>(Slice.Empty, default(IEnumerable<int>)!),
-					Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys")
-				);
-				// ReSharper restore AssignNullToNotNullAttribute
-
-			}
-
-			#endregion
-
-		}
-
-		[Test]
-		public void Test_TuplePack_EncodeKeys_Boxed()
-		{
-			Slice[] slices;
-			var tuple = STuple.Create("hello");
-			object[] items = [ "world", 123, false, Guid.NewGuid(), long.MinValue ];
-
-			// array version
-			slices = TuPack.EncodePrefixedKeys<object>(tuple, items);
-			Assert.That(slices, Is.Not.Null);
-			Assert.That(slices.Length, Is.EqualTo(items.Length));
-			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
-
-			// IEnumerable version that is passed an array
-			slices = TuPack.EncodePrefixedKeys<object>(tuple, (IEnumerable<object>) items);
-			Assert.That(slices, Is.Not.Null);
-			Assert.That(slices.Length, Is.EqualTo(items.Length));
-			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
-
-			// IEnumerable version but with a "real" enumerable
-			slices = TuPack.EncodePrefixedKeys<object>(tuple, items.Select(t => t));
-			Assert.That(slices, Is.Not.Null);
-			Assert.That(slices.Length, Is.EqualTo(items.Length));
-			Assert.That(slices, Is.EqualTo(items.Select(x => TuPack.Pack(tuple.Append(x)))));
 		}
 
 		[Test]
@@ -3333,103 +2967,6 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2, 3, 4, 5, 6)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2, 3, 4, 5, 6, 7)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => TuPack.DecodeKey<int>(TuPack.EncodeKey(1, 2, 3, 4, 5, 6, 7, 8)), Throws.InstanceOf<FormatException>());
-		}
-
-		[Test]
-		public void Test_TuplePack_ToRange()
-		{
-			(Slice Begin, Slice End) range;
-
-			// ToRange() should add 0x00 and 0xFF to the packed representations of the tuples
-			// note: we cannot increment the key to get the End key, because it conflicts with the Tuple Binary Encoding itself
-
-			// Slice
-			range = TuPack.ToRange(Slice.FromString("ABC"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<00>"), "Begin key should be suffixed by 0x00");
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<FF>"), "End key should be suffixed by 0xFF");
-
-			// Tuples
-
-			range = TuPack.ToRange(STuple.Create("Hello"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><FF>"));
-
-			range = TuPack.ToRange(STuple.Create("Hello", 123));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<FF>"));
-
-			range = TuPack.ToRange(STuple.Create("Hello", 123, true));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<FF>"));
-
-			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<FF>"));
-
-			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L, "こんにちは世界"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><FF>"));
-
-			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><FF>"));
-
-			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI, false));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<FF>"));
-
-			range = TuPack.ToRange(STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI, false, "TheEnd"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<02>TheEnd<00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<02>TheEnd<00><FF>"));
-		}
-
-		[Test]
-		public void Test_TuplePack_ToRange_With_Prefix()
-		{
-			Slice prefix = Slice.FromString("ABC");
-			(Slice Begin, Slice End) range;
-
-			range = TuPack.ToRange(prefix, STuple.Create("Hello"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><FF>"));
-
-			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{<FF>"));
-
-			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<FF>"));
-
-			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<FF>"));
-
-			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L, "こんにちは世界"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00><FF>"));
-
-			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18><FF>"));
-
-			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI, false));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<FF>"));
-
-			range = TuPack.ToRange(prefix, STuple.Create("Hello", 123, true, -1234L, "こんにちは世界", Math.PI, false, "TheEnd"));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<02>TheEnd<00><00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("ABC<02>Hello<00><15>{'<12><FB>-<02><E3><81><93><E3><82><93><E3><81><AB><E3><81><A1><E3><81><AF><E4><B8><96><E7><95><8C><00>!<C0><09>!<FB>TD-<18>&<02>TheEnd<00><FF>"));
-
-			// Nil or Empty prefix should not add anything
-
-			range = TuPack.ToRange(Slice.Nil, STuple.Create("Hello", 123));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<FF>"));
-
-			range = TuPack.ToRange(Slice.Empty, STuple.Create("Hello", 123));
-			Assert.That(range.Begin.ToString(), Is.EqualTo("<02>Hello<00><15>{<00>"));
-			Assert.That(range.End.ToString(), Is.EqualTo("<02>Hello<00><15>{<FF>"));
 		}
 
 		[Test]

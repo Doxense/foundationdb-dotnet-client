@@ -30,7 +30,7 @@ namespace SnowBank.Data.Tuples.Binary
 	/// <summary>Represent a custom user type for the TuPack encoding</summary>
 	[DebuggerDisplay("{ToString()},nq")]
 	[PublicAPI]
-	public sealed class TuPackUserType : IEquatable<TuPackUserType>, IFormattable, ISpanFormattable
+	public sealed class TuPackUserType : IEquatable<TuPackUserType>, ISpanFormattable
 	{
 
 		/// <summary>Prefix for the Directory Layer subspace (0xFE)</summary>

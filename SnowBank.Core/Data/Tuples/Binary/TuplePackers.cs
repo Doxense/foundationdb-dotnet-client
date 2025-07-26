@@ -95,6 +95,7 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(Int128)]           = (new Encoder<Int128>(TupleParser.WriteInt128), null), //TODO!
 				[typeof(UInt128)]          = (new Encoder<UInt128>(TupleParser.WriteUInt128), null), //TODO!
 #endif
+				[typeof(ArraySegment<byte>)] = (new Encoder<ArraySegment<byte>>(TupleParser.WriteBytes), new SpanEncoder<ArraySegment<byte>>(TupleParser.TryWriteBytes)),
 
 				// Nullable<T>
 
@@ -128,6 +129,7 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(Int128?)]           = (new Encoder<Int128?>(TupleParser.WriteInt128), null), //TODO
 				[typeof(UInt128?)]          = (new Encoder<UInt128?>(TupleParser.WriteUInt128), null), //TODO
 #endif
+				[typeof(ArraySegment<byte>?)] = (new Encoder<ArraySegment<byte>?>(TupleParser.WriteBytes), new SpanEncoder<ArraySegment<byte>?>(TupleParser.TryWriteBytes)),
 			};
 
 			return map.ToFrozenDictionary();
@@ -420,7 +422,7 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 		}
 
-				/// <summary>Serialize a nullable value, by checking for null at runtime</summary>
+		/// <summary>Serialize a nullable value, by checking for null at runtime</summary>
 		/// <typeparam name="T">Underling type of the nullable type</typeparam>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Nullable value to serialize</param>
@@ -716,8 +718,8 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(float?)] = static (writer, value) => writer.WriteSingle((float?) value),
 				[typeof(double)] = static (writer, value) => writer.WriteDouble((double) value!),
 				[typeof(double?)] = static (writer, value) => writer.WriteDouble((double?) value),
-				[typeof(decimal)] = static (writer, value) => writer.WriteDecimal((decimal) value!),
-				[typeof(decimal?)] = static (writer, value) => writer.WriteDecimal((decimal?) value),
+				[typeof(decimal)] = static (writer, value) => writer.WriteQuadruple((decimal) value!),
+				[typeof(decimal?)] = static (writer, value) => writer.WriteQuadruple((decimal?) value),
 				[typeof(Slice)] = static (writer, value) => writer.WriteBytes((Slice) value!),
 				[typeof(byte[])] = static (writer, value) => writer.WriteBytes((byte[]?) value),
 				[typeof(Guid)] = static (writer, value) => writer.WriteGuid((Guid) value!),
@@ -774,8 +776,8 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(float?)] = static (ref writer, in value) => TupleParser.TryWriteSingle(ref writer, (float?) value),
 				[typeof(double)] = static (ref writer, in value) => TupleParser.TryWriteDouble(ref writer, (double) value!),
 				[typeof(double?)] = static (ref writer, in value) => TupleParser.TryWriteDouble(ref writer, (double?) value),
-				[typeof(decimal)] = static (ref writer, in value) => TupleParser.TryWriteDecimal(ref writer, (decimal) value!),
-				[typeof(decimal?)] = static (ref writer, in value) => TupleParser.TryWriteDecimal(ref writer, (decimal?) value),
+				[typeof(decimal)] = static (ref writer, in value) => TupleParser.TryWriteQuadruple(ref writer, (decimal) value!),
+				[typeof(decimal?)] = static (ref writer, in value) => TupleParser.TryWriteQuadruple(ref writer, (decimal?) value),
 				[typeof(Slice)] = static (ref writer, in value) => TupleParser.TryWriteBytes(ref writer, (Slice) value!),
 				[typeof(byte[])] = static (ref writer, in value) => TupleParser.TryWriteBytes(ref writer, (byte[]?) value),
 				[typeof(Guid)] = static (ref writer, in value) => TupleParser.TryWriteGuid(ref writer, (Guid) value!),
@@ -1309,7 +1311,6 @@ namespace SnowBank.Data.Tuples.Binary
 			return Expression.Lambda(body, prmSlice).Compile();
 		}
 
-
 		private static Dictionary<int, MethodInfo> STupleCandidateMethods = ComputeSTupleCandidateMethods();
 
 		private static Dictionary<int, MethodInfo> ComputeSTupleCandidateMethods() => GetTuplePackersType()
@@ -1414,7 +1415,7 @@ namespace SnowBank.Data.Tuples.Binary
 				{
 					case TupleTypes.Nil: return null;
 					case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
-					case TupleTypes.Utf8: return TupleParser.ParseUnicode(slice);
+					case TupleTypes.Utf8: return TupleParser.ParseUtf8(slice);
 					case TupleTypes.LegacyTupleStart: throw TupleParser.FailLegacyTupleNotSupported();
 					case TupleTypes.EmbeddedTuple: return TupleParser.ParseEmbeddedTuple(slice).ToTuple();
 					case TupleTypes.NegativeBigInteger: return TupleParser.ParseNegativeBigInteger(slice);
@@ -1428,7 +1429,7 @@ namespace SnowBank.Data.Tuples.Binary
 					case TupleTypes.Single: return TupleParser.ParseSingle(slice);
 					case TupleTypes.Double: return TupleParser.ParseDouble(slice);
 					//TODO: Triple
-					case TupleTypes.Decimal: return TupleParser.ParseDecimal(slice);
+					case TupleTypes.Quadruple: return TupleParser.ParseQuadruple(slice);
 					case TupleTypes.False: return FalseSingleton;
 					case TupleTypes.True: return TrueSingleton;
 					case TupleTypes.Uuid128: return TupleParser.ParseGuid(slice);
@@ -1489,7 +1490,7 @@ namespace SnowBank.Data.Tuples.Binary
 					}
 					case TupleTypes.Utf8:
 					{
-						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseUnicode(slice)); //TODO: use a stackalloc'ed buffer?
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseUtf8(slice)); //TODO: use a stackalloc'ed buffer?
 						return;
 					}
 					case TupleTypes.LegacyTupleStart:
@@ -1544,9 +1545,9 @@ namespace SnowBank.Data.Tuples.Binary
 						return;
 					}
 					//TODO: Triple
-					case TupleTypes.Decimal:
+					case TupleTypes.Quadruple:
 					{
-						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseDecimal(slice));
+						STuple.Formatter.StringifyTo(ref sb, TupleParser.ParseQuadruple(slice));
 						return;
 					}
 					case TupleTypes.False:
@@ -1616,12 +1617,12 @@ namespace SnowBank.Data.Tuples.Binary
 			{
 				case TupleTypes.Nil: return Slice.Nil;
 				case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
-				case TupleTypes.Utf8: return Slice.FromString(TupleParser.ParseUnicode(slice.Span));
+				case TupleTypes.Utf8: return Slice.FromString(TupleParser.ParseUtf8(slice.Span));
 
 				case TupleTypes.Single: return Slice.FromSingle(TupleParser.ParseSingle(slice.Span));
 				case TupleTypes.Double: return Slice.FromDouble(TupleParser.ParseDouble(slice.Span));
 				//TODO: triple
-				case TupleTypes.Decimal: return Slice.FromDecimal(TupleParser.ParseDecimal(slice.Span));
+				case TupleTypes.Quadruple: return Slice.FromDecimal(TupleParser.ParseQuadruple(slice.Span));
 
 				case TupleTypes.Uuid128: return Slice.FromGuid(TupleParser.ParseGuid(slice.Span));
 				case TupleTypes.Uuid64: return Slice.FromUuid64(TupleParser.ParseUuid64(slice.Span));
@@ -1660,7 +1661,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{
-					if (TupleParser.TryParseUnicode(slice, out var str))
+					if (TupleParser.TryParseUtf8(slice, out var str))
 					{
 						//PERF: TODO: if the string is "clean" we could simply copy the UTF-8 bytes as-is ?
 						value = Slice.FromString(str);
@@ -1687,9 +1688,9 @@ namespace SnowBank.Data.Tuples.Binary
 					break;
 				}
 				//TODO: triple
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
-					if (TupleParser.TryParseDecimal(slice, out var d))
+					if (TupleParser.TryParseQuadruple(slice, out var d))
 					{
 						value = Slice.FromDecimal(d);
 						return true;
@@ -1749,12 +1750,12 @@ namespace SnowBank.Data.Tuples.Binary
 			{
 				case TupleTypes.Nil: return Slice.Nil;
 				case TupleTypes.Bytes: return TupleParser.ParseBytes(slice);
-				case TupleTypes.Utf8: return Slice.FromString(TupleParser.ParseUnicode(slice));
+				case TupleTypes.Utf8: return Slice.FromString(TupleParser.ParseUtf8(slice));
 
 				case TupleTypes.Single: return Slice.FromSingle(TupleParser.ParseSingle(slice));
 				case TupleTypes.Double: return Slice.FromDouble(TupleParser.ParseDouble(slice));
 				//TODO: triple
-				case TupleTypes.Decimal: return Slice.FromDecimal(TupleParser.ParseDecimal(slice));
+				case TupleTypes.Quadruple: return Slice.FromDecimal(TupleParser.ParseQuadruple(slice));
 
 				case TupleTypes.Uuid128: return Slice.FromGuid(TupleParser.ParseGuid(slice));
 				case TupleTypes.Uuid64: return Slice.FromUuid64(TupleParser.ParseUuid64(slice));
@@ -1774,37 +1775,11 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Deserializes a tuple segment into a byte array</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)] //REVIEW: because of Slice.GetBytes()
-		public static byte[]? DeserializeBytes(Slice slice)
-		{
-			return DeserializeSlice(slice).GetBytes();
-		}
-
-		/// <summary>Deserializes a tuple segment into a byte array</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)] //REVIEW: because of Slice.GetBytes()
 		public static byte[] DeserializeBytes(ReadOnlySpan<byte> slice)
 		{
 			//note: DeserializeSlice(RoS<byte>) already creates a copy, hopefully with the correct size, so we can expose it safely
 			var decoded = DeserializeSlice(slice);
 			return SliceMarshal.GetBytesOrCopy(decoded);
-		}
-
-		/// <summary>Deserializes a tuple segment into a custom tuple type</summary>
-		public static TuPackUserType? DeserializeUserType(Slice slice)
-		{
-			if (slice.IsNullOrEmpty) return null; //TODO: fail ?
-
-			int type = slice[0];
-			if (slice.Count == 1)
-			{
-				switch (type)
-				{
-					case 0xFE: return TuPackUserType.Directory;
-					case 0xFF: return TuPackUserType.System;
-				}
-				return new TuPackUserType(type);
-			}
-
-			return new TuPackUserType(type, slice[1..]);
 		}
 
 		/// <summary>Deserializes a tuple segment into a custom tuple type</summary>
@@ -2377,9 +2352,9 @@ namespace SnowBank.Data.Tuples.Binary
 					return 0d != TupleParser.ParseDouble(slice);
 				}
 				//TODO: triple
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
-					return 0m != TupleParser.ParseDecimal(slice);
+					return 0m != TupleParser.ParseQuadruple(slice);
 				}
 				case TupleTypes.False:
 				{
@@ -2466,7 +2441,7 @@ namespace SnowBank.Data.Tuples.Binary
 					}
 					case TupleTypes.Utf8:
 					{
-						return TupleParser.TryParseUnicode(slice, out var str) && long.TryParse(str, CultureInfo.InvariantCulture, out value);
+						return TupleParser.TryParseUtf8(slice, out var str) && long.TryParse(str, CultureInfo.InvariantCulture, out value);
 					}
 				}
 			}
@@ -2506,7 +2481,7 @@ namespace SnowBank.Data.Tuples.Binary
 					case TupleTypes.Utf8:
 					{
 #if NET8_0_OR_GREATER
-						if (!long.TryParse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture, out var result))
+						if (!long.TryParse(TupleParser.ParseUtf8(slice), CultureInfo.InvariantCulture, out var result))
 						{
 							throw new FormatException("Cannot convert tuple segment of type Utf8 (0x02) into a signed integer");
 						}
@@ -2589,7 +2564,7 @@ namespace SnowBank.Data.Tuples.Binary
 					}
 					case TupleTypes.Utf8:
 					{
-						return TupleParser.TryParseUnicode(slice, out var str) && ulong.TryParse(str, CultureInfo.InvariantCulture, out value);
+						return TupleParser.TryParseUtf8(slice, out var str) && ulong.TryParse(str, CultureInfo.InvariantCulture, out value);
 					}
 				}
 			}
@@ -2613,7 +2588,7 @@ namespace SnowBank.Data.Tuples.Binary
 				{
 					case TupleTypes.Nil: return 0;
 					case TupleTypes.Bytes: return ulong.Parse(TupleParser.ParseAscii(slice), CultureInfo.InvariantCulture);
-					case TupleTypes.Utf8: return ulong.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					case TupleTypes.Utf8: return ulong.Parse(TupleParser.ParseUtf8(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -2647,7 +2622,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{
-					if (TupleParser.TryParseUnicode(slice, out var str))
+					if (TupleParser.TryParseUtf8(slice, out var str))
 					{
 						return float.TryParse(str, CultureInfo.InvariantCulture, out value);
 
@@ -2668,9 +2643,9 @@ namespace SnowBank.Data.Tuples.Binary
 
 					break;
 				}
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
-					if (TupleParser.TryParseDecimal(slice, out var d))
+					if (TupleParser.TryParseQuadruple(slice, out var d))
 					{
 						value = (float) d;
 						return true;
@@ -2710,7 +2685,7 @@ namespace SnowBank.Data.Tuples.Binary
 				case TupleTypes.Utf8:
 				{
 #if NET8_0_OR_GREATER
-					if (!float.TryParse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture, out var result))
+					if (!float.TryParse(TupleParser.ParseUtf8(slice), CultureInfo.InvariantCulture, out var result))
 					{
 						throw new FormatException("Cannot convert tuple segment of type Utf8 (0x02) into a floating point number");
 					}
@@ -2727,9 +2702,9 @@ namespace SnowBank.Data.Tuples.Binary
 				{
 					return (float) TupleParser.ParseDouble(slice);
 				}
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
-					return (float) TupleParser.ParseDecimal(slice);
+					return (float) TupleParser.ParseQuadruple(slice);
 				}
 			}
 
@@ -2768,7 +2743,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{
-					if (TupleParser.TryParseUnicode(slice, out var str))
+					if (TupleParser.TryParseUtf8(slice, out var str))
 					{
 						return double.TryParse(str, CultureInfo.InvariantCulture, out value);
 					}
@@ -2787,9 +2762,9 @@ namespace SnowBank.Data.Tuples.Binary
 				{
 					return TupleParser.TryParseDouble(slice, out value);
 				}
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
-					if (TupleParser.TryParseDecimal(slice, out var d))
+					if (TupleParser.TryParseQuadruple(slice, out var d))
 					{
 						value = (double) d;
 						return true;
@@ -2824,7 +2799,7 @@ namespace SnowBank.Data.Tuples.Binary
 				case TupleTypes.Utf8:
 				{
 #if NET8_0_OR_GREATER
-					if (!double.TryParse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture, out var result))
+					if (!double.TryParse(TupleParser.ParseUtf8(slice), CultureInfo.InvariantCulture, out var result))
 					{
 						throw new FormatException("Cannot convert tuple segment of type Utf8 (0x02) into a floating point number");
 					}
@@ -2841,9 +2816,9 @@ namespace SnowBank.Data.Tuples.Binary
 				{
 					return TupleParser.ParseDouble(slice);
 				}
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
-					return (double) TupleParser.ParseDecimal(slice);
+					return (double) TupleParser.ParseQuadruple(slice);
 				}
 			}
 
@@ -2878,7 +2853,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // encoded as a base-10 number?
-					if (!Int128.TryParse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture, out var result))
+					if (!Int128.TryParse(TupleParser.ParseUtf8(slice), CultureInfo.InvariantCulture, out var result))
 					{
 						throw new FormatException("Cannot convert tuple segment of type Utf8 (0x02) into a big integer");
 					}
@@ -2923,7 +2898,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // encoded as a base-10 number?
-					if (!UInt128.TryParse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture, out var result))
+					if (!UInt128.TryParse(TupleParser.ParseUtf8(slice), CultureInfo.InvariantCulture, out var result))
 					{
 						throw new FormatException("Cannot convert tuple segment of type Utf8 (0x02) into a big integer");
 					}
@@ -2977,7 +2952,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // encoded as a base-10 number?
-					if (TupleParser.TryParseUnicode(slice, out var str))
+					if (TupleParser.TryParseUtf8(slice, out var str))
 					{
 						return BigInteger.TryParse(str, CultureInfo.InvariantCulture, out value);
 					}
@@ -3037,7 +3012,7 @@ namespace SnowBank.Data.Tuples.Binary
 				case TupleTypes.Utf8:
 				{ // encoded as a base-10 number?
 #if NET8_0_OR_GREATER
-					if (!BigInteger.TryParse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture, out var result))
+					if (!BigInteger.TryParse(TupleParser.ParseUtf8(slice), CultureInfo.InvariantCulture, out var result))
 					{
 						throw new FormatException("Cannot convert tuple segment of type Utf8 (0x02) into a big integer");
 					}
@@ -3097,7 +3072,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 				case TupleTypes.Utf8:
 				{ // we only support ISO 8601 dates. For ex: YYYY-MM-DDTHH:MM:SS.fffff"
-					string str = TupleParser.ParseUnicode(slice);
+					string str = TupleParser.ParseUtf8(slice);
 					return DateTime.Parse(str, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 				}
 
@@ -3109,11 +3084,11 @@ namespace SnowBank.Data.Tuples.Binary
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
 
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
 					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
-					long ticks = UNIX_EPOCH_TICKS + (long) (TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerDay);
+					long ticks = UNIX_EPOCH_TICKS + (long) (TupleParser.ParseQuadruple(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
 				case <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8:
@@ -3153,7 +3128,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 				case TupleTypes.Utf8:
 				{ // we only support ISO 8601 dates. For ex: YYYY-MM-DDTHH:MM:SS.fffff+xxxx"
-					string str = TupleParser.ParseUnicode(slice);
+					string str = TupleParser.ParseUtf8(slice);
 					return DateTimeOffset.Parse(str, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 				}
 
@@ -3165,11 +3140,11 @@ namespace SnowBank.Data.Tuples.Binary
 					return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
 				}
 
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
 					//note: we can't use TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
-					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerDay);
+					long ticks = UNIX_EPOCH_TICKS + (long)(TupleParser.ParseQuadruple(slice) * TimeSpan.TicksPerDay);
 					return new DateTimeOffset(new DateTime(ticks, DateTimeKind.Utc));
 				}
 				case <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8:
@@ -3208,7 +3183,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // "HH:MM:SS.fffff"
-					return TimeSpan.Parse(TupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+					return TimeSpan.Parse(TupleParser.ParseUtf8(slice), CultureInfo.InvariantCulture);
 				}
 				case TupleTypes.Single:
 				{ // Number of seconds
@@ -3220,10 +3195,10 @@ namespace SnowBank.Data.Tuples.Binary
 					//note: We can't use TimeSpan.FromSeconds(...) because it rounds to the nearest millisecond!
 					return new TimeSpan((long) (TupleParser.ParseDouble(slice) * TimeSpan.TicksPerSecond));
 				}
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{ // Number of seconds
 					//note: We can't use TimeSpan.FromSeconds(...) because it rounds to the nearest millisecond!
-					return new TimeSpan((long) (TupleParser.ParseDecimal(slice) * TimeSpan.TicksPerSecond));
+					return new TimeSpan((long) (TupleParser.ParseQuadruple(slice) * TimeSpan.TicksPerSecond));
 				}
 				case <= TupleTypes.IntPos8 and >= TupleTypes.IntNeg8:
 				{ // If we have an integer, we consider it to be a number of Ticks (Windows Only)
@@ -3263,7 +3238,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{
-					var s = TupleParser.ParseUnicode(slice);
+					var s = TupleParser.ParseUtf8(slice);
 					if (s.Length == 0) return '\0';
 					if (s.Length == 1) return s[0];
 					throw new FormatException($"Cannot convert string of size {s.Length} into a Char");
@@ -3309,7 +3284,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{
-					return TupleParser.TryParseUnicode(slice, out value);
+					return TupleParser.TryParseUtf8(slice, out value);
 				}
 				case TupleTypes.Single:
 				{
@@ -3329,9 +3304,9 @@ namespace SnowBank.Data.Tuples.Binary
 					}
 					break;
 				}
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
-					if (TupleParser.TryParseDecimal(slice, out var d))
+					if (TupleParser.TryParseQuadruple(slice, out var d))
 					{
 						value = d.ToString("R", CultureInfo.InvariantCulture);
 						return true;
@@ -3390,7 +3365,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{
-					return TupleParser.ParseUnicode(slice);
+					return TupleParser.ParseUtf8(slice);
 				}
 				case TupleTypes.Single:
 				{
@@ -3400,9 +3375,9 @@ namespace SnowBank.Data.Tuples.Binary
 				{
 					return TupleParser.ParseDouble(slice).ToString(CultureInfo.InvariantCulture);
 				}
-				case TupleTypes.Decimal:
+				case TupleTypes.Quadruple:
 				{
-					return TupleParser.ParseDecimal(slice).ToString(CultureInfo.InvariantCulture);
+					return TupleParser.ParseQuadruple(slice).ToString(CultureInfo.InvariantCulture);
 				}
 				case TupleTypes.Uuid128:
 				{
@@ -3451,7 +3426,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{
-					if (TupleParser.TryParseUnicode(slice, out var str))
+					if (TupleParser.TryParseUtf8(slice, out var str))
 					{
 						return Guid.TryParse(str, out value);
 					}
@@ -3478,7 +3453,7 @@ namespace SnowBank.Data.Tuples.Binary
 			{
 				TupleTypes.Nil => Guid.Empty,
 				TupleTypes.Bytes => Guid.Parse(TupleParser.ParseAscii(slice)),
-				TupleTypes.Utf8 => Guid.Parse(TupleParser.ParseUnicode(slice)),
+				TupleTypes.Utf8 => Guid.Parse(TupleParser.ParseUtf8(slice)),
 				TupleTypes.Uuid128 => TupleParser.ParseGuid(slice),
 				//REVIEW: should we allow converting an Uuid64 into a Guid? This looks more like a bug than an expected behavior...
 				_ => throw new FormatException($"Cannot convert tuple segment of type 0x{slice[0]:X02} into a System.Guid")
@@ -3509,7 +3484,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // expect text representation
-					return Uuid128.Parse(TupleParser.ParseUnicode(slice));
+					return Uuid128.Parse(TupleParser.ParseUtf8(slice));
 				}
 				case TupleTypes.Uuid128:
 				{
@@ -3547,7 +3522,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // expect text representation
-					return Uuid96.Parse(TupleParser.ParseUnicode(slice));
+					return Uuid96.Parse(TupleParser.ParseUtf8(slice));
 				}
 				case TupleTypes.Uuid96:
 				{
@@ -3585,7 +3560,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // expect text representation
-					return Uuid80.Parse(TupleParser.ParseUnicode(slice));
+					return Uuid80.Parse(TupleParser.ParseUtf8(slice));
 				}
 				case TupleTypes.Uuid80:
 				{
@@ -3633,7 +3608,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // expect text representation
-					if (TupleParser.TryParseUnicode(slice, out var str))
+					if (TupleParser.TryParseUtf8(slice, out var str))
 					{
 						return Uuid64.TryParse(str, out value);
 					}
@@ -3679,7 +3654,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // expect text representation
-					return Uuid64.Parse(TupleParser.ParseUnicode(slice));
+					return Uuid64.Parse(TupleParser.ParseUtf8(slice));
 				}
 				case TupleTypes.Uuid64:
 				{
@@ -3722,7 +3697,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{ // expect text representation
-					return Uuid48.Parse(TupleParser.ParseUnicode(slice));
+					return Uuid48.Parse(TupleParser.ParseUtf8(slice));
 				}
 				case >= TupleTypes.IntZero and <= TupleTypes.IntPos8:
 				{ // expect 48-bit number
@@ -3810,7 +3785,7 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 				case TupleTypes.Utf8:
 				{
-					return System.Net.IPAddress.Parse(TupleParser.ParseUnicode(slice));
+					return System.Net.IPAddress.Parse(TupleParser.ParseUtf8(slice));
 				}
 				case TupleTypes.Uuid128:
 				{ // could be an IPv6 encoded as a 128-bits UUID
@@ -3916,23 +3891,6 @@ namespace SnowBank.Data.Tuples.Binary
 			return true;
 		}
 
-		/// <summary>Ensures that a slice is a packed tuple that contains a single and valid element</summary>
-		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>
-		/// <returns>Decoded slice of the single element in the singleton tuple</returns>
-		public static Range UnpackSingle(ReadOnlySpan<byte> buffer)
-		{
-			var reader = new TupleReader(buffer);
-			if (!TupleParser.TryParseNext(ref reader, out var token, out var error))
-			{
-				if (error != null) throw error;
-			}
-			if (token.Equals(default) || reader.HasMore)
-			{
-				throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
-			}
-			return token;
-		}
-
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
 		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>
 		/// <param name="token">Position of the decoded slice in the buffer</param>
@@ -3950,22 +3908,6 @@ namespace SnowBank.Data.Tuples.Binary
 			}
 
 			return true;
-		}
-
-		/// <summary>Only returns the first item of a packed tuple</summary>
-		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
-		/// <returns>Raw slice corresponding to the first element of the tuple</returns>
-		public static Range UnpackFirst(ReadOnlySpan<byte> buffer)
-		{
-			var reader = new TupleReader(buffer);
-
-			if (!TupleParser.TryParseNext(ref reader, out var token, out var error))
-			{
-				if (error != null) throw error;
-				throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
-			}
-			Contract.Debug.Ensures(!token.Equals(default));
-			return token;
 		}
 
 		/// <summary>Only returns the first N items of a packed tuple, without deserializing them.</summary>

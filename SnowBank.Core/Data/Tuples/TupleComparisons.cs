@@ -26,6 +26,8 @@
 
 // ReSharper disable MemberHidesStaticFromOuterClass
 
+#pragma warning disable IL2091
+
 namespace SnowBank.Data.Tuples
 {
 	using System.Collections;

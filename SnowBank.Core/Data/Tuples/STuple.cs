@@ -207,6 +207,10 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		bool ITupleSpanPackable.TryGetSizeHint(bool embedded, out int sizeHint) { sizeHint = embedded ? 2 : 0; return true; }
+
+		/// <inheritdoc />
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			return 0;

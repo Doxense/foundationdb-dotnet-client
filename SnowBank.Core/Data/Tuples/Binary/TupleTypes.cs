@@ -129,6 +129,8 @@ namespace SnowBank.Data.Tuples.Binary
 
 		// note: 0x1E is reserved for big integers (with 16-bit count?) but not used anywhere
 
+		// note: 0x1F is currently unused
+
 		/// <summary>Single precision decimals (32-bit, Big-Endian)</summary>
 		/// <remarks><c>20 xx xx xx xx</c></remarks>
 		public const byte Single = 0x20;
@@ -141,9 +143,13 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <remarks><c>22 xx xx xx xx xx xx xx xx xx xx</c></remarks>
 		public const byte Triple = 0x22; //note: javascript numbers
 
-		/// <summary>Quadruple precision decimals (128-bit, Big-Endian)</summary>
+		/// <summary>Negative quadruple precision decimals (128-bit, Big-Endian)</summary>
 		/// <remarks><c>23 xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx</c></remarks>
-		public const byte Decimal = 0x23;
+		public const byte Quadruple = 0x23;
+
+		/// <summary>Positive quadruple precision decimals (128-bit, Big-Endian)</summary>
+		/// <remarks><c>24 xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx</c></remarks>
+		public const byte PositiveDecimal = 0x24;
 
 		/// <summary>True Value [OBSOLETE]</summary>
 		/// <remarks>Deprecated and should not be used anymore</remarks>
@@ -266,7 +272,7 @@ namespace SnowBank.Data.Tuples.Binary
 				Single => TupleSegmentType.Single,
 				Double => TupleSegmentType.Double,
 				Triple => TupleSegmentType.Triple,
-				Decimal => TupleSegmentType.Decimal,
+				Quadruple => TupleSegmentType.Decimal,
 				False or True  => TupleSegmentType.Boolean,
 				Uuid128 => TupleSegmentType.Uuid128,
 				Uuid64 => TupleSegmentType.Uuid64,
