@@ -35,10 +35,6 @@ namespace SnowBank.Data.Json.Binary
 	/// <summary>Codec that encodes <see cref="JsonValue"/> instances into either database keys (ordered) or values (unordered)</summary>
 	[PublicAPI]
 	public sealed class JsonValueCodec : IValueEncoder<JsonValue>
-#pragma warning disable CS0618 // Type or member is obsolete
-		, IKeyEncoder<JsonValue>
-		, IKeyEncoding
-#pragma warning restore CS0618 // Type or member is obsolete
 	{
 		/// <summary>Default settings</summary>
 		/// <remarks>We use a compact representation, with ISO8601 dates, and always return read-only arrays</remarks>
@@ -235,11 +231,6 @@ namespace SnowBank.Data.Json.Binary
 			TuPack.PackTo(ref writer, ToTuple(value));
 		}
 
-		bool IKeyEncoder<JsonValue>.TryWriteKeyTo(Span<byte> destination, out int bytesWritten, JsonValue? value)
-		{
-			return TuPack.TryPackTo(destination, out bytesWritten, ToTuple(value));
-		}
-
 		public void ReadKeyFrom(ref SliceReader reader, out JsonValue value)
 		{
 			IVarTuple? tuple = TuPack.Unpack(reader.ReadToEnd());
@@ -273,31 +264,6 @@ namespace SnowBank.Data.Json.Binary
 				? (value.IsNull ? JsonNull.Missing : JsonNull.Null)
 				: CrystalJson.Parse(value);
 		}
-
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public IKeyEncoding Encoding => this;
-
-		#region IKeyEncoding...
-
-#pragma warning disable CS0618 // Type or member is obsolete
-
-		IDynamicKeyEncoder IKeyEncoding.GetDynamicKeyEncoder() => throw new NotSupportedException();
-
-		IKeyEncoder<T1> IKeyEncoding.GetKeyEncoder<T1>()
-		{
-			if (typeof(T1) == typeof(JsonValue)) return (IKeyEncoder<T1>) (object) this;
-			throw new NotSupportedException();
-		}
-
-		ICompositeKeyEncoder<T1, T2> IKeyEncoding.GetKeyEncoder<T1, T2>() => throw new NotSupportedException();
-
-		ICompositeKeyEncoder<T1, T2, T3> IKeyEncoding.GetKeyEncoder<T1, T2, T3>() => throw new NotSupportedException();
-
-		ICompositeKeyEncoder<T1, T2, T3, T4> IKeyEncoding.GetKeyEncoder<T1, T2, T3, T4>() => throw new NotSupportedException();
-
-#pragma warning restore CS0618 // Type or member is obsolete
-
-		#endregion
 
 	}
 

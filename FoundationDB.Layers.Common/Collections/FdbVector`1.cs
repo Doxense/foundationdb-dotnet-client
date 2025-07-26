@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Layers.Collections
 {
-	using System.Runtime.CompilerServices;
 
 	/// <summary>Provides a high-contention Queue class</summary>
 	[DebuggerDisplay("Location={Location}")]
@@ -128,7 +127,7 @@ namespace FoundationDB.Layers.Collections
 
 				var size = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
-				tr.Set(GetKeyAt(size), this.Parent.Codec.EncodeValue(value));
+				tr.Set(this.Subspace.Key(size), this.Parent.Codec.EncodeValue(value));
 			}
 
 			/// <summary>Get the value of the last item in the Vector.</summary>
@@ -178,7 +177,7 @@ namespace FoundationDB.Layers.Collections
 				}
 				else if (lastTwo.Count == 1 || indices[0] > indices[1] + 1)
 				{ // Second to last item is being represented sparsely
-					tr.Set(GetKeyAt(indices[0] - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
+					tr.Set(this.Subspace.Key(indices[0] - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
 				}
 
 				tr.Clear(lastTwo[0].Key);
@@ -193,8 +192,8 @@ namespace FoundationDB.Layers.Collections
 
 				if (index1 < 0 || index2 < 0) throw new IndexOutOfRangeException($"Indices ({index1}, {index2}) must be positive");
 
-				var k1 = GetKeyAt(index1);
-				var k2 = GetKeyAt(index2);
+				var k1 = this.Subspace.Key(index1);
+				var k2 = this.Subspace.Key(index2);
 
 				long currentSize = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
@@ -229,11 +228,8 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(tr);
 				Contract.Positive(index);
 
-				var start = GetKeyAt(index);
-				var end = this.Subspace.ToRange().End;
-
 				var output = await tr
-					.GetRange(start, end)
+					.GetRange(this.Subspace.Key(index), this.Subspace.Last())
 					.FirstOrDefaultAsync()
 					.ConfigureAwait(false);
 
@@ -257,7 +253,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(tr);
 
-				tr.Set(GetKeyAt(index), this.Parent.Codec.EncodeValue(value));
+				tr.Set(this.Subspace.Key(index), this.Parent.Codec.EncodeValue(value));
 			}
 
 			/// <summary>Test whether the Vector is empty.</summary>
@@ -277,17 +273,17 @@ namespace FoundationDB.Layers.Collections
 
 				if (length < currentSize)
 				{
-					tr.ClearRange(GetKeyAt(length), this.Subspace.ToRange().End);
+					tr.ClearRange(this.Subspace.Key(length), this.Subspace.Last());
 
 					// Check if the new end of the vector was being sparsely represented
 					if (await ComputeSizeAsync(tr).ConfigureAwait(false) < length)
 					{
-						tr.Set(GetKeyAt(length - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
+						tr.Set(this.Subspace.Key(length - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
 					}
 				}
 				else if (length > currentSize)
 				{
-					tr.Set(GetKeyAt(length - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
+					tr.Set(this.Subspace.Key(length - 1), this.Parent.Codec.EncodeValue(this.Parent.DefaultValue!));
 				}
 			}
 
@@ -314,12 +310,6 @@ namespace FoundationDB.Layers.Collections
 				}
 
 				return this.Subspace.DecodeFirst<long>(lastKey) + 1;
-			}
-
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			private FdbTupleKey<long> GetKeyAt(long index)
-			{
-				return this.Subspace.Key(index);
 			}
 
 			#endregion

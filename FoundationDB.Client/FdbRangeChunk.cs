@@ -53,11 +53,11 @@ namespace FoundationDB.Client
 		public bool HasMore { get; }
 
 		/// <summary>Iteration number of this chunk, starting from 1 for the first page</summary>
-		/// <remarks>This value must be passed to subsequent calls to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> to continue reading; otherwise, the <see cref="FdbRangeOptions.Streaming">streaming</see> will not behave properly.</remarks>
+		/// <remarks>This value must be passed to subsequent calls to <see cref="IFdbReadOnlyTransaction.GetRangeAsync(KeySelector,KeySelector,FdbRangeOptions?,int)"/> to continue reading; otherwise, the <see cref="FdbRangeOptions.Streaming">streaming</see> will not behave properly.</remarks>
 		public int Iteration { get; }
 
 		/// <summary>Options used to perform this operation</summary>
-		/// <remarks>They can be passed again to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/>, together with <c><see cref="Iteration"/> + 1</c> to continue reading from the database.</remarks>
+		/// <remarks>They can be passed again to <see cref="IFdbReadOnlyTransaction.GetRangeAsync(KeySelector,KeySelector,FdbRangeOptions?,int)"/>, together with <c><see cref="Iteration"/> + 1</c> to continue reading from the database.</remarks>
 		public FdbRangeOptions Options { get; }
 
 		/// <summary>Returns the first item in the chunk</summary>
@@ -73,7 +73,7 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Page of results from a <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> operation</summary>
+	/// <summary>Page of results from a <see cref="IFdbReadOnlyTransaction.GetRangeAsync(KeySelector,KeySelector,FdbRangeOptions?,int)"/> operation</summary>
 	/// <remarks>If a pool was specified in the <see cref="FdbRangeOptions"/>, then this instance <b>MUST</b> be disposed; otherwise, rented buffers will not be returned to the pool</remarks>
 	[DebuggerDisplay("Count={Count}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
 	[PublicAPI]
@@ -88,11 +88,11 @@ namespace FoundationDB.Client
 		public bool HasMore { get; }
 
 		/// <summary>Iteration number of this chunk, starting from 1 for the first page</summary>
-		/// <remarks>This value must be passed to subsequent calls to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/> to continue reading; otherwise, the <see cref="FdbRangeOptions.Streaming">streaming</see> will not behave properly.</remarks>
+		/// <remarks>This value must be passed to subsequent calls to <see cref="IFdbReadOnlyTransaction.GetRangeAsync(KeySelector,KeySelector,FdbRangeOptions?,int)"/> to continue reading; otherwise, the <see cref="FdbRangeOptions.Streaming">streaming</see> will not behave properly.</remarks>
 		public int Iteration { get; }
 
 		/// <summary>Options used to perform this operation</summary>
-		/// <remarks>They can be passed again to <see cref="IFdbReadOnlyTransaction.GetRangeAsync"/>, together with <c><see cref="Iteration"/> + 1</c> to continue reading from the database.</remarks>
+		/// <remarks>They can be passed again to <see cref="IFdbReadOnlyTransaction.GetRangeAsync(KeySelector,KeySelector,FdbRangeOptions?,int)"/>, together with <c><see cref="Iteration"/> + 1</c> to continue reading from the database.</remarks>
 		public FdbRangeOptions Options { get; }
 
 		/// <summary>Returns the first item in the chunk</summary>
@@ -501,63 +501,6 @@ namespace FoundationDB.Client
 			return items;
 		}
 
-		/// <summary>Decode the content of this chunk into an array of typed key/value pairs</summary>
-		/// <typeparam name="TKey">Type of the keys</typeparam>
-		/// <typeparam name="TValue">Type of the values</typeparam>
-		/// <param name="subspace">Subspace that is expected to contain all the keys.</param>
-		/// <param name="keyEncoder">Instance used to decode the keys of this chunk. The prefix of <paramref name="subspace"/> is removed from the key before calling the encoder.</param>
-		/// <param name="valueEncoder">Instance used to decode the values of this chunk</param>
-		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
-		/// <exception cref="System.ArgumentException">If at least on key in the result is outside <paramref name="subspace"/>.</exception>
-		/// <exception cref="System.ArgumentNullException">If either <paramref name="subspace"/>, <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(KeySubspace subspace, IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
-		{
-			Contract.NotNull(subspace);
-			Contract.NotNull(keyEncoder);
-			Contract.NotNull(valueEncoder);
-
-			var results = this.Items;
-			var items = new KeyValuePair<TKey, TValue>[results.Length];
-
-			for (int i = 0; i < results.Length; i++)
-			{
-				items[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(subspace.ExtractKey(results[i].Key, boundCheck: true))!,
-					valueEncoder.DecodeValue(results[i].Value)!
-				);
-			}
-
-			return items;
-		}
-
-		/// <summary>Decode the content of this chunk into an array of typed key/value pairs</summary>
-		/// <typeparam name="TKey">Type of the keys</typeparam>
-		/// <typeparam name="TValue">Type of the values</typeparam>
-		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
-		/// <param name="valueEncoder">Instance used to decode the values of this chunk</param>
-		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
-		/// <exception cref="System.ArgumentNullException">If either <paramref name="keyEncoder"/> or <paramref name="valueEncoder"/> is null.</exception>
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>(IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
-		{
-			Contract.NotNull(keyEncoder);
-			Contract.NotNull(valueEncoder);
-
-			var results = this.Items;
-			var items = new KeyValuePair<TKey, TValue>[results.Length];
-
-			for (int i = 0; i < results.Length; i++)
-			{
-				items[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(results[i].Key)!,
-					valueEncoder.DecodeValue(results[i].Value)!
-				);
-			}
-
-			return items;
-		}
-
 		/// <summary>Decode the content of this chunk into an array of typed keys</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="handler">Instance used to decode the keys of this chunk</param>
@@ -573,44 +516,6 @@ namespace FoundationDB.Client
 				keys[i] = handler(results[i].Key);
 			}
 			return keys;
-		}
-
-		/// <summary>Decode the content of this chunk into an array of typed keys</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
-		/// <param name="subspace"></param>
-		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
-		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public T[] DecodeKeys<T>(KeySubspace subspace, IKeyEncoder<T> keyEncoder)
-		{
-			Contract.NotNull(subspace);
-			Contract.NotNull(keyEncoder);
-
-			var results = this.Items;
-			var keys = new T[results.Length];
-			for(int i = 0; i< keys.Length;i++)
-			{
-				keys[i] = keyEncoder.DecodeKey(subspace.ExtractKey(results[i].Key, boundCheck: true))!;
-			}
-			return keys;
-		}
-
-		/// <summary>Decode the content of this chunk into an array of typed keys</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
-		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
-		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public T[] DecodeKeys<T>(IKeyEncoder<T> keyEncoder)
-		{
-			Contract.NotNull(keyEncoder);
-
-			var results = this.Items;
-			var values = new T[results.Length];
-			for (int i = 0; i < values.Length; i++)
-			{
-				values[i] = keyEncoder.DecodeKey(results[i].Key)!;
-			}
-			return values;
 		}
 
 		/// <summary>Decode the content of this chunk into an array of typed values</summary>

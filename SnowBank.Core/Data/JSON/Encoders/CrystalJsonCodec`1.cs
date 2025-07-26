@@ -26,10 +26,8 @@
 
 namespace SnowBank.Data.Json.Binary
 {
-	using System.Buffers;
 	using SnowBank.Data.Json;
 	using SnowBank.Data.Binary;
-	using SnowBank.Buffers;
 
 	/// <summary>Codecs that encodes CLR types into either database keys (ordered) or values (unordered)</summary>
 	[PublicAPI]
@@ -53,7 +51,7 @@ namespace SnowBank.Data.Json.Binary
 
 	/// <summary>Codec that encodes <typeparamref name="T"/> instances into either database keys (ordered) or values (unordered)</summary>
 	[PublicAPI]
-	public class CrystalJsonCodec<T> : TypeCodec<T>, IValueEncoder<T>
+	public class CrystalJsonCodec<T> : IValueEncoder<T>
 	{
 
 		private readonly CrystalJsonSettings m_settings;
@@ -86,117 +84,20 @@ namespace SnowBank.Data.Json.Binary
 		/// <summary>Default JSON type resolver used by this codec</summary>
 		public ICrystalJsonTypeResolver Resolver => m_resolver;
 
-		/// <summary>Serializes a value of type <typeparamref name="T"/> into its binary representation</summary>
-		protected virtual void EncodeInternal(ref SliceWriter writer, T? document, bool selfTerm)
-		{
-			using var buffer = document != null
-				? m_converter?.ToSlice(document, ArrayPool<byte>.Shared, m_settings, m_resolver) ?? CrystalJson.ToSlice(document, ArrayPool<byte>.Shared, m_settings, m_resolver)
-				: SliceOwner.Nil;
-
-			if (selfTerm)
-			{
-				writer.EnsureBytes(buffer.Count + 5);
-				writer.WriteVarInt32((uint) buffer.Count);
-			}
-
-			if (buffer.Count > 0)
-			{
-				writer.WriteBytes(buffer.Span);
-			}
-		}
-
-		/// <summary>Deserializes binary representation a value of type <typeparamref name="T"/> into its original value</summary>
-		protected virtual T? DecodeInternal(ref SliceReader reader, bool selfTerm)
-		{
-			int count = selfTerm ? (int) reader.ReadVarInt32() : reader.Remaining;
-			if (count < 0)
-			{
-				throw new FormatException("Negative size");
-			}
-
-			if (count == 0)
-			{
-				return default;
-			}
-
-			var encoded = reader.ReadBytes(count);
-			return m_converter != null
-				? m_converter.Unpack(encoded, m_resolver)
-				: CrystalJson.Deserialize<T?>(encoded, default, m_settings, m_resolver);
-		}
-
-		#region Ordered...
-
-		/// <inheritdoc />
-		public override Slice EncodeOrdered(T? value)
-		{
-			return EncodeUnordered(value);
-		}
-
-		/// <inheritdoc />
-		public override T? DecodeOrdered(Slice input)
-		{
-			return DecodeUnordered(input);
-		}
-
-		/// <inheritdoc />
-		public override void EncodeOrderedTo(ref SliceWriter output, T? value)
-		{
-			EncodeInternal(ref output, value, selfTerm: true);
-		}
-
-		/// <inheritdoc />
-		public override T? DecodeOrderedFrom(ref SliceReader input)
-		{
-			return DecodeInternal(ref input, selfTerm: true);
-		}
-
-		#endregion
-
-		#region Unordered...
-
-		/// <inheritdoc />
-		public override Slice EncodeUnordered(T? value)
-		{
-			var writer = default(SliceWriter);
-			EncodeInternal(ref writer, value, selfTerm: false);
-			return writer.ToSlice();
-		}
-
-		/// <inheritdoc />
-		public override T? DecodeUnordered(Slice encoded)
-		{
-			if (encoded.IsNullOrEmpty) return default!;
-			var reader = new SliceReader(encoded);
-			return DecodeInternal(ref reader, selfTerm: false);
-		}
-
-		/// <inheritdoc />
-		public override void EncodeUnorderedSelfTerm(ref SliceWriter output, T? value)
-		{
-			EncodeInternal(ref output, value, selfTerm: true);
-		}
-
-		/// <inheritdoc />
-		public override T? DecodeUnorderedSelfTerm(ref SliceReader input)
-		{
-			return DecodeInternal(ref input, selfTerm: true);
-		}
-
-		#endregion
-
 		#region Value...
 
 		/// <inheritdoc />
 		public Slice EncodeValue(T? value)
 		{
-			return EncodeUnordered(value);
+			return m_converter?.ToSlice(value, m_settings, m_resolver) ?? CrystalJson.ToSlice(value, m_settings, m_resolver);
 		}
 
 		/// <inheritdoc />
 		public T? DecodeValue(Slice encoded)
 		{
-			return DecodeUnordered(encoded);
+			return encoded.IsNullOrEmpty ? default!
+				: m_converter != null ? m_converter.Unpack(encoded, m_resolver)
+				: CrystalJson.Deserialize<T?>(encoded, default, m_settings, m_resolver);
 		}
 
 		#endregion

@@ -433,4 +433,64 @@ namespace FoundationDB.Client
 
 	}
 
+	public readonly struct FdbSubspaceKeyRange : IFdbKeyRange
+	{
+
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbSubspaceKeyRange(IKeySubspace subspace, bool inclusive = false)
+		{
+			this.Subspace = subspace;
+			this.IsInclusive = inclusive;
+		}
+
+		public readonly IKeySubspace Subspace;
+
+		public readonly bool IsInclusive;
+
+		/// <summary>Returns a version of this range that includes the subspace prefix in the results</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbSubspaceKeyRange Inclusive() => new(this.Subspace, inclusive: true);
+
+		/// <summary>Returns a version of this range that excludes the subspace prefix from the results</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbSubspaceKeyRange Exclusive() => new(this.Subspace, inclusive: false);
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKeyRange.GetSubspace() => this.Subspace;
+
+
+		/// <summary>Converts this range into a binary encoded <see cref="KeyRange"/></summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public KeyRange ToKeyRange() => this.IsInclusive
+			//PERF: TODO: optimize this!
+			? KeyRange.StartsWith(this.Subspace.GetPrefix())
+			: KeyRange.PrefixedBy(this.Subspace.GetPrefix());
+
+		/// <summary>Returns a <see cref="FdbKeySelector{FdbRawKey}"/> that will match the first key in the range (inclusive)</summary>
+		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbKeySelector<FdbRawKey> GetBeginSelector()
+			=> this.IsInclusive
+				? FdbKeySelector.FirstGreaterOrEqual(this.Subspace.GetPrefix())
+				: FdbKeySelector.FirstGreaterThan(this.Subspace.GetPrefix());
+
+		/// <summary>Returns a <see cref="FdbKeySelector{FdbRawKey}"/> that will match the last key in the range (exclusive)</summary>
+		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbKeySelector<FdbNextSiblingKey<FdbSubspaceKey>> GetEndSelector()
+			=> FdbKeySelector.FirstGreaterThan(this.Subspace.NextSibling());
+
+		/// <summary>Returns a <see cref="KeySelector"/> that will match the first key in the range (inclusive)</summary>
+		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
+		public KeySelector ToBeginSelector() => this.IsInclusive
+			? FdbKeySelector.FirstGreaterOrEqual(this.Subspace.GetPrefix()).ToSelector()
+			: FdbKeySelector.FirstGreaterThan(this.Subspace.GetPrefix()).ToSelector();
+
+		/// <summary>Returns a <see cref="KeySelector"/> that will match the last key in the range (exclusive)</summary>
+		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
+		public KeySelector ToEndSelector()
+			=> FdbKeySelector.FirstGreaterThan(this.Subspace.NextSibling()).ToSelector();
+
+	}
+
 }

@@ -704,36 +704,6 @@ namespace FoundationDB.Client
 			writer.Dispose();
 		}
 
-		/// <summary>Set the value of a key in the database, using custom key and value encoders.</summary>
-		/// <typeparam name="TKey">Type of the keys</typeparam>
-		/// <typeparam name="TValue">Type of the value</typeparam>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="keyEncoder">Encoder used to convert <paramref name="key"/> into a binary literal.</param>
-		/// <param name="key">Argument that will be used to generate the name of the key to set in the database</param>
-		/// <param name="valueEncoder">Encoder used to convert <paramref name="value"/> into a binary literal.</param>
-		/// <param name="value">Argument that will be used to generate the value for the key</param>
-		[EditorBrowsable(EditorBrowsableState.Never)] //TODO: phase out IKeyEncoder/IValueEncoder
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public static void Set<TKey, TValue>(this IFdbTransaction trans, IKeyEncoder<TKey> keyEncoder, TKey key, IValueEncoder<TValue> valueEncoder, TValue value)
-		{
-			Contract.NotNull(trans);
-			Contract.NotNull(keyEncoder);
-			Contract.NotNull(valueEncoder);
-
-			// use the same pooled buffer to write both the key and value
-			var writer = new SliceWriter(ArrayPool<byte>.Shared);
-
-			keyEncoder.WriteKeyTo(ref writer, key);
-			var keySpan = writer.ToSpan();
-
-			valueEncoder.WriteValueTo(ref writer, value);
-			var valueSpan = writer.ToSpan()[keySpan.Length..];
-
-			trans.Set(keySpan, valueSpan);
-
-			writer.Dispose();
-		}
-
 		/// <summary>Sets the value of a key in the database as a UTF-8 encoded string</summary>
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		[Obsolete("Use Set(key, FdbValue.ToTextUtf8(...)) instead")]

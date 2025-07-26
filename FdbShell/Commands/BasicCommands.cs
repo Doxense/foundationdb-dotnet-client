@@ -171,7 +171,7 @@ namespace FdbShell
 			var stuff = await db.ReadAsync(async tr =>
 			{
 				var folder = await db.DirectoryLayer.TryOpenAsync(tr, path);
-				return await tr.GetRange<FdbRawKeyRange>(folder!.ToRange()).FirstOrDefaultAsync();
+				return await tr.GetRange(folder!.ToRange()).FirstOrDefaultAsync();
 			}, ct);
 
 			if (stuff.Key.IsPresent)

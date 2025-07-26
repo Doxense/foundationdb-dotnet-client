@@ -58,24 +58,10 @@ namespace FoundationDB.Client
 		/// <summary>Returns the prefix of this subspace</summary>
 		Slice GetPrefix();
 
-		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
-		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
-		[Pure]
-		[Obsolete("Use ToRange() instead")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		KeyRange GetRange();
-
 		/// <summary>Return a range that will match all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		[Pure]
-		FdbRawKeyRange ToRange();
-
-		/// <summary>Return the key that is composed of the subspace prefix and a binary suffix</summary>
-		/// <param name="relativeKey">Binary suffix that will be appended to the current prefix</param>
-		/// <returns>Full binary key</returns>
-		[Obsolete("Use subspace.Bytes(...) instead")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		Slice Append(ReadOnlySpan<byte> relativeKey);
+		FdbSubspaceKeyRange ToRange();
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="absoluteKey">Key to test</param>
@@ -100,7 +86,6 @@ namespace FoundationDB.Client
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
 		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> if the key is exactly equal to the subspace prefix). If the key is outside the subspace, returns <see cref="Slice.Nil"/></returns>
-		/// <remarks>This is the inverse operation of <see cref="Append"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		[Pure]
 		ReadOnlySpan<byte> ExtractKey(ReadOnlySpan<byte> absoluteKey, bool boundCheck = false);
@@ -109,7 +94,6 @@ namespace FoundationDB.Client
 		/// <param name="absoluteKey">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="absoluteKey"/> is inside the bounds of the subspace</param>
 		/// <returns>Binary suffix of the key (or <see cref="Slice.Empty"/> if the key is exactly equal to the subspace prefix). If the key is outside the subspace, returns <see cref="Slice.Nil"/></returns>
-		/// <remarks>This is the inverse operation of <see cref="Append"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="absoluteKey"/> is outside the current subspace.</exception>
 		[Pure]
 		Slice ExtractKey(Slice absoluteKey, bool boundCheck = false);

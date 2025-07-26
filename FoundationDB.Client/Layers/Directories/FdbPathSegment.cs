@@ -26,12 +26,11 @@
 
 namespace FoundationDB.Client
 {
-	using System.ComponentModel;
 	using SnowBank.Buffers.Text;
 
 	/// <summary>Represent a segment in a <see cref="FdbPath">path</see> to a <see cref="IFdbDirectory">Directory</see>.</summary>
 	/// <remark>A path segment is composed of a <see cref="Name"/> and optional <see cref="LayerId"/> field.</remark>
-	public readonly struct FdbPathSegment : IEquatable<FdbPathSegment>, IComparable<FdbPathSegment>, IFormattable, ISpanFormattable
+	public readonly struct FdbPathSegment : IEquatable<FdbPathSegment>, IComparable<FdbPathSegment>, ISpanFormattable
 	{
 
 		// Rules for encoding a segment into a string: '/', '\', '[' and ']' are escaped by prefixing them by another '\'
@@ -372,7 +371,7 @@ namespace FoundationDB.Client
 		/// <para>The string returned can be parsed back into the original segment via <see cref="Parse(string)"/>.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		/// <summary>Returns an encoded string representation of this path segment</summary>
 		///  <param name="format">Supported formats are <see langword="null"/> or <c>"D"</c> to include layer ids, and <c>"N"</c> for names only</param>

@@ -31,7 +31,6 @@ namespace SnowBank.Data.Tuples
 	using System.Buffers;
 	using System.ComponentModel;
 	using SnowBank.Data.Tuples.Binary;
-	using SnowBank.Data.Binary;
 	using SnowBank.Buffers;
 
 	/// <summary>Tuple Binary Encoding</summary>
@@ -39,10 +38,6 @@ namespace SnowBank.Data.Tuples
 	[DebuggerNonUserCode]
 	public static class TuPack
 	{
-
-		/// <summary>Key encoding that uses the Tuple Binary Encoding</summary>
-		[Obsolete("Use a custom IFdbKeyEncoder<T> instead")]
-		public static IDynamicTypeSystem Encoding => TupleKeyEncoding.Instance;
 
 		#region Packing...
 

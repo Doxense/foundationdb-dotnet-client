@@ -26,6 +26,8 @@
 
 namespace FoundationDB.Client
 {
+
+	/// <summary>Directory Partition that will use its own Directory Layer instance to manage any subdirectories</summary>
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 
@@ -61,11 +63,11 @@ namespace FoundationDB.Client
 				: throw ThrowHelper.InvalidOperationException($"Cannot create keys in the root of directory partition {this.Path}.");
 		}
 
-		protected override KeyRange GetKeyRange()
+		public override FdbSubspaceKeyRange ToRange()
 		{
 			// only "/" is allowed for legacy reasons
 			return this.IsTopLevel
-				? base.GetKeyRange()
+				? base.ToRange()
 				: throw ThrowHelper.InvalidOperationException($"Cannot create a key range in the root of directory partition {this.Path}.");
 		}
 

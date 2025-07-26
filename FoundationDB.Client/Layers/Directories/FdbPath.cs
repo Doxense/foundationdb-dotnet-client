@@ -26,13 +26,12 @@
 
 namespace FoundationDB.Client
 {
-	using System.ComponentModel;
 	using SnowBank.Buffers.Text;
 
 	/// <summary>Represents a path in a Directory Layer</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IComparable<FdbPath>, IFormattable, ISpanFormattable, IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
+	public readonly struct FdbPath : IReadOnlyList<FdbPathSegment>, IEquatable<FdbPath>, IComparable<FdbPath>, ISpanFormattable, IJsonDeserializable<FdbPath>, IJsonSerializable, IJsonPackable
 	{
 		/// <summary>The "empty" path</summary>
 		/// <remarks>This path is relative</remarks>
@@ -60,7 +59,7 @@ namespace FoundationDB.Client
 		public bool IsEmpty
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => !this.IsAbsolute & (this.Segments.Length == 0);
+			get => !this.IsAbsolute && this.Segments.Length == 0;
 		}
 
 		/// <summary>Test if this is the root directory ("/")</summary>
@@ -68,7 +67,7 @@ namespace FoundationDB.Client
 		public bool IsRoot
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.IsAbsolute & this.Segments.Length == 0;
+			get => this.IsAbsolute && this.Segments.Length == 0;
 		}
 
 		/// <summary>Number of segments in the path</summary>
@@ -469,7 +468,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a serialized string that represents this path.</summary>
 		/// <returns>All the path segments joined with a '/'. If the path is absolute, starts with a leading '/'</returns>
 		/// <remarks>Any string produced by this method can be passed back to <see cref="Parse(string)"/> to get back the original path.</remarks>
-		public override string ToString() => ToString(null, null);
+		public override string ToString() => ToString(null);
 
 		///  <summary>Returns a serialized string that represents this path.</summary>
 		///  <param name="format">Supported formats are <see langword="null"/> or <c>"D"</c> to include layer ids, and <c>"N"</c> for names only</param>

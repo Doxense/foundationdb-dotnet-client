@@ -562,7 +562,7 @@ namespace FoundationDB.Client
 					layer = await tr.GetAsync(
 						partition.GetLayerIdKey(current),
 						(value, found)
-							=> value.Length == 0 ? ""
+							=> !found || value.Length == 0 ? ""
 							 : value.SequenceEqual("partition"u8) ? FdbDirectoryPartition.LayerId
 							 : Encoding.UTF8.GetString(value)
 					).ConfigureAwait(false);

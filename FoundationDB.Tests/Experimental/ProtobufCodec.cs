@@ -26,9 +26,8 @@
 
 namespace FoundationDB.Types.ProtocolBuffers
 {
-	using SnowBank.Buffers;
 
-	public class ProtobufCodec<TDocument> : IValueEncoder<TDocument>, IUnorderedTypeCodec<TDocument>
+	public class ProtobufCodec<TDocument> : IValueEncoder<TDocument>
 	{
 
 		public ProtobufCodec()
@@ -36,7 +35,7 @@ namespace FoundationDB.Types.ProtocolBuffers
 			ProtoBuf.Serializer.PrepareSerializer<TDocument>();
 		}
 
-		protected virtual Slice EncodeInternal(TDocument? document)
+		public Slice EncodeValue(TDocument? document)
 		{
 			using (var ms = new MemoryStream())
 			{
@@ -54,11 +53,6 @@ namespace FoundationDB.Types.ProtocolBuffers
 			}
 		}
 
-		public Slice EncodeValue(TDocument? document)
-		{
-			return EncodeInternal(document);
-		}
-
 		public TDocument? DecodeValue(Slice encoded)
 		{
 			if (encoded.IsNullOrEmpty) return default(TDocument);
@@ -69,32 +63,6 @@ namespace FoundationDB.Types.ProtocolBuffers
 			}
 		}
 
-		void IUnorderedTypeCodec<TDocument>.EncodeUnorderedSelfTerm(ref SliceWriter output, TDocument? value)
-		{
-			var packed = EncodeInternal(value);
-			Debug.Assert(packed.Count >= 0);
-			output.WriteVarInt32((uint)packed.Count);
-			output.WriteBytes(packed);
-		}
-
-		TDocument? IUnorderedTypeCodec<TDocument>.DecodeUnorderedSelfTerm(ref SliceReader input)
-		{
-			uint size = input.ReadVarInt32();
-			if (size > int.MaxValue) throw new FormatException("Malformed data size");
-
-			var packed = input.ReadBytes((int)size);
-			return DecodeValue(packed);
-		}
-
-		Slice IUnorderedTypeCodec<TDocument>.EncodeUnordered(TDocument? value)
-		{
-			return EncodeValue(value);
-		}
-
-		TDocument? IUnorderedTypeCodec<TDocument>.DecodeUnordered(Slice input)
-		{
-			return DecodeValue(input);
-		}
 	}
 
 }

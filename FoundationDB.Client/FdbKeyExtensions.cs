@@ -140,42 +140,6 @@ namespace FoundationDB.Client
 			return new KeySubspace(FdbKeyHelpers.ToSlice(in key), context);
 		}
 
-		/// <summary>Returns a new subspace with an additional prefix</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="prefix">Prefix to be added to the parent subspace prefix</param>
-		/// <returns>Subspace that will append both prefixes to all the keys</returns>
-		/// <remarks>
-		/// <para>For example, if the <paramref name="subspace "/> has the prefix <c>(42,)</c> (<c>`\x15\x2A`</c>) and <paramref name="prefix"/> is <c>`\x15\x7B`</c>),
-		/// then the new subspace will have the prefix <c>(42, 123)</c> (<c>`\x15\x2A\x15\x7B`</c>)</para>
-		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
-		/// </remarks>
-		[Obsolete("Use subspace.Bytes(...).ToSubspace() instead")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static IDynamicKeySubspace ToSubspace(this IKeySubspace subspace, ReadOnlySpan<byte> prefix)
-		{
-			Contract.NotNull(subspace);
-			subspace.Context.EnsureIsValid();
-			return new DynamicKeySubspace(subspace.GetPrefix().Concat(prefix), subspace.Context);
-		}
-
-		/// <summary>Returns a new subspace with an additional prefix</summary>
-		/// <param name="subspace">Parent subspace</param>
-		/// <param name="prefix">Prefix to be added to the parent subspace prefix</param>
-		/// <returns>Subspace that will append both prefixes to all the keys</returns>
-		/// <remarks>
-		/// <para>For example, if the <paramref name="subspace "/> has the prefix <c>(42,)</c> (<c>`\x15\x2A`</c>) and <paramref name="prefix"/> is <c>`\x15\x7B`</c>),
-		/// then the new subspace will have the prefix <c>(42, 123)</c> (<c>`\x15\x2A\x15\x7B`</c>)</para>
-		/// <para>The generated subspace will use the same <see cref="IKeySubspace.Context">context</see> as <paramref name="subspace"/> and will be tied to its parent's lifetime.</para>
-		/// </remarks>
-		[Obsolete("Use subspace.Bytes(...).ToSubspace() instead")]
-		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static IDynamicKeySubspace ToSubspace(this IKeySubspace subspace, Slice prefix)
-		{
-			Contract.NotNull(subspace);
-			subspace.Context.EnsureIsValid();
-			return new DynamicKeySubspace(subspace.GetPrefix() + prefix, subspace.Context);
-		}
-
 		#endregion
 
 		#region Key...
@@ -722,6 +686,210 @@ namespace FoundationDB.Client
 			}
 			return FdbKeyHelpers.IsSystem(in key);
 		}
+
+		#region Decode...
+
+		//TODO: move this to FdbKeyExtensions
+
+		/// <summary>Decodes a binary slice into a tuple of arbitrary length</summary>
+		/// <returns>Tuple of any size (0 to N)</returns>
+		public static IVarTuple Unpack(this IKeySubspace self, Slice packedKey) //REVIEW: consider changing return type to SlicedTuple ?
+		{
+			return TuPack.Unpack(self.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decodes a binary slice into a tuple of arbitrary length</summary>
+		/// <returns>Tuple of any size (0 to N)</returns>
+		public static SpanTuple Unpack(this IKeySubspace self, ReadOnlySpan<byte> packedKey) //REVIEW: consider changing return type to SlicedTuple ?
+		{
+			return SpanTuple.Unpack(self.ExtractKey(packedKey));
+		}
+
+		/// <summary>Decode a key of this subspace, composed of a single element</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? Decode<T1>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of a single element</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? Decode<T1>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?> Decode<T1, T2>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?> Decode<T1, T2>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?> Decode<T1, T2, T3>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?> Decode<T1, T2, T3, T4>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?, T5?> Decode<T1, T2, T3, T4, T5>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly six elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?> Decode<T1, T2, T3, T4, T5, T6>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IKeySubspace self, Slice packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?> Decode<T1, T2, T3, T4, T5, T6, T7>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, composed of exactly seven elements</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static STuple<T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?> Decode<T1, T2, T3, T4, T5, T6, T7, T8>(this IKeySubspace self, ReadOnlySpan<byte> packedKey)
+			=> TuPack.DecodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(self.ExtractKey(packedKey));
+
+		/// <summary>Decode a key of this subspace, and return the element at the given index</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeAt<T1>(this IKeySubspace self, Slice packedKey, int index)
+			=> TuPack.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
+
+		/// <summary>Decode a key of this subspace, and return the element at the given index</summary>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeAt<T1>
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int index)
+			=> TuPack.DecodeKeyAt<T1>(self.ExtractKey(packedKey), index);
+
+		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeFirst<T1>
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeFirst<T1>
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the first two elements without decoding the rest the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only two elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?) DecodeFirst<T1, T2>
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1, T2>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the first two elements without decoding the rest the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only two elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?) DecodeFirst<T1, T2>
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1, T2>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the first three elements without decoding the rest the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only three elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the first three elements without decoding the rest the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only three elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?) DecodeFirst<T1, T2, T3>
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeFirst<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeLast<T1>
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static T1? DecodeLast<T1>
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last two elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?) DecodeLast<T1, T2>
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last two elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?) DecodeLast<T1, T2>
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?) DecodeLast<T1, T2, T3>
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2, T3>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>
+			(this IKeySubspace self, Slice packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
+
+		/// <summary>Decode a key of this subspace, and return only the last three elements without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last elements.</remarks>
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static (T1?, T2?, T3?, T4?) DecodeLast<T1, T2, T3, T4>
+			(this IKeySubspace self, ReadOnlySpan<byte> packedKey, int? expectedSize = null)
+			=> TuPack.DecodeLast<T1, T2, T3, T4>(self.ExtractKey(packedKey), expectedSize);
+
+		#endregion
 
 	}
 

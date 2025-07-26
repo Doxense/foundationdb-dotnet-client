@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+
 	public static partial class Fdb
 	{
 
@@ -65,7 +66,7 @@ namespace FoundationDB.Client
 				// open all the subdirectories
 				var folders = await children
 					.ToAsyncQuery(tr.Cancellation)
-					.SelectParallel((FdbPath child, CancellationToken _) => parent.OpenAsync(tr, FdbPath.Relative(child.Name)))
+					.SelectParallel((child, _) => parent.OpenAsync(tr, FdbPath.Relative(child.Name)))
 					.ToListAsync()
 					.ConfigureAwait(false);
 

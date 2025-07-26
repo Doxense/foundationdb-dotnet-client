@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+
 	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
 	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
 	[DebuggerDisplay("Path={FullName}, Prefix={Key}, Layer={Layer}")]
@@ -318,15 +319,13 @@ namespace FoundationDB.Client
 			if (newPath.IsEmpty) throw new ArgumentNullException(nameof(newPath));
 			EnsureIsValid();
 
-			var descriptor = this.Descriptor;
-
 			var location = this.DirectoryLayer.VerifyPath(newPath, "newPath");
-			if (!location.StartsWith(descriptor.Partition.Path)) throw ThrowHelper.InvalidOperationException("Cannot move between partitions.");
+			if (!location.StartsWith(this.Descriptor.Partition.Path)) throw ThrowHelper.InvalidOperationException("Cannot move between partitions.");
 
 			if (location.LayerId != this.Path.LayerId) throw ThrowHelper.InvalidOperationException("Cannot change the layer id of a directory subspace while moving it to a new location.");
 
-			var metadata = await descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
-			return await metadata.MoveInternalAsync(trans, descriptor.Path, location, throwOnError: false).ConfigureAwait(false);
+			var metadata = await this.Descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.MoveInternalAsync(trans, this.Descriptor.Path, location, throwOnError: false).ConfigureAwait(false);
 		}
 
 		/// <summary>Attempts to move the specified subdirectory to <paramref name="newPath"/>.
@@ -355,10 +354,8 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			EnsureIsValid();
 
-			var descriptor = this.Descriptor;
-
-			var metadata = await descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
-			await metadata.RemoveInternalAsync(trans, descriptor.Path, throwIfMissing: true).ConfigureAwait(false);
+			var metadata = await this.Descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			await metadata.RemoveInternalAsync(trans, this.Descriptor.Path, throwIfMissing: true).ConfigureAwait(false);
 		}
 
 		/// <summary>Removes a subdirectory, its contents, and all subdirectories.
@@ -393,10 +390,8 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			EnsureIsValid();
 
-			var descriptor = this.Descriptor;
-
-			var metadata = await descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
-			return await metadata.RemoveInternalAsync(trans, descriptor.Path, throwIfMissing: false).ConfigureAwait(false);
+			var metadata = await this.Descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.RemoveInternalAsync(trans, this.Descriptor.Path, throwIfMissing: false).ConfigureAwait(false);
 		}
 
 		/// <summary>Attempts to remove a subdirectory, its contents, and all subdirectories.
@@ -427,10 +422,8 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 			EnsureIsValid();
 
-			var descriptor = this.Descriptor;
-
-			var metadata = await descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
-			return await metadata.ExistsInternalAsync(trans, descriptor.Path).ConfigureAwait(false);
+			var metadata = await this.Descriptor.DirectoryLayer.Resolve(trans).ConfigureAwait(false);
+			return await metadata.ExistsInternalAsync(trans, this.Descriptor.Path).ConfigureAwait(false);
 		}
 
 		/// <summary>Checks if a subdirectory exists</summary>
