@@ -78,7 +78,7 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(ulong)]            = (new Encoder<ulong>(TupleParser.WriteUInt64), new SpanEncoder<ulong>(TupleParser.TryWriteUInt64)),
 				[typeof(float)]            = (new Encoder<float>(TupleParser.WriteSingle), new SpanEncoder<float>(TupleParser.TryWriteSingle)),
 				[typeof(double)]           = (new Encoder<double>(TupleParser.WriteDouble), new SpanEncoder<double>(TupleParser.TryWriteDouble)),
-				[typeof(decimal)]        = (new Encoder<decimal>(TupleParser.WriteQuadruple), new SpanEncoder<decimal>(TupleParser.TryWriteQuadruple)),
+				[typeof(decimal)]          = (new Encoder<decimal>(TupleParser.WriteQuadruple), new SpanEncoder<decimal>(TupleParser.TryWriteQuadruple)),
 				[typeof(VersionStamp)]     = (new Encoder<VersionStamp>(TupleParser.WriteVersionStamp), new SpanEncoder<VersionStamp>(TupleParser.TryWriteVersionStamp)),
 				[typeof(Guid)]             = (new Encoder<Guid>(TupleParser.WriteGuid), new SpanEncoder<Guid>(TupleParser.TryWriteGuid)),
 				[typeof(Uuid128)]          = (new Encoder<Uuid128>(TupleParser.WriteUuid128), new SpanEncoder<Uuid128>(TupleParser.TryWriteUuid128)),
@@ -112,7 +112,7 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(ulong?)]            = (new Encoder<ulong?>(TupleParser.WriteUInt64), new SpanEncoder<ulong?>(TupleParser.TryWriteUInt64)),
 				[typeof(float?)]            = (new Encoder<float?>(TupleParser.WriteSingle), new SpanEncoder<float?>(TupleParser.TryWriteSingle)),
 				[typeof(double?)]           = (new Encoder<double?>(TupleParser.WriteDouble), new SpanEncoder<double?>(TupleParser.TryWriteDouble)),
-				[typeof(decimal?)]        = (new Encoder<decimal?>(TupleParser.WriteQuadruple), new SpanEncoder<decimal?>(TupleParser.TryWriteQuadruple)), 
+				[typeof(decimal?)]          = (new Encoder<decimal?>(TupleParser.WriteQuadruple), new SpanEncoder<decimal?>(TupleParser.TryWriteQuadruple)), 
 				[typeof(VersionStamp?)]     = (new Encoder<VersionStamp?>(TupleParser.WriteVersionStamp), new SpanEncoder<VersionStamp?>(TupleParser.TryWriteVersionStamp)),
 				[typeof(Guid?)]             = (new Encoder<Guid?>(TupleParser.WriteGuid), new SpanEncoder<Guid?>(TupleParser.TryWriteGuid)),
 				[typeof(Uuid128?)]          = (new Encoder<Uuid128?>(TupleParser.WriteUuid128), new SpanEncoder<Uuid128?>(TupleParser.TryWriteUuid128)),
@@ -456,7 +456,7 @@ namespace SnowBank.Data.Tuples.Binary
 				if (typeof(T) == typeof(byte)) return TupleParser.TryWriteUInt32(ref writer, (byte) (object) value!);
 				if (typeof(T) == typeof(float)) return TupleParser.TryWriteSingle(ref writer, (float) (object) value!);
 				if (typeof(T) == typeof(double)) return TupleParser.TryWriteDouble(ref writer, (double) (object) value!);
-				if (typeof(T) == typeof(decimal)) return TupleParser.WriteQuadruple(ref writer, (decimal) (object) value!);
+				if (typeof(T) == typeof(decimal)) return TupleParser.TryWriteQuadruple(ref writer, (decimal) (object) value!);
 				if (typeof(T) == typeof(char)) return TupleParser.TryWriteChar(ref writer, (char) (object) value!);
 				if (typeof(T) == typeof(TimeSpan)) return TupleParser.TryWriteTimeSpan(ref writer, (TimeSpan) (object) value!);
 				if (typeof(T) == typeof(DateTime)) return TupleParser.TryWriteDateTime(ref writer, (DateTime) (object) value!);
@@ -484,7 +484,7 @@ namespace SnowBank.Data.Tuples.Binary
 				if (typeof(T) == typeof(byte?)) return TupleParser.TryWriteUInt32(ref writer, (byte?) (object) value!);
 				if (typeof(T) == typeof(float?)) return TupleParser.TryWriteSingle(ref writer, (float?) (object) value!);
 				if (typeof(T) == typeof(double?)) return TupleParser.TryWriteDouble(ref writer, (double?) (object) value!);
-				if (typeof(T) == typeof(decimal?)) return TupleParser.WriteQuadruple(ref writer, (decimal?) (object) value!);
+				if (typeof(T) == typeof(decimal?)) return TupleParser.TryWriteQuadruple(ref writer, (decimal?) (object) value!);
 				if (typeof(T) == typeof(char?)) return TupleParser.TryWriteChar(ref writer, (char?) (object) value!);
 				if (typeof(T) == typeof(TimeSpan?)) return TupleParser.TryWriteTimeSpan(ref writer, (TimeSpan?) (object) value!);
 				if (typeof(T) == typeof(DateTime?)) return TupleParser.TryWriteDateTime(ref writer, (DateTime?) (object) value!);
