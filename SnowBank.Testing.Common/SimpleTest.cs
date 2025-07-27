@@ -1557,32 +1557,6 @@ namespace SnowBank.Testing
 			WriteToLog($"{label,-10}: {CrystalJson.Serialize(value, CrystalJsonSettings.Json)}");
 		}
 
-		/// <summary>Output the result of performing a JSON Diff between two instances of the same type</summary>
-		/// <typeparam name="T">Type of the values to compare</typeparam>
-		/// <param name="actual">Observed value</param>
-		/// <param name="expected">Expected value</param>
-		/// <returns><see langword="true"/> if there is at least one difference, or <see langword="false"/> if both objects are equivalent (at least their JSON representation)</returns>
-		/// <remarks>
-		/// <para>WARNING: the type MUST be serializable as JSON! It will fail if the object has cyclic references or does not support serialization.</para>
-		/// <para>One frequent case is an object that was previously safe to serialize, but has been refactored to include internal complex objects, which will break any test calling this method!</para>
-		/// </remarks>
-		[DebuggerNonUserCode]
-		public static bool DumpDifferences<T>(T actual, T expected)
-		{
-			bool found = false;
-
-			foreach (var (name, left, right) in ModelComparer.ComputeDifferences(actual, expected))
-			{
-				if (!found)
-				{
-					Log($"# Found differences between actual and expected {typeof(T).GetFriendlyName()} values:");
-					found = true;
-				}
-				Log($"  * [{name}] {Stringify(left)} != {Stringify(right)}");
-			}
-			return found;
-		}
-
 		#endregion
 
 		#region Dump Hexa...
