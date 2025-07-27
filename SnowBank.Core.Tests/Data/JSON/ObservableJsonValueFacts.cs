@@ -45,7 +45,7 @@ namespace SnowBank.Data.Json.Tests
 		private static List<(JsonPath Path, ObservableJsonAccess Access, JsonValue? Value)> CaptureReads(JsonValue value, Action<ObservableJsonValue> handler, [CallerArgumentExpression(nameof(handler))] string? expr = null)
 		{
 			var ctx = new ObservableJsonTraceCapturingContext();
-			Log("# " + expr);
+			Log($"# {expr}");
 			handler(ctx.FromJson(value));
 			var records = ctx.Trace.GetRecords();
 			foreach (var (op, path, arg) in records)
@@ -58,7 +58,7 @@ namespace SnowBank.Data.Json.Tests
 		private static ObservableJsonTrace CaptureTrace(JsonValue value, Action<ObservableJsonValue> handler, [CallerArgumentExpression(nameof(handler))] string? expr = null)
 		{
 			var ctx = new ObservableJsonTraceCapturingContext();
-			Log("# " + expr);
+			Log($"# {expr}");
 			handler(ctx.FromJson(value));
 			foreach (var (path, op, arg) in ctx.Trace.GetRecords())
 			{

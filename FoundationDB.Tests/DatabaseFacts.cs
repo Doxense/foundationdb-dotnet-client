@@ -161,9 +161,9 @@ namespace FoundationDB.Client.Tests
 
 			var coordinators = await Fdb.System.GetCoordinatorsAsync(db, this.Cancellation);
 			Assert.That(coordinators, Is.Not.Null);
-			Log("raw : " + coordinators.RawValue);
-			Log("id  : "+ coordinators.Id);
-			Log("desc:" + coordinators.Description);
+			Log($"raw : {coordinators.RawValue}");
+			Log($"id  : {coordinators.Id}");
+			Log($"desc:{coordinators.Description}");
 			Log("coordinators:");
 			foreach (var x in coordinators.Coordinators)
 			{

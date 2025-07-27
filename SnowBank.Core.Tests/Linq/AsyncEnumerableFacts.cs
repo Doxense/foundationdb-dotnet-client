@@ -2456,11 +2456,11 @@ namespace SnowBank.Linq.Async.Tests
 #endif
 						if (msg.HasValue)
 						{
-							Log("[consumer] Got value " + msg.Value);
+							Log($"[consumer] Got value {msg.Value}");
 						}
 						else if (msg.HasValue)
 						{
-							Log("[consumer] Got error: " + msg.Error);
+							Log($"[consumer] Got error: {msg.Error}");
 							msg.ThrowForNonSuccess();
 							break;
 						}

@@ -49,7 +49,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			var queue = new FdbQueue(location);
 
 			bool isEmpty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + isEmpty);
+			Log($"Empty? {isEmpty}");
 			Assert.That(isEmpty, Is.True);
 
 			var a = Slice.Repeat('A', 16);
@@ -68,7 +68,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			// Empty?
 			bool empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.False);
 
 			var item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
@@ -100,7 +100,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.True);
 
 			Log("Push D");
@@ -116,7 +116,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.True);
 		}
 
@@ -134,7 +134,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			var queue = new FdbQueue<int>(location);
 
 			bool isEmpty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + isEmpty);
+			Log($"Empty? {isEmpty}");
 			Assert.That(isEmpty, Is.True);
 
 			Log("Push 10, 8, 6 in separate transactions");
@@ -148,7 +148,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			// Empty?
 			bool empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.False);
 
 			var item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
@@ -180,7 +180,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.True);
 
 			Log("Push 5");
@@ -196,7 +196,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.True);
 		}
 
@@ -214,7 +214,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			var queue = new FdbQueue<string, FdbUtf8Value>(location, FdbValueCodec.Utf8);
 
 			bool isEmpty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + isEmpty);
+			Log($"Empty? {isEmpty}");
 			Assert.That(isEmpty, Is.True);
 
 			Log("Push 'foo', 'bar', 'baz' in separate transactions");
@@ -228,7 +228,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			// Empty?
 			bool empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.False);
 
 			var item = await queue.ReadWriteAsync(db, (tr, state) => state.PopAsync(tr), this.Cancellation);
@@ -260,7 +260,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.True);
 
 			Log("Push 5");
@@ -276,7 +276,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 			empty = await queue.ReadAsync(db, (tr, state) => state.EmptyAsync(tr), this.Cancellation);
-			Log("Empty? " + empty);
+			Log($"Empty? {empty}");
 			Assert.That(empty, Is.True);
 		}
 

@@ -41,7 +41,6 @@ namespace SnowBank.Testing
 	using Microsoft.Extensions.DependencyInjection;
 	using Microsoft.Extensions.Logging;
 	using NodaTime;
-	using SnowBank.DataAnnotations;
 	using SnowBank.Numerics;
 	using SnowBank.Runtime.Converters;
 	using ILogger = Microsoft.Extensions.Logging.ILogger;
@@ -57,6 +56,7 @@ namespace SnowBank.Testing
 		private Instant m_testStartInstant;
 		private CancellationTokenSource? m_cts;
 
+		/// <summary>Clock that is controller by the test infrastructure</summary>
 		public IClock Clock { get; set; } = SystemClock.Instance;
 
 		static SimpleTest()
@@ -99,16 +99,18 @@ namespace SnowBank.Testing
 			}
 		}
 
+		/// <summary>Invoked before the first test</summary>
 		[OneTimeSetUp][DebuggerNonUserCode]
 		public static void BeforeEverything()
 		{
-			WriteToLog($"### {TestContext.CurrentContext.Test.ClassName} [START] @ {DateTime.Now.TimeOfDay}");
+			WriteToLog(CultureInfo.InvariantCulture, $"### {TestContext.CurrentContext.Test.ClassName} [START] @ {DateTime.Now.TimeOfDay}");
 		}
 
+		/// <summary>Invoked after the last test</summary>
 		[OneTimeTearDown][DebuggerNonUserCode]
 		public static void AfterEverything()
 		{
-			WriteToLog($"### {TestContext.CurrentContext.Test.ClassName} [{TestContext.CurrentContext.Result.Outcome}] ({TestContext.CurrentContext.Result.FailCount} failed) @ {DateTime.Now.TimeOfDay}");
+			WriteToLog(CultureInfo.InvariantCulture, $"### {TestContext.CurrentContext.Test.ClassName} [{TestContext.CurrentContext.Result.Outcome}] ({TestContext.CurrentContext.Result.FailCount} failed) @ {DateTime.Now.TimeOfDay}");
 		}
 
 		/// <summary>Code that will run before each test method in this test suite.</summary>
@@ -116,7 +118,7 @@ namespace SnowBank.Testing
 		[SetUp]
 		public void BeforeEachTest()
 		{
-			WriteToLog($"=>= {TestContext.CurrentContext.Test.FullName} @ {DateTime.Now.TimeOfDay}");
+			WriteToLog(CultureInfo.InvariantCulture, $"=>= {TestContext.CurrentContext.Test.FullName} @ {DateTime.Now.TimeOfDay}");
 			m_cts = new();
 
 			// first we measure the startup duration
@@ -235,7 +237,7 @@ namespace SnowBank.Testing
 			finally
 			{
 				var elapsed = this.TestElapsed;
-				WriteToLog($"=<= {currentContext.Result.Outcome} {currentContext.Test.Name}() in {elapsed.TotalMilliseconds:N1} ms ({currentContext.AssertCount} asserts, {currentContext.Result.FailCount} failed)");
+				WriteToLog(CultureInfo.InvariantCulture, $"=<= {currentContext.Result.Outcome} {currentContext.Test.Name}() in {elapsed.TotalMilliseconds:N1} ms ({currentContext.AssertCount} asserts, {currentContext.Result.FailCount} failed)");
 				m_cts?.Dispose();
 			}
 		}
@@ -269,6 +271,9 @@ namespace SnowBank.Testing
 		/// <summary>Timestamp of the start of this test</summary>
 		protected Instant TestStartedAt => m_testStartInstant;
 
+		/// <summary>Returns the time elapsed since the start of the test</summary>
+		/// <param name="now">Current timestamp</param>
+		/// <returns>Delay between the start of the test and <paramref name="now"/></returns>
 		protected Duration ElapsedSinceTestStart(Instant now) => now - m_testStartInstant;
 
 		/// <summary>Token that is linked with the lifetime of this test.</summary>
@@ -551,6 +556,7 @@ namespace SnowBank.Testing
 			}
 		}
 
+		/// <summary>Called whenever an <see cref="Await(Task,TimeSpan,string?,string?)"/> operation completes (successfully or not)</summary>
 		protected virtual Task OnWaitOperationCompleted(string operation, string conditionExpression, bool success, Exception? error, Instant startedAt, Instant endedAt)
 		{
 			return Task.CompletedTask;
@@ -1018,6 +1024,69 @@ namespace SnowBank.Testing
 		}
 
 		[DebuggerNonUserCode]
+		private static void WriteToLog(CultureInfo provider, [InterpolatedStringHandlerArgument(nameof(provider))] ref DefaultInterpolatedStringHandler message, bool lineBreak = true)
+		{
+			WriteToLog(ref message, lineBreak);
+		}
+
+		[DebuggerNonUserCode]
+		private static void WriteToLog(ref DefaultInterpolatedStringHandler message, bool lineBreak = true)
+		{
+			if (MustOutputLogsOnConsole)
+			{ // force output to the console
+				if (lineBreak)
+				{
+#if NET10_0_OR_GREATER
+					Console.Out.WriteLine(message.Text);
+#else
+					Console.Out.WriteLine(message.ToString());
+#endif
+				}
+				else
+				{
+#if NET10_0_OR_GREATER
+					Console.Out.Write(message.Text);
+#else
+					Console.Out.Write(message.ToString());
+#endif
+				}
+			}
+			else if (AttachedToDebugger)
+			{ // outputs to the Output console (visible while the test is running under a debugger)
+				if (lineBreak)
+				{
+					Trace.WriteLine(message.ToString());
+				}
+				else
+				{
+					Trace.Write(message.ToString());
+				}
+			}
+			else
+			{ // output to stdout
+				if (lineBreak)
+				{
+#if NET10_0_OR_GREATER
+					TestContext.Progress.WriteLine(message.Text);
+#else
+					TestContext.Progress.WriteLine(message.ToString());
+#endif
+				}
+				else
+				{
+#if NET10_0_OR_GREATER
+					TestContext.Progress.Write(message.Text);
+#else
+					TestContext.Progress.Write(message.ToString());
+#endif
+				}
+			}
+#if NET10_0_OR_GREATER
+			message.Clear();
+#endif
+		}
+
+		[DebuggerNonUserCode]
 		private static void WriteToErrorLog(string? message)
 		{
 			if (MustOutputLogsOnConsole)
@@ -1035,6 +1104,27 @@ namespace SnowBank.Testing
 			}
 		}
 
+#if NET10_0_OR_GREATER
+		[DebuggerNonUserCode]
+		private static void WriteToErrorLog(ref DefaultInterpolatedStringHandler message)
+		{
+			if (MustOutputLogsOnConsole)
+			{ // force output to the console
+				Console.Error.WriteLine(message.Text);
+			}
+			else if (AttachedToDebugger)
+			{ // outputs to the Output console (visible while the test is running under a debugger)
+				TestContext.Error.WriteLine(message.Text);
+				Trace.WriteLine($"ERROR: {message.Text}");
+			}
+			else
+			{ // output to stderr
+				TestContext.Error.WriteLine(message.Text);
+			}
+			message.Clear();
+		}
+#endif
+
 		/// <summary>Writes a message to the output log, prefixed with the elapsed time since the start of the test.</summary>
 		[DebuggerNonUserCode]
 		protected void LogElapsed(string? text) => Log($"{this.TestElapsed} {text}");
@@ -1049,11 +1139,11 @@ namespace SnowBank.Testing
 
 		/// <summary>Writes a message to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(ref DefaultInterpolatedStringHandler handler) => WriteToLog(handler.ToStringAndClear());
+		public static void Log(ref DefaultInterpolatedStringHandler handler) => WriteToLog(ref handler);
 
 		/// <summary>Writes a message to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(StringBuilder? text) => WriteToLog(text?.ToString());
+		public static void Log(StringBuilder? text) => WriteToLog($"{text}");
 
 		/// <summary>Writes a message to the output log</summary>
 		[DebuggerNonUserCode]
@@ -1097,27 +1187,27 @@ namespace SnowBank.Testing
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(DateTimeOffset item) => WriteToLog("(DateTimeOffset) " + StringConverters.ToString(item));
+		public static void Log(DateTimeOffset item) => WriteToLog($"(DateTimeOffset) {StringConverters.ToString(item)}");
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(Slice item) => WriteToLog("(Slice) " + item.PrettyPrint());
+		public static void Log(Slice item) => WriteToLog($"(Slice) {item.PrettyPrint()}");
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(Guid item) => WriteToLog("(Guid) " + item.ToString("B"));
+		public static void Log(Guid item) => WriteToLog(CultureInfo.InvariantCulture, $"(Guid) {item:B}");
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(Uuid128 item) => WriteToLog("(Uuid128) " + item.ToString("B"));
+		public static void Log(Uuid128 item) => WriteToLog(CultureInfo.InvariantCulture, $"(Uuid128) {item.ToString("B")}");
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(ReadOnlySpan<byte> item) => WriteToLog("(ReadOnlySpan<byte>) " + item.PrettyPrint());
+		public static void Log(ReadOnlySpan<byte> item) => WriteToLog($"(ReadOnlySpan<byte>) {item.PrettyPrint()}");
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
-		public static void Log(Span<byte> item) => WriteToLog("(Span<byte>) " + item.PrettyPrint());
+		public static void Log(Span<byte> item) => WriteToLog($"(Span<byte>) {item.PrettyPrint()}");
 
 		/// <summary>Writes a value to the output log</summary>
 		[DebuggerNonUserCode]
@@ -1152,6 +1242,11 @@ namespace SnowBank.Testing
 		[DebuggerNonUserCode]
 		protected static void LogPartial(string? text) => WriteToLog(text, lineBreak: false);
 
+		/// <summary>Writes a message to the output log, without appending a line-break</summary>
+		/// <remarks>Please note that some test runner do not support this feature, and will always insert line-breaks.</remarks>
+		[DebuggerNonUserCode]
+		protected static void LogPartial(StringBuilder? text) => WriteToLog($"{text}", lineBreak: false);
+
 		/// <summary>Writes an empty line to the output log.</summary>
 		[DebuggerNonUserCode]
 		public static void Log() => WriteToLog(string.Empty);
@@ -1169,7 +1264,17 @@ namespace SnowBank.Testing
 		/// <remarks>Writes a message to the error log.</remarks>
 		/// <remarks>Please note that some test runner do not distinguish without regular output and error output.</remarks>
 		[DebuggerNonUserCode]
-		public static void LogError(string? text, Exception? e) => WriteToErrorLog(e is not null ? (text + Environment.NewLine + e.ToString()) : text);
+		public static void LogError(string? text, Exception? e)
+		{
+			if (e is not null)
+			{
+				WriteToErrorLog($"{text}{Environment.NewLine}{e}");
+			}
+			else
+			{
+				WriteToErrorLog(text);
+			}
+		}
 
 		/// <remarks>Writes a message to the error log.</remarks>
 		/// <remarks>Please note that some test runner do not distinguish without regular output and error output.</remarks>
@@ -1400,7 +1505,7 @@ namespace SnowBank.Testing
 				return;
 			}
 
-			WriteToLog($"[{value.Count}] ", lineBreak: false);
+			WriteToLog(CultureInfo.InvariantCulture, $"[{value.Count}] ", lineBreak: false);
 			if (value.All(JsonType.Number) || value.All(JsonType.Boolean))
 			{ // vector of numbers
 				WriteToLog(value.ToJsonText());
@@ -1587,7 +1692,7 @@ namespace SnowBank.Testing
 		public static void DumpHexa<T>(ReadOnlySpan<T> array, HexaDump.Options options = HexaDump.Options.Default)
 			where T : struct
 		{
-			WriteToLog($"Dumping memory content of {typeof(T).GetFriendlyName()}[{array.Length:N0}]:");
+			WriteToLog(CultureInfo.InvariantCulture, $"Dumping memory content of {typeof(T).GetFriendlyName()}[{array.Length:N0}]:");
 			WriteToLog(HexaDump.Format(MemoryMarshal.AsBytes(array), options), lineBreak: false);
 		}
 
@@ -1676,12 +1781,16 @@ namespace SnowBank.Testing
 			return new(key, items[key]);
 		}
 
+		/// <summary>Performs an in-place shuffle of an array.</summary>
 		protected void Shuffle<T>(T[] items) => Shuffle<T>(this.Rnd, items.AsSpan());
 
+		/// <summary>Performs an in-place shuffle of a span.</summary>
 		protected void Shuffle<T>(Span<T> items) => Shuffle<T>(this.Rnd, items);
 
+		/// <summary>Performs an in-place shuffle of an array.</summary>
 		protected static void Shuffle<T>(Random rnd, T[] items) => Shuffle(rnd, items.AsSpan());
 
+		/// <summary>Performs an in-place shuffle of a span.</summary>
 		protected static void Shuffle<T>(Random rnd, Span<T> items)
 		{
 #if NET8_0_OR_GREATER
@@ -1699,8 +1808,12 @@ namespace SnowBank.Testing
 #endif
 		}
 
+		/// <summary>Generates an array filled with random bytes</summary>
+		/// <remarks>The array may contain values equal to <b>0</b></remarks>
 		protected byte[] GetRandomData(int count) => GetRandomData(this.Rnd, count);
 
+		/// <summary>Generates an array filled with random bytes</summary>
+		/// <remarks>The array may contain values equal to <b>0</b></remarks>
 		protected static byte[] GetRandomData(Random rnd, int count)
 		{
 			var tmp = new byte[count];
@@ -1708,6 +1821,7 @@ namespace SnowBank.Testing
 			return tmp;
 		}
 
+		/// <summary>Creates a string populated with characters chosen at random from <paramref name="choices"/>.</summary>
 		protected string GetRandomString(ReadOnlySpan<char> choices, int count)
 		{
 #if NET10_0_OR_GREATER
@@ -1730,6 +1844,7 @@ namespace SnowBank.Testing
 #endif
 		}
 
+		/// <summary>Creates a string filled with random hexadecimal characters.</summary>
 		protected string GetRandomHexString(int count, bool lowercase = false)
 		{
 #if NET10_0_OR_GREATER
@@ -1741,8 +1856,12 @@ namespace SnowBank.Testing
 #endif
 		}
 
+		/// <summary>Generates a <see cref="Slice"/> filled with random bytes</summary>
+		/// <remarks>The array may contain values equal to <b>0</b></remarks>
 		protected Slice GetRandomSlice(int count) => GetRandomSlice(this.Rnd, count);
 
+		/// <summary>Generates a <see cref="Slice"/> filled with random bytes</summary>
+		/// <remarks>The array may contain values equal to <b>0</b></remarks>
 		protected static Slice GetRandomSlice(Random rnd, int count) => Slice.Random(rnd, count);
 
 		/// <summary>Returns the next chunk with a random size</summary>
@@ -1754,7 +1873,7 @@ namespace SnowBank.Testing
 			if (remaining.Length == 0) return default;
 
 			int sz = NextInt32(rnd, 1, Math.Min(remaining.Length, maxSize ?? remaining.Length));
-			return remaining.Slice(0, sz);
+			return remaining[..sz];
 		}
 
 		/// <summary>Returns the next chunk with a random size</summary>
@@ -2166,6 +2285,7 @@ namespace SnowBank.Testing
 				this.Cancellation = lifetime;
 			}
 
+			/// <summary>Custom label</summary>
 			public string Label { get; }
 
 			/// <summary>Token for the current run</summary>
@@ -2235,7 +2355,6 @@ namespace SnowBank.Testing
 
 					this.Sample = value;
 					this.WasCalled = true;
-
 					if (this.Signal.TrySetResult(value))
 					{
 						this.CompletedAt = now;
@@ -2269,6 +2388,8 @@ namespace SnowBank.Testing
 					{ // this is a lagging call from a previous run
 						return;
 					}
+
+					this.Error = ExceptionDispatchInfo.Capture(error);
 
 					if (this.Signal.TrySetException(error))
 					{
@@ -2320,6 +2441,8 @@ namespace SnowBank.Testing
 
 			}
 
+			/// <summary>Resets the tracker, so that it can be used for the next async operation</summary>
+			/// <returns>New tracking id</returns>
 			public Guid Reset()
 			{
 				var token = Guid.NewGuid();

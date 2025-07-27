@@ -3115,14 +3115,14 @@ namespace SnowBank.Data.Tuples.Tests
 
 			static void Check<TTuple>(string expr, TTuple expected) where TTuple : IVarTuple
 			{
-				Log("> " + expr);
+				Log($"> {expr}");
 				var actual = STuple.Deformatter.Parse(expr);
 				if (!expected.Equals(actual))
 				{
-					Log("- EXPECTED: " + expected);
-					Log("- ACTUAL  : " + actual);
-					Log("- " + TuPack.Pack(actual));
-					Log("- " + TuPack.Pack(expected));
+					Log($"- EXPECTED: {expected}");
+					Log($"- ACTUAL  : {actual}");
+					Log($"- {TuPack.Pack(actual)}");
+					Log($"- {TuPack.Pack(expected)}");
 					Assert.That(actual, Is.EqualTo(expected), expr);
 				}
 			}

@@ -142,9 +142,9 @@ namespace SnowBank.Data.Json.Tests
 			var settings = CrystalJsonSettings.JsonCompact;
 			_ = CrystalJson.Serialize(data, sb, settings);
 			string jsonText = sb.ToString();
-			Log("CJS # [" + jsonText.Length + "] " + jsonText);
+			Log($"CJS # [{jsonText.Length}] {jsonText}");
 			var jsonValue = CrystalJson.Deserialize<T?>(jsonText, default(T));
-			Log("CJS > " + jsonValue);
+			Log($"CJS > {jsonValue}");
 
 #if ENABLE_NEWTONSOFT
 			var njs = new NJ.JsonSerializer();
@@ -230,7 +230,7 @@ namespace SnowBank.Data.Json.Tests
 					iterations
 				);
 				double newtonOps = report.BestIterationsPerSecond;
-				Log("* JSON.NET DESERIALIZATION:" + report.IterationsPerRun.ToString("N0") + " in " + report.BestDuration.TotalMilliseconds.ToString("F1") + " ms at " + report.BestIterationsPerSecond.ToString("N0") + " op/s (" + report.BestIterationsNanos.ToString("N0") + " nanos)");
+				Log($"* JSON.NET DESERIALIZATION:{report.IterationsPerRun:N0} in {report.BestDuration.TotalMilliseconds:F1} ms at {report.BestIterationsPerSecond:N0} op/s ({report.BestIterationsNanos:N0} nanos)");
 
 				double ratio = (newtonOps - crystalOps2) / newtonOps;
 				if (ratio == 0)

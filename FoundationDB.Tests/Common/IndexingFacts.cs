@@ -156,7 +156,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var superHeroes = await indexSuperHero.Lookup(tr, value: true).ToListAsync();
-					Log("SuperHeroes: " + string.Join(", ", superHeroes));
+					Log($"SuperHeroes: {string.Join(", ", superHeroes)}");
 					Assert.That(superHeroes, Is.EqualTo(characters.Where(c => c.HasSuperPowers).Select(c => c.Id).ToList()));
 				}
 
@@ -164,11 +164,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var dc = await indexBrand.Lookup(tr, value: "DC").ToListAsync();
-					Log("DC: " + string.Join(", ", dc));
+					Log($"DC: {string.Join(", ", dc)}");
 					Assert.That(dc, Is.EqualTo(characters.Where(c => c.Brand == "DC").Select(c => c.Id).ToList()));
 
 					var marvel = await indexBrand.Lookup(tr, value: "Marvel").ToListAsync();
-					Log("Marvel: " + string.Join(", ", dc));
+					Log($"Marvel: {string.Join(", ", dc)}");
 					Assert.That(marvel, Is.EqualTo(characters.Where(c => c.Brand == "Marvel").Select(c => c.Id).ToList()));
 				}
 

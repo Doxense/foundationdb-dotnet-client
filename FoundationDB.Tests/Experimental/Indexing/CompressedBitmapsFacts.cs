@@ -307,7 +307,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 					SetBit(buf, rnd.Next(buf.Length * 8));
 				}
 
-				Log("Mostly zeroes: " + count);
+				Log($"Mostly zeroes: {count}");
 				return buf;
 			}
 
@@ -332,7 +332,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 					ClearBit(buf, rnd.Next(buf.Length * 8));
 				}
 
-				Log("Mostly ones: " + count);
+				Log($"Mostly ones: {count}");
 				return buf;
 			}
 

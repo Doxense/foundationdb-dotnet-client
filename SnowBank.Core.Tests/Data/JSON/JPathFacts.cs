@@ -91,8 +91,8 @@ namespace SnowBank.Data.Json.Tests
 
 		private static void CheckSingle(JsonValue node, string query, JsonValue expected, string? label = null)
 		{
-			Log("? " + query);
-			Log("* " + JPathQuery.ParseExpression(query));
+			Log($"? {query}");
+			Log($"* {JPathQuery.ParseExpression(query)}");
 			var res = node.Find(query);
 			Assert.That(res, Is.Not.Null);
 			if (res.Equals(JsonNull.Missing))
@@ -125,8 +125,8 @@ namespace SnowBank.Data.Json.Tests
 
 		private static void CheckMultiple(JsonValue node, string query, params JsonValue[] results)
 		{
-			Log("? " + query);
-			Log("* " + JPathQuery.ParseExpression(query));
+			Log($"? {query}");
+			Log($"* {JPathQuery.ParseExpression(query)}");
 			Assert.That(node, Is.Not.Null);
 			var res = node.FindAll(query);
 			Assert.That(res, Is.Not.Null);

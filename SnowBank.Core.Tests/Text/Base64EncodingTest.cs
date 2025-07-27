@@ -331,7 +331,7 @@ namespace SnowBank.Text.Tests
 				byte[] decoded = Base64Encoding.FromBase64String(b64);
 				if (!decoded.AsSlice().Equals(source))
 				{
-					Log("|" + b64 + "|");
+					Log($"|{b64}|");
 					DumpVersus(source, decoded);
 					Assert.That(decoded, Is.EqualTo(source), "Decode Base64 buffer does not match original");
 				}
@@ -339,7 +339,7 @@ namespace SnowBank.Text.Tests
 				decoded = Base64Encoding.FromBase64String(b64.AsSpan());
 				if (!decoded.AsSlice().Equals(source))
 				{
-					Log("|" + b64 + "|");
+					Log($"|{b64}|");
 					DumpVersus(source, decoded);
 					Assert.That(decoded, Is.EqualTo(source), "Decode Base64 buffer does not match original");
 				}
@@ -360,7 +360,7 @@ namespace SnowBank.Text.Tests
 				byte[] decoded = Base64Encoding.FromBase64UrlString(b64);
 				if (!decoded.AsSlice().Equals(source))
 				{
-					Log("|" + b64 + "|");
+					Log($"|{b64}|");
 					DumpVersus(source, decoded);
 					Assert.That(decoded, Is.EqualTo(source));
 				}
@@ -379,7 +379,7 @@ namespace SnowBank.Text.Tests
 				byte[] decoded = Base64Encoding.FromBase64UrlString(encoded);
 				if (!decoded.AsSlice().Equals(data))
 				{
-					Log("|" + encoded + "|");
+					Log($"|{encoded}|");
 					DumpVersus(data, decoded);
 					Assert.That(decoded, Is.EqualTo(data));
 				}
