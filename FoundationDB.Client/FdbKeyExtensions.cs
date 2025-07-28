@@ -511,15 +511,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Checks if the key is in the System keyspace (starts with <c>`\xFF`</c>)</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static bool IsSystem<TKey>(this TKey key)
+		public static bool IsSystemKey<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
-		{
-			if (typeof(TKey) == typeof(FdbSystemKey))
-			{
-				return true;
-			}
-			return FdbKeyHelpers.IsSystem(in key);
-		}
+			=> FdbKey.IsSystemKey(in key);
 
 		#endregion
 

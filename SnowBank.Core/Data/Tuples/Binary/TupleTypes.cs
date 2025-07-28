@@ -143,13 +143,11 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <remarks><c>22 xx xx xx xx xx xx xx xx xx xx</c></remarks>
 		public const byte Triple = 0x22; //note: javascript numbers
 
-		/// <summary>Negative quadruple precision decimals (128-bit, Big-Endian)</summary>
+		/// <summary>Quadruple precision decimals (128-bit, Big-Endian)</summary>
 		/// <remarks><c>23 xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx</c></remarks>
 		public const byte Quadruple = 0x23;
 
-		/// <summary>Positive quadruple precision decimals (128-bit, Big-Endian)</summary>
-		/// <remarks><c>24 xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx xx</c></remarks>
-		public const byte PositiveDecimal = 0x24;
+		// note: 0x24 is currently unused
 
 		/// <summary>True Value [OBSOLETE]</summary>
 		/// <remarks>Deprecated and should not be used anymore</remarks>

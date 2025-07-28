@@ -570,8 +570,8 @@ namespace FoundationDB.Client
 		private static readonly global::System.Buffers.SearchValues<byte> PossibleTupleFirstBytes = global::System.Buffers.SearchValues.Create([
 			0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
 			10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-			21, 22, 23, 24, 25, 26, 27, 28,
-			32, 33, 48, 49,
+			21, 22, 23, 24, 25, 26, 27, 28, 29,
+			32, 33, 38, 39, 48, 49, 50, 51,
 			254, 255
 		]);
 #endif
@@ -771,7 +771,7 @@ namespace FoundationDB.Client
 						catch (Exception e)
 						{
 							suffix = null;
-							skip = !(e is FormatException || e is ArgumentOutOfRangeException);
+							skip = e is not (FormatException or ArgumentOutOfRangeException);
 						}
 
 						if (tuple.Count == 0 && !skip)
@@ -854,11 +854,30 @@ namespace FoundationDB.Client
 			return true;
 		}
 
-		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>Checks if the key is in the System keyspace (starts with <c>`\xFF`</c>)</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsSystemKey(Slice key)
+			=> key.StartsWith(0xFF);
+
+		/// <summary>Checks if the key is in the System keyspace (starts with <c>`\xFF`</c>)</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsSystemKey(ReadOnlySpan<byte> key)
+#if NET9_0_OR_GREATER
+			=> key.StartsWith((byte) 0xFF);
+#else
+			=> key.Length != 0 && key[0] == 0xFF;
+#endif
+
+		/// <summary>Checks if the key is in the System keyspace (starts with <c>`\xFF`</c>)</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsSystemKey<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
 		{
-			return key.Length != 0 && key[0] == 0xFF;
+			if (typeof(TKey) == typeof(FdbSystemKey))
+			{
+				return true;
+			}
+			return FdbKeyHelpers.IsSystem(in key);
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
