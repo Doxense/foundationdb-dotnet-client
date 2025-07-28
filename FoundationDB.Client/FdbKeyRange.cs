@@ -29,25 +29,37 @@ namespace FoundationDB.Client
 	using System;
 	using System.ComponentModel;
 
+	/// <summary>Helpers for creating <see cref="IFdbKeyRange"/> instances</summary>
 	public static class FdbKeyRange
 	{
 
-		public static FdbKeyRange<TKey, TKey> Single<TKey>(in TKey prefix)
+		/// <summary>Returns a range that matches only this key</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key that will be matched</param>
+		/// <returns>Range that match only this key</returns>
+		/// <remarks>
+		/// <para>Ex: <c>FdbKeyRange.Single(subspace.GetKey(123))</c> will match only <c>(..., 123)</c>, and will exclude any of its children <c>(..., 123, ...)</c>.</para>
+		/// </remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbKeyRange<TKey, TKey> Single<TKey>(in TKey key)
 			where TKey : struct, IFdbKey
-			=> new(prefix, KeyRangeMode.Inclusive, prefix, KeyRangeMode.Inclusive);
+			=> new(key, KeyRangeMode.Inclusive, key, KeyRangeMode.Inclusive);
 
-		public static FdbRawKeyRange Between(Slice beginInclusive, Slice endExclusive) => new(beginInclusive, endExclusive);
+		/// <summary>Returns a range that will match all keys between two bounds</summary>
+		/// <param name="lowerInclusive">Inclusive lower bound</param>
+		/// <param name="upperExclusive">Exclusive upper bound</param>
+		public static FdbRawKeyRange Between(Slice lowerInclusive, Slice upperExclusive) => new(lowerInclusive, upperExclusive);
 
 		/// <summary>Returns a range that will match all keys between this lower bound key and the given upper bound key</summary>
 		/// <typeparam name="TFromKey">Type of the lower bound key</typeparam>
 		/// <typeparam name="TToKey">Type of the upper bound key</typeparam>
-		/// <param name="fromInclusive">Inclusive lower bound (relative to this key), or <c>null</c> to read from the start of the range</param>
-		/// <param name="toExclusive">Exclusive upper bound (relative to this key)</param>
-		public static FdbKeyRange<TFromKey, TToKey> Between<TFromKey, TToKey>(TFromKey fromInclusive, in TToKey toExclusive)
+		/// <param name="lowerInclusive">Inclusive lower bound</param>
+		/// <param name="upperExclusive">Exclusive upper bound</param>
+		public static FdbKeyRange<TFromKey, TToKey> Between<TFromKey, TToKey>(TFromKey lowerInclusive, in TToKey upperExclusive)
 			where TFromKey : struct, IFdbKey
 			where TToKey : struct, IFdbKey
 		{
-			return new(fromInclusive, lowerMode: KeyRangeMode.Inclusive, toExclusive, upperMode: KeyRangeMode.Exclusive);
+			return new(lowerInclusive, lowerMode: KeyRangeMode.Inclusive, upperExclusive, upperMode: KeyRangeMode.Exclusive);
 		}
 
 		/// <summary>Returns a range that will match all keys between this lower bound key and the given upper bound key</summary>
@@ -64,153 +76,18 @@ namespace FoundationDB.Client
 			return new(lowerKey, lowerMode, upperKey, upperMode);
 		}
 
-	}
-
-	/// <summary>Defines how a boundary key should be considered in a <see cref="FdbKeyRange"/></summary>
-	[PublicAPI]
-	public enum KeyRangeMode
-	{
-		/// <summary>Use the default behavior for this parameter</summary>
-		/// <remarks>This is usually <see cref="Inclusive"/> for Begin keys, and <see cref="Exclusive"/> for End keys</remarks>
-		Default = 0,
-
-		/// <summary>The key is included in the range</summary>
+		/// <summary>Returns a range that matches all the children of this key</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="inclusive">If <c>true</c> the key itself will be included in the range; otherwise, the range will start immediately after this key.</param>
+		/// <returns>Range that matches all keys that start with <paramref name="key"/> (included)</returns>
 		/// <remarks>
-		/// <para>If this is the Begin key, it is used as-is.</para>
-		/// <para>If this is the End key, its Successor will be used (<c>key.`\x00`)</c></para>
+		/// <para>Ex: <c>FdbKeyRange.StartsWith(subspace.GetKey(123))</c> will match all the keys of the form <c>(..., 123, ...)</c>, but not <c>(..., 123)</c> itself.</para>
+		/// <para>Ex: <c>FdbKeyRange.StartsWith(subspace.GetKey(123), inclusive: true)</c> will match <c>(..., 123)</c> as well as all the keys of the form <c>(..., 123, ...)</c>.</para>
 		/// </remarks>
-		Inclusive,
-
-		/// <summary>The key is excluded from the range</summary>
-		/// <remarks>
-		/// <para>If this is the Begin key, its successor will be used (<c>key.`\x00`</c>).</para>
-		/// <para>If this is the End key, it is used as-is.</para>
-		/// </remarks>
-		Exclusive,
-
-		/// <summary>The key and all of its children is not included in the range</summary>
-		/// <remarks>
-		/// <para>The next sibling will be used for both Begin and End Key (<c>increment(key)</c>)</para>
-		/// </remarks>
-		NextSibling,
-
-		/// <summary>The key and all of its children that can be represented by tuples are included in the range</summary>
-		/// <remarks>
-		/// <para>This is not allowed for Begin keys.</para>
-		/// <para>If this is the End key, its last valid element will be used (<c>key.`\xFF`</c>)</para>
-		/// </remarks>
-		Last,
-	}
-
-	/// <summary>Range of keys, defined by a lower and upper bound.</summary>
-	[PublicAPI]
-	public interface IFdbKeyRange : ISpanFormattable
-	{
-
-		/// <summary>Encode this range into a binary <see cref="KeyRange"/></summary>
-		[Pure]
-		KeyRange ToKeyRange();
-
-		/// <summary>Returns the encoded "Begin" key of this range</summary>
-		[Pure]
-		Slice ToBeginKey();
-
-		/// <summary>Returns the encoded "End" key of this range</summary>
-		[Pure]
-		Slice ToEndKey();
-
-		/// <summary>Returns a <see cref="KeySelector"/> that will resolve the first key in the range (inclusive)</summary>
-		/// <remarks>This can be passed as the "begin" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
-		[Pure]
-		KeySelector ToBeginSelector();
-
-		/// <summary>Returns a <see cref="KeySelector"/> that will resolve the last key in the range (exclusive)</summary>
-		/// <remarks>This can be passed as the "end" selector to <see cref="IFdbReadOnlyTransaction.GetRange"/>.</remarks>
-		[Pure]
-		KeySelector ToEndSelector();
-
-		/// <summary>Tests if this range contains the given key</summary>
-		/// <param name="key">Key that is being tested</param>
-		/// <returns><c>true</c> if the key would be matched by this range.</returns>
-		[Pure]
-		bool Contains(ReadOnlySpan<byte> key);
-
-		/// <summary>Tests if this range contains the given key</summary>
-		/// <param name="key">Key that is being tested</param>
-		/// <returns><c>true</c> if the key would be matched by this range.</returns>
-		[Pure]
-		bool Contains(Slice key);
-
-		/// <summary>Tests if this range contains the given key</summary>
-		/// <param name="key">Key that is being tested</param>
-		/// <returns><c>true</c> if the key would be matched by this range.</returns>
-		[Pure]
-		bool Contains<TKey>(in TKey key) where TKey : struct, IFdbKey;
-
-	}
-
-	/// <summary>Range where the "Begin" and "End" key are already encoded</summary>
-	public readonly struct FdbRawKeyRange : IFdbKeyRange
-	{
-
-		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbRawKeyRange(Slice begin, Slice end)
-		{
-			this.Begin = begin;
-			this.End = end;
-		}
-
-		/// <summary>Begin key (inclusive)</summary>
-		public readonly Slice Begin;
-
-		/// <summary>End key (exclusive)</summary>
-		public readonly Slice End;
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToKeyRange() => new(this.Begin, this.End);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ToBeginKey() => this.Begin;
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ToEndKey() => this.End;
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeySelector ToBeginSelector() => KeySelector.FirstGreaterOrEqual(this.Begin);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeySelector ToEndSelector() => KeySelector.FirstGreaterOrEqual(this.End);
-
-		/// <inheritdoc />
-		[Pure]
-		public bool Contains(Slice key) => key.CompareTo(this.Begin) >= 0 && key.CompareTo(this.End) < 0;
-
-		/// <inheritdoc />
-		[Pure]
-		public bool Contains(ReadOnlySpan<byte> key) => key.SequenceCompareTo(this.Begin.Span) >= 0 && key.SequenceCompareTo(this.End.Span) < 0;
-
-		/// <inheritdoc />
-		[Pure]
-		public bool Contains<TKey>(in TKey key)
+		public static FdbKeyRange<TKey, TKey> StartsWith<TKey>(in TKey key, bool inclusive = false)
 			where TKey : struct, IFdbKey
-		{
-			return key.CompareTo(this.Begin) >= 0 && key.CompareTo(this.End) < 0;
-		}
-
-		/// <inheritdoc />
-		public override string ToString() => ToString(null);
-
-		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider = null)
-			=> ToKeyRange().ToString(format, formatProvider);
-
-		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
-			=> ToKeyRange().TryFormat(destination, out charsWritten, format, provider);
+			=> new(key, KeyRangeMode.Inclusive, key, KeyRangeMode.NextSibling);
 
 	}
 
@@ -733,117 +610,6 @@ namespace FoundationDB.Client
 			#endregion
 
 		}
-
-	}
-
-	/// <summary>Range that matches all the keys inside a subspace</summary>
-	public readonly struct FdbSubspaceKeyRange : IFdbKeyRange
-	{
-
-		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbSubspaceKeyRange(IKeySubspace subspace, bool inclusive = false)
-		{
-			this.Subspace = subspace;
-			this.IsInclusive = inclusive;
-		}
-
-		/// <summary>Subspace that contains the keys</summary>
-		public readonly IKeySubspace Subspace;
-
-		/// <summary>If <c>true</c>, the subspace prefix is also included in the range</summary>
-		public readonly bool IsInclusive;
-
-		/// <summary>Returns a version of this range that includes the subspace prefix in the results</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbSubspaceKeyRange Inclusive() => new(this.Subspace, inclusive: true);
-
-		/// <summary>Returns a version of this range that excludes the subspace prefix from the results</summary>
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbSubspaceKeyRange Exclusive() => new(this.Subspace, inclusive: false);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Contains(Slice key) => Contains(key.Span);
-
-		/// <inheritdoc />
-		[Pure]
-		public bool Contains(ReadOnlySpan<byte> key)
-		{
-			var prefix = this.Subspace.GetPrefix();
-			return key.StartsWith(prefix.Span) && (this.IsInclusive || key.Length > prefix.Count);
-		}
-
-		/// <inheritdoc />
-		[Pure]
-		public bool Contains<TKey>(in TKey key)
-			where TKey : struct, IFdbKey
-		{
-			if (typeof(TKey) == typeof(FdbRawKey))
-			{
-				return Contains(((FdbRawKey)(object)key).Data);
-			}
-			if (typeof(TKey) == typeof(FdbSubspaceKey))
-			{
-				return Contains(((FdbSubspaceKey)(object)key).Subspace.GetPrefix().Span);
-			}
-
-			int cmp = key.CompareTo(this.Subspace.GetPrefix());
-			if (this.IsInclusive)
-			{
-				if (cmp < 0) return false;
-			}
-			else
-			{
-				if (cmp <= 0) return false;
-			}
-			return this.Subspace.NextSibling().FastCompareTo(in key) > 0;
-		}
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ToBeginKey() => this.IsInclusive ? this.Subspace.GetPrefix() : FdbKeyHelpers.ToSlice(this.Subspace.First());
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public Slice ToEndKey() => FdbKeyHelpers.ToSlice(Subspace.NextSibling());
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public KeyRange ToKeyRange() => this.IsInclusive
-			//PERF: TODO: optimize this!
-			? KeyRange.StartsWith(this.Subspace.GetPrefix())
-			: KeyRange.PrefixedBy(this.Subspace.GetPrefix());
-
-		/// <inheritdoc />
-		public KeySelector ToBeginSelector() => this.IsInclusive
-			? FdbKeySelector.FirstGreaterOrEqual(this.Subspace.GetPrefix()).ToSelector()
-			: FdbKeySelector.FirstGreaterThan(this.Subspace.GetPrefix()).ToSelector();
-
-		/// <inheritdoc />
-		public KeySelector ToEndSelector()
-			=> FdbKeySelector.FirstGreaterOrEqual(this.Subspace.NextSibling()).ToSelector();
-
-		/// <inheritdoc />
-		public override string ToString() => ToString(null);
-
-		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
-		{
-			
-			null or "" or "D" or "d" => string.Create(formatProvider ?? CultureInfo.InvariantCulture, $"{this:D}"),
-			"K" or "k" => string.Create(formatProvider ?? CultureInfo.InvariantCulture, $"{this:K}"),
-			"P" or "p" => string.Create(formatProvider ?? CultureInfo.InvariantCulture, $"{this:P}"),
-			_ => throw new FormatException(),
-		};
-
-		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null) => format switch
-		{
-			"" or "D" or "d" => destination.TryWrite(provider ?? CultureInfo.InvariantCulture, $"{{ {this.Subspace}{(this.IsInclusive ? "" : ".<00>")} <= k < {this.Subspace}+1 }}", out charsWritten),
-			"K" or "k" => destination.TryWrite(provider ?? CultureInfo.InvariantCulture, $"{{ {this.Subspace:K}{(this.IsInclusive ? "" : ".<00>")} <= k < {this.Subspace:K}+1 }}", out charsWritten),
-			"P" or "p" => destination.TryWrite(provider ?? CultureInfo.InvariantCulture, $"{{ {this.Subspace:P}{(this.IsInclusive ? "" : ".<00>")} <= k < {this.Subspace:P}+1 }}", out charsWritten),
-			_ => throw new FormatException(),
-		};
 
 	}
 
