@@ -77,18 +77,19 @@ namespace FoundationDB.Layers.Collections
 			}
 
 			/// <summary>Returns the number of items in the set.</summary>
-			/// <param name="trans"></param>
-			/// <returns></returns>
 			public Task<long> SizeAsync(IFdbReadOnlyTransaction trans)
 			{
 				Contract.NotNull(trans);
 
 				return trans
-					.GetRangeValues(this.Subspace.Key(MAX_LEVELS - 1).ToRange())
-					.Select(DecodeCount)
+					.GetRangeValues(
+						this.Subspace.Key(MAX_LEVELS - 1).ToRange(),
+						static (v) => v.ToInt64()
+					)
 					.SumAsync();
 			}
 
+			/// <summary>Inserts a new item in the set</summary>
 			public async Task InsertAsync(IFdbTransaction trans, Slice key)
 			{
 				Contract.NotNull(trans);
@@ -115,18 +116,19 @@ namespace FoundationDB.Layers.Collections
 						// Insert into this level by looking at the count of the previous
 						// key in the level and recounting the next lower level to correct
 						// the counts
-						var prevCount = DecodeCount(await trans.GetAsync(this.Subspace.Key(level, prevKey)).ConfigureAwait(false));
+						var prevCount = (await trans.GetAsync(this.Subspace.Key(level, prevKey)).ConfigureAwait(false)).ToInt64();
 						var newPrevCount = await SlowCountAsync(trans, level - 1, prevKey, key);
 						var count = checked((prevCount - newPrevCount) + 1);
 
 						// print "insert", key, "level", level, "count", count,
 						// "splits", prevKey, "oldC", prevCount, "newC", newPrevCount
-						trans.Set(this.Subspace.Key(level, prevKey), EncodeCount(newPrevCount));
-						trans.Set(this.Subspace.Key(level, key), EncodeCount(count));
+						trans.Set(this.Subspace.Key(level, prevKey), FdbValue.ToFixed64LittleEndian(newPrevCount));
+						trans.Set(this.Subspace.Key(level, key), FdbValue.ToFixed64LittleEndian(count));
 					}
 				}
 			}
 
+			/// <summary>Tests if the set contains the given element</summary>
 			public async Task<bool> ContainsAsync(IFdbReadOnlyTransaction trans, Slice key)
 			{
 				Contract.NotNull(trans);
@@ -135,6 +137,7 @@ namespace FoundationDB.Layers.Collections
 				return (await trans.GetAsync(this.Subspace.Key(0, key)).ConfigureAwait(false)).HasValue;
 			}
 
+			/// <summary>Removes an element from the set</summary>
 			public async Task EraseAsync(IFdbTransaction trans, Slice key)
 			{
 				Contract.NotNull(trans);
@@ -149,18 +152,19 @@ namespace FoundationDB.Layers.Collections
 					// This could be optimized with hash
 					var k = this.Subspace.Key(level, key);
 					var c = await trans.GetAsync(k).ConfigureAwait(false);
-					if (c.HasValue) trans.Clear(k);
+					if (!c.IsNull) trans.Clear(k);
 					if (level == 0) continue;
 
 					var prevKey = await GetPreviousNodeAsync(trans, level, key);
 					Contract.Debug.Assert(prevKey != key);
 					long countChange = -1;
-					if (c.HasValue) countChange += DecodeCount(c);
+					if (!c.IsNull) countChange += c.ToInt64();
 
 					trans.AtomicAdd64(this.Subspace.Key(level, prevKey), countChange);
 				}
 			}
 
+			/// <summary>Computes the rank of the given element</summary>
 			public async Task<long?> Rank(IFdbReadOnlyTransaction trans, Slice key)
 			{
 				Contract.NotNull(trans);
@@ -184,7 +188,7 @@ namespace FoundationDB.Layers.Collections
 					foreach (var kc in kcs)
 					{
 						rankKey = this.Subspace.DecodeLast<Slice>(kc.Key);
-						lastCount = DecodeCount(kc.Value);
+						lastCount = kc.Value.ToInt64();
 						r += lastCount;
 					}
 					r -= lastCount;
@@ -196,6 +200,7 @@ namespace FoundationDB.Layers.Collections
 				return r;
 			}
 
+			/// <summary>Returns the Nth element in the set, ordered by rank</summary>
 			public async Task<Slice> GetNthAsync(IFdbReadOnlyTransaction trans, long rank)
 			{
 				if (rank < 0) return Slice.Nil;
@@ -205,7 +210,7 @@ namespace FoundationDB.Layers.Collections
 				for (int level = MAX_LEVELS - 1; level >= 0; level--)
 				{
 					var kcs = await trans.GetRange(
-						FdbKeyRange.Between(this.Subspace.Key(level), this.Subspace.Key(level, key))
+						this.Subspace.Key(level).ToTailRange(key)
 					).ToListAsync().ConfigureAwait(false);
 
 					if (kcs.Count == 0) break;
@@ -213,7 +218,7 @@ namespace FoundationDB.Layers.Collections
 					foreach(var kc in kcs)
 					{
 						key = this.Subspace.DecodeLast<Slice>(kc.Key);
-						long count = DecodeCount(kc.Value);
+						long count = kc.Value.ToInt64();
 						if (key.IsPresent && r == 0)
 						{
 							return key;
@@ -239,10 +244,6 @@ namespace FoundationDB.Layers.Collections
 
 			#region Private Helpers...
 
-			private static Slice EncodeCount(long c) => Slice.FromFixed64(c);
-
-			private static long DecodeCount(Slice v) => v.ToInt64();
-
 			private Task<long> SlowCountAsync(IFdbReadOnlyTransaction trans, int level, Slice beginKey, Slice endKey)
 			{
 				if (level == -1)
@@ -252,7 +253,7 @@ namespace FoundationDB.Layers.Collections
 
 				return trans
 					.GetRange(this.Subspace.Key(level, beginKey), this.Subspace.Key(level, endKey))
-					.Select(kv => DecodeCount(kv.Value))
+					.Select(kv => kv.Value.ToInt64())
 					.SumAsync();
 			}
 
@@ -265,7 +266,7 @@ namespace FoundationDB.Layers.Collections
 				var res = await trans.GetValuesAsync(ks).ConfigureAwait(false);
 				for (int l = 0; l < res.Length; l++)
 				{
-					if (res[l].IsNull) trans.Set(ks[l], EncodeCount(0));
+					if (res[l].IsNull) trans.Set(ks[l], FdbValue.Zero64);
 				}
 			}
 

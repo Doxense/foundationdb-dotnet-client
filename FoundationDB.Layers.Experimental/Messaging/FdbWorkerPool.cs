@@ -129,10 +129,8 @@ namespace FoundationDB.Layers.Messaging
 
 			internal async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, char ring)
 			{
-				var range = this.Subspace.Key(ring).ToRange();
-
 				// start from a random position around the ring
-				var key = this.Subspace.Key(ring, GetRandomId());
+				var pivot = GetRandomId();
 
 				// We want to find the next item in the clockwise direction. If we reach the end of the ring, we "wrap around" by starting again from the start
 				// => So we do find_next(key <= x < MAX) and if that does not produce any result, we do a find_next(MIN <= x < key)
@@ -140,12 +138,12 @@ namespace FoundationDB.Layers.Messaging
 				// When the ring only contains a few items (or is empty), there is more than 50% change that we won't find anything in the first read.
 				// To reduce the latency for this case, we will issue both range reads at the same time, and discard the second one if the first returned something.
 				// This should reduce the latency in half when the ring is empty, or when it contains only items before the random key.
-
-				var candidate = await tr.GetRange(key.FirstGreaterOrEqual(), range.GetEndSelector()).FirstOrDefaultAsync();
+				
+				var candidate = await tr.GetRange(this.Subspace.Key(ring, pivot), this.Subspace.Key(ring).Last()).FirstOrDefaultAsync();
 
 				if (!candidate.Key.IsPresent)
 				{
-					candidate = await tr.GetRange(range.GetBeginSelector(), key.FirstGreaterOrEqual()).FirstOrDefaultAsync();
+					candidate = await tr.GetRange(this.Subspace.Key(ring).ToHeadRange(pivot)).FirstOrDefaultAsync();
 				}
 
 				return candidate;

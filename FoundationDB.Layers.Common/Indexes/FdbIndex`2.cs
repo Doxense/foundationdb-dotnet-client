@@ -121,8 +121,8 @@ namespace FoundationDB.Layers.Indexing
 				if (orEqual)
 				{ // (>= "abc", *) => (..., "abc") < x < (..., <FF>)
 					return trans.GetRangeKeys(
-						this.Subspace.Key(value).FirstGreaterOrEqual(),
-						this.Subspace.Key().NextSibling().FirstGreaterOrEqual(),
+						this.Subspace.Key(value),
+						this.Subspace.Last(),
 						this.Subspace, static (s, k) => s.DecodeLast<TId>(k)!,
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
@@ -130,31 +130,31 @@ namespace FoundationDB.Layers.Indexing
 				else
 				{ // (> "abc", *) => (..., "abd") < x < (..., <FF>)
 					return trans.GetRangeKeys(
-						this.Subspace.Key(value).NextSibling().FirstGreaterOrEqual(),
-						this.Subspace.ToRange().GetEndSelector(),
+						this.Subspace.Key(value).NextSibling(),
+						this.Subspace.Last(),
 						this.Subspace, static (s, k) => s.DecodeLast<TId>(k)!,
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}
 			}
 
-			/// <summary>Returns a query that will return all id of the entities that have a value lesser than (or equal) a specified <paramref name="value"/></summary>
+			/// <summary>Returns a query that will return all id of the entities that have a value lesser than (or equal to) a specified <paramref name="value"/></summary>
 			public IFdbRangeQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 			{
 				IFdbKeyValueRangeQuery query;
 				if (orEqual)
 				{
 					query = trans.GetRange(
-						this.Subspace.Key().FirstGreaterOrEqual(),
-						this.Subspace.Key(value).NextSibling().FirstGreaterThan(),
+						this.Subspace.First(),
+						this.Subspace.Key(value).Last(),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}
 				else
 				{
 					query = trans.GetRange(
-						this.Subspace.Key().FirstGreaterOrEqual(),
-						this.Subspace.Key(value).FirstGreaterThan(),
+						this.Subspace.First(),
+						this.Subspace.Key(value),
 						reverse ? FdbRangeOptions.Reversed : FdbRangeOptions.Default
 					);
 				}

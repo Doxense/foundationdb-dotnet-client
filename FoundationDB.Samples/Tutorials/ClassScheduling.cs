@@ -59,7 +59,7 @@ namespace FoundationDB.Samples.Tutorials
 			return this.Subspace!.Key("attends", s, c);
 		}
 
-		protected FdbKeyPrefixRange<FdbTupleKey<string, string>> AttendsKeys(string s)
+		protected FdbKeyRange<FdbTupleKey<string, string>, FdbTupleKey<string, string>> AttendsKeys(string s)
 		{
 			return this.Subspace!.Key("attends", s).ToRange();
 		}

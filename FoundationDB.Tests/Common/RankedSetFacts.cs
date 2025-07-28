@@ -24,10 +24,13 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+//#define ENABLE_LOGGING
+
+#define FULL_DEBUG
+
 namespace FoundationDB.Layers.Collections.Tests
 {
 	[TestFixture]
-	[Obsolete]
 	public class RankedTestFacts : FdbTest
 	{
 		[Test]
@@ -35,10 +38,13 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Root;
-				await CleanLocation(db, location);
+				await CleanLocation(db);
 
-				var rankedSet = new FdbRankedSet(location);
+#if ENABLE_LOGGING
+				db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
+				var rankedSet = new FdbRankedSet(db.Root);
 				await db.WriteAsync(tr => rankedSet.OpenAsync(tr), this.Cancellation);
 
 				Log(await rankedSet.ReadAsync(db, (tr, state) => PrintRankedSet(state, tr), this.Cancellation));
@@ -58,7 +64,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				sw.Stop();
 				Log($"Done in {sw.Elapsed.TotalSeconds:N3} sec");
 #if FULL_DEBUG
-				await DumpSubspace(db, location);
+				await DumpSubspace(db);
 #endif
 
 				Log(await rankedSet.ReadAsync(db, (tr, state) => PrintRankedSet(state, tr), this.Cancellation));

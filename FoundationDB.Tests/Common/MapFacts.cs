@@ -26,8 +26,9 @@
 
 // ReSharper disable ReplaceAsyncWithTaskReturn
 
-#define ENABLE_LOGGING
-#define FULL_DEBUG
+//#define ENABLE_LOGGING
+
+//#define FULL_DEBUG
 
 namespace FoundationDB.Layers.Collections.Tests
 {
