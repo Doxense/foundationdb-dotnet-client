@@ -43,6 +43,7 @@ namespace SnowBank.Data.Json
 	using SnowBank.Buffers;
 	using SnowBank.Runtime;
 	using SnowBank.Runtime.Converters;
+	using SnowBank.Text;
 
 	/// <summary>Array of JSON values</summary>
 	[Serializable]
@@ -4765,10 +4766,34 @@ namespace SnowBank.Data.Json
 		/// <inheritdoc />
 		public override bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 		{
-			//TODO: maybe attempt to do it without allocating?
-			// => for the moment, we will serialize the object into memory, and copy the result
+			var settings = format switch
+			{
+				"" or "D" or "d" => CrystalJsonSettings.Json,
+				"C" or "c" => CrystalJsonSettings.JsonCompact,
+				"P" or "p" => CrystalJsonSettings.JsonIndented,
+				"J" or "j" => CrystalJsonSettings.JavaScript,
+				_ => null
+			};
 
-			var data = CrystalJson.ToSlice(this, null, ArrayPool<byte>.Shared);
+			if (settings is null)
+			{
+				if (format is "Q" or "q")
+				{
+					//PERF: TODO: is there a better way?
+					return Encoding.UTF8.TryGetBytes(GetCompactRepresentation(0), destination, out bytesWritten);
+				}
+				if (format is "B" or "b")
+				{
+					return JsonEncoding.TryEncodeTo(destination, this.ToString("C"), out bytesWritten);
+				}
+
+				// we MUST throw here; otherwise, the caller will infinitely call use back with a larger and larger buffer!
+				throw new NotSupportedException($"Invalid JSON format '{format}' specification");
+			}
+
+			// PERF: TODO: maybe attempt to do it without allocating?
+			// => for the moment, we will serialize the object into memory, and copy the result
+			using var data = CrystalJson.ToSlice(this, null, ArrayPool<byte>.Shared, settings);
 			return data.TryCopyTo(destination, out bytesWritten);
 		}
 

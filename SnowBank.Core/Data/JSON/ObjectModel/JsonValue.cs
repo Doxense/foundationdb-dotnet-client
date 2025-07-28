@@ -176,16 +176,8 @@ namespace SnowBank.Data.Json
 		/// <remarks>
 		/// <para>Please note that, due to convention in .NET, this will return the empty string for null values, since <see cref="object.ToString"/> must not return a null reference! Please call <see cref="ToStringOrDefault"/> if you need null references for null or missing JSON values.</para>
 		/// <para>See <see cref="ToString(string,IFormatProvider)"/> if you need to specify a different format than the default</para></remarks>
-		public override string ToString() => ToString(null, null);
-
-		/// <summary>Converts this JSON value into a printable string, using the specified format</summary>
-		/// <param name="format">Desired format, or "D" (default) if omitted</param>
-		/// <remarks>See <see cref="ToString(string,IFormatProvider)"/> for the list of supported formats</remarks>
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public string ToString(string? format)
-		{
-			return ToString(format, null);
-		}
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override string ToString() => ToString(null);
 
 		/// <summary>Converts this JSON value into a printable string, using the specified format and provider</summary>
 		/// <param name="format">Desired format, or "D" (default) if omitted</param>
@@ -200,8 +192,8 @@ namespace SnowBank.Data.Json
 		///   <item><term>Q</term><description>Quick, equivalent to calling <see cref="GetCompactRepresentation"/>, that will return a simplified/partial version, suitable for logs/traces.</description></item>
 		/// </list>
 		/// </remarks>
-		[EditorBrowsable(EditorBrowsableState.Advanced)]
-		public virtual string ToString(string? format, IFormatProvider? provider)
+		[Pure]
+		public virtual string ToString(string? format, IFormatProvider? provider = null)
 		{
 			switch(format ?? "D")
 			{
