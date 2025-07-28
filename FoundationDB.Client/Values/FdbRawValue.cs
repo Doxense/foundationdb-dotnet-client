@@ -47,6 +47,12 @@ namespace FoundationDB.Client
 
 		public readonly Slice Data;
 
+		public ReadOnlySpan<byte> Span
+		{
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			get => this.Data.Span;
+		}
+
 		/// <inheritdoc />
 		public override string ToString() => this.Data.ToString();
 
@@ -57,6 +63,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 			=> this.Data.TryFormat(destination, out charsWritten, format, provider);
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -80,6 +88,44 @@ namespace FoundationDB.Client
 		{
 			return this.Data.TryCopyTo(destination, out bytesWritten);
 		}
+
+		#endregion
+
+		#region Comparisons...
+
+		/// <inheritdoc />
+		public override int GetHashCode() => throw FdbValueHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
+		{
+			Slice bytes => this.Span.SequenceEqual(bytes.Span),
+			FdbRawValue value => this.Span.SequenceEqual(value.Span),
+			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbValue? other) => other switch
+		{
+			null => false,
+			FdbRawValue value => Equals(value),
+			_ => FdbValueHelpers.AreEqual(in this, other),
+		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawValue other) => this.Span.SequenceEqual(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => this.Span.SequenceEqual(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => this.Span.SequenceEqual(other);
+
+		#endregion
 
 	}
 

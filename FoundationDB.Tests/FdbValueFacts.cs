@@ -25,6 +25,8 @@
 #endregion
 
 // ReSharper disable StringLiteralTypo
+// ReSharper disable RedundantCast
+
 namespace FoundationDB.Client.Tests
 {
 	using System.Text;
@@ -189,10 +191,10 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbValue_LittleEndian_Encoding()
+		public void Test_FdbValue_FixedSize_LittleEndian_Encoding()
 		{
-			static void Verify<TValue, TEncoder>(FdbValue<TValue, TEncoder> value, Slice expected)
-				where TEncoder : struct, ISpanEncoder<TValue>
+			static void Verify<TValue>(TValue value, Slice expected)
+				where TValue : struct, IFdbValue
 			{
 				var slice = value.ToSlice();
 				if (!slice.Equals(expected))
@@ -216,11 +218,11 @@ namespace FoundationDB.Client.Tests
 				Verify(FdbValue.ToFixed32LittleEndian(int.MinValue), Slice.FromFixed32(int.MinValue));
 
 				// UInt32
-				Verify(FdbValue.ToFixed32LittleEndian((uint)0), Slice.FromFixedU32(0));
-				Verify(FdbValue.ToFixed32LittleEndian((uint)0x12), Slice.FromFixedU32(0x12));
-				Verify(FdbValue.ToFixed32LittleEndian((uint)0x1234), Slice.FromFixedU32(0x1234));
-				Verify(FdbValue.ToFixed32LittleEndian((uint)0x123456), Slice.FromFixedU32(0x123456));
-				Verify(FdbValue.ToFixed32LittleEndian((uint)0x12345678), Slice.FromFixedU32(0x12345678));
+				Verify(FdbValue.ToFixed32LittleEndian((uint) 0), Slice.FromFixedU32(0));
+				Verify(FdbValue.ToFixed32LittleEndian((uint) 0x12), Slice.FromFixedU32(0x12));
+				Verify(FdbValue.ToFixed32LittleEndian((uint) 0x1234), Slice.FromFixedU32(0x1234));
+				Verify(FdbValue.ToFixed32LittleEndian((uint) 0x123456), Slice.FromFixedU32(0x123456));
+				Verify(FdbValue.ToFixed32LittleEndian((uint) 0x12345678), Slice.FromFixedU32(0x12345678));
 
 				// Int64
 				Verify(FdbValue.ToFixed64LittleEndian(0), Slice.FromFixed64(0));
@@ -238,25 +240,25 @@ namespace FoundationDB.Client.Tests
 				Verify(FdbValue.ToFixed64LittleEndian(long.MinValue), Slice.FromFixed64(long.MinValue));
 
 				// UInt64
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0), Slice.FromFixedU64(0));
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x12), Slice.FromFixedU64(0x12));
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x1234), Slice.FromFixedU64(0x1234));
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456), Slice.FromFixedU64(0x123456));
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x12345678), Slice.FromFixedU64(0x12345678));
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456789A), Slice.FromFixedU64(0x123456789A));
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456789ABC), Slice.FromFixedU64(0x123456789ABC));
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456789ABCDE), Slice.FromFixedU64(0x123456789ABCDE));
-				Verify(FdbValue.ToFixed64LittleEndian((ulong)0x123456789ABCDEF0), Slice.FromFixedU64(0x123456789ABCDEF0));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0), Slice.FromFixedU64(0));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0x12), Slice.FromFixedU64(0x12));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0x1234), Slice.FromFixedU64(0x1234));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0x123456), Slice.FromFixedU64(0x123456));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0x12345678), Slice.FromFixedU64(0x12345678));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0x123456789A), Slice.FromFixedU64(0x123456789A));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0x123456789ABC), Slice.FromFixedU64(0x123456789ABC));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0x123456789ABCDE), Slice.FromFixedU64(0x123456789ABCDE));
+				Verify(FdbValue.ToFixed64LittleEndian((ulong) 0x123456789ABCDEF0), Slice.FromFixedU64(0x123456789ABCDEF0));
 				Verify(FdbValue.ToFixed64LittleEndian(ulong.MaxValue), Slice.FromFixedU64(ulong.MaxValue));
 			});
 
 		}
 
 		[Test]
-		public void Test_FdbValue_BigEndian_Encoding()
+		public void Test_FdbValue_FixedSize_BigEndian_Encoding()
 		{
-			static void Verify<TValue, TEncoder>(FdbValue<TValue, TEncoder> value, Slice expected)
-				where TEncoder : struct, ISpanEncoder<TValue>
+			static void Verify<TValue>(TValue value, Slice expected)
+				where TValue : struct, IFdbValue
 			{
 				var slice = value.ToSlice();
 				if (!slice.Equals(expected))
@@ -280,11 +282,11 @@ namespace FoundationDB.Client.Tests
 				Verify(FdbValue.ToFixed32BigEndian(int.MinValue), Slice.FromFixed32BE(int.MinValue));
 
 				// UInt32
-				Verify(FdbValue.ToFixed32BigEndian((uint)0), Slice.FromFixedU32BE(0));
-				Verify(FdbValue.ToFixed32BigEndian((uint)0x12), Slice.FromFixedU32BE(0x12));
-				Verify(FdbValue.ToFixed32BigEndian((uint)0x1234), Slice.FromFixedU32BE(0x1234));
-				Verify(FdbValue.ToFixed32BigEndian((uint)0x123456), Slice.FromFixedU32BE(0x123456));
-				Verify(FdbValue.ToFixed32BigEndian((uint)0x12345678), Slice.FromFixedU32BE(0x12345678));
+				Verify(FdbValue.ToFixed32BigEndian((uint) 0), Slice.FromFixedU32BE(0));
+				Verify(FdbValue.ToFixed32BigEndian((uint) 0x12), Slice.FromFixedU32BE(0x12));
+				Verify(FdbValue.ToFixed32BigEndian((uint) 0x1234), Slice.FromFixedU32BE(0x1234));
+				Verify(FdbValue.ToFixed32BigEndian((uint) 0x123456), Slice.FromFixedU32BE(0x123456));
+				Verify(FdbValue.ToFixed32BigEndian((uint) 0x12345678), Slice.FromFixedU32BE(0x12345678));
 
 				// Int64
 				Verify(FdbValue.ToFixed64BigEndian(0), Slice.FromFixed64BE(0));
@@ -302,16 +304,146 @@ namespace FoundationDB.Client.Tests
 				Verify(FdbValue.ToFixed64BigEndian(long.MinValue), Slice.FromFixed64BE(long.MinValue));
 
 				// UInt64
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0), Slice.FromFixedU64BE(0));
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0x12), Slice.FromFixedU64BE(0x12));
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0x1234), Slice.FromFixedU64BE(0x1234));
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456), Slice.FromFixedU64BE(0x123456));
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0x12345678), Slice.FromFixedU64BE(0x12345678));
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456789A), Slice.FromFixedU64BE(0x123456789A));
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456789ABC), Slice.FromFixedU64BE(0x123456789ABC));
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456789ABCDE), Slice.FromFixedU64BE(0x123456789ABCDE));
-				Verify(FdbValue.ToFixed64BigEndian((ulong)0x123456789ABCDEF0), Slice.FromFixedU64BE(0x123456789ABCDEF0));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0), Slice.FromFixedU64BE(0));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0x12), Slice.FromFixedU64BE(0x12));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0x1234), Slice.FromFixedU64BE(0x1234));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0x123456), Slice.FromFixedU64BE(0x123456));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0x12345678), Slice.FromFixedU64BE(0x12345678));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0x123456789A), Slice.FromFixedU64BE(0x123456789A));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0x123456789ABC), Slice.FromFixedU64BE(0x123456789ABC));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0x123456789ABCDE), Slice.FromFixedU64BE(0x123456789ABCDE));
+				Verify(FdbValue.ToFixed64BigEndian((ulong) 0x123456789ABCDEF0), Slice.FromFixedU64BE(0x123456789ABCDEF0));
 				Verify(FdbValue.ToFixed64BigEndian(ulong.MaxValue), Slice.FromFixedU64BE(ulong.MaxValue));
+			});
+
+		}
+
+		[Test]
+		public void Test_FdbValue_Compact_LittleEndian_Encoding()
+		{
+			static void Verify<TValue>(TValue value, Slice expected)
+				where TValue : struct, IFdbValue
+			{
+				var slice = value.ToSlice();
+				if (!slice.Equals(expected))
+				{
+					DumpVersus(slice, expected);
+					Assert.That(slice, Is.EqualTo(expected));
+				}
+				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
+				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
+			}
+
+			Assert.Multiple(() =>
+			{
+				// Int32
+				Verify(FdbValue.ToCompactLittleEndian(0x12), Slice.FromInt32(0x12));
+				Verify(FdbValue.ToCompactLittleEndian(0x1234), Slice.FromInt32(0x1234));
+				Verify(FdbValue.ToCompactLittleEndian(0x123456), Slice.FromInt32(0x123456));
+				Verify(FdbValue.ToCompactLittleEndian(0x12345678), Slice.FromInt32(0x12345678));
+				Verify(FdbValue.ToCompactLittleEndian(-1), Slice.FromInt32(-1));
+				Verify(FdbValue.ToCompactLittleEndian(-123456), Slice.FromInt32(-123456));
+				Verify(FdbValue.ToCompactLittleEndian(int.MinValue), Slice.FromInt32(int.MinValue));
+
+				// UInt32
+				Verify(FdbValue.ToCompactLittleEndian((uint) 0), Slice.FromUInt32(0));
+				Verify(FdbValue.ToCompactLittleEndian((uint) 0x12), Slice.FromUInt32(0x12));
+				Verify(FdbValue.ToCompactLittleEndian((uint) 0x1234), Slice.FromUInt32(0x1234));
+				Verify(FdbValue.ToCompactLittleEndian((uint) 0x123456), Slice.FromUInt32(0x123456));
+				Verify(FdbValue.ToCompactLittleEndian((uint) 0x12345678), Slice.FromUInt32(0x12345678));
+				Verify(FdbValue.ToCompactLittleEndian(uint.MaxValue), Slice.FromUInt32(uint.MaxValue));
+
+				// Int64
+				Verify(FdbValue.ToCompactLittleEndian((long) 0), Slice.FromInt64(0));
+				Verify(FdbValue.ToCompactLittleEndian((long) 0x12), Slice.FromInt64(0x12));
+				Verify(FdbValue.ToCompactLittleEndian((long) 0x1234), Slice.FromInt64(0x1234));
+				Verify(FdbValue.ToCompactLittleEndian((long) 0x123456), Slice.FromInt64(0x123456));
+				Verify(FdbValue.ToCompactLittleEndian((long) 0x12345678), Slice.FromInt64(0x12345678));
+				Verify(FdbValue.ToCompactLittleEndian((long) 0x123456789A), Slice.FromInt64(0x123456789A));
+				Verify(FdbValue.ToCompactLittleEndian((long) 0x123456789ABC), Slice.FromInt64(0x123456789ABC));
+				Verify(FdbValue.ToCompactLittleEndian((long) 0x123456789ABCDE), Slice.FromInt64(0x123456789ABCDE));
+				Verify(FdbValue.ToCompactLittleEndian((long) 0x123456789ABCDEF0), Slice.FromInt64(0x123456789ABCDEF0));
+				Verify(FdbValue.ToCompactLittleEndian((long) -1), Slice.FromInt64(-1));
+				Verify(FdbValue.ToCompactLittleEndian((long) -123456), Slice.FromInt64(-123456));
+				Verify(FdbValue.ToCompactLittleEndian((long) int.MinValue), Slice.FromInt64(int.MinValue));
+				Verify(FdbValue.ToCompactLittleEndian(long.MinValue), Slice.FromInt64(long.MinValue));
+
+				// UInt64
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0), Slice.FromUInt64(0));
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0x12), Slice.FromUInt64(0x12));
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0x1234), Slice.FromUInt64(0x1234));
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0x123456), Slice.FromUInt64(0x123456));
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0x12345678), Slice.FromUInt64(0x12345678));
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0x123456789A), Slice.FromUInt64(0x123456789A));
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0x123456789ABC), Slice.FromUInt64(0x123456789ABC));
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0x123456789ABCDE), Slice.FromUInt64(0x123456789ABCDE));
+				Verify(FdbValue.ToCompactLittleEndian((ulong) 0x123456789ABCDEF0), Slice.FromUInt64(0x123456789ABCDEF0));
+				Verify(FdbValue.ToCompactLittleEndian(ulong.MaxValue), Slice.FromUInt64(ulong.MaxValue));
+			});
+
+		}
+
+		[Test]
+		public void Test_FdbValue_Compact_BigEndian_Encoding()
+		{
+			static void Verify<TValue>(TValue value, Slice expected)
+				where TValue : struct, IFdbValue
+			{
+				var slice = value.ToSlice();
+				if (!slice.Equals(expected))
+				{
+					DumpVersus(slice, expected);
+					Assert.That(slice, Is.EqualTo(expected));
+				}
+				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
+				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
+			}
+
+			Assert.Multiple(() =>
+			{
+				// Int32
+				Verify(FdbValue.ToCompactBigEndian(0x12), Slice.FromInt32BE(0x12));
+				Verify(FdbValue.ToCompactBigEndian(0x1234), Slice.FromInt32BE(0x1234));
+				Verify(FdbValue.ToCompactBigEndian(0x123456), Slice.FromInt32BE(0x123456));
+				Verify(FdbValue.ToCompactBigEndian(0x12345678), Slice.FromInt32BE(0x12345678));
+				Verify(FdbValue.ToCompactBigEndian(-1), Slice.FromInt32BE(-1));
+				Verify(FdbValue.ToCompactBigEndian(-123456), Slice.FromInt32BE(-123456));
+				Verify(FdbValue.ToCompactBigEndian(int.MinValue), Slice.FromInt32BE(int.MinValue));
+
+				// UInt32
+				Verify(FdbValue.ToCompactBigEndian((uint) 0), Slice.FromUInt32BE(0));
+				Verify(FdbValue.ToCompactBigEndian((uint) 0x12), Slice.FromUInt32BE(0x12));
+				Verify(FdbValue.ToCompactBigEndian((uint) 0x1234), Slice.FromUInt32BE(0x1234));
+				Verify(FdbValue.ToCompactBigEndian((uint) 0x123456), Slice.FromUInt32BE(0x123456));
+				Verify(FdbValue.ToCompactBigEndian((uint) 0x12345678), Slice.FromUInt32BE(0x12345678));
+				Verify(FdbValue.ToCompactBigEndian(uint.MaxValue), Slice.FromUInt32(uint.MaxValue));
+
+				// Int64
+				Verify(FdbValue.ToCompactBigEndian((long) 0), Slice.FromInt64BE(0));
+				Verify(FdbValue.ToCompactBigEndian((long) 0x12), Slice.FromInt64BE(0x12));
+				Verify(FdbValue.ToCompactBigEndian((long) 0x1234), Slice.FromInt64BE(0x1234));
+				Verify(FdbValue.ToCompactBigEndian((long) 0x123456), Slice.FromInt64BE(0x123456));
+				Verify(FdbValue.ToCompactBigEndian((long) 0x12345678), Slice.FromInt64BE(0x12345678));
+				Verify(FdbValue.ToCompactBigEndian((long) 0x123456789A), Slice.FromInt64BE(0x123456789A));
+				Verify(FdbValue.ToCompactBigEndian((long) 0x123456789ABC), Slice.FromInt64BE(0x123456789ABC));
+				Verify(FdbValue.ToCompactBigEndian((long) 0x123456789ABCDE), Slice.FromInt64BE(0x123456789ABCDE));
+				Verify(FdbValue.ToCompactBigEndian((long) 0x123456789ABCDEF0), Slice.FromInt64BE(0x123456789ABCDEF0));
+				Verify(FdbValue.ToCompactBigEndian((long) -1), Slice.FromInt64BE(-1));
+				Verify(FdbValue.ToCompactBigEndian((long) -123456), Slice.FromInt64BE(-123456));
+				Verify(FdbValue.ToCompactBigEndian((long) int.MinValue), Slice.FromInt64BE(int.MinValue));
+				Verify(FdbValue.ToCompactBigEndian((long) long.MinValue), Slice.FromInt64BE(long.MinValue));
+
+				// UInt64
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0), Slice.FromUInt64BE(0));
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0x12), Slice.FromUInt64BE(0x12));
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0x1234), Slice.FromUInt64BE(0x1234));
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0x123456), Slice.FromUInt64BE(0x123456));
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0x12345678), Slice.FromUInt64BE(0x12345678));
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0x123456789A), Slice.FromUInt64BE(0x123456789A));
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0x123456789ABC), Slice.FromUInt64BE(0x123456789ABC));
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0x123456789ABCDE), Slice.FromUInt64BE(0x123456789ABCDE));
+				Verify(FdbValue.ToCompactBigEndian((ulong) 0x123456789ABCDEF0), Slice.FromUInt64BE(0x123456789ABCDEF0));
+				Verify(FdbValue.ToCompactBigEndian(ulong.MaxValue), Slice.FromUInt64BE(ulong.MaxValue));
 			});
 
 		}

@@ -29,6 +29,10 @@ namespace FoundationDB.Client
 
 	/// <summary>Value that wraps text that is encoded as UTF-16 bytes</summary>
 	public readonly struct FdbUtf16Value : IFdbValue
+		, IEquatable<FdbUtf16Value>
+#if NET9_0_OR_GREATER
+		, IEquatable<FdbUtf16SpanValue>
+#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -57,6 +61,8 @@ namespace FoundationDB.Client
 			return destination.TryWrite($"\"{this.Text.Span}\"", out charsWritten); //TODO: escape?
 		}
 
+		#region ISpanEncodable...
+
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) => SpanEncoders.Utf16Encoder.TryGetSpan(in this.Text, out span);
@@ -69,10 +75,67 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten) => SpanEncoders.Utf16Encoder.TryEncode(destination, out bytesWritten, in this.Text);
 
+		#endregion
+
+		#region Comparisons...
+
+		/// <inheritdoc />
+		public override int GetHashCode() => throw FdbValueHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
+		{
+			Slice bytes => Equals(bytes.Span),
+			FdbUtf16Value value => Equals(value),
+			FdbRawValue value => Equals(value),
+			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbValue? other) => other switch
+		{
+			null => false,
+			FdbUtf16Value value => Equals(value),
+			FdbRawValue value => Equals(value),
+			_ => FdbValueHelpers.AreEqual(in this, other),
+		};
+
+#if NET9_0_OR_GREATER
+
+		/// <inheritdoc cref="Equals(FdbUtf16Value)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbUtf16SpanValue other) => this.Text.Span.SequenceEqual(other.Text);
+
+#endif
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbUtf16Value other) => this.Text.Span.SequenceEqual(other.Text.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawValue other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbValueHelpers.AreEqual(in this, other);
+		//PERF: is there a fast way to compare UTF-8 bytes with a RoS<char> ?
+
+		#endregion
+
 	}
+
+#if NET9_0_OR_GREATER
 
 	/// <summary>Value that wraps text that is encoded as UTF-16 bytes</summary>
 	public readonly ref struct FdbUtf16SpanValue : IFdbValue
+		, IEquatable<FdbUtf16Value>
+		, IEquatable<FdbUtf16SpanValue>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -95,6 +158,8 @@ namespace FoundationDB.Client
 			return destination.TryWrite($"\"{this.Text}\"", out charsWritten); //TODO: escape?
 		}
 
+		#region ISpanEncodable...
+
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) => SpanEncoders.Utf16Encoder.TryGetSpan(in this.Text, out span);
@@ -107,6 +172,55 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten) => SpanEncoders.Utf16Encoder.TryEncode(destination, out bytesWritten, in this.Text);
 
+		#endregion
+
+		#region Comparisons...
+
+		/// <inheritdoc />
+		public override int GetHashCode() => throw FdbValueHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
+		{
+			Slice bytes => Equals(bytes.Span),
+			FdbUtf16Value value => Equals(value),
+			FdbRawValue value => Equals(value),
+			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbValue? other) => other switch
+		{
+			null => false,
+			FdbUtf16Value value => Equals(value),
+			FdbRawValue value => Equals(value),
+			_ => FdbValueHelpers.AreEqual(in this, other),
+		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbUtf16SpanValue other) => this.Text.SequenceEqual(other.Text);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbUtf16Value other) => this.Text.SequenceEqual(other.Text.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawValue other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => MemoryMarshal.Cast<char, byte>(this.Text).SequenceEqual(other);
+
+		#endregion
 	}
+
+#endif
 
 }

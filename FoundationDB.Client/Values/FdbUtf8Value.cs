@@ -29,6 +29,10 @@ namespace FoundationDB.Client
 
 	/// <summary>Value that wraps text that is encoded as UTF-8 bytes</summary>
 	public readonly struct FdbUtf8Value : IFdbValue
+		, IEquatable<FdbUtf8Value>
+#if NET9_0_OR_GREATER
+		, IEquatable<FdbUtf8SpanValue>
+#endif
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -45,17 +49,32 @@ namespace FoundationDB.Client
 
 		public readonly ReadOnlyMemory<char> Text;
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider = null) => $"\"{this.Text.Span}\""; //TODO: escape?
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => (format ?? "") switch
+		{
+			"" or "D" or "d" or "V" or "v" => $"\"{this.Text.Span}\"", //TODO: escape?
+			"X" or "x" => this.ToSlice().ToString(format),
+			"G" or "g" => $"{nameof(FdbUtf8Value)}(\"{this.Text.Span}\")", //TODO: escape?
+			_ => throw new FormatException(),
+		};
 
 		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => format switch
 		{
-			return destination.TryWrite($"\"{this.Text.Span}\"", out charsWritten); //TODO: escape?
-		}
+			"" or "D" or "d" or "V" or "v" => destination.TryWrite($"\"{this.Text.Span}\"", out charsWritten), //TODO: escape?
+			"X" or "x" => this.ToSlice().TryFormat(destination, out charsWritten, format),
+			"G" or "g" => destination.TryWrite($"{nameof(FdbUtf8Value)}(\"{this.Text.Span}\")", out charsWritten), //TODO: escape?
+			_ => throw new FormatException(),
+		};
+
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,10 +88,67 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten) => SpanEncoders.Utf8Encoder.TryEncode(destination, out bytesWritten, in this.Text);
 
+		#endregion
+
+		#region Comparisons...
+
+		/// <inheritdoc />
+		public override int GetHashCode() => throw FdbValueHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
+		{
+			Slice bytes => Equals(bytes.Span),
+			FdbUtf8Value value => Equals(value),
+			FdbRawValue value => Equals(value),
+			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbValue? other) => other switch
+		{
+			null => false,
+			FdbUtf8Value value => Equals(value),
+			FdbRawValue value => Equals(value),
+			_ => FdbValueHelpers.AreEqual(in this, other),
+		};
+
+#if NET9_0_OR_GREATER
+
+		/// <inheritdoc cref="Equals(FdbUtf8Value)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbUtf8SpanValue other) => this.Text.Span.SequenceEqual(other.Text);
+
+#endif
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbUtf8Value other) => this.Text.Span.SequenceEqual(other.Text.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawValue other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbValueHelpers.AreEqual(in this, other);
+		//PERF: is there a fast way to compare UTF-8 bytes with a RoS<char> ?
+
+		#endregion
+
 	}
+
+#if NET9_0_OR_GREATER
 
 	/// <summary>Value that wraps text that is encoded as UTF-8 bytes</summary>
 	public readonly ref struct FdbUtf8SpanValue : IFdbValue
+		, IEquatable<FdbUtf8Value>
+		, IEquatable<FdbUtf8SpanValue>
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,17 +159,32 @@ namespace FoundationDB.Client
 
 		public readonly ReadOnlySpan<char> Text;
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider = null) => $"\"{this.Text}\""; //TODO: escape?
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => (format ?? "") switch
+		{
+			"" or "D" or "d" or "V" or "v" => $"\"{this.Text}\"", //TODO: escape?
+			"X" or "x" => this.ToSlice().ToString(format),
+			"G" or "g" => $"{nameof(FdbUtf8SpanValue)}(\"{this.Text}\")", //TODO: escape?
+			_ => throw new FormatException(),
+		};
 
 		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => format switch
 		{
-			return destination.TryWrite($"\"{this.Text}\"", out charsWritten); //TODO: escape?
-		}
+			"" or "D" or "d" or "V" or "v" => destination.TryWrite($"\"{this.Text}\"", out charsWritten), //TODO: escape?
+			"X" or "x" => this.ToSlice().TryFormat(destination, out charsWritten, format),
+			"G" or "g" => destination.TryWrite($"{nameof(FdbUtf8SpanValue)}(\"{this.Text}\")", out charsWritten), //TODO: escape?
+			_ => throw new FormatException(),
+		};
+
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,6 +198,56 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten) => SpanEncoders.Utf8Encoder.TryEncode(destination, out bytesWritten, in this.Text);
 
+		#endregion
+
+		#region Comparisons...
+
+		/// <inheritdoc />
+		public override int GetHashCode() => throw FdbValueHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
+		{
+			Slice bytes => Equals(bytes.Span),
+			FdbUtf8Value value => Equals(value),
+			FdbRawValue value => Equals(value),
+			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbValue? other) => other switch
+		{
+			null => false,
+			FdbUtf8Value value => Equals(value),
+			FdbRawValue value => Equals(value),
+			_ => FdbValueHelpers.AreEqual(in this, other),
+		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbUtf8SpanValue other) => this.Text.SequenceEqual(other.Text);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbUtf8Value other) => this.Text.SequenceEqual(other.Text.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawValue other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbValueHelpers.AreEqual(in this, other);
+		//PERF: is there a fast way to compare UTF-8 bytes with a RoS<char> ?
+
+		#endregion
+
 	}
 
+#endif
 }

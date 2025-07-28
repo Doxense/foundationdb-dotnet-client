@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="TEncoder">Type of the encoder for this value</typeparam>
 	[DebuggerDisplay("Data={Data}")]
 	public readonly struct FdbValue<TValue, TEncoder> : IFdbValue
+		, IEquatable<FdbValue<TValue, TEncoder>>
 		where TEncoder : struct, ISpanEncoder<TValue>
 	{
 
@@ -43,14 +44,7 @@ namespace FoundationDB.Client
 
 		public readonly TValue? Data;
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSpan(out ReadOnlySpan<byte> span) => TEncoder.TryGetSpan(in this.Data, out span);
-
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryGetSizeHint(out int sizeHint) => TEncoder.TryGetSizeHint(in this.Data, out sizeHint);
-
-		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TEncoder.TryEncode(destination, out bytesWritten, in this.Data);
+		#region Formatting...
 
 		/// <inheritdoc />
 		public override string ToString()
@@ -63,6 +57,63 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 			=> STuple.Formatter.TryStringifyTo(destination, out charsWritten, this.Data);
+
+		#endregion
+
+		#region ISpanEncodable...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span) => TEncoder.TryGetSpan(in this.Data, out span);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint) => TEncoder.TryGetSizeHint(in this.Data, out sizeHint);
+
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TEncoder.TryEncode(destination, out bytesWritten, in this.Data);
+
+		#endregion
+
+		#region Comparisons...
+
+		/// <inheritdoc />
+		public override int GetHashCode() => throw FdbValueHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
+		{
+			Slice bytes => Equals(bytes.Span),
+			FdbRawValue value => Equals(value.Span),
+			FdbValue<TValue, TEncoder> value => Equals(value),
+			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbValue? other) => other switch
+		{
+			null => false,
+			FdbRawValue value => Equals(value),
+			FdbValue<TValue, TEncoder> value => Equals(value),
+			_ => FdbValueHelpers.AreEqual(in this, other),
+		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbValue<TValue, TEncoder> other) => EqualityComparer<TValue>.Default.Equals(other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawValue other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbValueHelpers.AreEqual(in this, other);
+
+		#endregion
 
 	}
 

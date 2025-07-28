@@ -29,9 +29,23 @@ namespace FoundationDB.Client
 
 	/// <summary>Value that can be encoded into bytes</summary>
 	public interface IFdbValue : ISpanEncodable, ISpanFormattable
+		, IEquatable<FdbRawValue>
+		, IEquatable<IFdbValue>
+		, IEquatable<Slice>
+#if NET9_0_OR_GREATER
+		, IEquatable<ReadOnlySpan<byte>>
+#endif
 	{
 
 		//TODO: add a method to return a hint on the "type" of value? could help tools/loggers to properly format this value
+
+#if !NET9_0_OR_GREATER
+
+		/// <inheritdoc cref="IEquatable{T}.Equals(T?)"/>
+		[Pure]
+		bool Equals(ReadOnlySpan<byte> other);
+
+#endif
 
 	}
 

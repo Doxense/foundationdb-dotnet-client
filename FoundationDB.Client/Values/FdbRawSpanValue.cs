@@ -24,58 +24,33 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+#if NET9_0_OR_GREATER
+
 namespace FoundationDB.Client
 {
 
-	/// <summary>Value that wraps raw bytes</summary>
-	[PublicAPI]
-	public readonly struct FdbRawMemoryValue : IFdbValue
+	/// <summary>Value that wraps a span of bytes</summary>
+	public readonly ref struct FdbRawSpanValue : IFdbValue
 	{
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawMemoryValue Return(ReadOnlyMemory<byte> slice) => new(slice);
-
-		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal FdbRawMemoryValue(ReadOnlyMemory<byte> data)
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbRawSpanValue(ReadOnlySpan<byte> data)
 		{
 			this.Data = data;
 		}
 
-		public readonly ReadOnlyMemory<byte> Data;
+		/// <summary>Wrapped span</summary>
+		public readonly ReadOnlySpan<byte> Data;
 
-		public ReadOnlySpan<byte> Span
-		{
-			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => this.Data.Span;
-		}
+		#region ISpanEncodable...
 
-		/// <inheritdoc />
-		public override string ToString() => this.Data.ToString();
-
-		private Slice GetSliceOrCopy()
-		{
-			return MemoryMarshal.TryGetArray(Data, out var seg) ? seg.AsSlice() : Slice.FromBytes(this.Data.Span);
-		}
-
-		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider)
-			=> GetSliceOrCopy().ToString(format, formatProvider);
-
-		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-			=> GetSliceOrCopy().TryFormat(destination, out charsWritten, format, provider);
-
-		#region ISpanDecodable...
-
-		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span)
 		{
-			span = this.Data.Span;
+			span = this.Data;
 			return true;
 		}
 
-		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint)
 		{
@@ -83,14 +58,40 @@ namespace FoundationDB.Client
 			return true;
 		}
 
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[MustUseReturnValue, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten)
 		{
-			return this.Data.Span.TryCopyTo(destination, out bytesWritten);
+			return this.Data.TryCopyTo(destination, out bytesWritten);
 		}
 
 		#endregion
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice ToSlice()
+		{
+			return Slice.FromBytes(this.Data);
+		}
+
+		[MustDisposeResource, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public SliceOwner ToSlice(ArrayPool<byte>? pool)
+		{
+			return Slice.FromBytes(this.Data, pool ?? ArrayPool<byte>.Shared);
+		}
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? provider = null)
+		{
+			return $"{Slice.Dump(this.Data)}";
+		}
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		{
+			return Slice.Dump(this.Data).TryCopyTo(destination, out charsWritten);
+		}
 
 		#region Comparisons...
 
@@ -100,9 +101,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
 		{
-			Slice bytes => this.Span.SequenceEqual(bytes.Span),
-			FdbRawValue value => this.Span.SequenceEqual(value.Span),
-			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
+			Slice bytes => this.Data.SequenceEqual(bytes.Span),
+			FdbRawValue value => this.Data.SequenceEqual(value.Span),
+			IFdbValue value => value.Equals(this.Data),
 			_ => false,
 		};
 
@@ -111,23 +112,25 @@ namespace FoundationDB.Client
 		{
 			null => false,
 			FdbRawValue value => Equals(value),
-			_ => FdbValueHelpers.AreEqual(in this, other),
+			_ => other.Equals(this.Data),
 		};
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbRawValue other) => this.Span.SequenceEqual(other.Span);
+		public bool Equals(FdbRawValue other) => this.Data.SequenceEqual(other.Span);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(Slice other) => this.Span.SequenceEqual(other.Span);
+		public bool Equals(Slice other) => this.Data.SequenceEqual(other.Span);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(ReadOnlySpan<byte> other) => this.Span.SequenceEqual(other);
+		public bool Equals(ReadOnlySpan<byte> other) => this.Data.SequenceEqual(other);
 
 		#endregion
 
 	}
 
 }
+
+#endif

@@ -68,7 +68,7 @@ namespace FoundationDB.Client
 
 #if NET9_0_OR_GREATER
 		/// <summary>Returns a value that wraps a span of bytes</summary>
-		public static FdbSpanValue<byte> ToBytes(ReadOnlySpan<byte> value)
+		public static FdbRawSpanValue ToBytes(ReadOnlySpan<byte> value)
 			=> new(value);
 #else
 		/// <summary>Returns a value that wraps a span of bytes</summary>
@@ -239,62 +239,62 @@ namespace FoundationDB.Client
 		#region Fixed Size...
 
 		/// <summary>Four 0x00 bytes (<c>`00 00 00 00`</c>)</summary>
-		public static readonly FdbValue<uint, SpanEncoders.FixedSizeLittleEndianEncoder> Zero32;
+		public static readonly FdbLittleEndianUInt32Value Zero32;
 
 		/// <summary>Eight 0x00 bytes (<c>`00 00 00 00 00 00 00 00`</c>)</summary>
-		public static readonly FdbValue<ulong, SpanEncoders.FixedSizeLittleEndianEncoder> Zero64;
+		public static readonly FdbLittleEndianUInt64Value Zero64;
 
 		/// <summary>Four 0xFF bytes (<c>`FF FF FF FF`</c>)</summary>
-		public static readonly FdbValue<uint, SpanEncoders.FixedSizeLittleEndianEncoder> MaxValue32 = new(uint.MaxValue);
+		public static readonly FdbLittleEndianUInt32Value MaxValue32 = new(uint.MaxValue);
 
 		/// <summary>Eight 0xFF bytes (<c>`FF FF FF FF FF FF FF FF`</c>)</summary>
-		public static readonly FdbValue<ulong, SpanEncoders.FixedSizeLittleEndianEncoder> MaxValue64 = new(ulong.MaxValue);
+		public static readonly FdbLittleEndianUInt64Value MaxValue64 = new(ulong.MaxValue);
 
 		#region Little Endian...
 
-		/// <summary>Returns a value that wraps a fixed-size signed 32-bit integer, encoded as little-endian</summary>
+		/// <summary>Returns a value that wraps a fixed-size signed 32-bit integer, encoded as 4 bytes in little-endian</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>00 00 12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<int, SpanEncoders.FixedSizeLittleEndianEncoder> ToFixed32LittleEndian(int value) => new(value);
+		public static FdbLittleEndianUInt32Value ToFixed32LittleEndian(int value) => new(unchecked((uint) value));
 
-		/// <summary>Returns a value that wraps a fixed-size unsigned 32-bit integer, encoded as little-endian</summary>
+		/// <summary>Returns a value that wraps a fixed-size unsigned 32-bit integer, encoded as 4 bytes in little-endian</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>00 00 12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<uint, SpanEncoders.FixedSizeLittleEndianEncoder> ToFixed32LittleEndian(uint value) => new(value);
+		public static FdbLittleEndianUInt32Value ToFixed32LittleEndian(uint value) => new(value);
 
-		/// <summary>Returns a value that wraps a fixed-size signed 64-bit integer, encoded as little-endian</summary>
+		/// <summary>Returns a value that wraps a fixed-size signed 64-bit integer, encoded as 8 bytes in little-endian</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>00 00 00 00 00 00 12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<long, SpanEncoders.FixedSizeLittleEndianEncoder> ToFixed64LittleEndian(long value) => new(value);
+		public static FdbLittleEndianUInt64Value ToFixed64LittleEndian(long value) => new(unchecked((ulong) value));
 
-		/// <summary>Returns a value that wraps a fixed-size unsigned 64-bit integer, encoded as little-endian</summary>
+		/// <summary>Returns a value that wraps a fixed-size unsigned 64-bit integer, encoded as 8 bytes in little-endian</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>00 00 00 00 00 00 12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<ulong, SpanEncoders.FixedSizeLittleEndianEncoder> ToFixed64LittleEndian(ulong value) => new(value);
+		public static FdbLittleEndianUInt64Value ToFixed64LittleEndian(ulong value) => new(value);
 
 		#endregion
 
 		#region Big Endian...
 
-		/// <summary>Returns a value that wraps a fixed-size signed 32-bit integer, encoded as big-endian</summary>
+		/// <summary>Returns a value that wraps a fixed-size signed 32-bit integer, encoded as 4 bytes in big-endian</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12 00 00</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<int, SpanEncoders.FixedSizeBigEndianEncoder> ToFixed32BigEndian(int value) => new(value);
+		public static FdbBigEndianUInt32Value ToFixed32BigEndian(int value) => new(unchecked((uint) value));
 
-		/// <summary>Returns a value that wraps a fixed-size unsigned 32-bit integer, encoded as big-endian</summary>
+		/// <summary>Returns a value that wraps a fixed-size unsigned 32-bit integer, encoded as 4 bytes in big-endian</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12 00 00</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<uint, SpanEncoders.FixedSizeBigEndianEncoder> ToFixed32BigEndian(uint value) => new(value);
+		public static FdbBigEndianUInt32Value ToFixed32BigEndian(uint value) => new(value);
 
-		/// <summary>Returns a value that wraps a fixed-size signed 64-bit integer, encoded as big-endian</summary>
+		/// <summary>Returns a value that wraps a fixed-size signed 64-bit integer, encoded as 8 bytes in big-endian</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12 00 00 00 00 00 00</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<long, SpanEncoders.FixedSizeBigEndianEncoder> ToFixed64BigEndian(long value) => new(value);
+		public static FdbBigEndianUInt64Value ToFixed64BigEndian(long value) => new(unchecked((ulong) value));
 
-		/// <summary>Returns a value that wraps a fixed-size unsigned 64-bit integer, encoded as big-endian</summary>
+		/// <summary>Returns a value that wraps a fixed-size unsigned 64-bit integer, encoded as 8 bytes in big-endian</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12 00 00 00 00 00 00</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<ulong, SpanEncoders.FixedSizeBigEndianEncoder> ToFixed64BigEndian(ulong value) => new(value);
+		public static FdbBigEndianUInt64Value ToFixed64BigEndian(ulong value) => new(value);
 
 		#endregion
 
@@ -307,22 +307,22 @@ namespace FoundationDB.Client
 		/// <summary>Returns a key that wraps a signed 32-bit integer, encoded as little endian using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<int, SpanEncoders.CompactLittleEndianEncoder> ToCompactLittleEndian(int value) => new(value);
+		public static FdbCompactLittleEndianUInt32Value ToCompactLittleEndian(int value) => new(unchecked((uint) value));
 
 		/// <summary>Returns a key that wraps an unsigned 32-bit integer, encoded as little endian using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<uint, SpanEncoders.CompactLittleEndianEncoder> ToCompactLittleEndian(uint value) => new(value);
+		public static FdbCompactLittleEndianUInt32Value ToCompactLittleEndian(uint value) => new(value);
 
 		/// <summary>Returns a key that wraps a signed 64-bit integer, encoded as little endian using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<long, SpanEncoders.CompactLittleEndianEncoder> ToCompactLittleEndian(long value) => new(value);
+		public static FdbCompactLittleEndianUInt64Value ToCompactLittleEndian(long value) => new(unchecked((ulong) value));
 
 		/// <summary>Returns a key that wraps an unsigned 64-bit integer, encoded as little endian using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<ulong, SpanEncoders.CompactLittleEndianEncoder> ToCompactLittleEndian(ulong value) => new(value);
+		public static FdbCompactLittleEndianUInt64Value ToCompactLittleEndian(ulong value) => new(value);
 
 		#endregion
 
@@ -331,22 +331,22 @@ namespace FoundationDB.Client
 		/// <summary>Returns a key that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<int, SpanEncoders.CompactBigEndianEncoder> ToCompactBigEndian(int value) => new(value);
+		public static FdbCompactBigEndianUInt32Value ToCompactBigEndian(int value) => new(unchecked((uint) value));
 
 		/// <summary>Returns a key that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<uint, SpanEncoders.CompactBigEndianEncoder> ToCompactBigEndian(uint value) => new(value);
+		public static FdbCompactBigEndianUInt32Value ToCompactBigEndian(uint value) => new(value);
 
 		/// <summary>Returns a key that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<long, SpanEncoders.CompactBigEndianEncoder> ToCompactBigEndian(long value) => new(value);
+		public static FdbCompactBigEndianUInt64Value ToCompactBigEndian(long value) => new(unchecked((ulong) value));
 
 		/// <summary>Returns a key that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<ulong, SpanEncoders.CompactBigEndianEncoder> ToCompactBigEndian(ulong value) => new(value);
+		public static FdbCompactBigEndianUInt64Value ToCompactBigEndian(ulong value) => new(value);
 
 		#endregion
 

@@ -30,6 +30,9 @@ namespace FoundationDB.Client
 	internal static class FdbValueHelpers
 	{
 
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static NotSupportedException ErrorCannotComputeHashCodeMessage() => new("It is not possible to compute a stable hash code on values without doing more work than calling Equals(...), which defeats the purpose. Consider converting the value into a Slice instead.");
+
 		/// <summary>Creates a pre-encoded version of a value that can be reused multiple times</summary>
 		/// <typeparam name="TValue">Type of the value to pre-encode</typeparam>
 		/// <param name="value">value to pre-encoded</param>
@@ -224,6 +227,64 @@ namespace FoundationDB.Client
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		internal static SliceOwner Encode(IFdbValue value, ArrayPool<byte> pool, int? sizeHint = null)
+		{
+			Contract.Debug.Requires(pool is not null);
+
+			int capacity;
+			if (sizeHint is not null)
+			{
+				capacity = sizeHint.Value;
+			}
+			else if (!value.TryGetSizeHint(out capacity))
+			{
+				capacity = 128;
+			}
+			if (capacity <= 0)
+			{
+				capacity = 256;
+			}
+
+			byte[]? tmp = null;
+			try
+			{
+				while (true)
+				{
+					tmp = pool.Rent(capacity);
+					if (value.TryEncode(tmp, out int bytesWritten))
+					{
+						if (bytesWritten == 0)
+						{
+							pool.Return(tmp);
+							tmp = null;
+							return SliceOwner.Empty;
+						}
+
+						return SliceOwner.Create(tmp.AsSlice(0, bytesWritten), pool);
+					}
+
+					pool.Return(tmp);
+					tmp = null;
+
+					if (capacity >= FdbValue.MaxSize)
+					{
+						// it would be too large anyway!
+						throw new ArgumentException("Cannot encode value because it would exceed the maximum allowed length.");
+					}
+					capacity *= 2;
+				}
+			}
+			catch(Exception)
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				throw;
+			}
+		}
+
 		[MustUseReturnValue, MethodImpl(MethodImplOptions.NoInlining)]
 		internal static ReadOnlySpan<byte> Encode<TValue>(scoped in TValue value, scoped ref byte[]? buffer, ArrayPool<byte> pool)
 #if NET9_0_OR_GREATER
@@ -268,6 +329,69 @@ namespace FoundationDB.Client
 				capacity *= 2;
 			}
 		}
+
+		public static bool AreEqual<TValue>(in TValue value, ReadOnlySpan<byte> other)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+#endif
+		{
+			if (value.TryGetSpan(out var span))
+			{
+				return other.SequenceEqual(span);
+			}
+
+			using var valueBytes = Encode(in value, ArrayPool<byte>.Shared);
+			return valueBytes.Span.SequenceEqual(other);
+		}
+
+		public static bool AreEqual<TValue, TOtherValue>(in TValue value, in TOtherValue other)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+			where TOtherValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+			where TOtherValue : struct, IFdbValue
+#endif
+		{
+			if (value.TryGetSpan(out var span))
+			{
+				return other.Equals(span);
+			}
+
+			if (other.TryGetSpan(out span))
+			{
+				return value.Equals(span);
+			}
+
+			using var valueBytes = Encode(in value, ArrayPool<byte>.Shared);
+			using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
+			return valueBytes.Span.SequenceEqual(otherBytes.Span);
+		}
+
+		public static bool AreEqual<TValue>(in TValue value, IFdbValue other)
+#if NET9_0_OR_GREATER
+			where TValue : struct, IFdbValue, allows ref struct
+#else
+			where TValue : struct, IFdbValue
+#endif
+		{
+			if (value.TryGetSpan(out var span))
+			{
+				return other.Equals(span);
+			}
+
+			if (other.TryGetSpan(out span))
+			{
+				return value.Equals(span);
+			}
+
+			using var valueBytes = Encode(in value, ArrayPool<byte>.Shared);
+			using var otherBytes = Encode(other, ArrayPool<byte>.Shared);
+			return valueBytes.Span.SequenceEqual(otherBytes.Span);
+		}
+
 	}
 
 }

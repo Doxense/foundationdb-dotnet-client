@@ -55,19 +55,17 @@ namespace FoundationDB.Client
 		[Pure]
 		int FastCompareTo<TOtherKey>(in TOtherKey key) where TOtherKey : struct, IFdbKey;
 
+#if !NET9_0_OR_GREATER
+
 		/// <inheritdoc cref="IEquatable{T}.Equals(T?)"/>
 		[Pure]
-#if NET9_0_OR_GREATER
-		new // required to fix weird ambiguity resolution with Equals<TOtherKey> .. ???
-#endif
 		bool Equals(ReadOnlySpan<byte> other);
 
 		/// <inheritdoc cref="IComparable{T}.CompareTo(T?)"/>
 		[Pure]
-#if NET9_0_OR_GREATER
-		new // required to fix weird ambiguity resolution with Equals<TOtherKey> .. ???
-#endif
 		int CompareTo(ReadOnlySpan<byte> other);
+
+#endif
 
 		/// <summary>Tests if the key is <c>Nil</c></summary>
 		bool IsNull => false;

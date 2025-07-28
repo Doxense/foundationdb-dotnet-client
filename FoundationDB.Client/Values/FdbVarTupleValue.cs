@@ -29,6 +29,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Value that wraps an <see cref="IVarTuple"/> with any number of elements</summary>
 	public readonly struct FdbVarTupleValue : IFdbValue
+		, IEquatable<FdbVarTupleValue>
 	{
 
 		[SkipLocalsInit]
@@ -63,6 +64,8 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbVarTupleValue Append<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Items.Append(item1, item2, item3, item4, item5, item6, item7, item8));
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public string ToString(string? format, IFormatProvider? formatProvider = null) => this.Items.ToString()!;
 
@@ -72,6 +75,10 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
+		#endregion
+
+		#region ISpanEncodable...
+
 		/// <inheritdoc />
 		public bool TryGetSpan(out ReadOnlySpan<byte> span) { span = default; return false; }
 
@@ -80,6 +87,50 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TuPack.TryPackTo(destination, out bytesWritten, in this.Items);
+
+		#endregion
+
+		#region Comparisons...
+
+		/// <inheritdoc />
+		public override int GetHashCode() => throw FdbValueHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
+		{
+			Slice bytes => Equals(bytes.Span),
+			FdbRawValue value => Equals(value.Span),
+			FdbVarTupleValue value => Equals(value),
+			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbValue? other) => other switch
+		{
+			null => false,
+			FdbRawValue value => Equals(value),
+			FdbVarTupleValue value => Equals(value),
+			_ => FdbValueHelpers.AreEqual(in this, other),
+		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbVarTupleValue other) => this.Items.Equals(other.Items);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawValue other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbValueHelpers.AreEqual(in this, other);
+
+		#endregion
 
 	}
 
