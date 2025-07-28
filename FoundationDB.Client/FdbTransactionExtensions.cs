@@ -3189,6 +3189,29 @@ namespace FoundationDB.Client
 		[Pure, LinqTunnel]
 		public static IFdbRangeQuery<TResult> GetRangeKeys<TBeginKey, TEndKey, TState, TResult>(
 			this IFdbReadOnlyTransaction trans,
+			in TBeginKey beginKeyInclusive,
+			in TEndKey endKeyExclusive,
+			TState state,
+			FdbRangeDecoder<TState, TResult> decoder,
+			FdbRangeOptions? options = null
+		)
+			where TBeginKey : struct, IFdbKey
+			where TEndKey : struct, IFdbKey
+		{
+			//TODO: optimize this!
+			return trans.GetRangeKeys(
+				beginKeyInclusive.FirstGreaterOrEqual().ToSelector(),
+				endKeyExclusive.FirstGreaterOrEqual().ToSelector(),
+				state,
+				decoder,
+				options
+			);
+		}
+
+		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
+		[Pure, LinqTunnel]
+		public static IFdbRangeQuery<TResult> GetRangeKeys<TBeginKey, TEndKey, TState, TResult>(
+			this IFdbReadOnlyTransaction trans,
 			in FdbKeySelector<TBeginKey> beginKeyInclusive,
 			in FdbKeySelector<TEndKey> endKeyExclusive,
 			TState state,

@@ -29,7 +29,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.ComponentModel;
 
-	/// <summary>Extension methods for working with <see cref="FdbKey{TKey,TEncoder}"/></summary>
+	/// <summary>Extension methods for working with <see cref="IFdbKeyRange"/> implementations</summary>
 	[PublicAPI]
 	public static class FdbKeyExtensions
 	{
@@ -80,17 +80,382 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 			=> new(key);
 
-		/// <summary>Returns a range that will all the children of this key</summary>
+		/// <summary>Returns a range that matches all the children of this key</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <param name="key">Key that will be used as a prefix</param>
 		/// <param name="inclusive">If <c>true</c> the key itself will be included in the range; otherwise, the range will start immediately after this key.</param>
 		/// <returns>Range that matches all keys that start with <paramref name="key"/> (included)</returns>
-		/// <para>Ex: <c>subspace.GetKey(123).StartsWith()</c> will match all the keys of the form <c>(..., 123, ...)</c>, but not <c>(..., 123)</c> itself.</para>
-		/// <para>Ex: <c>subspace.GetKey(123).StartsWith(inclusive: true)</c> will match <c>(..., 123)</c> as well as all the keys of the form <c>(..., 123, ...)</c>.</para>
+		/// <remarks>
+		/// <para>Ex: <c>subspace.GetKey(123).ToRange()</c> will match all the keys of the form <c>(..., 123, ...)</c>, but not <c>(..., 123)</c> itself.</para>
+		/// <para>Ex: <c>subspace.GetKey(123).ToRange(inclusive: true)</c> will match <c>(..., 123)</c> as well as all the keys of the form <c>(..., 123, ...)</c>.</para>
 		/// <para>Please be careful when using this with tuples where the last elements is a <see cref="string"/> or <see cref="Slice"/>: the encoding adds an extra <c>0x00</c> bytes after the element (ex: <c>"hello"</c> => <c>`\x02hello\x00`</c>), which means that <c>(..., "abc")</c> is <b>NOT</b> a child of <c>(..., "ab")</c></para>
-		public static FdbKeyPrefixRange<TKey> ToRange<TKey>(this TKey key, bool inclusive = false)
+		/// </remarks>
+		public static FdbKeyRange<TKey, TKey> ToRange<TKey>(this TKey key, bool inclusive = false)
 			where TKey : struct, IFdbKey
-			=> new(key, inclusive);
+			=> new(key, KeyRangeMode.Inclusive, key, KeyRangeMode.NextSibling);
+
+		/// <summary>Returns a range that matches only this key</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key that will be matched</param>
+		/// <returns>Range that match only this key</returns>
+		/// <remarks>
+		/// <para>Ex: <c>subspace.GetKey(123).Single()</c> will match only <c>(..., 123)</c>, and will exclude any of its children <c>(..., 123, ...)</c>.</para>
+		/// </remarks>
+		public static FdbKeyRange<TKey, TKey> ToSingleRange<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key, KeyRangeMode.Inclusive, key, KeyRangeMode.Inclusive);
+
+		#region IKeySubspace.ToHeadRange()...
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (exclusive): <c>prefix</c> &lt;= <c>k</c> &lt; <c>prefix.(cursor1)</c></summary>
+		/// <typeparam name="T1">Type of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than <c>subspace.Key(cursor1)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToHeadRangeInclusive{T1}(IKeySubspace,T1)"/> instead</remarks>
+		public static FdbKeyRange<FdbSubspaceKey, FdbTupleKey<T1>> ToHeadRange<T1>(this IKeySubspace subspace, T1 cursor1)
+		{
+			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1), upperMode: KeyRangeMode.Exclusive);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1,*)</c></summary>
+		/// <typeparam name="T1">Type of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than the next sibling of <c>subspace.Key(cursor1)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToHeadRange{T1}(IKeySubspace,T1)"/> instead</remarks>
+		public static FdbKeyRange<FdbSubspaceKey, FdbTupleKey<T1>> ToHeadRangeInclusive<T1>(this IKeySubspace subspace, T1 cursor1)
+		{
+			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (exclusive): <c>prefix</c> &lt;= <c>k</c> &lt; <c>prefix.(cursor1, cursor2)</c></summary>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than <c>subspace.Key(cursor1, cursor2)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToHeadRangeInclusive{T1,T2}(IKeySubspace,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<FdbSubspaceKey, FdbTupleKey<T1, T2>> ToHeadRange<T1, T2>(this IKeySubspace subspace, T1 cursor1, T2 cursor2)
+		{
+			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1, cursor2), upperMode: KeyRangeMode.Exclusive);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1, cursor2, *)</c></summary>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than the next sibling of <c>subspace.Key(cursor1, cursor2)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToHeadRange{T1,T2}(IKeySubspace,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<FdbSubspaceKey, FdbTupleKey<T1, T2>> ToHeadRangeInclusive<T1, T2>(this IKeySubspace subspace, T1 cursor1, T2 cursor2)
+		{
+			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1, cursor2), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (exclusive): <c>prefix</c> &lt;= <c>k</c> &lt; <c>prefix.(cursor1, cursor2, cursor3)</c></summary>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <param name="cursor3">Third part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than <c>subspace.Key(cursor1, cursor2, cursor3)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToHeadRangeInclusive{T1,T2,T3}(IKeySubspace,T1,T2,T3)"/> instead</remarks>
+		public static FdbKeyRange<FdbSubspaceKey, FdbTupleKey<T1, T2, T3>> ToHeadRange<T1, T2, T3>(this IKeySubspace subspace, T1 cursor1, T2 cursor2, T3 cursor3)
+		{
+			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1, cursor2, cursor3), upperMode: KeyRangeMode.Exclusive);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1, cursor2, cursor3, *)</c></summary>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <param name="cursor3">Third part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than the next sibling of <c>subspace.Key(cursor1, cursor2, cursor3)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToHeadRange{T1,T2,T3}(IKeySubspace,T1,T2,T3)"/> instead</remarks>
+		public static FdbKeyRange<FdbSubspaceKey, FdbTupleKey<T1, T2, T3>> ToHeadRangeInclusive<T1, T2, T3>(this IKeySubspace subspace, T1 cursor1, T2 cursor2, T3 cursor3)
+		{
+			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1, cursor2, cursor3), upperMode: KeyRangeMode.Last);
+		}
+
+		#endregion
+
+		#region TKey.ToHeadRange()...
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (exclusive): <c>key</c> &lt;= <c>k</c> &lt; <c>key.(cursor1)</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than <c>key.Key(cursor1)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToHeadRangeInclusive{TKey,T1}(TKey,T1)"/> instead</remarks>
+		public static FdbKeyRange<TKey, FdbTupleSuffixKey<TKey, STuple<T1>>> ToHeadRange<TKey, T1>(this TKey key, T1 cursor1)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1), upperMode: KeyRangeMode.Exclusive);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1,*)</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than the next sibling of <c>key.Key(cursor1)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToHeadRange{TKey,T1}(TKey,T1)"/> instead</remarks>
+		public static FdbKeyRange<TKey, FdbTupleSuffixKey<TKey, STuple<T1>>> ToHeadRangeInclusive<TKey, T1>(this TKey key, T1 cursor1)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (exclusive): <c>key</c> &lt;= <c>k</c> &lt; <c>key.(cursor1, cursor2)</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than <c>key.Key(cursor1, cursor2)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToHeadRangeInclusive{TKey,T1,T2}(TKey,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<TKey, FdbTupleSuffixKey<TKey, STuple<T1, T2>>> ToHeadRange<TKey, T1, T2>(this TKey key, T1 cursor1, T2 cursor2)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1, cursor2), upperMode: KeyRangeMode.Exclusive);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1, cursor2, *)</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than the next sibling of <c>key.Key(cursor1, cursor2)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToHeadRange{TKey,T1,T2}(TKey,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<TKey, FdbTupleSuffixKey<TKey, STuple<T1, T2>>> ToHeadRangeInclusive<TKey, T1, T2>(this TKey key, T1 cursor1, T2 cursor2)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1, cursor2), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (exclusive): <c>key</c> &lt;= <c>k</c> &lt; <c>key.(cursor1, cursor2, cursor3)</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <param name="cursor3">Third part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than <c>key.Key(cursor1, cursor2, cursor3)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToHeadRangeInclusive{TKey,T1,T2,T3}"/> instead</remarks>
+		public static FdbKeyRange<TKey, FdbTupleSuffixKey<TKey, STuple<T1, T2, T3>>> ToHeadRange<TKey, T1, T2, T3>(this TKey key, T1 cursor1, T2 cursor2, T3 cursor3)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1, cursor2, cursor3), upperMode: KeyRangeMode.Exclusive);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1, cursor2, cursor3, *)</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <param name="cursor3">Third part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than the next sibling of <c>key.Key(cursor1, cursor2, cursor3)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToHeadRange{TKey,T1,T2,T3}"/> instead</remarks>
+		public static FdbKeyRange<TKey, FdbTupleSuffixKey<TKey, STuple<T1, T2, T3>>> ToHeadRangeInclusive<TKey, T1, T2, T3>(this TKey key, T1 cursor1, T2 cursor2, T3 cursor3)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1, cursor2, cursor3), upperMode: KeyRangeMode.Last);
+		}
+
+		#endregion
+
+		#region IKeySubspace.ToTailRange()...
+
+		/// <summary>Returns a range that matches all the children of this subspace that are after the specified cursor (inclusive): <c>prefix.(cursor1)</c> &lt;= <c>k</c> &lt; <c>prefix.`\xFF`</c></summary>
+		/// <typeparam name="T1">Type of the cursor</typeparam>
+		/// <param name="subspace">Parent subspace that will be used as a prefix</param>
+		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than <c>key.Key(cursor1)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToTailRangeExclusive{T1}(IKeySubspace,T1)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleKey<T1>, FdbSubspaceKey> ToTailRange<T1>(this IKeySubspace subspace, T1 cursor1)
+		{
+			return FdbKeyRange.Between(subspace.Key(cursor1), lowerMode: KeyRangeMode.Inclusive, subspace.Key(), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this subspace that are after the specified cursor (exclusive): <c>prefix.(cursor1,...)</c> &lt; <c>k</c> &lt; <c>prefix.`\xFF`</c></summary>
+		/// <typeparam name="T1">Type of the cursor</typeparam>
+		/// <param name="subspace">Parent subspace that will be used as a prefix</param>
+		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than the next sibling of <c>key.Key(cursor1)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToTailRange{T1}(IKeySubspace,T1)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleKey<T1>, FdbSubspaceKey> ToTailRangeExclusive<T1>(this IKeySubspace subspace, T1 cursor1)
+		{
+			return FdbKeyRange.Between(subspace.Key(cursor1), lowerMode: KeyRangeMode.NextSibling, subspace.Key(), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this subspace that are after the specified cursor (inclusive): <c>prefix.(cursor1,cursor2)</c> &lt;= <c>k</c> &lt; <c>prefix.`\xFF`</c></summary>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than <c>key.Key(cursor1, cursor2)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToTailRangeExclusive{T1,T2}(IKeySubspace,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleKey<T1, T2>, FdbSubspaceKey> ToTailRange<T1, T2>(this IKeySubspace subspace, T1 cursor1, T2 cursor2)
+		{
+			return FdbKeyRange.Between(subspace.Key(cursor1, cursor2), lowerMode: KeyRangeMode.Inclusive, subspace.Key(), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this subspace that are after the specified cursor (exclusive): <c>prefix.(cursor1,cursor2,...)</c> &lt; <c>k</c> &lt; <c>prefix.`\xFF`</c></summary>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than the next sibling of <c>key.Key(cursor1, cursor2)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToTailRange{T1,T2}(IKeySubspace,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleKey<T1, T2>, FdbSubspaceKey> ToTailRangeExclusive<T1, T2>(this IKeySubspace subspace, T1 cursor1, T2 cursor2)
+		{
+			return FdbKeyRange.Between(subspace.Key(cursor1, cursor2), lowerMode: KeyRangeMode.NextSibling, subspace.Key(), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this subspace that are after the specified cursor (inclusive): <c>prefix.(cursor1,cursor2,cursor3)</c> &lt;= <c>k</c> &lt; <c>prefix.`\xFF`</c></summary>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <param name="cursor3">Third part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than <c>key.Key(cursor1, cursor2, cursor3)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToTailRangeExclusive{T1,T2}(IKeySubspace,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleKey<T1, T2, T3>, FdbSubspaceKey> ToTailRange<T1, T2, T3>(this IKeySubspace subspace, T1 cursor1, T2 cursor2, T3 cursor3)
+		{
+			return FdbKeyRange.Between(subspace.Key(cursor1, cursor2, cursor3), lowerMode: KeyRangeMode.Inclusive, subspace.Key(), upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this subspace that are after the specified cursor (exclusive): <c>prefix.(cursor1,cursor2,cursor3,...)</c> &lt; <c>k</c> &lt; <c>prefix.`\xFF`</c></summary>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
+		/// <param name="subspace">Subspace that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <param name="cursor3">Third part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under the <paramref name="subspace"/> that are strictly less than the next sibling of <c>key.Key(cursor1, cursor2, cursor3)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToTailRange{T1,T2}(IKeySubspace,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleKey<T1, T2, T3>, FdbSubspaceKey> ToTailRangeExclusive<T1, T2, T3>(this IKeySubspace subspace, T1 cursor1, T2 cursor2, T3 cursor3)
+		{
+			return FdbKeyRange.Between(subspace.Key(cursor1, cursor2, cursor3), lowerMode: KeyRangeMode.NextSibling, subspace.Key(), upperMode: KeyRangeMode.Last);
+		}
+
+		#endregion
+
+		#region TKey.ToTailRange()...
+
+		/// <summary>Returns a range that matches all the children of this key that are after the specified cursor (inclusive): <c>key.(cursor1)</c> &lt;= <c>k</c> &lt; <c>key.`\xFF`</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than <c>key.Key(cursor1)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToTailRangeExclusive{TKey,T1}(TKey,T1)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleSuffixKey<TKey, STuple<T1>>, TKey> ToTailRange<TKey, T1>(this TKey key, T1 cursor1)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key.Key(cursor1), lowerMode: KeyRangeMode.Inclusive, key, upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are after the specified cursor (exclusive): <c>key.(cursor1,...)</c> &lt; <c>k</c> &lt;= <c>key.`\xFF`</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than the next sibling of <c>key.Key(cursor1)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToTailRange{TKey,T1}(TKey,T1)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleSuffixKey<TKey, STuple<T1>>, TKey> ToTailRangeExclusive<TKey, T1>(this TKey key, T1 cursor1)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key.Key(cursor1), lowerMode: KeyRangeMode.NextSibling, key, upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are after the specified cursor (inclusive): <c>key.(cursor1,cursor2)</c> &lt;= <c>k</c> &lt; <c>key.`\xFF`</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than <c>key.Key(cursor1, cursor2)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToTailRangeExclusive{TKey,T1,T2}(TKey,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleSuffixKey<TKey, STuple<T1, T2>>, TKey> ToTailRange<TKey, T1, T2>(this TKey key, T1 cursor1, T2 cursor2)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key.Key(cursor1, cursor2), lowerMode: KeyRangeMode.Inclusive, key, upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are after the specified cursor (exclusive): <c>key.(cursor1,cursor2,...)</c> &lt; <c>k</c> &lt;= <c>key.`\xFF`</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than the next sibling of <c>key.Key(cursor1, cursor2)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToTailRange{TKey,T1,T2}(TKey,T1,T2)"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleSuffixKey<TKey, STuple<T1, T2>>, TKey> ToTailRangeExclusive<TKey, T1, T2>(this TKey key, T1 cursor1, T2 cursor2)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key.Key(cursor1, cursor2), lowerMode: KeyRangeMode.NextSibling, key, upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are after the specified cursor (inclusive): <c>key.(cursor1,cursor2,cursor3)</c> &lt;= <c>k</c> &lt; <c>key.`\xFF`</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <param name="cursor3">Third part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than <c>key.Key(cursor1, cursor2, cursor3)</c></returns>
+		/// <remarks>If the cursor must be included in the results, use <see cref="ToTailRangeExclusive{TKey,T1,T2,T3}"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleSuffixKey<TKey, STuple<T1, T2, T3>>, TKey> ToTailRange<TKey, T1, T2, T3>(this TKey key, T1 cursor1, T2 cursor2, T3 cursor3)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key.Key(cursor1, cursor2, cursor3), lowerMode: KeyRangeMode.Inclusive, key, upperMode: KeyRangeMode.Last);
+		}
+
+		/// <summary>Returns a range that matches all the children of this key that are after the specified cursor (exclusive): <c>key.(cursor1,cursor2,cursor3,...)</c> &lt; <c>k</c> &lt;= <c>key.`\xFF`</c></summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
+		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
+		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <param name="cursor1">First part of the cursor.</param>
+		/// <param name="cursor2">Second part of the cursor.</param>
+		/// <param name="cursor3">Third part of the cursor.</param>
+		/// <returns>Range that matches all keys <c>k</c> under <paramref name="key"/> that are strictly less than the next sibling of <c>key.Key(cursor1, cursor2, cursor3)</c></returns>
+		/// <remarks>If the cursor must be excluded from the results, use <see cref="ToTailRange{TKey,T1,T2,T3}"/> instead</remarks>
+		public static FdbKeyRange<FdbTupleSuffixKey<TKey, STuple<T1, T2, T3>>, TKey> ToTailRangeExclusive<TKey, T1, T2, T3>(this TKey key, T1 cursor1, T2 cursor2, T3 cursor3)
+			where TKey : struct, IFdbKey
+		{
+			return FdbKeyRange.Between(key.Key(cursor1, cursor2, cursor3), lowerMode: KeyRangeMode.NextSibling, key, upperMode: KeyRangeMode.Last);
+		}
+
+		#endregion
 
 		#endregion
 
@@ -897,6 +1262,11 @@ namespace FoundationDB.Client
 	internal static class FdbKeyHelpers
 	{
 
+		internal const string PreferFastEqualToForKeysMessage = "When comparing two different types of keys, use left." + nameof(IFdbKey.FastEqualTo) + "(right) instead, to prevent unnecessary boxing!";
+
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		internal static NotSupportedException ErrorCannotComputeHashCodeMessage() => new("It is not possible to compute a stable hash code on keys without doing more work than calling Equals(...), which defeats the purpose. Consider converting the key into a Slice instead.");
+
 		/// <summary>Returns a pre-encoded version of a key</summary>
 		/// <typeparam name="TKey">Type of the key to pre-encode</typeparam>
 		/// <param name="key">Key to pre-encoded</param>
@@ -942,21 +1312,21 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Compares the prefix of two subspaces for equality</summary>
-		public static bool Equals(IKeySubspace? subspace, IKeySubspace? other)
+		public static bool AreEqual(IKeySubspace? subspace, IKeySubspace? other)
 		{
 			return (subspace ?? KeySubspace.Empty).Equals(other ?? KeySubspace.Empty);
 		}
 
 		/// <summary>Compares the prefix of two subspaces</summary>
-		public static int CompareTo(IKeySubspace? subspace, IKeySubspace? other)
+		public static int Compare(IKeySubspace? subspace, IKeySubspace? other)
 		{
 			return (subspace ?? KeySubspace.Empty).CompareTo(other ?? KeySubspace.Empty);
 		}
 
-		/// <inheritdoc cref="CompareTo{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
-		public static int CompareTo<TKey>(in TKey key, Slice expectedBytes)
+		/// <inheritdoc cref="Compare{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
+		public static int Compare<TKey>(in TKey key, Slice expectedBytes)
 			where TKey : struct, IFdbKey
-			=> !expectedBytes.IsNull ? CompareTo(in key, expectedBytes.Span) : +1;
+			=> !expectedBytes.IsNull ? Compare(in key, expectedBytes.Span) : +1;
 
 		/// <summary>Compares a key with a specific encoded binary representation</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
@@ -966,7 +1336,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
 		/// </remarks>
-		public static int CompareTo<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
+		public static int Compare<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
 			where TKey : struct, IFdbKey
 		{
 			if (key.TryGetSpan(out var span))
@@ -987,17 +1357,17 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
 		/// </remarks>
-		public static int CompareTo<TKey, TOtherKey>(in TKey key, in TOtherKey other)
+		public static int Compare<TKey, TOtherKey>(in TKey key, in TOtherKey other)
 			where TKey : struct, IFdbKey
 			where TOtherKey : struct, IFdbKey
 		{
 			if (other.TryGetSpan(out var otherSpan))
 			{
-				return CompareTo(in key, otherSpan);
+				return Compare(in key, otherSpan);
 			}
 			if (key.TryGetSpan(out var keySpan))
 			{
-				return CompareTo(in other, keySpan);
+				return Compare(in other, keySpan);
 			}
 			return CompareToIncompatible(in key, in other);
 
@@ -1005,6 +1375,35 @@ namespace FoundationDB.Client
 			{
 				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
 				using var otherBytes = Encode(in other, ArrayPool<byte>.Shared);
+				return keyBytes.Span.SequenceCompareTo(otherBytes.Span);
+			}
+		}
+
+		/// <summary>Compares two keys by their encoded binary representation</summary>
+		/// <typeparam name="TKey">Type of the first key</typeparam>
+		/// <param name="key">First key to compare</param>
+		/// <param name="other">Second key to compare</param>
+		/// <returns><c>0</c> if both keys are equal, a negative number if <paramref name="key"/> would be sorted before <paramref name="other"/>, or a positive number if <paramref name="key"/> would be sorted after <paramref name="other"/></returns>
+		/// <remarks>
+		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static int Compare<TKey>(in TKey key, IFdbKey other)
+			where TKey : struct, IFdbKey
+		{
+			if (other.TryGetSpan(out var otherSpan))
+			{
+				return Compare(in key, otherSpan);
+			}
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return other.CompareTo(keySpan);
+			}
+			return CompareToIncompatible(in key, other);
+
+			static int CompareToIncompatible(in TKey key, IFdbKey other)
+			{
+				using var keyBytes = Encode(in key, ArrayPool<byte>.Shared);
+				using var otherBytes = Encode(other, ArrayPool<byte>.Shared);
 				return keyBytes.Span.SequenceCompareTo(otherBytes.Span);
 			}
 		}
@@ -1018,17 +1417,17 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
 		/// </remarks>
-		public static bool Equals<TKey, TOtherKey>(in TKey key, in TOtherKey other)
+		public static bool AreEqual<TKey, TOtherKey>(in TKey key, in TOtherKey other)
 			where TKey : struct, IFdbKey
 			where TOtherKey : struct, IFdbKey
 		{
 			if (other.TryGetSpan(out var otherSpan))
 			{
-				return Equals(in key, otherSpan);
+				return AreEqual(in key, otherSpan);
 			}
 			if (key.TryGetSpan(out var keySpan))
 			{
-				return Equals(in other, keySpan);
+				return AreEqual(in other, keySpan);
 			}
 			return EqualsIncompatible(in key, in other);
 
@@ -1048,12 +1447,12 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// <para>If the either key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
 		/// </remarks>
-		public static bool Equals<TKey>(in TKey key, IFdbKey other)
+		public static bool AreEqual<TKey>(in TKey key, IFdbKey other)
 			where TKey : struct, IFdbKey
 		{
 			if (other.TryGetSpan(out var otherSpan))
 			{
-				return Equals(in key, otherSpan);
+				return AreEqual(in key, otherSpan);
 			}
 			if (key.TryGetSpan(out var keySpan))
 			{
@@ -1069,10 +1468,10 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <inheritdoc cref="Equals{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
-		public static bool Equals<TKey>(in TKey key, Slice expectedBytes)
+		/// <inheritdoc cref="AreEqual{TKey}(in TKey,System.ReadOnlySpan{byte})"/>
+		public static bool AreEqual<TKey>(in TKey key, Slice expectedBytes)
 			where TKey : struct, IFdbKey
-			=> Equals(in key, expectedBytes.Span);
+			=> AreEqual(in key, expectedBytes.Span);
 
 		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
@@ -1082,7 +1481,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
 		/// </remarks>
-		public static bool Equals<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
+		public static bool AreEqual<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
 			where TKey : struct, IFdbKey
 		{
 			if (key.TryGetSpan(out var span))

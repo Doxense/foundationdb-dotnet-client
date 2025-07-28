@@ -41,33 +41,30 @@ namespace FoundationDB.Client.Tests
 
 		public Slice Prefix { get; }
 
+		/// <inheritdoc />
+		public override FdbPath GetPath() => this.Path;
+
 		/// <summary>Returns a user-friendly description of this directory</summary>
-		public override string ToString(string? format, IFormatProvider? provider = null)
+		public override string ToString(string? format, IFormatProvider? provider = null) => (format ?? "") switch
 		{
-			switch (format ?? "")
-			{
-				case "" or "D" or "d" or "P" or "p":
-				{
-					return this.Path.ToString();
-				}
-				case "K" or "k":
-				{
-					return FdbKey.Dump(this.GetPrefix());
-				}
-				case "X" or "x":
-				{
-					return this.GetPrefix().ToString(format);
-				}
-				case "G" or "g":
-				{
-					return $"FakeSubspace(path={this.Path}, key={FdbKey.Dump(this.GetPrefix())})";
-				}
-				default:
-				{
-					throw new FormatException("Unsupported format");
-				}
-			}
-		}
+			"" or "D" or "d" or "P" or "p" => this.Path.IsEmpty ? FdbKey.Dump(this.Prefix) : this.Path.ToString(),
+			"K" or "k" => FdbKey.Dump(this.GetPrefix()),
+			"X" or "x" => this.GetPrefix().ToString(format),
+			"G" or "g" => $"FakeSubspace(path={this.Path}, key={FdbKey.Dump(this.GetPrefix())})",
+			_ => throw new FormatException(),
+		};
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => format switch
+		{
+			"" or "D" or "d" or "P" or "p" => this.Path.IsEmpty
+				? FdbKey.Dump(this.Prefix).TryCopyTo(destination, out charsWritten)
+				: this.Path.TryFormat(destination, out charsWritten),
+			"K" or "k" => FdbKey.Dump(this.GetPrefix()).TryCopyTo(destination, out charsWritten),
+			"X" or "x" => this.GetPrefix().TryFormat(destination, out charsWritten, format),
+			"G" or "g" => destination.TryWrite($"FakeSubspace(path={this.Path}, key={FdbKey.Dump(this.GetPrefix())})", out charsWritten),
+			_ => throw new FormatException(),
+		};
 
 	}
 

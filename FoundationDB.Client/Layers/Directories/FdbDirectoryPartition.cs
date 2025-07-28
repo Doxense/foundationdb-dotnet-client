@@ -55,6 +55,7 @@ namespace FoundationDB.Client
 
 		internal bool IsTopLevel => this.Descriptor.Path.IsRoot;
 
+		/// <inheritdoc />
 		protected override Slice GetKeyPrefix()
 		{
 			// only "/" is allowed for legacy reasons
@@ -63,14 +64,16 @@ namespace FoundationDB.Client
 				: throw ThrowHelper.InvalidOperationException($"Cannot create keys in the root of directory partition {this.Path}.");
 		}
 
-		public override FdbSubspaceKeyRange ToRange()
+		/// <inheritdoc />
+		public override FdbSubspaceKeyRange ToRange(bool inclusive = false)
 		{
 			// only "/" is allowed for legacy reasons
 			return this.IsTopLevel
-				? base.ToRange()
+				? base.ToRange(inclusive)
 				: throw ThrowHelper.InvalidOperationException($"Cannot create a key range in the root of directory partition {this.Path}.");
 		}
 
+		/// <inheritdoc />
 		public override bool Contains(ReadOnlySpan<byte> key)
 		{
 			// only "/" is allowed for legacy reasons

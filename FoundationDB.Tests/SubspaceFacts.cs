@@ -108,12 +108,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Cannot_Create_Or_Partition_Subspace_With_Slice_Nil()
 		{
-			Assert.That(() => new KeySubspace(Slice.Nil, SubspaceContext.Default), Throws.ArgumentException);
-			Assert.That(() => new KeySubspace(Slice.Empty, null!), Throws.ArgumentNullException);
-			Assert.That(() => KeySubspace.FromKey(Slice.Nil), Throws.ArgumentException);
-			//FIXME: typed subspaces refactoring !
-			//Assert.That(() => FdbSubspace.Empty.Partition[Slice.Nil], Throws.ArgumentException);
-			//Assert.That(() => FdbSubspace.Create(FdbKey.Directory).Partition[Slice.Nil], Throws.ArgumentException);
+			Assert.That(() => new KeySubspace(Slice.Nil, SubspaceContext.Default), Throws.ArgumentException.With.Property("ParamName").EqualTo("prefix"));
+			Assert.That(() => new KeySubspace(Slice.Empty, null!), Throws.ArgumentNullException.With.Property("ParamName").EqualTo("context"));
+			Assert.That(() => KeySubspace.FromKey(Slice.Nil), Throws.ArgumentException.With.Property("ParamName").EqualTo("prefix"));
 		}
 
 		[Test]

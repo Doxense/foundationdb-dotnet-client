@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
 
 	/// <summary>Wraps a <see cref="Slice"/> that wraps a key in either the System (<c>`\xFF`</c>) or Special Key (<c>`\xFF\xFF`</c>) subspaces</summary>
 	public readonly struct FdbSystemKey : IFdbKey
@@ -93,21 +94,43 @@ namespace FoundationDB.Client
 		#region Equals(...)
 
 		/// <inheritdoc />
-		public override bool Equals([NotNullWhen(true)] object? other)
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override int GetHashCode() => throw FdbKeyHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other) => other switch
 		{
-			return other switch
-			{
-				FdbSystemKey key => this.Equals(key),
-				FdbRawKey key => this.Equals(key),
-				Slice bytes => this.Equals(bytes),
-				IFdbKey key => FdbKeyHelpers.Equals(in this, key),
-				_ => false,
-			};
-		}
+			Slice bytes => this.Equals(bytes),
+			FdbSystemKey key => this.Equals(key),
+			FdbRawKey key => this.Equals(key),
+			IFdbKey key => FdbKeyHelpers.AreEqual(in this, key),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbKey? other) => other switch
+		{
+			null => false,
+			FdbSystemKey key => this.Equals(key),
+			FdbRawKey key => this.Equals(key),
+			_ => FdbKeyHelpers.AreEqual(in this, other),
+		};
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override int GetHashCode() => this.Suffix.GetHashCode(); //BUGBUG: TODO: this breaks the contracts for equality
+		public bool FastEqualTo<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbSystemKey))
+			{
+				return this.IsSpecial == ((FdbSystemKey) (object) other).IsSpecial && this.Suffix.Equals(((FdbSystemKey) (object) other).Suffix);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return Equals(((FdbRawKey) (object) other).Data);
+			}
+			return FdbKeyHelpers.AreEqual(in this, in other);
+		}
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -132,48 +155,32 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals<TOtherKey>(in TOtherKey other)
-			where TOtherKey : struct, IFdbKey
-		{
-			if (typeof(TOtherKey) == typeof(FdbSystemKey))
-			{
-				return this.IsSpecial == ((FdbSystemKey) (object) other).IsSpecial && this.Suffix.Equals(((FdbSystemKey) (object) other).Suffix);
-			}
-			if (typeof(TOtherKey) == typeof(FdbRawKey))
-			{
-				return Equals(((FdbRawKey) (object) other).Data);
-			}
-			return FdbKeyHelpers.Equals(in this, in other);
-		}
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbSystemKey other) => this.IsSpecial == other.IsSpecial
 			? this.Suffix.CompareTo(other.Suffix)
-			: FdbKeyHelpers.CompareTo(in this, in other);
+			: FdbKeyHelpers.Compare(in this, in other);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
 			=> !this.IsSpecial && other.Data.StartsWith(0xFF)
 				? Suffix.CompareTo(other.Data.Span[1..])
-				: FdbKeyHelpers.CompareTo(in this, other.Data);
+				: FdbKeyHelpers.Compare(in this, other.Data);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
-			=> FdbKeyHelpers.CompareTo(in this, other);
+			=> FdbKeyHelpers.Compare(in this, other);
 
 		/// <inheritdoc cref="CompareTo(Slice)" />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(ReadOnlySpan<byte> other)
-			=> FdbKeyHelpers.CompareTo(in this, other);
+			=> FdbKeyHelpers.Compare(in this, other);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo<TOtherKey>(in TOtherKey other)
+		public int FastCompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
-			=> FdbKeyHelpers.CompareTo(in this, in other);
+			=> FdbKeyHelpers.Compare(in this, in other);
 
 		#endregion
 

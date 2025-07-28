@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System.ComponentModel;
 
 	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
 	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
@@ -48,6 +49,10 @@ namespace FoundationDB.Client
 		/// <summary>Absolute path of this directory, from the root directory</summary>
 		/// <remarks>This path includes the layers id of the directory and all its parent.</remarks>
 		public FdbPath Path => this.Descriptor.Path;
+
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override FdbPath GetPath() => this.Path;
 
 		/// <summary>Gets the location that points to this <code>Directory</code></summary>
 		public FdbDirectorySubspaceLocation Location => new(this.Descriptor.Path);
@@ -470,32 +475,24 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a user-friendly description of this directory</summary>
-		public override string ToString(string? format, IFormatProvider? provider = null)
+		public override string ToString(string? format, IFormatProvider? provider = null) => (format ?? "") switch
 		{
-			switch (format ?? "")
-			{
-				case "" or "D" or "d" or "P" or "p":
-				{
-					return this.Path.ToString();
-				}
-				case "K" or "k":
-				{
-					return FdbKey.Dump(this.GetPrefixUnsafe());
-				}
-				case "X" or "x":
-				{
-					return this.GetPrefixUnsafe().ToString(format);
-				}
-				case "G" or "g":
-				{
-					return $"DirectorySubspace(path={this.Path.ToString()}, prefix={FdbKey.Dump(GetPrefixUnsafe())})";
-				}
-				default:
-				{
-					throw new FormatException("Unsupported format");
-				}
-			}
-		}
+			"" or "D" or "d" or "P" or "p" => this.Path.ToString(),
+			"K" or "k" => FdbKey.Dump(this.GetPrefixUnsafe()),
+			"X" or "x" => this.GetPrefixUnsafe().ToString(format),
+			"G" or "g" => $"DirectorySubspace(path={this.Path.ToString()}, prefix={FdbKey.Dump(this.GetPrefixUnsafe())})",
+			_ => throw new FormatException(),
+		};
+
+		/// <inheritdoc />
+		public override bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => format switch
+		{
+			"" or "D" or "d" or "P" or "p" => this.Path.TryFormat(destination, out charsWritten),
+			"K" or "k" => FdbKey.Dump(this.GetPrefixUnsafe()).TryCopyTo(destination, out charsWritten),
+			"X" or "x" => this.GetPrefixUnsafe().TryFormat(destination, out charsWritten, format),
+			"G" or "g" => destination.TryWrite($"DirectorySubspace(path={this.Path.ToString()}, prefix={FdbKey.Dump(this.GetPrefixUnsafe())})", out charsWritten),
+			_ => throw new FormatException(),
+		};
 
 		//note: Equals() and GetHashcode() are already implemented in FdbSubspace, and don't need to be overriden here
 

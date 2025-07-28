@@ -318,13 +318,19 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a printable version of the range</summary>
-		public override string ToString()
+		public override string ToString() => ToString(null);
+
+		/// <summary>Returns a printable version of the range</summary>
+		public string ToString(string? format, IFormatProvider? formatProvider = null)
 		{
-			return $"{{{FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin)}, {FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End)}}}";
+			return string.Create(formatProvider ?? CultureInfo.InvariantCulture, $"{{ {FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin)} <= k < {FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End)} }}");
 		}
 
 		/// <summary>Returns a printable version of the range</summary>
-		public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+		{
+			return destination.TryWrite(provider ?? CultureInfo.InvariantCulture, $"{{ {FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin)} <= k < {FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End)} }}", out charsWritten);
+		}
 
 		[DebuggerDisplay("Mode={m_mode}")]
 		public sealed class Comparer : IComparer<KeyRange>, IEqualityComparer<KeyRange>

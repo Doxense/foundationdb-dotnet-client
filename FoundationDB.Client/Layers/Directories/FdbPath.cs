@@ -494,7 +494,7 @@ namespace FoundationDB.Client
 
 
 		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => format switch
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null) => format switch
 		{
 			"" or "D" or "d" => TryFormatPath(destination, out charsWritten, this.Segments.Span, this.IsAbsolute, namesOnly: false),
 			"N" or "n" => TryFormatPath(destination, out charsWritten, this.Segments.Span, this.IsAbsolute, namesOnly: true),

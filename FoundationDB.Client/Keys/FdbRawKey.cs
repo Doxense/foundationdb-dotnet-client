@@ -58,22 +58,43 @@ namespace FoundationDB.Client
 		#region Equals(...)
 
 		/// <inheritdoc />
-		public override bool Equals([NotNullWhen(true)] object? other)
+		public override bool Equals([NotNullWhen(true)] object? other) => other switch
 		{
-			return other switch
-			{
-				FdbRawKey key => this.Equals(key.Data),
-				FdbTupleKey key => key.Equals(this),
-				FdbSuffixKey key => key.Equals(this),
-				Slice bytes => this.Equals(bytes),
-				IFdbKey key => FdbKeyHelpers.Equals(in this, key),
-				_ => false,
-			};
-		}
+			Slice bytes => this.Data.Equals(bytes),
+			FdbRawKey key => this.Data.Equals(key.Data),
+			FdbTupleKey key => key.Equals(this.Data),
+			FdbSuffixKey key => key.Equals(this.Data),
+			FdbSubspaceKey key => key.Equals(this.Data),
+			IFdbKey key => FdbKeyHelpers.AreEqual(in this, key),
+			_ => false,
+		};
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int GetHashCode() => this.Data.GetHashCode();
+
+		/// <inheritdoc />
+		public bool Equals([NotNullWhen(true)] IFdbKey? other) => other switch
+		{
+			null => false,
+			FdbRawKey key => this.Data.Equals(key.Data),
+			FdbTupleKey key => key.Equals(this.Data),
+			FdbSuffixKey key => key.Equals(this.Data),
+			FdbSubspaceKey key => key.Equals(this.Data),
+			_ => FdbKeyHelpers.AreEqual(in this, other),
+		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool FastEqualTo<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbRawKey))      { return (     (FdbRawKey) (object) other).Data.Equals(this.Data); }
+			if (typeof(TOtherKey) == typeof(FdbTupleKey))    { return (   (FdbTupleKey) (object) other).Equals(this.Data); }
+			if (typeof(TOtherKey) == typeof(FdbSuffixKey))   { return (  (FdbSuffixKey) (object) other).Equals(this.Data); }
+			if (typeof(TOtherKey) == typeof(FdbSubspaceKey)) { return ((FdbSubspaceKey) (object) other).Equals(this.Data); }
+			return FdbKeyHelpers.AreEqual(in this, in other);
+		}
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -89,18 +110,6 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals<TOtherKey>(in TOtherKey other)
-			where TOtherKey : struct, IFdbKey
-		{
-			if (typeof(TOtherKey) == typeof(FdbRawKey))
-			{
-				return this.Data.Equals(((FdbRawKey) (object) other).Data);
-			}
-			return FdbKeyHelpers.Equals(in this, in other);
-		}
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other) => this.Data.CompareTo(other.Data);
 
 		/// <inheritdoc />
@@ -113,14 +122,14 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo<TOtherKey>(in TOtherKey other)
+		public int FastCompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 		{
 			if (typeof(TOtherKey) == typeof(FdbRawKey))
 			{
 				return this.Data.CompareTo(((FdbRawKey) (object) other).Data);
 			}
-			return FdbKeyHelpers.CompareTo(in this, in other);
+			return FdbKeyHelpers.Compare(in this, in other);
 		}
 
 		#region Operators...
@@ -181,14 +190,26 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider = null)
-			=> string.Create(formatProvider, $"{this}");
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => (format ?? "") switch
+		{
+			"" or "D" or "d" or "K" or "k" or "P" or "p" => FdbKey.PrettyPrint(this.Data, FdbKey.PrettyPrintMode.Single),
+			"B" or "b" => FdbKey.PrettyPrint(this.Data, FdbKey.PrettyPrintMode.Begin),
+			"E" or "e" => FdbKey.PrettyPrint(this.Data, FdbKey.PrettyPrintMode.End),
+			"X" or "x" => this.Data.ToString(format),
+			"G" or "g" => $"{nameof(FdbRawKey)}({Data:K})",
+			_ => throw new FormatException(),
+		};
 
 		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
-			=> this.Data.Count > 0
-				? destination.TryWrite(provider, $"`{this.Data}`", out charsWritten)
-				: (this.Data.IsNull ? "<null>" : "``").TryCopyTo(destination, out charsWritten);
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null) => format switch
+		{
+			"" or "D" or "d" or "K" or "k" or "P" or "p" => FdbKey.PrettyPrint(this.Data, FdbKey.PrettyPrintMode.Single).TryCopyTo(destination, out charsWritten),
+			"B" or "b" => FdbKey.PrettyPrint(this.Data, FdbKey.PrettyPrintMode.Begin).TryCopyTo(destination, out charsWritten),
+			"E" or "e" => FdbKey.PrettyPrint(this.Data, FdbKey.PrettyPrintMode.End).TryCopyTo(destination, out charsWritten),
+			"X" or "x" => this.Data.TryFormat(destination, out charsWritten, format, provider),
+			"G" or "g" => destination.TryWrite($"{nameof(FdbRawKey)}({this.Data:K})", out charsWritten),
+			_ => throw new FormatException(),
+		};
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

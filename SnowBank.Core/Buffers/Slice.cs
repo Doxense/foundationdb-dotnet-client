@@ -2459,7 +2459,7 @@ namespace System
 		/// <param name="provider">An optional object that supplies culture-specific formatting information for <paramref name="destination" />.</param>
 		/// <returns>
 		/// <see langword="true" /> if the formatting was successful; otherwise, <see langword="false" />.</returns>
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
 		{
 			//TODO: BUGBUG: OPTIMIZE: make this method really optimized and without any allocations!
 			charsWritten = 0;
@@ -2538,7 +2538,7 @@ namespace System
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
 		public static string Dump(Slice value, int maxSize = DefaultPrettyPrintSize) //REVIEW: rename this to Encode(..) or Escape(..)
 		{
-			if (value.Count == 0) return value.HasValue ? "<empty>" : "<null>";
+			if (value.Count == 0) return value.IsNull ? "<null>" : "<empty>";
 
 			value.EnsureSliceIsValid();
 

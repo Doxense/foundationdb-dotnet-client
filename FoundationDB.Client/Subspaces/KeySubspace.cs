@@ -29,14 +29,11 @@ namespace FoundationDB.Client
 	/// <summary>Adds a prefix on every key, to group them inside a common subspace</summary>
 	[PublicAPI]
 	[DebuggerDisplay("{ToString(),nq}")]
-	public class KeySubspace : IKeySubspace, IFormattable
+	public class KeySubspace : IKeySubspace
 	{
 
 		/// <summary>Prefix common to all keys in this subspace</summary>
 		private readonly Slice Key;
-
-		/// <summary>Precomputed range that encompass all the keys in this subspace</summary>
-		private readonly KeyRange Range;
 
 		public ISubspaceContext Context { get; }
 
@@ -67,8 +64,8 @@ namespace FoundationDB.Client
 
 		public KeySubspace(Slice prefix, ISubspaceContext context)
 		{
+			if (prefix.IsNull) throw new ArgumentException("Subspace prefix cannot be Nil.", nameof(prefix));
 			this.Key = prefix;
-			this.Range = KeyRange.StartsWith(prefix);
 			this.Context = context ?? throw new ArgumentNullException(nameof(context));
 		}
 
@@ -78,6 +75,9 @@ namespace FoundationDB.Client
 			// we must ensure that the context is still alive
 			this.Context.EnsureIsValid();
 		}
+
+		/// <inheritdoc />
+		public virtual FdbPath GetPath() => FdbPath.Empty;
 
 		/// <summary>Returns the raw prefix of this subspace</summary>
 		/// <remarks>Will throw if the prefix is not publicly visible, as is the case for Directory Partitions</remarks>
@@ -106,7 +106,7 @@ namespace FoundationDB.Client
 
 
 		/// <inheritdoc />
-		public virtual FdbSubspaceKeyRange ToRange() => new(this);
+		public virtual FdbSubspaceKeyRange ToRange(bool inclusive = false) => new(this, inclusive);
 
 		/// <summary>Tests whether the specified <paramref name="absoluteKey">key</paramref> starts with this subspace prefix, indicating that the Subspace logically contains <paramref name="absoluteKey">key</paramref>.</summary>
 		/// <param name="absoluteKey">The key to be tested</param>
@@ -313,36 +313,22 @@ namespace FoundationDB.Client
 		/// <summary>Printable representation of this subspace</summary>
 		public override string ToString() => ToString(null);
 
-		public virtual string ToString(string? format, IFormatProvider? provider = null)
+		public virtual string ToString(string? format, IFormatProvider? provider = null) => (format ?? "") switch
 		{
-			switch (format ?? "")
-			{
-				case "" or "D" or "d":
-				{
-					return $"`{FdbKey.Dump(this.Key)}`";
-				}
-				case "K" or "k":
-				{
-					return FdbKey.Dump(this.Key);
-				}
-				case "X" or "x":
-				{
-					return this.Key.ToString(format);
-				}
-				case "P" or "p":
-				{
-					return "/"; // this is not _technically_, but the end result is the same
-				}
-				case "G" or "g":
-				{
-					return $"{this.GetType().Name}(prefix={FdbKey.Dump(this.Key)})";
-				}
-				default:
-				{
-					throw new FormatException("Unsupported format");
-				}
-			}
-		}
+			"" or "D" or "d" or "K" or "k" or "P" or "p" => FdbKey.Dump(this.Key),
+			"X" or "x" => this.Key.ToString(format),
+			"G" or "g" => $"{this.GetType().Name}(prefix={FdbKey.Dump(this.Key)})",
+			_ => throw new FormatException()
+		};
+
+		/// <inheritdoc />
+		public virtual bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)=> format switch
+		{
+			"" or "D" or "d" or "K" or "k" or "P" or "p" => FdbKey.Dump(this.Key).TryCopyTo(destination, out charsWritten),
+			"X" or "x" => this.Key.TryFormat(destination, out charsWritten, format, provider),
+			"G" or "g" => destination.TryWrite($"{this.GetType().Name}(prefix={FdbKey.Dump(this.Key)})", out charsWritten),
+			_ => throw new FormatException()
+		};
 
 		#endregion
 

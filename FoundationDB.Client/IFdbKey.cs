@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	public interface IFdbKey : ISpanEncodable, ISpanFormattable
 		, IEquatable<FdbRawKey>, IComparable<FdbRawKey>
 		, IEquatable<Slice>, IComparable<Slice>
+		, IEquatable<IFdbKey>
 #if NET9_0_OR_GREATER
 		, IEquatable<ReadOnlySpan<byte>>, IComparable<ReadOnlySpan<byte>>
 #endif
@@ -48,11 +49,11 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IEquatable{T}.Equals(T?)"/>
 		[Pure]
-		bool Equals<TOtherKey>(in TOtherKey key) where TOtherKey : struct, IFdbKey;
+		bool FastEqualTo<TOtherKey>(in TOtherKey key) where TOtherKey : struct, IFdbKey;
 
 		/// <inheritdoc cref="IComparable{T}.CompareTo(T?)"/>
 		[Pure]
-		int CompareTo<TOtherKey>(in TOtherKey key) where TOtherKey : struct, IFdbKey;
+		int FastCompareTo<TOtherKey>(in TOtherKey key) where TOtherKey : struct, IFdbKey;
 
 		/// <inheritdoc cref="IEquatable{T}.Equals(T?)"/>
 		[Pure]

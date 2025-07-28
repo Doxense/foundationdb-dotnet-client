@@ -26,7 +26,6 @@
 
 namespace FoundationDB.Client
 {
-	using System.ComponentModel;
 
 	/// <summary>Represents a sub-partition of the global key space.</summary>
 	/// <remarks>
@@ -43,7 +42,7 @@ namespace FoundationDB.Client
 	/// </code>
 	/// </example>
 	[PublicAPI]
-	public interface IKeySubspace : ISpanEncodable, IEquatable<IKeySubspace>, IComparable<IKeySubspace>
+	public interface IKeySubspace : ISpanEncodable, IEquatable<IKeySubspace>, IComparable<IKeySubspace>, ISpanFormattable
 	{
 		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitioning and concatenation
 
@@ -58,10 +57,14 @@ namespace FoundationDB.Client
 		/// <summary>Returns the prefix of this subspace</summary>
 		Slice GetPrefix();
 
+		/// <summary>Returns the path of the subspace, if there is one.</summary>
+		/// <returns>Path of the subspace, or <see cref="FdbPath.Empty"/> if this subspace is not part of the Directory Layer</returns>
+		FdbPath GetPath();
+
 		/// <summary>Return a range that will match all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		[Pure]
-		FdbSubspaceKeyRange ToRange();
+		FdbSubspaceKeyRange ToRange(bool inclusive = false);
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="absoluteKey">Key to test</param>

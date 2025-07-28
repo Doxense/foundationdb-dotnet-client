@@ -26,6 +26,8 @@
 
 namespace FoundationDB.Client
 {
+	using System;
+	using System.ComponentModel;
 
 	/// <summary>Key that appends the <b>0x00</b> byte to another key</summary>
 	/// <typeparam name="TKey">Type of the parent key</typeparam>
@@ -51,12 +53,26 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null);
 
 		/// <inheritdoc />
-		public string ToString(string? format, IFormatProvider? formatProvider = null)
-			=> string.Create(formatProvider, $"{this}");
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => (format ?? "") switch
+		{
+			"" or "D" or "d" => $"{this.Parent}.<00>",
+			"X" or "x" => this.ToSlice().ToString(format),
+			"K" or "k" or "B" or "b" or "E" or "e" => $"{this.Parent:K}.<00>",
+			"P" or "p" => $"{this.Parent:P}.<00>",
+			"G" or "g" => $"{nameof(FdbSuccessorKey<>)}({this.Parent:G})",
+			_ => throw new FormatException(),
+		};
 
 		/// <inheritdoc />
-		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
-			=> destination.TryWrite(provider, $"SuccessorOf({this.Parent})", out charsWritten);
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider) => format switch
+		{
+			"" or "D" or "d" => destination.TryWrite($"{this.Parent}.<00>", out charsWritten),
+			"X" or "x" => this.ToSlice().TryFormat(destination, out charsWritten, format),
+			"K" or "k" or "B" or "b" or "E" or "e" => destination.TryWrite($"{this.Parent:K}.<00>", out charsWritten),
+			"P" or "p" => destination.TryWrite($"{this.Parent:P}.<00>", out charsWritten),
+			"G" or "g" => destination.TryWrite($"{nameof(FdbSuccessorKey<>)}({this.Parent:G})", out charsWritten),
+			_ => throw new FormatException(),
+		};
 
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
@@ -64,66 +80,90 @@ namespace FoundationDB.Client
 		#region Equals(...)
 
 		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbSuccessorKey<TKey> other)
-			=> FdbKeyHelpers.Equals(in this.Parent, in other.Parent);
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override int GetHashCode() => throw FdbKeyHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other) => other switch
+		{
+			Slice bytes => this.Equals(bytes.Span),
+			FdbRawKey key => this.Equals(key.Span),
+			FdbSuccessorKey<TKey> key => this.Equals(key),
+			IFdbKey key => FdbKeyHelpers.AreEqual(in this, key),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		[Obsolete(FdbKeyHelpers.PreferFastEqualToForKeysMessage)]
+		public bool Equals([NotNullWhen(true)] IFdbKey? other) => other switch
+		{
+			null => false,
+			FdbRawKey key => this.Equals(key.Span),
+			FdbSuccessorKey<TKey> key => this.Equals(key),
+			_ => FdbKeyHelpers.AreEqual(in this, other),
+		};
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(FdbRawKey other)
-			=> FdbKeyHelpers.Equals(in this, other.Data);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(Slice other)
-			=> FdbKeyHelpers.Equals(in this, other);
-
-		/// <inheritdoc cref="Equals(Slice)" />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals(ReadOnlySpan<byte> other)
-			=> FdbKeyHelpers.Equals(in this, other);
-
-		/// <inheritdoc />
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool Equals<TOtherKey>(in TOtherKey other)
+		public bool FastEqualTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
 		{
 			if (typeof(TOtherKey) == typeof(FdbSuccessorKey<TKey>))
 			{
-				return FdbKeyHelpers.Equals(in this.Parent, in Unsafe.As<TOtherKey, FdbSuccessorKey<TKey>>(ref Unsafe.AsRef(in other)).Parent);
+				return FdbKeyHelpers.AreEqual(in this.Parent, in Unsafe.As<TOtherKey, FdbSuccessorKey<TKey>>(ref Unsafe.AsRef(in other)).Parent);
 			}
 			if (typeof(TOtherKey) == typeof(FdbRawKey))
 			{
-				return FdbKeyHelpers.Equals(in this, ((FdbRawKey) (object) other).Data);
+				return FdbKeyHelpers.AreEqual(in this, ((FdbRawKey) (object) other).Data);
 			}
-			return FdbKeyHelpers.Equals(in this, in other);
+			return FdbKeyHelpers.AreEqual(in this, in other);
 		}
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbSuccessorKey<TKey> other)
+			=> FdbKeyHelpers.AreEqual(in this.Parent, in other.Parent);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other)
+			=> FdbKeyHelpers.AreEqual(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other)
+			=> FdbKeyHelpers.AreEqual(in this, other);
+
+		/// <inheritdoc cref="Equals(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other)
+			=> FdbKeyHelpers.AreEqual(in this, other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbSuccessorKey<TKey> other)
-			=> FdbKeyHelpers.CompareTo(in this.Parent, in other.Parent);
+			=> FdbKeyHelpers.Compare(in this.Parent, in other.Parent);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other)
-			=> FdbKeyHelpers.CompareTo(in this, other.Data);
+			=> FdbKeyHelpers.Compare(in this, other.Data);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(Slice other)
-			=> FdbKeyHelpers.CompareTo(in this, other);
+			=> FdbKeyHelpers.Compare(in this, other);
 
 		/// <inheritdoc cref="CompareTo(Slice)" />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(ReadOnlySpan<byte> other)
-			=> FdbKeyHelpers.CompareTo(in this, other);
+			=> FdbKeyHelpers.Compare(in this, other);
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int CompareTo<TOtherKey>(in TOtherKey other)
+		public int FastCompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
-			=> FdbKeyHelpers.CompareTo(in this, in other);
+			=> FdbKeyHelpers.Compare(in this, in other);
 
 		#endregion
 

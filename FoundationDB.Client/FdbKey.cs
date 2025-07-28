@@ -585,6 +585,7 @@ namespace FoundationDB.Client
 		public static string PrettyPrint(Slice key, PrettyPrintMode mode)
 		{
 			var span = key.Span;
+			if (span.Length == 0) return key.IsNull ? "<null>" : "<empty>";
 			if (span.Length> 1)
 			{
 				byte c = span[0];
