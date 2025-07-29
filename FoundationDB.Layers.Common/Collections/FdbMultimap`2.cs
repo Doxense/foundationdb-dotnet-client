@@ -324,7 +324,7 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 
 				var pk = this.Parent.KeyCodec.EncodeKey(key);
-				trans.ClearRange(this.Subspace.Key(pk).ToRange());
+				trans.ClearRange(this.Subspace.Key(pk).ToRange(inclusive: true));
 			}
 
 			/// <summary>Removes a <paramref name="value"/> for a specific <paramref name="key"/></summary>

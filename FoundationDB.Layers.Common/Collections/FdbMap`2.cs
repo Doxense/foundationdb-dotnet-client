@@ -240,7 +240,7 @@ namespace FoundationDB.Layers.Collections
 			{
 				Contract.NotNull(trans);
 
-				trans.ClearRange(this.Subspace.ToRange());
+				trans.ClearRange(this.Subspace);
 			}
 
 			#region Import...

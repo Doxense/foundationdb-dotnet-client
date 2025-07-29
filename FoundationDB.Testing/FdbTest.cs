@@ -318,7 +318,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(subspace, Is.Not.Null, "null db");
 			Assert.That(subspace.GetPrefix(), Is.Not.EqualTo(Slice.Empty), "Cannot clean the root of the database!");
 
-			return db.WriteAsync(tr => tr.ClearRange(subspace.ToRange()), this.Cancellation);
+			return db.WriteAsync(tr => tr.ClearRange(subspace), this.Cancellation);
 		}
 
 		[DebuggerStepThrough]

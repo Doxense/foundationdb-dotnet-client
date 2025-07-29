@@ -238,7 +238,7 @@ namespace FoundationDB.Layers.Collections
 			/// <summary>Clears the entire set.</summary>
 			public Task ClearAllAsync(IFdbTransaction trans)
 			{
-				trans.ClearRange(this.Subspace.ToRange());
+				trans.ClearRange(this.Subspace);
 				return SetupLevelsAsync(trans);
 			}
 

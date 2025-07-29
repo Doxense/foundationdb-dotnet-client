@@ -71,7 +71,7 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(trans != null && subspace != null);
 
 			//BUGBUG: should we call subspace.ToRange() ?
-			trans.ClearRange(subspace.ToRange());
+			trans.ClearRange(subspace.ToRange(inclusive: true));
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>

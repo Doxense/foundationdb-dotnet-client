@@ -4028,7 +4028,7 @@ namespace FoundationDB.Client
 			trans.ClearRange(ToSpanKey(beginKeyInclusive), ToSpanKey(endKeyExclusive));
 		}
 
-		public static void ClearRange<TKeyRange>(this IFdbTransaction trans, TKeyRange range)
+		public static void ClearRange<TKeyRange>(this IFdbTransaction trans, in TKeyRange range)
 			where TKeyRange : struct, IFdbKeyRange
 		{
 			//PERF: optimize!
@@ -4037,7 +4037,7 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbTransaction.ClearRange"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void ClearRange<TBeginKey>(this IFdbTransaction trans, TBeginKey beginKeyInclusive, Slice endKeyExclusive)
+		public static void ClearRange<TBeginKey>(this IFdbTransaction trans, in TBeginKey beginKeyInclusive, Slice endKeyExclusive)
 			where TBeginKey : struct, IFdbKey
 		{
 			if (beginKeyInclusive.TryGetSpan(out var beginKeySpan))
@@ -4053,7 +4053,23 @@ namespace FoundationDB.Client
 
 		/// <inheritdoc cref="IFdbTransaction.ClearRange"/>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static void ClearRange<TBeginKey, TEndKey>(this IFdbTransaction trans, TBeginKey beginKeyInclusive, TEndKey endKeyExclusive)
+		public static void ClearRange<TEndKey>(this IFdbTransaction trans, Slice beginKeyInclusive, in TEndKey endKeyExclusive)
+			where TEndKey : struct, IFdbKey
+		{
+			if (endKeyExclusive.TryGetSpan(out var endKeySpan))
+			{
+				trans.ClearRange(ToSpanKey(beginKeyInclusive), endKeySpan);
+			}
+			else
+			{
+				using var endKeyBytes = FdbKeyHelpers.Encode(in endKeyExclusive, ArrayPool<byte>.Shared);
+				trans.ClearRange(ToSpanKey(beginKeyInclusive), endKeyBytes.Span);
+			}
+		}
+
+		/// <inheritdoc cref="IFdbTransaction.ClearRange"/>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static void ClearRange<TBeginKey, TEndKey>(this IFdbTransaction trans, in TBeginKey beginKeyInclusive, in TEndKey endKeyExclusive)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
 		{

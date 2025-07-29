@@ -536,7 +536,7 @@ namespace FdbShell
 
 				var any = await tr.GetRangeAsync(range, new FdbRangeOptions { Limit = 1 });
 				if (any.Count == 0) return true;
-				tr.ClearRange(folder.ToRange());
+				tr.ClearRange(folder);
 				return false;
 			}, ct);
 

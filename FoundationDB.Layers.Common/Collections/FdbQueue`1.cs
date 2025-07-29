@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Collections
 			public void Clear(IFdbTransaction tr)
 			{
 				Contract.NotNull(tr);
-				tr.ClearRange(this.Subspace.ToRange());
+				tr.ClearRange(this.Subspace);
 			}
 
 			/// <summary>Push a single item onto the queue.</summary>
