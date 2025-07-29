@@ -100,6 +100,12 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbRawKey FromBytes(ReadOnlySpan<byte> key) => new(Slice.FromBytes(key));
 
+		/// <summary>Returns a key that wraps a pre-encoded successor of a <see cref="Slice"/> (<c>key.`\x00`</c>)</summary>
+		public static FdbSuccessorKey<FdbRawKey> Successor(Slice key) => new(new(key));
+
+		/// <summary>Returns a key that wraps a pre-encoded end of valid children of a <see cref="Slice"/> (<c>key.`\xFF`</c>)</summary>
+		public static FdbLastKey<FdbRawKey> Last(Slice key) => new(new(key));
+
 		#endregion
 
 		#region With Subspace...
