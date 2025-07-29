@@ -29,6 +29,7 @@
 
 namespace FoundationDB.Client.Tests
 {
+	using SnowBank.Data.Tuples.Binary;
 
 	[TestFixture]
 	[Category("Fdb-Client-InProc")]
@@ -392,11 +393,11 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_Head()
+		public void Test_FdbKeyRange_Key_ToHeadRange()
 		{
 			var subspace = GetSubspace(STuple.Create(42));
 
-			{ // T1
+			{ // TKey + (T1,)
 				var range = subspace.Key(123).ToHeadRange("foo");
 				Log($"# {range}");
 				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
@@ -424,7 +425,7 @@ namespace FoundationDB.Client.Tests
 			}
 			Log();
 
-			{ // T2
+			{ // TKey + (T1, T2)
 				var range = subspace.Key(123).ToHeadRange("foo", "bar");
 				Log($"# {range}");
 				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
@@ -452,7 +453,7 @@ namespace FoundationDB.Client.Tests
 			}
 			Log();
 
-			{ // T3
+			{ // TKey + (T1, T2, T3)
 				var range = subspace.Key(123).ToHeadRange("foo", "bar", "baz");
 				Log($"# {range}");
 				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
@@ -479,11 +480,100 @@ namespace FoundationDB.Client.Tests
 				Assert.That(range.End(), Is.EqualTo(subspace.Key(123, "foo", "bar", "baz")));
 			}
 			Log();
-
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_HeadInclusive()
+		public void Test_FdbKeyRange_Subspace_ToHeadRange()
+		{
+			var subspace = GetSubspace(STuple.Create(42));
+
+			{ // IKeySubspace + (T1,)
+				var range = subspace.ToHeadRange(123);
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key(123)));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Exclusive));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42)));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123)));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+
+				Assert.That(range.Begin(), Is.EqualTo(range.ToBeginKey()));
+				Assert.That(range.Begin(), Is.EqualTo(subspace.Key()));
+
+				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
+				Assert.That(range.End(), Is.EqualTo(subspace.Key(123)));
+			}
+			Log();
+
+			{ // IKeySubspace + (T1, T2)
+				var range = subspace.ToHeadRange(123, "foo");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key(123, "foo")));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Exclusive));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42)));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123, "foo")));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+
+				Assert.That(range.Begin(), Is.EqualTo(range.ToBeginKey()));
+				Assert.That(range.Begin(), Is.EqualTo(subspace.Key()));
+
+				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
+				Assert.That(range.End(), Is.EqualTo(subspace.Key(123, "foo")));
+			}
+			Log();
+
+			{ // IKeySubspace + (T1, T2, T3)
+				var range = subspace.ToHeadRange(123, "foo", "bar");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key(123, "foo", "bar")));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Exclusive));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42)));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123, "foo", "bar")));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+
+				Assert.That(range.Begin(), Is.EqualTo(range.ToBeginKey()));
+				Assert.That(range.Begin(), Is.EqualTo(subspace.Key()));
+
+				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
+				Assert.That(range.End(), Is.EqualTo(subspace.Key(123, "foo", "bar")));
+			}
+			Log();
+		}
+
+		[Test]
+		public void Test_FdbKeyRange_Key_ToHeadRangeInclusive()
 		{
 			var subspace = GetSubspace(STuple.Create(42));
 
@@ -512,6 +602,22 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
 				Assert.That(range.End(), Is.EqualTo(subspace.Key(123, "foo").Last()));
+
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(0)), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
 			}
 			Log();
 
@@ -540,6 +646,25 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
 				Assert.That(range.End(), Is.EqualTo(subspace.Key(123, "foo", "bar").Last()));
+
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(0)), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bas")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
 			}
 			Log();
 
@@ -568,13 +693,168 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
 				Assert.That(range.End(), Is.EqualTo(subspace.Key(123, "foo", "bar", "baz").Last()));
+
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(0)), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz", "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "ba{")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bas")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
 			}
 			Log();
 
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_Tail()
+		public void Test_FdbKeyRange_Subspace_ToHeadRangeInclusive()
+		{
+			var subspace = GetSubspace(STuple.Create(42));
+
+			{ // T1
+				var range = subspace.ToHeadRangeInclusive(123);
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key(123)));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42)));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123) + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+
+				Assert.That(range.Begin(), Is.EqualTo(range.ToBeginKey()));
+				Assert.That(range.Begin(), Is.EqualTo(subspace.Key()));
+
+				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
+				Assert.That(range.End(), Is.EqualTo(subspace.Key(123).Last()));
+
+				Assert.That(range.Contains(subspace.Key()), Is.True);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(0)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, 456)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
+			}
+			Log();
+
+			{ // T2
+				var range = subspace.ToHeadRangeInclusive(123, "foo");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key(123, "foo")));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42)));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123, "foo") + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+
+				Assert.That(range.Begin(), Is.EqualTo(range.ToBeginKey()));
+				Assert.That(range.Begin(), Is.EqualTo(subspace.Key()));
+
+				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
+				Assert.That(range.End(), Is.EqualTo(subspace.Key(123, "foo").Last()));
+
+				Assert.That(range.Contains(subspace.Key()), Is.True);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(0)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
+			}
+			Log();
+
+			{ // T3
+				var range = subspace.ToHeadRangeInclusive(123, "foo", "bar");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key(123, "foo", "bar")));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42)));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123, "foo", "bar") + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+
+				Assert.That(range.Begin(), Is.EqualTo(range.ToBeginKey()));
+				Assert.That(range.Begin(), Is.EqualTo(subspace.Key()));
+
+				Assert.That(range.End(), Is.EqualTo(range.ToEndKey()));
+				Assert.That(range.End(), Is.EqualTo(subspace.Key(123, "foo", "bar").Last()));
+
+				Assert.That(range.Contains(subspace.Key()), Is.True);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(0)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123)), Is.True);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
+			}
+			Log();
+
+		}
+
+		[Test]
+		public void Test_FdbKeyRange_Key_ToTailRange()
 		{
 			var subspace = GetSubspace(STuple.Create(42));
 
@@ -597,6 +877,31 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
 				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(0)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "fon")), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "ba{")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
 			}
 			Log();
 
@@ -619,6 +924,31 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
 				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(0)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "baq")), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "ba{")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
 			}
 			Log();
 
@@ -641,13 +971,177 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
 				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(0)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123).Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "bay")), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "ba{")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
 			}
 			Log();
 
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_TailExclusive()
+		public void Test_FdbKeyRange_Subspace_ToTailRange()
+		{
+			var subspace = GetSubspace(STuple.Create(42, 123));
+
+			{ // T1
+				var range = subspace.ToTailRange("foo");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key("foo")));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42, 123, "foo")));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123) + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key("fon")), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key("foo")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "ba{")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key("zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Last()), Is.False);
+				Assert.That(range.Contains(subspace.NextSibling()), Is.False);
+			}
+			Log();
+
+			{ // T2
+				var range = subspace.ToTailRange("foo", "bar");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key("foo", "bar")));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42, 123, "foo", "bar")));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123) + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo").Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "baq")), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key("foo", "bar")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "ba{")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key("zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Last()), Is.False);
+				Assert.That(range.Contains(subspace.NextSibling()), Is.False);
+			}
+			Log();
+
+			{ // T3
+				var range = subspace.ToTailRange("foo", "bar", "baz");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key("foo", "bar", "baz")));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.Inclusive));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(TuPack.EncodeKey(42, 123, "foo", "bar", "baz")));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123) + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key().Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo").Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Successor()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "bay")), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Successor()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "ba{")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key("zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Last()), Is.False);
+				Assert.That(range.Contains(subspace.NextSibling()), Is.False);
+			}
+			Log();
+
+		}
+
+		[Test]
+		public void Test_FdbKeyRange_Key_ToTailRangeExclusive()
 		{
 			var subspace = GetSubspace(STuple.Create(42));
 
@@ -670,6 +1164,26 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
 				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz")), Is.False); // excluded!
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "ba{")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bas")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
 			}
 			Log();
 
@@ -692,6 +1206,26 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
 				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz")), Is.False); // excluded!
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "ba{")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
 			}
 			Log();
 
@@ -714,6 +1248,156 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
 				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key(123)), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz")), Is.False); // excluded!
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "baz").Last()), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "ba{")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bar").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key(123, "zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Key(123).Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key(124)), Is.False);
+			}
+			Log();
+
+		}
+
+		[Test]
+		public void Test_FdbKeyRange_Subspace_ToTailRangeExclusive()
+		{
+			var subspace = GetSubspace(STuple.Create(42, 123));
+
+			{ // T1
+				var range = subspace.ToTailRangeExclusive("foo");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key("foo")));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.NextSibling));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(FdbKey.Increment(TuPack.EncodeKey(42, 123, "foo"))));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123) + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz")), Is.False); // excluded!
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "ba{")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bas")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo").Last()), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key("fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key("zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Last()), Is.False);
+				Assert.That(range.Contains(subspace.NextSibling()), Is.False);
+			}
+			Log();
+
+			{ // T2
+				var range = subspace.ToTailRangeExclusive("foo", "bar");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key("foo", "bar")));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.NextSibling));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(FdbKey.Increment(TuPack.EncodeKey(42, 123, "foo", "bar"))));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123) + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz")), Is.False); // excluded!
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Last()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "ba{")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Last()), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key("foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key("zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Last()), Is.False);
+				Assert.That(range.Contains(subspace.NextSibling()), Is.False);
+			}
+			Log();
+
+			{ // T3
+				var range = subspace.ToTailRangeExclusive("foo", "bar", "baz");
+				Log($"# {range}");
+				Log($"> lower: {range.LowerKey} ({range.LowerMode})");
+				Log($"> upper: {range.UpperKey} ({range.UpperMode})");
+				Assert.That(range.LowerKey, Is.EqualTo(subspace.Key("foo", "bar", "baz")));
+				Assert.That(range.LowerMode, Is.EqualTo(KeyRangeMode.NextSibling));
+				Assert.That(range.UpperKey, Is.EqualTo(subspace.Key()));
+				Assert.That(range.UpperMode, Is.EqualTo(KeyRangeMode.Last));
+
+				var kr = range.ToKeyRange();
+				Log($"> range: {kr}");
+				Log($"  - begin: {kr.Begin:X}");
+				Log($"  - end  : {kr.End:X}");
+				Assert.That(kr.Begin, Is.EqualTo(FdbKey.Increment(TuPack.EncodeKey(42, 123, "foo", "bar", "baz"))));
+				Assert.That(kr.End, Is.EqualTo(TuPack.EncodeKey(42, 123) + 0xFF));
+
+				Assert.That(range.ToBeginKey(), Is.EqualTo(kr.Begin));
+				Assert.That(range.ToEndKey(), Is.EqualTo(kr.End));
+				
+				Assert.That(range.Contains(subspace.Key()), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz")), Is.False); // excluded!
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz", "zzz")), Is.False);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "baz").Last()), Is.False);
+				// start of the range
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "ba{")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bar").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "bas")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo", "zzz")), Is.True);
+				Assert.That(range.Contains(subspace.Key("foo").Last()), Is.True);
+				Assert.That(range.Contains(subspace.Key("fop")), Is.True);
+				Assert.That(range.Contains(subspace.Key("zzz")), Is.True);
+				// end of the range
+				Assert.That(range.Contains(subspace.Last()), Is.False);
+				Assert.That(range.Contains(subspace.NextSibling()), Is.False);
 			}
 			Log();
 

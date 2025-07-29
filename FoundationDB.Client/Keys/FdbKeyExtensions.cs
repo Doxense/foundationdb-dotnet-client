@@ -74,7 +74,7 @@ namespace FoundationDB.Client
 			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1), upperMode: KeyRangeMode.Exclusive);
 		}
 
-		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1,*)</c></summary>
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1,\xFF)</c></summary>
 		/// <typeparam name="T1">Type of the cursor</typeparam>
 		/// <param name="subspace">Subspace that will be used as a prefix</param>
 		/// <param name="cursor1">Value that will be used as a cursor under this key.</param>
@@ -98,7 +98,7 @@ namespace FoundationDB.Client
 			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1, cursor2), upperMode: KeyRangeMode.Exclusive);
 		}
 
-		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1, cursor2, *)</c></summary>
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1, cursor2, \xFF)</c></summary>
 		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
 		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
 		/// <param name="subspace">Subspace that will be used as a prefix</param>
@@ -126,7 +126,7 @@ namespace FoundationDB.Client
 			return FdbKeyRange.Between(subspace.Key(), lowerMode: KeyRangeMode.Inclusive, subspace.Key(cursor1, cursor2, cursor3), upperMode: KeyRangeMode.Exclusive);
 		}
 
-		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1, cursor2, cursor3, *)</c></summary>
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>prefix</c> &lt;= <c>k</c> &lt;= <c>prefix.(cursor1, cursor2, cursor3, \xFF)</c></summary>
 		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
 		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
 		/// <typeparam name="T3">Type of third part of the cursor</typeparam>
@@ -158,7 +158,7 @@ namespace FoundationDB.Client
 			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1), upperMode: KeyRangeMode.Exclusive);
 		}
 
-		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1,*)</c></summary>
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1,...)</c></summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <typeparam name="T1">Type of the cursor</typeparam>
 		/// <param name="key">Key that will be used as a prefix</param>
@@ -186,7 +186,7 @@ namespace FoundationDB.Client
 			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1, cursor2), upperMode: KeyRangeMode.Exclusive);
 		}
 
-		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1, cursor2, *)</c></summary>
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1, cursor2, ...)</c></summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
 		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
@@ -218,7 +218,7 @@ namespace FoundationDB.Client
 			return FdbKeyRange.Between(key, lowerMode: KeyRangeMode.Inclusive, key.Key(cursor1, cursor2, cursor3), upperMode: KeyRangeMode.Exclusive);
 		}
 
-		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1, cursor2, cursor3, *)</c></summary>
+		/// <summary>Returns a range that matches all the children of this key that are before the specified cursor (inclusive): <c>key</c> &lt;= <c>k</c> &lt;= <c>key.(cursor1, cursor2, cursor3, ...)</c></summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <typeparam name="T1">Type of first part of the cursor</typeparam>
 		/// <typeparam name="T2">Type of second part of the cursor</typeparam>
