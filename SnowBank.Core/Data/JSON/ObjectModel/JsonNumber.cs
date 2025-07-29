@@ -2109,7 +2109,7 @@ namespace SnowBank.Data.Json
 				
 				// first convert to an integer, since decimal => enum is not supported.
 				// note: enums may not use Int32! we have to bind to the UnderlyingType
-				//REVIEW: TODO: OPTIMIZE: but 99+% do, maybe hot path for int?
+				// OPTIMIZE: but 99+% do, maybe hot path for int?
 				return Enum.ToObject(type, Bind(type.GetEnumUnderlyingType(), resolver)!);
 			}
 

@@ -90,7 +90,7 @@ namespace SnowBank.Data.Tuples
 		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;int&gt;(-1) => 123</c></para>
 		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"</c></para>
 		/// </example>
-		//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
+		//REVIEW: consider dropping the negative indexing? We have Index now for this use-case!
 		[Pure]
 		TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index);
 

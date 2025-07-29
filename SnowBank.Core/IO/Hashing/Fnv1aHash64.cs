@@ -65,7 +65,7 @@ namespace SnowBank.IO.Hashing
 			{ // use the stack for the temporary buffer
 				unsafe
 				{
-					//REVIEW: TODO: use Span<char>!
+					//REVIEW: use Span<char>!
 					byte* tmp = stackalloc byte[count];
 					fixed (char* chars = text)
 					{

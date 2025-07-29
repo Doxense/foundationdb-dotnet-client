@@ -4326,7 +4326,7 @@ namespace SnowBank.Data.Json
 				}
 			}
 
-			//PERF: TODO: if the tail is only nulls, we may add them, just to remove them again in the next step!
+			//PERF: if the tail is only nulls, we may add them, just to remove them again in the next step!
 			// => maybe pre-scan the tail to look for the last non-null value?
 
 			// copy over any extra elements
@@ -4779,7 +4779,7 @@ namespace SnowBank.Data.Json
 			{
 				if (format is "Q" or "q")
 				{
-					//PERF: TODO: is there a better way?
+					//PERF: is there a better way?
 					return Encoding.UTF8.TryGetBytes(GetCompactRepresentation(0), destination, out bytesWritten);
 				}
 				if (format is "B" or "b")

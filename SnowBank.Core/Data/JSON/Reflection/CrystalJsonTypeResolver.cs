@@ -893,7 +893,7 @@ namespace SnowBank.Data.Json
 			}
 
 			// look for other legacy serialization attributes
-			// REVIEW: TODO: these are old attributes used during the era of SOAP and XML serialization, maybe we could drop support for them?
+			// REVIEW: these are old attributes used during the era of SOAP and XML serialization, maybe we could drop support for them?
 				
 			{ // must not have "[XmlIgnore]"
 				var attr = member.GetCustomAttribute<System.Xml.Serialization.XmlIgnoreAttribute>(inherit: true);
@@ -1519,7 +1519,7 @@ namespace SnowBank.Data.Json
 					var value = obj[field.Name];
 					items[i] = field.Binder(value, field.Type, r);
 				}
-				//REVIEW: PERF: compile a lambda that invokes the ctor?
+				//PERF: compile a lambda that invokes the ctor?
 				return ctor.Invoke(items);
 			};
 		}

@@ -1461,21 +1461,21 @@ namespace SnowBank.Runtime.Converters
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToDateTimeString(DateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
+			//PERF: is there a faster way to encode to this format?
 			return date.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToDateTimeString(Instant date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
+			//PERF: is there a faster way to encode to this format?
 			return date.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToDateTimeString(ZonedDateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
+			//PERF: is there a faster way to encode to this format?
 			return date.ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture);
 		}
 
@@ -1485,7 +1485,7 @@ namespace SnowBank.Runtime.Converters
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToDateString(DateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
+			//PERF: is there a faster way to encode to this format?
 			return date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
 		}
 
@@ -1495,7 +1495,7 @@ namespace SnowBank.Runtime.Converters
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string ToTimeString(DateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
+			//PERF: is there a faster way to encode to this format?
 			return date.ToString("HHmmss", CultureInfo.InvariantCulture);
 		}
 
@@ -1505,7 +1505,7 @@ namespace SnowBank.Runtime.Converters
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static string FormatDateTime(DateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
+			//PERF: is there a faster way to encode to this format?
 			return date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
 		}
 
@@ -1525,7 +1525,7 @@ namespace SnowBank.Runtime.Converters
 		[Pure]
 		public static string FormatTime(DateTime date)
 		{
-			//REVIEW: PERF: faire une version optimisée?
+			//PERF: is there a faster way to encode to this format?
 			return date.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
 		}
 

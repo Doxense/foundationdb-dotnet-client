@@ -1595,7 +1595,7 @@ namespace SnowBank.Data.Tuples.Binary
 						var t = slice.Length == 1
 							? TuPackUserType.System
 							: TuPackUserType.SystemKey(slice[1..].ToSlice());
-						sb.Append(t.ToString()); //PERF: TODO: reduce allocations!
+						sb.Append(t.ToString()); //PERF: reduce allocations!
 						return;
 					}
 				}
@@ -1663,7 +1663,7 @@ namespace SnowBank.Data.Tuples.Binary
 				{
 					if (TupleParser.TryParseUtf8(slice, out var str))
 					{
-						//PERF: TODO: if the string is "clean" we could simply copy the UTF-8 bytes as-is ?
+						//PERF: if the string is "clean" we could simply copy the UTF-8 bytes as-is ?
 						value = Slice.FromString(str);
 						return true;
 					}

@@ -101,7 +101,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public KeyRange ToKeyRange() => this.IsInclusive
-			//PERF: TODO: optimize this!
+			//PERF: optimize this!
 			? KeyRange.StartsWith(this.Subspace.GetPrefix())
 			: KeyRange.PrefixedBy(this.Subspace.GetPrefix());
 

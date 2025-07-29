@@ -229,7 +229,7 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(scoped Span<byte> destination, out int bytesWritten)
 		{
-			//PERF: TODO: is there a better way?
+			//PERF: is there a better way?
 			using var bytes = CrystalJson.ToSlice(this.Data, this.Serializer, ArrayPool<byte>.Shared, this.JsonSettings ?? CrystalJsonSettings.JsonCompact);
 			return bytes.Span.TryCopyTo(destination, out bytesWritten);
 		}

@@ -611,8 +611,6 @@ namespace SnowBank.Data.Tuples
 
 		#region Encode
 
-		//REVIEW: EncodeKey/EncodeKeys? Encode/EncodeRange? EncodeValues? EncodeItems?
-
 		/// <summary>Pack a 1-tuple directly into a slice</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice EncodeKey<T1>(T1 item1)

@@ -324,7 +324,7 @@ namespace SnowBank.Collections.CacheOblivious
 				var cursor = iterator.Current!;
 				var c1 = comparer.Compare(beginInclusive, cursor.Begin);
 				var c2 = comparer.Compare(endExclusive, cursor.End);
-				List<Entry>? toRemove = null; //PERF: TODO: use a stackalloc'ed buffer?
+				List<Entry>? toRemove = null; //PERF: use a stackalloc'ed buffer?
 
 				//begin < cursor.Begin
 				if (c1 < 0)

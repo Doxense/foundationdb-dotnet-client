@@ -1831,7 +1831,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{ // do we have a parent ?
 					if (hasPolymorphicDefinition)
 					{ // defer to the parent type which should have all the derived types under this one
-						//REVIEW: TODO: we _could_ optimize by having a smaller switch with only de types under us?
+						//PERF: we _could_ optimize by having a smaller switch with only de types under us?
 						sb.AppendLine($"return ({typeDef.Type.FullyQualifiedName}) {GetLocalSerializerRef(polymorphicMetadata.Parent)}.Unpack(value, resolver);");
 						sb.LeaveBlock();
 						sb.NewLine();
@@ -2052,7 +2052,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{ // do we have a parent ?
 					if (hasPolymorphicDefinition)
 					{ // defer to the parent type which should have all the derived types under this one
-						//REVIEW: TODO: we _could_ optimize by having a smaller switch with only de types under us?
+						//PERF: we _could_ optimize by having a smaller switch with only de types under us?
 						sb.AppendLine($"return {GetLocalSerializerRef(polymorphicMetadata.Parent)}.Pack(instance, settings, resolver);");
 						sb.LeaveBlock("Pack");
 						sb.NewLine();
@@ -2063,7 +2063,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				// if the type is not sealed, we may have a derived type, we must defer serialization to this type!
 				if (!typeDef.Type.IsSealed)
 				{
-					//BUGBUG: TODO: detect if we have a generated serialize for this derived type?
+					//BUGBUG: detect if we have a generated serialize for this derived type?
 					sb.AppendLine($"if (instance.GetType() != typeof({typeDef.Type.FullyQualifiedName}))");
 					sb.EnterBlock();
 					sb.AppendLine($"throw {KnownTypeSymbols.JsonSerializationExceptionFullName}.CannotPackDerivedTypeWithUnknownTypeDiscriminator(instance.GetType(), typeof({typeDef.Type.FullyQualifiedName}));");

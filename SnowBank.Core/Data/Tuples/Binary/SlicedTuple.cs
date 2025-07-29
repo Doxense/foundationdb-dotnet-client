@@ -269,7 +269,7 @@ namespace SnowBank.Data.Tuples.Binary
 		[EditorBrowsable(EditorBrowsableState.Always)]
 		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int index)
 		{
-			//REVIEW: TODO: consider dropping the negative indexing? We have Index now for this use-case!
+			//REVIEW: consider dropping the negative indexing? We have Index now for this use-case!
 			return TuplePacker<T>.Deserialize(GetSlice(index));
 		}
 

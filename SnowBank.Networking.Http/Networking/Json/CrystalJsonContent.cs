@@ -155,7 +155,7 @@ namespace SnowBank.Data.Json
 
 		protected override bool TryComputeLength(out long length)
 		{
-			//REVIEW: PERF: TODO: if we could know the size (in bytes) of the rendered JSON in advance, we could optimize the request further by setting the Content-Length header...
+			//PERF: if we could know the size (in bytes) of the rendered JSON in advance, we could optimize the request further by setting the Content-Length header...
 			// The issue is that if the JSON payload is huge, this will use a lot of memory.
 			// => if we had a way to "guess" if the JSON will be small or not, we could decide to pre-render or not.
 

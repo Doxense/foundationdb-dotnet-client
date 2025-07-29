@@ -508,7 +508,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 					{
 						if (property.IsImplicitlyDeclared || property.DeclaredAccessibility is (Accessibility.Private or Accessibility.Protected))
 						{
-							// REVIEW: TODO: what should we do with private properties?
+							// REVIEW: what should we do with private properties?
 							// - if they have a backing field, the object may not incomplete when deserialized
 							return default;
 						}

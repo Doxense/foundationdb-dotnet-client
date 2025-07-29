@@ -189,7 +189,7 @@ namespace FoundationDB.Client
 				--offset;
 				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
 			}
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			sb.Append(FdbKey.PrettyPrint(this.Key, mode));
 			sb.Append('}');
 

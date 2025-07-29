@@ -2318,7 +2318,7 @@ namespace System
 				case 17: // hex8-hex8
 				case 19: // {hex8-hex8}
 				{
-					//PERF: TODO: optimize to remove allocation!
+					//PERF: optimize to remove allocation!
 					return Uuid64.Parse(ToByteString()!);
 				}
 			}
@@ -2698,7 +2698,7 @@ namespace System
 				case 13: // XXXX-XXXXXXXX
 				case 15: // {XXXX-XXXXXXXX}
 				{
-					//PERF: TODO: optimize to remove allocation!
+					//PERF: optimize to remove allocation!
 					return Uuid48.Parse(ToByteString()!); 
 				}
 			}
@@ -2730,7 +2730,7 @@ namespace System
 				case 22: // XXXX-XXXXXXXX-XXXXXXXX
 				case 24: // {XXXX-XXXXXXXX-XXXXXXXX}
 				{
-					//PERF: TODO: optimize to remove allocation!
+					//PERF: optimize to remove allocation!
 					return Uuid80.Parse(ToByteString()!);
 				}
 			}
@@ -2762,7 +2762,7 @@ namespace System
 				case 26: // XXXXXXXX-XXXXXXXX-XXXXXXXX
 				case 28: // {XXXXXXXX-XXXXXXXX-XXXXXXXX}
 				{
-					//PERF: TODO: optimize to remove allocation!
+					//PERF: optimize to remove allocation!
 					return Uuid96.Parse(ToByteString()!);
 				}
 			}

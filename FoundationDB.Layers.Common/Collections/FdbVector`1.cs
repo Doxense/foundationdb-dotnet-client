@@ -136,7 +136,7 @@ namespace FoundationDB.Layers.Collections
 				//REVIEW: rename this to "PeekLast" ?
 				Contract.NotNull(tr);
 
-				//PERF: TODO: use GetRange with value decoder!
+				//PERF: use GetRange with value decoder!
 				return tr
 					.GetRangeValues(
 						this.Subspace.ToRange(),

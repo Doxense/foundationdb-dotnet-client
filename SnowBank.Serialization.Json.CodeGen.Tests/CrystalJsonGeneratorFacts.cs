@@ -556,7 +556,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Assert.That(parsed["id"], IsJson.EqualTo(user.Id));
 				Assert.That(parsed["displayName"], IsJson.EqualTo(user.DisplayName));
 				Assert.That(parsed["email"], IsJson.EqualTo(user.Email));
-				Assert.That(parsed["type"], IsJson.EqualTo((int) user.Type)); //REVIEW: TODO: enum default as numbers or string ?
+				Assert.That(parsed["type"], IsJson.EqualTo((int) user.Type)); //REVIEW: enum default as numbers or string ?
 				Assert.That(parsed["metadata"], IsJson.Object);
 				Assert.That(parsed["metadata"]["accountCreated"], IsJson.EqualTo(user.Metadata.AccountCreated));
 				Assert.That(parsed["metadata"]["accountModified"], IsJson.EqualTo(user.Metadata.AccountModified));
@@ -673,7 +673,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				Assert.That(parsed["id"], IsJson.EqualTo(dog.Id));
 				Assert.That(parsed["name"], IsJson.EqualTo(dog.Name));
 				Assert.That(parsed["legCount"], IsJson.EqualTo(dog.LegCount));
-				Assert.That(parsed["isGoodDog"], IsJson.EqualTo(dog.IsGoodDog)); //REVIEW: TODO: enum default as numbers or string ?
+				Assert.That(parsed["isGoodDog"], IsJson.EqualTo(dog.IsGoodDog)); //REVIEW: enum default as numbers or string ?
 				Assert.That(parsed["$type"], IsJson.EqualTo("dog"));
 			});
 

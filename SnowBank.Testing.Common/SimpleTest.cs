@@ -217,7 +217,7 @@ namespace SnowBank.Testing
 					{
 						foreach (var provider in this.CustomServices)
 						{
-							//REVIEW: TODO: this could block the thread!
+							//HACKHACK: this could block the thread!
 							provider.DisposeAsync().GetAwaiter().GetResult();
 						}
 					}

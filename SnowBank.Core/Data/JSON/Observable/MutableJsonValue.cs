@@ -2353,7 +2353,7 @@ namespace SnowBank.Data.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(string name, MutableJsonValue? value)
 		{
-			//REVIEW: TODO: should we _copy_ the wrapped value? what if the original is mutated after ?
+			//REVIEW: should we _copy_ the wrapped value? what if the original is mutated after ?
 			if (ContainsKey(name))
 			{
 				return false;
@@ -2369,7 +2369,7 @@ namespace SnowBank.Data.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(string name, ObservableJsonValue? value)
 		{
-			//REVIEW: TODO: should we _copy_ the wrapped value? what if the original is mutated after ?
+			//REVIEW: should we _copy_ the wrapped value? what if the original is mutated after ?
 			if (ContainsKey(name))
 			{
 				return false;
@@ -2433,7 +2433,7 @@ namespace SnowBank.Data.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(ReadOnlyMemory<char> name, MutableJsonValue? value)
 		{
-			//REVIEW: TODO: should we _copy_ the wrapped value? what if the original is mutated after ?
+			//REVIEW: should we _copy_ the wrapped value? what if the original is mutated after ?
 			if (ContainsKey(name))
 			{
 				return false;
@@ -2449,7 +2449,7 @@ namespace SnowBank.Data.Json
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryAdd(ReadOnlyMemory<char> name, ObservableJsonValue? value)
 		{
-			//REVIEW: TODO: should we _copy_ the wrapped value? what if the original is mutated after ?
+			//REVIEW: should we _copy_ the wrapped value? what if the original is mutated after ?
 			if (ContainsKey(name))
 			{
 				return false;

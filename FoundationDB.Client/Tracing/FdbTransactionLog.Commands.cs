@@ -690,7 +690,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Key.Count;
 
-			public override int? ResultBytes => null; //REVIEW: BUGBUG: how to track the actual number of bytes?
+			public override int? ResultBytes => null; //BUGBUG: how to track the actual number of bytes?
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -734,7 +734,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Key.Count;
 
-			public override int? ResultBytes => null; //REVIEW: BUGBUG: how to track the actual number of bytes?
+			public override int? ResultBytes => null; //BUGBUG: how to track the actual number of bytes?
 
 			public override string GetArguments(KeyResolver resolver)
 			{

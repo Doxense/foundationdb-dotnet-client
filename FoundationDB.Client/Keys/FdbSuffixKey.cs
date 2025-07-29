@@ -163,7 +163,7 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSizeHint(out int sizeHint)
 		{
-			//PERF: TODO: we don't have an easy way to estimate the size of a TTuple yet!
+			//PERF: we don't have an easy way to estimate the size of a TTuple yet!
 			sizeHint = 0;
 			return false;
 		}

@@ -73,7 +73,7 @@ namespace Aspire.Hosting
 			Contract.NotNullOrWhiteSpace(name);
 			Contract.GreaterThan(apiVersion, 0);
 
-			//REVIEW: TODO: should we allow formats like "7.3" or "7.3.*" to mean "I don't know exactly, but it is 7.3.something, figure it out!" ?
+			//REVIEW: should we allow formats like "7.3" or "7.3.*" to mean "I don't know exactly, but it is 7.3.something, figure it out!" ?
 			//REVIEW: should we also include a "RollForward" policy here? The version of the cluster is fixed, we can only use this to select a client version with more limited wriggle room (cannot jump minor or major version, for example)
 			Version? ver = null;
 			if (!string.IsNullOrWhiteSpace(clusterVersion) && !Version.TryParse(clusterVersion, out ver))
@@ -277,7 +277,7 @@ namespace Aspire.Hosting
 
 					// we use the "host" mode so that we can talk to the node from the host
 					context.EnvironmentVariables["FDB_NETWORKING_MODE"] = "host";
-					//REVIEW: TODO: if the "*.docker.internal" names get supported by Aspire, maybe we can switch to those?
+					//REVIEW: if the "*.docker.internal" names get supported by Aspire, maybe we can switch to those?
 					// => if we have more than one fdb container, we need them to be able to talk to each other, AND to the host!
 
 					// the port that the fdbserver will bind

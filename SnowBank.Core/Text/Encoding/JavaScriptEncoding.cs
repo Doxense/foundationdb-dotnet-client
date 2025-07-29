@@ -79,7 +79,7 @@ namespace SnowBank.Text
 		{
 			int n = s.Length;
 			if (includeQuotes) sb.Append('\'');
-			//PERF: TODO: rewrite this to use ref byte + Unsafe.Add ?
+			//PERF: rewrite this to use ref byte + Unsafe.Add ?
 			fixed (char* p = s)
 			{
 				char* ptr = p;
@@ -109,7 +109,7 @@ namespace SnowBank.Text
 		{
 			int n = s.Length;
 			if (includeQuotes) sb.Write('\'');
-			//PERF: TODO: rewrite this to use ref byte + Unsafe.Add ?
+			//PERF: rewrite this to use ref byte + Unsafe.Add ?
 			fixed (char* p = s)
 			{
 				char* ptr = p;
@@ -167,7 +167,7 @@ namespace SnowBank.Text
 			}
 
 			// second pass to escape all non-printable characters
-			//PERF: TODO: optimize this use case!
+			//PERF: optimize this use case!
 			EncodeSlow(ref output, text, includeQuotes);
 		}
 

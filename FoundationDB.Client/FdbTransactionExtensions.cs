@@ -2851,7 +2851,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			var beginSelector = beginKeyInclusive.ToSelector();
 
 			return trans.GetRange(
@@ -2868,7 +2868,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			var endSelector = endKeyExclusive.ToSelector();
 
 			return trans.GetRange(
@@ -2886,7 +2886,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			var beginSelector = beginKeyInclusive.ToSelector();
 			var endSelector = endKeyExclusive.ToSelector();
 
@@ -2962,7 +2962,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			var beginKeyBytes = FdbKeyHelpers.ToSlice(in beginKeyInclusive);
 
 			return trans.GetRange(
@@ -2979,7 +2979,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			var beginKeyBytes = FdbKeyHelpers.ToSlice(in beginKeyInclusive);
 			var endKeyBytes = FdbKeyHelpers.ToSlice(in endKeyExclusive);
 
@@ -2996,7 +2996,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans);
 
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			var rangeBytes = range.ToKeyRange();
 
 			return trans.GetRange(
@@ -3175,7 +3175,7 @@ namespace FoundationDB.Client
 			where TKeyRange : struct, IFdbKeyRange
 		{
 			Contract.NotNull(trans);
-			var selectors = KeySelectorPair.Create(range.ToKeyRange()); //PERF: TODO: Optimize this!
+			var selectors = KeySelectorPair.Create(range.ToKeyRange()); //PERF: Optimize this!
 			return trans.GetRange(
 				selectors.Begin,
 				selectors.End,
@@ -3376,7 +3376,7 @@ namespace FoundationDB.Client
 		[Pure, LinqTunnel]
 		public static IFdbRangeQuery<Slice> GetRangeValues<TKeyRange>(this IFdbReadOnlyTransaction trans, in TKeyRange range, FdbRangeOptions? options = null)
 			where TKeyRange : struct, IFdbKeyRange
-			=> trans.GetRangeValues(range.ToKeyRange(), options); //PERF: TODO: optimize!
+			=> trans.GetRangeValues(range.ToKeyRange(), options); //PERF: optimize!
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.GetRange{TState,TResult}"/>
 		[Pure, LinqTunnel]
@@ -3639,7 +3639,7 @@ namespace FoundationDB.Client
 		public static Task<FdbRangeChunk> GetRangeAsync<TKeyRange>(this IFdbReadOnlyTransaction trans, in TKeyRange range, FdbRangeOptions? options = null, int iteration = 0)
 			where TKeyRange : struct, IFdbKeyRange
 		{
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			return trans.GetRangeAsync(range.ToKeyRange(), options, iteration);
 		}
 
@@ -3674,8 +3674,8 @@ namespace FoundationDB.Client
 			where TEndKey : struct, IFdbKey
 		{
 			return trans.GetRangeAsync(
-				beginInclusive.ToSelector(), //PERF: TODO: optimize!
-				endExclusive.ToSelector(),   //PERF: TODO: optimize!
+				beginInclusive.ToSelector(), //PERF: optimize!
+				endExclusive.ToSelector(),   //PERF: optimize!
 				state,
 				decoder,
 				options,
@@ -3765,8 +3765,8 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans);
 
 			return trans.VisitRangeAsync(
-				beginInclusive.ToSelector(), //PERF: TODO: optimize!
-				endExclusive.ToSelector(),   //PERF: TODO: optimize!
+				beginInclusive.ToSelector(), //PERF: optimize!
+				endExclusive.ToSelector(),   //PERF: optimize!
 				state,
 				visitor,
 				options
@@ -3911,7 +3911,7 @@ namespace FoundationDB.Client
 		public static Task<long> GetEstimatedRangeSizeBytesAsync<TKeyRange>(this IFdbReadOnlyTransaction trans, in TKeyRange range)
 			where TKeyRange : struct, IFdbKeyRange
 		{
-			var r = range.ToKeyRange(); //PERF: TODO: optimize this!
+			var r = range.ToKeyRange(); //PERF: optimize this!
 			return trans.GetEstimatedRangeSizeBytesAsync(ToSpanKey(r.Begin), ToSpanKey(r.End));
 		}
 
@@ -4031,7 +4031,7 @@ namespace FoundationDB.Client
 		public static void ClearRange<TKeyRange>(this IFdbTransaction trans, TKeyRange range)
 			where TKeyRange : struct, IFdbKeyRange
 		{
-			//PERF: TODO: optimize!
+			//PERF: optimize!
 			trans.ClearRange(range.ToKeyRange());
 		}
 
@@ -4901,7 +4901,7 @@ namespace FoundationDB.Client
 			var buffer = new KeySelector[selectors.Length];
 			for(int i = 0; i < selectors.Length; i++)
 			{
-				buffer[i] = selectors[i].ToSelector(); //PERF: TODO: Optimize!
+				buffer[i] = selectors[i].ToSelector(); //PERF: Optimize!
 			}
 			return trans.GetKeysAsync(buffer);
 		}
@@ -4923,7 +4923,7 @@ namespace FoundationDB.Client
 			var buffer = new List<KeySelector>(selectors.TryGetNonEnumeratedCount(out var count) ? count : 0);
 			foreach(var selector in selectors)
 			{
-				buffer.Add(selector.ToSelector()); //PERF: TODO: Optimize!
+				buffer.Add(selector.ToSelector()); //PERF: Optimize!
 			}
 			return trans.GetKeysAsync(CollectionsMarshal.AsSpan(buffer));
 		}

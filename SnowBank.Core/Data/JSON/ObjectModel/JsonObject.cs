@@ -4275,7 +4275,7 @@ namespace SnowBank.Data.Json
 			{
 				if (format is "Q" or "q")
 				{
-					//PERF: TODO: is there a better way?
+					//PERF: is there a better way?
 					return Encoding.UTF8.TryGetBytes(GetCompactRepresentation(0), destination, out bytesWritten);
 				}
 				if (format is "B" or "b")

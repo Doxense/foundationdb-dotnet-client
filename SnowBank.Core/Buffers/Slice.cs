@@ -642,7 +642,7 @@ namespace System
 
 			// negative values mean from the end
 			if (offset < 0) offset += this.Count;
-			//REVIEW: TODO: get rid of negative indexing, and create a different "substring from the end" method?
+			//TODO: get rid of negative indexing, and create a different "substring from the end" method?
 
 			// bound check
 			if ((uint) offset > (uint) len) UnsafeHelpers.Errors.ThrowOffsetOutsideSlice();
@@ -1800,7 +1800,6 @@ namespace System
 			// - Only difference is that Nil and Empty are equivalent (either for separator, or for the elements of the array)
 
 			Contract.NotNull(values);
-			//REVIEW: support negative indexing ?
 			if (startIndex < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must be a positive integer");
 			if (count < 0) throw ThrowHelper.ArgumentOutOfRangeException(nameof(count), count, "Count must be a positive integer");
 			if (startIndex > values.Length - count) throw ThrowHelper.ArgumentOutOfRangeException(nameof(startIndex), startIndex, "Start index must fit within the array");
@@ -1809,7 +1808,10 @@ namespace System
 			if (count == 1) return values[startIndex].GetBytes() ?? [ ];
 
 			int size = 0;
-			for (int i = 0; i < count; i++) size = checked(size + values[startIndex + i].Count);
+			for (int i = 0; i < count; i++)
+			{
+				size = checked(size + values[startIndex + i].Count);
+			}
 			size = checked(size + (count - 1) * separator.Count);
 
 			// if the size overflows, that means that the resulting buffer would need to be >= 2 GB, which is not possible!

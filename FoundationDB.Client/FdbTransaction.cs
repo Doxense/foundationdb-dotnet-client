@@ -445,7 +445,7 @@ namespace FoundationDB.Client
 			lock (this)
 			{
 				var cache = GetMetadataVersionKeysCache();
-				if (!cache.TryGetValue(key, out t) || t.Task == null!) //REVIEW: BUGBUG: should this be null or PoisonedMetadataVersion ?
+				if (!cache.TryGetValue(key, out t) || t.Task == null!) //BUGBUG: should this be null or PoisonedMetadataVersion ?
 				{
 					mustAddConflictRange = !snapshot;
 					t = (ReadAndParseMetadataVersionSlow(key), snapshot);

@@ -1415,7 +1415,7 @@ namespace System
 			// ReSharper disable once MemberHidesStaticFromOuterClass
 			public Uuid48 NewUuid()
 			{
-				//REVIEW: OPTIMIZE: use a per-thread instance of the rng and scratch buffer?
+				//OPTIMIZE: use a per-thread instance of the rng and scratch buffer?
 				// => right now, NewUuid() is a Global Lock for the whole process!
 				lock (this.Rng)
 				{

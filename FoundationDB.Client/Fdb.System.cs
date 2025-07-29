@@ -656,7 +656,7 @@ namespace FoundationDB.Client
 			public static Task<long> EstimateCountAsync(IFdbDatabase db, KeyRange range, CancellationToken ct)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, null, ct);
-				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
+				//BUGBUG: REFACTORING: deal with null value for End!
 			}
 
 			/// <summary>Estimates the number of keys in the specified range.</summary>
@@ -681,7 +681,7 @@ namespace FoundationDB.Client
 			public static Task<long> EstimateCountAsync(IFdbDatabaseProvider db, KeyRange range, CancellationToken ct)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, null, ct);
-				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
+				//BUGBUG: REFACTORING: deal with null value for End!
 			}
 
 			/// <summary>Estimates the number of keys in the specified range.</summary>
@@ -694,7 +694,7 @@ namespace FoundationDB.Client
 			public static Task<long> EstimateCountAsync(IFdbDatabase db, KeyRange range, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, onProgress, ct);
-				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
+				//BUGBUG: REFACTORING: deal with null value for End!
 			}
 
 			/// <summary>Estimates the number of keys in the specified range.</summary>
@@ -721,7 +721,7 @@ namespace FoundationDB.Client
 			public static Task<long> EstimateCountAsync(IFdbDatabaseProvider db, KeyRange range, IProgress<(long Count, Slice Current)> onProgress, CancellationToken ct)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, onProgress, ct);
-				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
+				//BUGBUG: REFACTORING: deal with null value for End!
 			}
 
 			/// <summary>Estimates the number of keys in the specified range.</summary>

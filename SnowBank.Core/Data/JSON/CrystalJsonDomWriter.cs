@@ -857,7 +857,7 @@ namespace SnowBank.Data.Json
 			Leave(ref context, value);
 
 			if (m_readOnly)
-			{ //REVIEW: PERF: TODO: find a more efficient way?
+			{ //PERF: find a more efficient way?
 				obj.Freeze();
 			}
 
