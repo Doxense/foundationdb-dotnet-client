@@ -215,18 +215,10 @@ namespace FoundationDB.Layers.Collections
 				Contract.NotNull(trans);
 				Contract.NotNull(ids);
 
-				//PERF: TODO: implement GetValuesAsync<> that also takes a value codec?
-				var kv = await trans.GetValuesAsync(ids, id => this.Subspace.Key(this.Parent.KeyCodec.EncodeKey(id))).ConfigureAwait(false);
-				if (kv.Length == 0) return [ ];
-
-				var result = new TValue?[kv.Length];
-				var decoder = this.Parent.ValueCodec;
-				for (int i = 0; i < kv.Length; i++)
-				{
-					result[i] = decoder.DecodeValue(kv[i].Span);
-				}
-
-				return result;
+				return await trans.GetValuesAsync(
+					ids, id => this.Subspace.Key(this.Parent.KeyCodec.EncodeKey(id)),
+					(value, found) => found ? this.Parent.ValueCodec.DecodeValue(value) : default
+				).ConfigureAwait(false);
 			}
 
 			#endregion

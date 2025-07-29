@@ -154,6 +154,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Task<TValue?> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, IValueEncoder<TValue> encoder)
 			=> trans.GetAsync(ToSpanKey(key), encoder);
 
@@ -167,6 +168,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Task<TValue?> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<byte> key, IValueEncoder<TValue> encoder)
 		{
 			Contract.NotNull(encoder);
@@ -4538,6 +4540,146 @@ namespace FoundationDB.Client
 					encodedKeys.Add(buffer.Intern(span));
 				}
 				return trans.GetValuesAsync(encodedKeys.AsSpan());
+			}
+			finally
+			{
+				if (tmp is not null)
+				{
+					pool.Return(tmp);
+				}
+				buffer.ReleaseMemoryUnsafe();
+				encodedKeys.Dispose();
+			}
+		}
+
+		public static Task<TResult[]> GetValuesAsync<TElement, TKey, TResult>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TElement> items, Func<TElement, TKey> keySelector, FdbValueDecoder<TResult> valueDecoder)
+			where TKey : struct, IFdbKey
+			=> trans.GetValuesAsync(items, keySelector, static (fn, item) => fn(item), valueDecoder);
+
+		public static Task<TResult[]> GetValuesAsync<TElement, TKeyState, TKey, TResult>(this IFdbReadOnlyTransaction trans, ReadOnlySpan<TElement> items, TKeyState state, Func<TKeyState, TElement, TKey> keySelector, FdbValueDecoder<TResult> valueDecoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(keySelector);
+
+			if (items.Length == 0)
+			{
+				return Task.FromResult(Array.Empty<TResult>());
+			}
+
+			//TODO: fast-path for one ? is this frequent enough to justify?
+
+			// we cannot (as of .NET 10) use pass either a ReadOnlySpan<byte>[] nor a ReadOnlySpan<ReadOnlySpan<byte>> to the native handler
+			// => we have to allocate the encoded keys into the heap, but at least we can use a SliceBuffer for this
+
+			// Pool used by the SliceBuffer (to allocate pages of 4K bytes for the key), and for the temp encoding buffer used to encode each key
+			var pool = ArrayPool<byte>.Shared;
+
+			var buffer = new SliceBuffer(4096, pool: pool);
+			Slice[]? encodedKeys = null;
+			byte[]? tmp = null;
+			int tmpMaxSize = 0;
+			int count = 0;
+			var results = new TResult[items.Length];
+			try
+			{
+				encodedKeys = ArrayPool<Slice>.Shared.Rent(items.Length);
+				for (int i = 0; i < items.Length; i++)
+				{
+					var key = keySelector(state, items[i]);
+
+					// if we know the size, we can directly encode in the SliceBuffer
+					if (key.TryGetSizeHint(out var sizeHint))
+					{
+						var chunk = buffer.GetSpan(sizeHint);
+						if (key.TryEncode(chunk, out var bytesWritten))
+						{
+							encodedKeys[i] = buffer.Advance(bytesWritten);
+							++count;
+							continue;
+						}
+						// there is small change that the size estimated was wrong (too small)
+						// => fallback to slow encoding
+					}
+
+					// encode in a temp location, and copy over into the slice buffer
+					var keyBytes = FdbKeyHelpers.Encode(in key, ref tmp, pool, sizeHint);
+					tmpMaxSize = Math.Max(tmpMaxSize, keyBytes.Length);
+					encodedKeys[i] = buffer.Intern(keyBytes);
+					++count;
+				}
+				Contract.Debug.Assert(count == items.Length);
+
+				return Execute(trans, encodedKeys.AsMemory(0, count), results, valueDecoder);
+
+				static async Task<TResult[]> Execute(IFdbReadOnlyTransaction trans, ReadOnlyMemory<Slice> keys, TResult[] results, FdbValueDecoder<TResult> valueDecoder)
+				{
+					await trans.GetValuesAsync(keys.Span, results.AsMemory(), valueDecoder).ConfigureAwait(false);
+					return results;
+				}
+			}
+			finally
+			{
+				if (encodedKeys is not null)
+				{
+					if (count > 0)
+					{ // clear the keys we encoded, otherwise the GC could keep the Slice buffers alive!
+						encodedKeys.AsSpan(0, count).Clear();
+					}
+					ArrayPool<Slice>.Shared.Return(encodedKeys);
+				}
+				if (tmp is not null)
+				{
+					tmp.AsSpan(0, tmpMaxSize).Clear();
+					pool.Return(tmp);
+				}
+				buffer.ReleaseMemoryUnsafe(clear: true);
+			}
+		}
+
+		public static Task<TResult[]> GetValuesAsync<TElement, TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<TElement> items, Func<TElement, TKey> keySelector, FdbValueDecoder<TResult> valueDecoder)
+			where TKey : struct, IFdbKey
+			=> trans.GetValuesAsync(items, keySelector, static (fn, item) => fn(item), valueDecoder);
+
+		public static Task<TResult[]> GetValuesAsync<TElement, TKeyState, TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<TElement> items, TKeyState state, Func<TKeyState, TElement, TKey> keySelector, FdbValueDecoder<TResult> valueDecoder)
+			where TKey : struct, IFdbKey
+		{
+			Contract.NotNull(trans);
+			Contract.NotNull(items);
+			Contract.NotNull(keySelector);
+
+			if (items.TryGetSpan(out var itemsSpan))
+			{
+				return trans.GetValuesAsync(itemsSpan, state, keySelector, valueDecoder);
+			}
+
+			// we cannot (as of .NET 10) pass either a ReadOnlySpan<byte>[] or ReadOnlySpan<ReadOnlySpan<byte>> to the native handler
+			// => we have to allocate the encoded keys into the heap, but at least we can use a SliceBuffer for this
+
+			var pool = ArrayPool<byte>.Shared;
+			var buffer = new SliceBuffer(0, pool: pool);
+			PooledBuffer<Slice> encodedKeys = new(ArrayPool<Slice>.Shared, items.TryGetNonEnumeratedCount(out int count) ? count : 0);
+			byte[]? tmp = null;
+			try
+			{
+				foreach(var item in items)
+				{
+					var key = keySelector(state, item);
+					if (!key.TryGetSpan(out var span))
+					{
+						span = FdbKeyHelpers.Encode(in key, ref tmp, pool);
+					}
+					encodedKeys.Add(buffer.Intern(span));
+				}
+
+				return Execute(trans, encodedKeys.AsMemory(), valueDecoder);
+
+				static async Task<TResult[]> Execute(IFdbReadOnlyTransaction trans, ReadOnlyMemory<Slice> keys, FdbValueDecoder<TResult> valueDecoder)
+				{
+					var results = new TResult[keys.Length];
+					await trans.GetValuesAsync(keys.Span, results.AsMemory(), valueDecoder).ConfigureAwait(false);
+					return results;
+				}
 			}
 			finally
 			{
