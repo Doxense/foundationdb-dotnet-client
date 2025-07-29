@@ -871,7 +871,7 @@ namespace FoundationDB.Client.Tests
 					ids,
 					subspace, static (s, id) => s.Key(id),
 					results.AsMemory(),
-					decoder: (value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * 2 : -1
+					valueDecoder: (value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * 2 : -1
 				);
 				
 				Log(string.Join(", ", results));
@@ -914,7 +914,7 @@ namespace FoundationDB.Client.Tests
 				await tr.GetValuesAsync(
 					ids, subspace, static (s, id) => s.Key(id),
 					results.AsMemory(),
-					decoder: (value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * 3 : -1
+					valueDecoder: (value, found) => found ? TuPack.DecodeKeyAt<int>(value, 1) * 3 : -1
 				);
 				
 				Log(string.Join(", ", results));

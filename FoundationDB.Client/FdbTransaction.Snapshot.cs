@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
-			public Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, FdbValueDecoder<TResult> decoder)
+			public Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, FdbValueDecoder<TResult> valueDecoder)
 			{
 				EnsureCanRead();
 
@@ -132,12 +132,12 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
-				return m_parent.PerformGetOperation(key, snapshot: true, decoder);
+				return m_parent.PerformGetOperation(key, snapshot: true, valueDecoder);
 			}
 
 
 			/// <inheritdoc />
-			public Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, TState state, FdbValueDecoder<TState, TResult> decoder)
+			public Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, TState valueState, FdbValueDecoder<TState, TResult> valueDecoder)
 			{
 				EnsureCanRead();
 
@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
 #endif
 
-				return m_parent.PerformGetOperation(key, snapshot: true, state, decoder);
+				return m_parent.PerformGetOperation(key, snapshot: true, valueState, valueDecoder);
 			}
 
 			/// <inheritdoc />
@@ -165,7 +165,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
-			public Task GetValuesAsync<TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, FdbValueDecoder<TValue> decoder)
+			public Task GetValuesAsync<TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, FdbValueDecoder<TValue> valueDecoder)
 			{
 				EnsureCanRead();
 
@@ -175,11 +175,11 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
 #endif
 
-				return m_parent.PerformGetValuesOperation(keys, values, decoder, snapshot: true);
+				return m_parent.PerformGetValuesOperation(keys, values, valueDecoder, snapshot: true);
 			}
 
 			/// <inheritdoc />
-			public Task GetValuesAsync<TState, TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, TState state, FdbValueDecoder<TState, TValue> decoder)
+			public Task GetValuesAsync<TState, TValue>(ReadOnlySpan<Slice> keys, Memory<TValue> values, TState valueState, FdbValueDecoder<TState, TValue> valueDecoder)
 			{
 				EnsureCanRead();
 
@@ -189,7 +189,7 @@ namespace FoundationDB.Client
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
 #endif
 
-				return m_parent.PerformGetValuesOperation(keys, values, state, decoder, snapshot: true);
+				return m_parent.PerformGetValuesOperation(keys, values, valueState, valueDecoder, snapshot: true);
 			}
 
 			/// <inheritdoc />

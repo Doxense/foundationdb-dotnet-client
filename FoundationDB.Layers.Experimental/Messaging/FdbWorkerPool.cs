@@ -165,7 +165,7 @@ namespace FoundationDB.Layers.Messaging
 
 				// get the current size of the queue
 				var lastKey = await tr.Snapshot.GetKeyAsync(this.Subspace.Key(queue).NextSibling().LastLessThan()).ConfigureAwait(false);
-				//PERF: TODO: implement '<' between FdbTupleKey and Slice ?
+				//PERF: implement '<' between FdbTupleKey and Slice ?
 				int count = lastKey < this.Subspace.Key(queue).ToSlice() ? 0 : this.Subspace.DecodeAt<int>(lastKey, 1) + 1;
 
 				// set the value

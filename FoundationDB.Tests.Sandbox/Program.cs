@@ -547,7 +547,7 @@ namespace FoundationDB.Tests.Sandbox
 			using (var trans = db.BeginTransaction(ct))
 			{
 				var subspace = await location.Resolve(trans);
-				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace.Key(i).ToSlice())); //PERF: TODO: optimize!
+				_ = await trans.GetBatchAsync(Enumerable.Range(0, N).Select(i => subspace.Key(i).ToSlice())); //PERF: optimize!
 			}
 			sw.Stop();
 			Console.WriteLine($"Took {sw.Elapsed.TotalSeconds:N3} sec to read {N:N0} items ({FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N)}/read, {N / sw.Elapsed.TotalSeconds:N0} read/sec)");
