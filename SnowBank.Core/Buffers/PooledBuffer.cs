@@ -238,8 +238,11 @@ namespace SnowBank.Buffers
 			this.Count = 0;
 		}
 
-		/// <summary>Returns a span of items previously written to this buffer.</summary>
+		/// <summary>Returns a span of all items previously written to this buffer.</summary>
 		public readonly Span<T> AsSpan() => this.Buffer.AsSpan(0, this.Count);
+
+		/// <summary>Returns a memory region of all items previously written to this buffer.</summary>
+		public readonly Memory<T> AsMemory() => this.Buffer.AsMemory(0, this.Count);
 
 		/// <summary>Returns an array of items previously written to this buffer.</summary>
 		/// <param name="clear">If <c>true</c>, this section of the buffer will be cleared, so that it can be reused immediately without leaking references.</param>
