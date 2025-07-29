@@ -304,22 +304,22 @@ namespace FoundationDB.Client
 
 		#region Little Endian...
 
-		/// <summary>Returns a key that wraps a signed 32-bit integer, encoded as little endian using as few bytes as possible</summary>
+		/// <summary>Returns a value that wraps a signed 32-bit integer, encoded as little endian using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbCompactLittleEndianUInt32Value ToCompactLittleEndian(int value) => new(unchecked((uint) value));
 
-		/// <summary>Returns a key that wraps an unsigned 32-bit integer, encoded as little endian using as few bytes as possible</summary>
+		/// <summary>Returns a value that wraps an unsigned 32-bit integer, encoded as little endian using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbCompactLittleEndianUInt32Value ToCompactLittleEndian(uint value) => new(value);
 
-		/// <summary>Returns a key that wraps a signed 64-bit integer, encoded as little endian using as few bytes as possible</summary>
+		/// <summary>Returns a value that wraps a signed 64-bit integer, encoded as little endian using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbCompactLittleEndianUInt64Value ToCompactLittleEndian(long value) => new(unchecked((ulong) value));
 
-		/// <summary>Returns a key that wraps an unsigned 64-bit integer, encoded as little endian using as few bytes as possible</summary>
+		/// <summary>Returns a value that wraps an unsigned 64-bit integer, encoded as little endian using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>34 12</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbCompactLittleEndianUInt64Value ToCompactLittleEndian(ulong value) => new(value);
@@ -328,22 +328,22 @@ namespace FoundationDB.Client
 
 		#region Big Endian...
 
-		/// <summary>Returns a key that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
+		/// <summary>Returns a value that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbCompactBigEndianUInt32Value ToCompactBigEndian(int value) => new(unchecked((uint) value));
 
-		/// <summary>Returns a key that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
+		/// <summary>Returns a value that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbCompactBigEndianUInt32Value ToCompactBigEndian(uint value) => new(value);
 
-		/// <summary>Returns a key that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
+		/// <summary>Returns a value that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbCompactBigEndianUInt64Value ToCompactBigEndian(long value) => new(unchecked((ulong) value));
 
-		/// <summary>Returns a key that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
+		/// <summary>Returns a value that wraps an integer, encoded in big endian, using as few bytes as possible</summary>
 		/// <remarks>Ex: <c>0x1234</c> will be encoded as <c>12 34</c></remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbCompactBigEndianUInt64Value ToCompactBigEndian(ulong value) => new(value);
@@ -354,8 +354,28 @@ namespace FoundationDB.Client
 
 		#region Uuids...
 
-		/// <summary>Returns a key that wraps a 128-bit UUID, encoded as 16 bytes</summary>
+		/// <summary>Returns a value that wraps a 128-bit UUID, encoded as 16 bytes</summary>
 		public static FdbValue<Guid, SpanEncoders.FixedSizeUuidEncoder> ToUuid128(Guid value) => new(value);
+
+		#endregion
+
+		#region JSON...
+
+		/// <summary>Returns a value that wraps a <see cref="JsonValue"/>, encoded as UTF-8 bytes</summary>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[OverloadResolutionPriority(1)]
+		public static FdbJsonValue ToJson(JsonValue value, CrystalJsonSettings? settings = null)
+		{
+			return new(value, settings);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static FdbJsonValue<T> ToJson<T>(T? value, IJsonSerializer<T>? serializer = null, CrystalJsonSettings? settings = null)
+		{
+			return new(value, serializer, settings);
+		}
 
 		#endregion
 

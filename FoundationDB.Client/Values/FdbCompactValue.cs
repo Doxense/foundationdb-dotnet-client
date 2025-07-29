@@ -86,6 +86,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
 		{
+			Slice bytes => Equals(bytes.Span),
 			FdbCompactLittleEndianUInt32Value value => Equals(value),
 			FdbRawValue value => Equals(value),
 			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
@@ -180,6 +181,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
 		{
+			Slice bytes => Equals(bytes.Span),
 			FdbCompactLittleEndianUInt64Value value => Equals(value),
 			FdbRawValue value => Equals(value),
 			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
@@ -274,6 +276,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
 		{
+			Slice bytes => Equals(bytes.Span),
 			FdbCompactBigEndianUInt32Value value => Equals(value),
 			FdbRawValue value => Equals(value),
 			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),
@@ -368,6 +371,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public override bool Equals([NotNullWhen(true)] object? obj) => obj switch
 		{
+			Slice bytes => Equals(bytes.Span),
 			FdbCompactBigEndianUInt64Value value => Equals(value),
 			FdbRawValue value => Equals(value),
 			IFdbValue value => FdbValueHelpers.AreEqual(in this, value),

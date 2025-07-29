@@ -196,7 +196,9 @@ namespace FoundationDB.Client.Tests
 			static void Verify<TValue>(TValue value, Slice expected)
 				where TValue : struct, IFdbValue
 			{
+				Log($"# {value}");
 				var slice = value.ToSlice();
+				Log($"> [{slice.Count:N0}] {slice}");
 				if (!slice.Equals(expected))
 				{
 					DumpVersus(slice, expected);
@@ -204,6 +206,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(expected.Count));
+				Log();
 			}
 
 			Assert.Multiple(() =>
@@ -260,7 +263,9 @@ namespace FoundationDB.Client.Tests
 			static void Verify<TValue>(TValue value, Slice expected)
 				where TValue : struct, IFdbValue
 			{
+				Log($"# {value}");
 				var slice = value.ToSlice();
+				Log($"> [{slice.Count:N0}] {slice}");
 				if (!slice.Equals(expected))
 				{
 					DumpVersus(slice, expected);
@@ -268,6 +273,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(expected.Count));
+				Log();
 			}
 
 			Assert.Multiple(() =>
@@ -324,7 +330,9 @@ namespace FoundationDB.Client.Tests
 			static void Verify<TValue>(TValue value, Slice expected)
 				where TValue : struct, IFdbValue
 			{
+				Log($"# {value}");
 				var slice = value.ToSlice();
+				Log($"> [{slice.Count:N0}] {slice}");
 				if (!slice.Equals(expected))
 				{
 					DumpVersus(slice, expected);
@@ -332,6 +340,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
+				Log();
 			}
 
 			Assert.Multiple(() =>
@@ -389,7 +398,9 @@ namespace FoundationDB.Client.Tests
 			static void Verify<TValue>(TValue value, Slice expected)
 				where TValue : struct, IFdbValue
 			{
+				Log($"# {value}");
 				var slice = value.ToSlice();
+				Log($"> [{slice.Count:N0}] {slice}");
 				if (!slice.Equals(expected))
 				{
 					DumpVersus(slice, expected);
@@ -397,6 +408,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
+				Log();
 			}
 
 			Assert.Multiple(() =>
@@ -444,6 +456,56 @@ namespace FoundationDB.Client.Tests
 				Verify(FdbValue.ToCompactBigEndian((ulong) 0x123456789ABCDE), Slice.FromUInt64BE(0x123456789ABCDE));
 				Verify(FdbValue.ToCompactBigEndian((ulong) 0x123456789ABCDEF0), Slice.FromUInt64BE(0x123456789ABCDEF0));
 				Verify(FdbValue.ToCompactBigEndian(ulong.MaxValue), Slice.FromUInt64BE(ulong.MaxValue));
+			});
+
+		}
+
+		public sealed record Person
+		{
+			[JsonProperty("firstName")]
+			public required string FirstName { get; init; }
+
+			[JsonProperty("familyName")]
+			public required string FamilyName { get; init; }
+		}
+
+		[Test]
+		public void Test_FdbValue_Json_Encoding()
+		{
+			static void Verify<TValue>(TValue value, Slice expected)
+				where TValue : struct, IFdbValue
+			{
+				Log($"# {value}");
+				var slice = value.ToSlice();
+				Log($"> [{slice.Count:N0}] {slice}");
+				if (!slice.Equals(expected))
+				{
+					DumpVersus(slice, expected);
+					Assert.That(slice, Is.EqualTo(expected));
+				}
+
+				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
+				Assert.That(value.TryGetSizeHint(out int size), Is.False.WithOutput(size).Zero);
+				Log();
+			}
+
+			Assert.Multiple(() =>
+			{
+				Verify(FdbValue.ToJson(JsonNull.Null), Slice.FromString("null"));
+				Verify(FdbValue.ToJson(123), Slice.FromString("123"));
+				Verify(FdbValue.ToJson("Hello, World!"), Slice.FromString("\"Hello, World!\""));
+				Verify(FdbValue.ToJson(JsonArray.Create([ 123, 456, 789 ])), Slice.FromString("[123,456,789]"));
+				Verify(FdbValue.ToJson(JsonObject.Create([ ("hello", "world"), ("foo", 123), ])), Slice.FromString("{ \"hello\": \"world\", \"foo\": 123 }"));
+			});
+
+			Assert.Multiple(() =>
+			{
+				Verify(FdbValue.ToJson<int>(123), Slice.FromString("123"));
+				Verify(FdbValue.ToJson<string>("Hello, World!"), Slice.FromString("\"Hello, World!\""));
+				Verify(FdbValue.ToJson<int[]>([ 123, 456, 789 ]), Slice.FromString("[123,456,789]"));
+				Verify(FdbValue.ToJson<int[]>([ 123, 456, 789 ], settings: CrystalJsonSettings.Json), Slice.FromString("[ 123, 456, 789 ]"));
+				Verify(FdbValue.ToJson<Person>(new() { FirstName = "John", FamilyName = "Wick" }), Slice.FromString("{\"firstName\":\"John\",\"familyName\":\"Wick\"}"));
+				Verify(FdbValue.ToJson<Person>(new() { FirstName = "John", FamilyName = "Wick" }, settings: CrystalJsonSettings.Json), Slice.FromString("{ \"firstName\": \"John\", \"familyName\": \"Wick\" }"));
 			});
 
 		}
