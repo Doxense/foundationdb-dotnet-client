@@ -91,18 +91,18 @@ namespace FoundationDB.Client
 
 			#region JSON Status
 
-			private static readonly Slice StatusJsonKey = Slice.FromByteString("\xFF\xFF/status/json");
-
 			/// <summary>Query the current status of the cluster</summary>
 			public static async Task<FdbSystemStatus?> GetStatusAsync(IFdbReadOnlyTransaction trans)
 			{
 				Contract.NotNull(trans);
 
-				var data = await trans.GetAsync(StatusJsonKey.Span).ConfigureAwait(false);
+				// read the special key "\xFF\xFF/status/json"
+				var doc = await trans.GetAsync(
+					FdbKey.ToSpecialKey("/status/json"),
+					(value, found) => found ? CrystalJson.Parse(value).AsObject() : null
+				).ConfigureAwait(false);
 
-				if (data.IsNullOrEmpty) return null;
-
-				var doc = CrystalJson.Parse(data).AsObject();
+				if (doc is null) return null; // ???
 
 				long rv = 0;
 				if (doc.ContainsKey("cluster"))
@@ -110,7 +110,7 @@ namespace FoundationDB.Client
 					rv = await trans.GetReadVersionAsync().ConfigureAwait(false);
 				}
 
-				return new FdbSystemStatus(doc, rv, data);
+				return new FdbSystemStatus(doc, rv);
 			}
 
 			/// <summary>Queries the current status of the cluster</summary>
@@ -178,7 +178,7 @@ namespace FoundationDB.Client
 					tr.Options.WithPrioritySystemImmediate();
 					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
-					return tr.GetAsync(Fdb.System.Coordinators.Span);
+					return tr.GetAsync(FdbKey.ToSystemKey("/coordinators"));
 				}, ct).ConfigureAwait(false);
 
 				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");

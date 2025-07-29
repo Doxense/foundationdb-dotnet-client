@@ -29,6 +29,7 @@
 // ReSharper disable CompareOfFloatsByEqualityOperator
 namespace FdbTop
 {
+	using SnowBank.Data.Json;
 
 	public static class Program
 	{
@@ -258,7 +259,7 @@ namespace FdbTop
 						{
 							using (var fs = System.IO.File.Create(@".\\status.json"))
 							{
-								await fs.WriteAsync(status.RawData.Memory, cancel);
+								await fs.WriteAsync(status.JsonData.ToJsonSlice().Memory, cancel);
 								await fs.FlushAsync(cancel);
 							}
 							saveNext = false;
