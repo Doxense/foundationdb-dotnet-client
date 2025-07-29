@@ -217,6 +217,7 @@ namespace SnowBank.Data.Json
 		[Pure]
 		[OverloadResolutionPriority(1)]
 		[Obsolete("Use ToJsonTextIndented() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static string ToJsonCompact(this JsonValue? value) => value?.ToJsonText(CrystalJsonSettings.JsonCompact) ?? JsonTokens.Null;
 
 		/// <summary>Serializes a <see cref="JsonValue"/> into the most compact text literal possible</summary>
@@ -231,6 +232,7 @@ namespace SnowBank.Data.Json
 		[Pure]
 		[OverloadResolutionPriority(1)]
 		[Obsolete("Use ToJsonTextIndented() instead")]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static string ToJsonIndented(this JsonValue? value) => value?.ToJsonText(CrystalJsonSettings.JsonIndented) ?? JsonTokens.Null;
 
 		/// <summary>Serializes a <see cref="JsonValue"/> into a human-friendly indented text representation (for logging, console output, etc...)</summary>
