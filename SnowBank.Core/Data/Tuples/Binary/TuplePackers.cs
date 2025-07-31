@@ -1586,16 +1586,27 @@ namespace SnowBank.Data.Tuples.Binary
 						if (slice.Length == 1)
 						{
 							sb.Append("|Directory|");
-							return;
 						}
-						break;
+						else
+						{
+							sb.Append("|Directory:");
+							sb.Append(Slice.Dump(slice[1..]));
+							sb.Append('|');
+						}
+						return;
 					}
 					case TupleTypes.Escape:
 					{
-						var t = slice.Length == 1
-							? TuPackUserType.System
-							: TuPackUserType.SystemKey(slice[1..].ToSlice());
-						sb.Append(t.ToString()); //PERF: reduce allocations!
+						if (slice.Length == 1)
+						{
+							sb.Append("|System|");
+						}
+						else
+						{
+							sb.Append("|Directory:");
+							sb.Append(Slice.Dump(slice[1..]));
+							sb.Append('|');
+						}
 						return;
 					}
 				}
