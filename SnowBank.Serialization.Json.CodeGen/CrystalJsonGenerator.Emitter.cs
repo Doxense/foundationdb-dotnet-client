@@ -2099,7 +2099,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 				foreach (var member in typeDef.Members)
 				{
-					sb.Comment($"\"{member.Name}\" => {member.Type.FullName}{(member.IsNullableRefType() ? "?" : "")} {member.MemberName}{(member.IsKey ? ", KEY" : "")}{(member.IsField ? ", field" : ", prop")}{(member.IsRequired ? ", required" : "")}{(member.IsInitOnly ? ", initOnly" : member.IsReadOnly ? ", readOnly" : "")}");
+					sb.Comment($"\"{member.Name}\" => {member.Type.FullName} {member.MemberName}{(member.IsKey ? ", KEY" : "")}{(member.IsField ? ", field" : ", prop")}{(member.IsRequired ? ", required" : "")}{(member.IsInitOnly ? ", initOnly" : member.IsReadOnly ? ", readOnly" : "")}");
 
 					var getterExpr = $"instance.{member.MemberName}"; //TODO: maybe use unsafe accessors for some fields?
 					var packerExpr = GetMemberPackerExpression(member, getterExpr);

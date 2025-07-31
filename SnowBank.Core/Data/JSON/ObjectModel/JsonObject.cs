@@ -1287,6 +1287,8 @@ namespace SnowBank.Data.Json
 #endif
 		}
 
+		//REVIEW: should all these AddIfXYZ() be moved to extension methods??
+		
 		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if its value is not null or missing</summary>
 		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
 		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/> or an instance of <see cref="JsonNull"/></remarks>
@@ -1299,6 +1301,216 @@ namespace SnowBank.Data.Json
 			if (value is not (null or JsonNull))
 			{
 				m_items.Add(key, value);
+			}
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if its value is not null</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/></remarks>
+		public void AddIfNotNull(string key, string? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value is not null)
+			{
+				m_items.Add(key, JsonString.Return(value));
+			}
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if its value is not null or empty</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/> or the empty string</remarks>
+		public void AddIfNotNullOrEmpty(string key, string? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (!string.IsNullOrEmpty(value))
+			{
+				m_items.Add(key, JsonString.Return(value));
+			}
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if its value is <c>true</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="false"/></remarks>
+		public void AddIfTrue(string key, bool condition, JsonValue? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (condition)
+			{
+				m_items.Add(key, value ?? JsonNull.Null);
+			}
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if its value is <c>true</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="false"/></remarks>
+		public void AddIfTrue(string key, bool value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value)
+			{
+				m_items.Add(key, JsonBoolean.True);
+			}
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if its value is <c>true</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/> or <see langword="false"/></remarks>
+		public void AddIfTrue(string key, bool? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value ?? false)
+			{
+				m_items.Add(key, JsonBoolean.True);
+			}
+		}
+
+		/// <summary>Adds an element to this <see cref="JsonObject"/>, only if its value is not null or missing</summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/></remarks>
+		public void AddIfNotNull(string key, bool? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value is not null)
+			{
+				m_items.Add(key, JsonBoolean.Create(value.Value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>0</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="0"/></remarks>
+		public void AddIfNonZero(string key, int value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value != 0)
+			{
+				m_items.Add(key, JsonNumber.Create(value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>null</c> or <c>0</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/> or <see langword="0"/></remarks>
+		public void AddIfNonZero(string key, int? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value is not null && value.Value != 0)
+			{
+				m_items.Add(key, JsonNumber.Create(value.Value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>null</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/></remarks>
+		public void AddIfNotNull(string key, int? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value is not null)
+			{
+				m_items.Add(key, JsonNumber.Create(value.Value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>0</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="0"/></remarks>
+		public void AddIfNonZero(string key, long value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value != 0)
+			{
+				m_items.Add(key, JsonNumber.Create(value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>null</c> or <c>0</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/> or <see langword="0"/></remarks>
+		public void AddIfNonZero(string key, long? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value is not null && value.Value != 0)
+			{
+				m_items.Add(key, JsonNumber.Create(value.Value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>null</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/></remarks>
+		public void AddIfNotNull(string key, long? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value is not null)
+			{
+				m_items.Add(key, JsonNumber.Create(value.Value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>0</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="0"/></remarks>
+		public void AddIfNonZero(string key, double value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value != 0)
+			{
+				m_items.Add(key, JsonNumber.Create(value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>null</c> or <c>0</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/> or <see langword="0"/></remarks>
+		public void AddIfNonZero(string key, double? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value is not null && value.Value != 0)
+			{
+				m_items.Add(key, JsonNumber.Create(value.Value));
+			}
+		}
+
+		/// <summary>Adds a number to this <see cref="JsonObject"/>, only if its value is not <c>null</c></summary>
+		/// <exception cref="T:System.InvalidOperationException">The object is read-only.</exception>
+		/// <remarks>The method is a no-op if <paramref name="value"/> is <see langword="null"/></remarks>
+		public void AddIfNotNull(string key, double? value)
+		{
+			//note: this method is mostly used by generated source code
+			if (m_readOnly) throw FailCannotMutateReadOnlyValue(this);
+			Contract.Debug.Requires(key is not null);
+			if (value is not null)
+			{
+				m_items.Add(key, JsonNumber.Create(value.Value));
 			}
 		}
 
