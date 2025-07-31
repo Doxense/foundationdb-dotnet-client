@@ -679,7 +679,7 @@ namespace SnowBank.Diagnostics.Contracts
 		#region GreaterThan...
 
 #if NET8_0_OR_GREATER
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
+		/// <summary>The specified value must not be less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -688,7 +688,7 @@ namespace SnowBank.Diagnostics.Contracts
 			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, T.IsZero(threshold), message);
 		}
 #else
-		/// <summary>The specified value must not less than or equal to the specified lower bound (assert: value > threshold)</summary>
+		/// <summary>The specified value must not be less than or equal to the specified lower bound (assert: value > threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -698,12 +698,21 @@ namespace SnowBank.Diagnostics.Contracts
 		}
 #endif
 
+		/// <summary>The specified value must not be less than or equal to the specified lower bound (assert: value > threshold)</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
+		public static void GreaterThan<T>(TimeSpan value, TimeSpan threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+			where T : System.Numerics.INumber<T>
+		{
+			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == TimeSpan.Zero, message);
+		}
+
 		#endregion
 
 		#region GreaterOrEqual...
 
 #if NET8_0_OR_GREATER
-		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
+		/// <summary>The specified value must not be less than the specified lower bound (assert: value >= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -722,12 +731,20 @@ namespace SnowBank.Diagnostics.Contracts
 		}
 #endif
 
+		/// <summary>The specified <see cref="TimeSpan"/> must not be less than the specified lower bound (assert: value >= threshold)</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[StackTraceHidden]
+		public static void GreaterOrEqual(TimeSpan value, TimeSpan threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
+		{
+			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold == TimeSpan.Zero, message);
+		}
+
 		#endregion
 
 		#region LessThan...
 
 #if NET8_0_OR_GREATER
-		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
+		/// <summary>The specified value must not be greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -736,7 +753,7 @@ namespace SnowBank.Diagnostics.Contracts
 			if (value >= threshold) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
 		}
 #else
-		/// <summary>The specified value must not greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
+		/// <summary>The specified value must not be greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -751,7 +768,7 @@ namespace SnowBank.Diagnostics.Contracts
 		#region LessOrEqual...
 
 #if NET8_0_OR_GREATER
-		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
+		/// <summary>The specified value must not be greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
@@ -760,7 +777,7 @@ namespace SnowBank.Diagnostics.Contracts
 			if (value > threshold) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
 		}
 #else
-		/// <summary>The specified value must not greater than the specified upper bound (assert: value &lt;= threshold)</summary>
+		/// <summary>The specified value must not be greater than the specified upper bound (assert: value &lt;= threshold)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
