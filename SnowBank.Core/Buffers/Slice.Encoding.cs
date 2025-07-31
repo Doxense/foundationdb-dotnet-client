@@ -757,11 +757,13 @@ namespace System
 
 		/// <summary>Create a slice from an ASCII string, where all the characters map directory into bytes (0..255). The string will be checked before being encoded.</summary>
 		/// <remarks>
-		/// This method will check each character and fail if at least one is greater than 255.
-		/// Slices encoded by this method are only guaranteed to roundtrip if decoded with <see cref="ToByteString"/>. If the original string only contained ASCII characters (0..127) then it can also be decoded by <see cref="ToUnicode"/>.
-		/// The only difference between this method and <see cref="FromByteString(string)"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.
+		/// <para>This method will check each character and fail if at least one is greater than 255.</para>
+		/// <para>Slices encoded by this method are only guaranteed to roundtrip if decoded with <see cref="ToByteString"/>. If the original string only contained ASCII characters (0..127) then it can also be decoded by <see cref="ToUnicode"/>.</para>
+		/// <para>The only difference between this method and <see cref="FromByteString(string)"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.</para>
+		/// <para>For example, <c>Slice.FromStringAscii("\xff")</c> will return a <see cref="Slice"/> with the first byte set to 0xFF, as expected. But <c>Slice.FromStringAscii("\u1234")</c> will throw an exception.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
+		/// <seealso cref="FromByteString(string)"/>
 		[Pure]
 		public static Slice FromStringAscii(string? value)
 		{
@@ -773,11 +775,13 @@ namespace System
 
 		/// <summary>Create a slice from an ASCII string, where all the characters map directory into bytes (0..255). The string will be checked before being encoded.</summary>
 		/// <remarks>
-		/// This method will check each character and fail if at least one is greater than 255.
-		/// Slices encoded by this method are only guaranteed to roundtrip if decoded with <see cref="ToByteString"/>. If the original string only contained ASCII characters (0..127) then it can also be decoded by <see cref="ToUnicode"/>.
-		/// The only difference between this method and <see cref="FromByteString(ReadOnlySpan{char})"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.
+		/// <para>This method will check each character and fail if at least one is greater than 255.</para>
+		/// <para>Slices encoded by this method are only guaranteed to roundtrip if decoded with <see cref="ToByteString"/>. If the original string only contained ASCII characters (0..127) then it can also be decoded by <see cref="ToUnicode"/>.</para>
+		/// <para>The only difference between this method and <see cref="FromByteString(ReadOnlySpan{char})"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.</para>
+		/// <para>For example, <c>Slice.FromStringAscii("\xff")</c> will return a <see cref="Slice"/> with the first byte set to 0xFF, as expected. But <c>Slice.FromStringAscii("\u1234")</c> will throw an exception.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
+		/// <seealso cref="FromByteString(ReadOnlySpan{char})"/>
 		[Pure]
 		public static Slice FromStringAscii(ReadOnlySpan<char> value)
 		{
@@ -788,11 +792,13 @@ namespace System
 
 		/// <summary>Create a slice from an ASCII string, where all the characters map directory into bytes (0..255). The string will be checked before being encoded.</summary>
 		/// <remarks>
-		/// This method will check each character and fail if at least one is greater than 255.
-		/// Slices encoded by this method are only guaranteed to roundtrip if decoded with <see cref="ToByteString"/>. If the original string only contained ASCII characters (0..127) then it can also be decoded by <see cref="ToUnicode"/>.
-		/// The only difference between this method and <see cref="FromByteString(string?)"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.
+		/// <para>This method will check each character and fail if at least one is greater than 255.</para>
+		/// <para>Slices encoded by this method are only guaranteed to roundtrip if decoded with <see cref="ToByteString"/>. If the original string only contained ASCII characters (0..127) then it can also be decoded by <see cref="ToUnicode"/>.</para>
+		/// <para>The only difference between this method and <see cref="FromByteString(string?)"/> is that the later will truncate non-ASCII characters to their lowest 8 bits, while the former will throw an exception.</para>
+		/// <para>For example, <c>Slice.FromStringAscii("\xff")</c> will return a <see cref="Slice"/> with the first byte set to 0xFF, as expected. But <c>Slice.FromStringAscii("\u1234")</c> will throw an exception.</para>
 		/// </remarks>
 		/// <exception cref="FormatException">If at least one character is greater than 255.</exception>
+		/// <seealso cref="FromByteString(ReadOnlySpan{char},ref byte[])"/>
 		[Pure]
 		public static Slice FromStringAscii(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
@@ -802,9 +808,11 @@ namespace System
 
 		/// <summary>Create a slice from a byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
 		/// <remarks>
-		/// This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.
-		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.
+		/// <para>This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.</para>
+		/// <para>Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.</para>
+		/// <para>For example, <c>Slice.FromByteString("\xff")</c> will return a <see cref="Slice"/> with the first byte set to 0xFF, as expected. But <c>Slice.FromByteString("\u1234")</c> will have the first byte equal to 0x34 (truncated).</para>
 		/// </remarks>
+		/// <seealso cref="FromStringAscii(string)"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromByteString(string? value)
 		{
@@ -815,9 +823,11 @@ namespace System
 
 		/// <summary>Create a slice from a byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
 		/// <remarks>
-		/// This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.
-		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.
+		/// <para>This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.</para>
+		/// <para>Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.</para>
+		/// <para>For example, <c>Slice.FromByteString("\xff")</c> will return a <see cref="Slice"/> with the first byte set to 0xFF, as expected. But <c>Slice.FromByteString("\u1234")</c> will have the first byte equal to 0x34 (truncated).</para>
 		/// </remarks>
+		/// <seealso cref="FromStringAscii(System.ReadOnlySpan{char})"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromByteString(ReadOnlySpan<char> value)
 		{
@@ -827,9 +837,11 @@ namespace System
 
 		/// <summary>Create a slice from a byte string, where all the characters map directly into bytes (0..255), without performing any validation</summary>
 		/// <remarks>
-		/// This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.
-		/// Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.
+		/// <para>This method does not make any effort to detect characters above 255, which will be truncated to their lower 8 bits, introducing corruption when the string will be decoded. Please MAKE SURE to not call this with untrusted data.</para>
+		/// <para>Slices encoded by this method are ONLY compatible with UTF-8 encoding if all characters are between 0 and 127. If this is not the case, then decoding it as a UTF-8 sequence may introduce corruption.</para>
+		/// <para>For example, <c>Slice.FromByteString("\xff")</c> will return a <see cref="Slice"/> with the first byte set to 0xFF, as expected. But <c>Slice.FromByteString("\u1234")</c> will have the first byte equal to 0x34 (truncated).</para>
 		/// </remarks>
+		/// <seealso cref="FromStringAscii(System.ReadOnlySpan{char},ref byte[])"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromByteString(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
