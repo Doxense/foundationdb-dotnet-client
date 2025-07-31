@@ -1093,6 +1093,56 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 		}
 
+		/// <summary>Mark a range with a new value by updating, merging or overriding any previous values in this range</summary>
+		/// <param name="beginInclusive"></param>
+		/// <param name="endExclusive"></param>
+		/// <param name="value"></param>
+		/// <param name="combinator"></param>
+		public void Merge<TData>(TKey beginInclusive, TKey endExclusive, TData value, Func<TValue?, TData, TValue> combinator)
+		{
+			var keyComparer = m_keyComparer;
+			if (keyComparer.Compare(beginInclusive, endExclusive) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
+
+			var cursor = beginInclusive;
+
+			try
+			{
+				while (keyComparer.Compare(cursor, endExclusive) < 0)
+				{
+					if (!Intersect(cursor, endExclusive, out var match))
+					{
+						// empty, simply add the range
+						Mark(cursor, endExclusive, combinator(default, value));
+						return;
+					}
+
+					Contract.Debug.Assert(match.Begin is not null && match.End is not null);
+
+					if (keyComparer.Compare(cursor, match.Begin) < 0)
+					{
+						// we have a tiny slice before that we have to paint
+						Mark(cursor, match.Begin!, combinator(default, value));
+					}
+
+					if (keyComparer.Compare(endExclusive, match.End) <= 0)
+					{
+						// we either cover exactly, or end before, either cases this is the last chunk to update
+						// we are covering more, fully update the rest of the match
+						Mark(match.Begin!, endExclusive, combinator(match.Value, value));
+						break;
+					}
+
+					// update the chunk, and continue
+					Mark(match.Begin!, match.End!, combinator(match.Value, value));
+					cursor = match.End!;
+				}
+			}
+			finally
+			{
+				CheckInvariants();
+			}
+		}
+
 		/// <summary>Returns the value of the range that contains the specified key, if there is one.</summary>
 		/// <param name="key">Key that is being looked up</param>
 		/// <param name="value">If the key intersects a range, receives the value of this range.</param>
