@@ -310,14 +310,32 @@ namespace FoundationDB.Client
 			m_log = null;
 		}
 
-		internal void SetLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options)
+		internal void SetLogHandler(Action<FdbTransactionLog> handler, FdbLoggingOptions options, DateTimeOffset now)
 		{
+			Contract.Debug.Requires(handler is not null && options is not null);
+
 			//note: it is safe not to take a lock here, because we are called before the instance is returned to the caller
 			if (m_log != null) throw new InvalidOperationException("There is already a log handler attached to this transaction.");
+
+			var uuid = Guid.NewGuid(); //TODO: use an external UUID generator?
+
+			var fields = options.Fields;
+
+			var log = new FdbTransactionLog()
+			{
+				Id = this.Id, 
+				Uuid = uuid,
+				SessionId = options.SessionId,
+				Origin = options.Origin,
+				Fields = fields,
+				Commands = [ ],
+				IsReadOnly = this.IsReadOnly,
+				CallSite = (fields & FdbLoggedFields.RecordCreationStackTrace) != 0 ? FdbTransactionLog.CaptureStackTrace(4) : null,
+			};
+
 			m_logHandler = handler;
-			var log = new FdbTransactionLog(options);
-			log.Start(this);
 			m_log = log;
+			log.Start(this, now);
 		}
 
 		#endregion
@@ -1699,7 +1717,7 @@ namespace FoundationDB.Client
 			//TODO: need a STATE_COMMITTING ?
 			try
 			{
-				await m_handler.CommitAsync(m_cancellation).ConfigureAwait(false);
+				await PerformCommitOperation().ConfigureAwait(false);
 
 				if (Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY) == STATE_READY)
 				{
@@ -1784,7 +1802,8 @@ namespace FoundationDB.Client
 
 		private FdbWatch PerformWatchOperation(Slice key, CancellationToken ct)
 		{
-			m_log?.AddOperation(new FdbTransactionLog.WatchCommand(m_log.Grab(key)));
+			m_log?.RecordWatch(key);
+
 			return m_handler.Watch(key, ct);
 		}
 

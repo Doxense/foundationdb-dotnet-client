@@ -32,6 +32,54 @@ namespace FoundationDB.Filters.Logging
 	public partial class FdbTransactionLog
 	{
 
+		private static JsonValue EncodeKeyToJson(Slice value) => value.IsNull ? JsonNull.Null : value.Count == 0 ? JsonString.Empty : JsonString.Return(value.ToString());
+
+		private static JsonArray EncodeKeysToJson(ReadOnlySpan<Slice> keys)
+		{
+			return JsonArray.FromValues(keys, EncodeKeyToJson);
+		}
+
+		private static Slice DecodeKeyFromJson(JsonValue json) => json switch
+		{
+			JsonNull => Slice.Nil,
+			JsonString str => (str.Value is "" or "<empty>" ? Slice.Empty : Slice.Unescape(str.Value)),
+			_ => Slice.Empty
+		};
+
+		private static JsonObject EncodeKeySelectorToJson(KeySelector selector) => JsonObject.Create(
+		[
+			("key", EncodeKeyToJson(selector.Key)),
+			("orEqual", selector.OrEqual),
+			("offset", selector.Offset),
+		]);
+
+		private static KeySelector DecodeKeySelectorFromJson(JsonObject json) => new(DecodeKeyFromJson(json["key"]), json.Get<bool>("orEqual"), json.Get<int>("offset"));
+
+		private static Slice[] DecodeKeysFromJson(JsonArray keys)
+		{
+			if (keys.Count == 0) return [ ];
+			var result = new Slice[keys.Count];
+			for (int i = 0; i < result.Length; i++)
+			{
+				result[i] = DecodeKeyFromJson(keys.Get<string?>(i, null));
+			}
+			return result;
+		}
+
+		private static Slice DecodeValueFromJson(JsonValue json) => json switch
+		{
+			JsonNull => Slice.Nil,
+			JsonString str => (str.Value is "" or "<empty>" ? Slice.Empty : Slice.Unescape(str.Value)),
+			_ => Slice.Empty
+		};
+
+		private static JsonValue EncodeValueToJson(Slice value) => value.IsNull ? JsonNull.Null : value.Count == 0 ? JsonString.Empty : JsonString.Return(value.ToString());
+
+		private static JsonArray EncodeValuesToJson(ReadOnlySpan<Slice> values)
+		{
+			return JsonArray.FromValues(values, EncodeValueToJson);
+		}
+
 		/// <summary>Base class of all types of operations performed on a transaction</summary>
 		[DebuggerDisplay("{ToString(),nq}")]
 		public abstract class Command
@@ -71,7 +119,7 @@ namespace FoundationDB.Filters.Logging
 			public int ThreadId { get; internal set; }
 
 			/// <summary>StackTrace of the method that started this operation</summary>
-			/// <remarks>Only if the <see cref="FdbLoggingOptions.RecordOperationStackTrace"/> option is set</remarks>
+			/// <remarks>Only if the <see cref="FdbLoggedFields.RecordOperationStackTrace"/> option is set</remarks>
 			public StackTrace? CallSite { get; internal set; }
 
 			/// <summary>Total duration of the command, or TimeSpan.Zero if the command is not yet completed</summary>
@@ -214,6 +262,123 @@ namespace FoundationDB.Filters.Logging
 				return resolver == null ? FdbKey.Dump(key) : resolver(key);
 			}
 
+			/// <summary>Serializes this <see cref="Command"/> into a <see cref="JsonObject"/></summary>
+			/// <remarks>The object can be deserialized back into a <see cref="Command"/> by calling <see cref="FromJson(JsonObject)"/></remarks>
+			public JsonObject ToJson(bool readOnly = true)
+			{
+				var obj = new JsonObject();
+				obj["op"] = this.Op.ToString();
+				obj["startOffset"] = this.StartOffset;
+				obj["endOffset"] = this.EndOffset;
+				obj["duration"] = this.Duration;
+				obj["step"] = this.Step;
+				obj.AddIfTrue("endStep", this.EndStep != this.Step, this.EndStep);
+				obj.AddIfTrue("snapshot", this.Snapshot);
+				OnJsonSerialize(obj);
+				obj.AddIfNonZero("threadId", this.ThreadId);
+				if (readOnly) obj.Freeze();
+				return obj;
+			}
+
+			/// <summary>Deserializes a <see cref="Command"/> previously serialized with a call to <see cref="ToJson"/></summary>
+			// ReSharper disable once MemberHidesStaticFromOuterClass
+			public static Command FromJson(JsonObject obj)
+			{
+				Contract.Debug.Requires(obj is not null);
+				return new DeserializedCommand(obj);
+			}
+
+			/// <summary>Deserializes an array of <see cref="Command"/></summary>
+			/// <param name="arr">Array with one or more commands serialized into JSON Objects</param>
+			public static List<Command> FromJson(JsonArray arr)
+			{
+				var res = new List<Command>(arr.Count);
+				foreach (var obj in arr.AsObjects())
+				{
+					res.Add(FromJson(obj));
+				}
+				return res;
+			}
+
+			protected abstract void OnJsonSerialize(JsonObject obj);
+
+		}
+
+		private sealed class DeserializedCommand : Command
+		{
+
+			public DeserializedCommand(JsonObject obj)
+			{
+				this.Data = obj;
+				this.Op = obj.Get<Operation>("op");
+				this.StartOffset = obj.Get<TimeSpan>("startOffset");
+				this.EndOffset = obj.Get<TimeSpan?>("endOffset", null);
+				this.Step = obj.Get<int>("step", 0);
+				this.EndStep = obj.Get<int>("endStep", 0);
+				this.Snapshot = obj.Get<bool>("snapshot", false);
+				this.ThreadId = obj.Get<int>("threadId", 0);
+				//TODO: more?
+			}
+
+			private JsonObject Data { get; }
+
+			/// <inheritdoc />
+			public override Operation Op { get; }
+
+			/// <inheritdoc />
+			public override string GetArguments(KeyResolver resolver)
+			{
+				switch (this.Op)
+				{
+					case Operation.Log:
+					{
+						return this.Data["message"].ToString();
+					}
+					case Operation.Clear:
+					case Operation.Get:
+					case Operation.Watch:
+					{
+						return FdbKey.Dump(DecodeKeyFromJson(this.Data["key"]));
+					}
+					case Operation.Set:
+					{
+						return FdbKey.Dump(DecodeKeyFromJson(this.Data["key"])) + " = " + Slice.Dump(DecodeValueFromJson(this.Data["value"]));
+					}
+					case Operation.ClearRange:
+					case Operation.GetRangeSplitPoints:
+					{
+						return FdbKey.Dump(DecodeKeyFromJson(this.Data["begin"])) + " = " + FdbKey.Dump(DecodeKeyFromJson(this.Data["end"]));
+					}
+					case Operation.GetRange:
+					{
+						return DecodeKeySelectorFromJson(this.Data.GetObject("begin")) + " ... " + DecodeKeySelectorFromJson(this.Data.GetObject("end"));
+					}
+					case Operation.GetValues:
+					{
+						return this.Data["keys"].ToString();
+					}
+					case Operation.GetKey:
+					{
+						return DecodeKeySelectorFromJson(this.Data.GetObject("selector")).ToString();
+					}
+					case Operation.CheckValue:
+					{
+						return $"{FdbKey.Dump(DecodeKeyFromJson(this.Data["key"]))} =? {this.Data["expected"]}";
+					}
+					case Operation.Atomic:
+					{
+						return $"{this.Data["mutation"].ToString()}({FdbKey.Dump(DecodeKeyFromJson(this.Data["key"]))}, {Slice.Dump(DecodeValueFromJson(this.Data["param"]))})";
+					}
+					default:
+					{
+						return "<???>";
+					}
+				}
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj) => throw new NotSupportedException();
+
 		}
 
 		/// <summary>Base class of all types of operations performed on a transaction, that return a result</summary>
@@ -312,7 +477,7 @@ namespace FoundationDB.Filters.Logging
 
 				foreach (var entry in keys)
 				{
-					var t = location.Unpack(entry.Key);
+					var t = TuPack.Unpack(location.GetSuffix(entry.Key));
 					// look for a tuple of size 3 with 0 as the second element...
 					if (t.Count != 3 || t.Get<int>(1) != 0) continue;
 
@@ -387,6 +552,13 @@ namespace FoundationDB.Filters.Logging
 			{
 				return "// " + this.Message;
 			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["message"] = this.Message;
+			}
+
 		}
 
 		public sealed class SetOptionCommand : Command
@@ -431,6 +603,15 @@ namespace FoundationDB.Filters.Logging
 				}
 				return this.Option.ToString();
 			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["message"] = this.Option.ToString();
+				obj.AddIfNotNull("intValue", this.IntValue);
+				obj.AddIfNotNull("strValue", this.StringValue);
+			}
+
 		}
 
 		public sealed class SetCommand : Command
@@ -456,6 +637,13 @@ namespace FoundationDB.Filters.Logging
 				return string.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToString("V"));
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["key"] = EncodeKeyToJson(this.Key);
+				obj["value"] = EncodeValueToJson(this.Value);
+			}
+
 		}
 
 		public sealed class ClearCommand : Command
@@ -475,6 +663,12 @@ namespace FoundationDB.Filters.Logging
 			public override string GetArguments(KeyResolver resolver)
 			{
 				return resolver.Resolve(this.Key);
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj.Add("key", EncodeKeyToJson(this.Key));
 			}
 
 		}
@@ -502,6 +696,13 @@ namespace FoundationDB.Filters.Logging
 				return string.Concat(resolver.ResolveBegin(this.Begin), " <= k < ", resolver.ResolveEnd(this.End));
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj.Add("begin", EncodeKeyToJson(this.Begin));
+				obj.Add("end", EncodeKeyToJson(this.End));
+			}
+
 		}
 
 		public class AtomicCommand : Command
@@ -512,7 +713,7 @@ namespace FoundationDB.Filters.Logging
 			/// <summary>Key modified in the database</summary>
 			public Slice Key { get; set; }
 
-			/// <summary>Parameter depending of the type of mutation</summary>
+			/// <summary>Parameter depending on the type of mutation</summary>
 			public Slice Param { get; }
 
 			public override Operation Op => Operation.Atomic;
@@ -602,6 +803,15 @@ namespace FoundationDB.Filters.Logging
 				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(GetUserKey())).Append(", ").Append(str).Append(suffix);
 				return sb.ToString();
 			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj.Add("mutation", this.Mutation.ToString());
+				obj.Add("key", EncodeKeyToJson(this.Key));
+				obj.Add("param", EncodeValueToJson(this.Param));
+			}
+
 		}
 
 		public sealed class AddConflictRangeCommand : Command
@@ -629,6 +839,14 @@ namespace FoundationDB.Filters.Logging
 			public override string GetArguments(KeyResolver resolver)
 			{
 				return string.Concat(this.Type.ToString(), "! ", resolver.ResolveBegin(this.Begin), " <= k < ", resolver.ResolveEnd(this.End));
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj.Add("conflictType", this.Type.ToString());
+				obj.Add("begin", EncodeKeyToJson(this.Begin));
+				obj.Add("end", EncodeKeyToJson(this.End));
 			}
 
 		}
@@ -670,6 +888,16 @@ namespace FoundationDB.Filters.Logging
 				return value.ToString("P");
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["key"] = EncodeKeyToJson(this.Key);
+				if (this.Result.HasValue)
+				{
+					obj["value"] = EncodeValueToJson(this.Result.Value);
+				}
+			}
+
 		}
 
 		public sealed class GetCommand<TResult> : Command<TResult>
@@ -709,6 +937,16 @@ namespace FoundationDB.Filters.Logging
 			protected override string Dump(TResult value, KeyResolver resolver)
 			{
 				return STuple.Formatter.Stringify(value);
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["key"] = EncodeKeyToJson(this.Key);
+				if (this.Result.HasValue)
+				{
+					obj["value"] = JsonValue.FromValue(this.Result.Value);
+				}
 			}
 
 		}
@@ -755,6 +993,16 @@ namespace FoundationDB.Filters.Logging
 				return STuple.Formatter.Stringify(value);
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["key"] = EncodeKeyToJson(this.Key);
+				if (this.Result.HasValue)
+				{
+					obj["value"] = JsonValue.FromValue(this.Result.Value);
+				}
+			}
+
 		}
 
 		public sealed class GetKeyCommand : Command<Slice>
@@ -771,12 +1019,22 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Selector.Key.Count;
 
-			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : this.Result.Value.Count;
+			public override int? ResultBytes => !this.Result.HasValue ? null : this.Result.Value.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
 				//TODO: use resolver!
 				return this.Selector.ToString();
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["selector"] = EncodeKeySelectorToJson(this.Selector);
+				if (this.Result.HasValue)
+				{
+					obj["result"] = EncodeKeyToJson(this.Result.Value);
+				}
 			}
 
 		}
@@ -837,6 +1095,16 @@ namespace FoundationDB.Filters.Logging
 				};
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["keys"] = EncodeKeysToJson(this.Keys);
+				if (this.Result.HasValue)
+				{
+					obj["values"] = EncodeValuesToJson(this.Result.Value);
+				}
+			}
+
 		}
 
 		public sealed class GetValuesCommand<TValue> : Command<long>
@@ -895,6 +1163,16 @@ namespace FoundationDB.Filters.Logging
 					3 => string.Create(CultureInfo.InvariantCulture, $"[3] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, {this.Values.Span[2]} }}"),
 					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, ..., {this.Values.Span[^1]} }}")
 				};
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["keys"] = EncodeKeysToJson(this.Keys);
+				if (this.Result.HasValue)
+				{
+					obj["values"] = JsonArray.FromValues(this.Values.Span);
+				}
 			}
 
 		}
@@ -960,6 +1238,16 @@ namespace FoundationDB.Filters.Logging
 				};
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["keys"] = EncodeKeysToJson(this.Keys);
+				if (this.Result.HasValue)
+				{
+					obj["values"] = JsonArray.FromValues(this.Values.Span);
+				}
+			}
+
 		}
 
 		public sealed class GetKeysCommand : Command<Slice[]>
@@ -1018,6 +1306,16 @@ namespace FoundationDB.Filters.Logging
 				};
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["selectors"] = JsonArray.FromValues(this.Selectors, EncodeKeySelectorToJson);
+				if (this.Result.HasValue)
+				{
+					obj["values"] = EncodeKeysToJson(this.Result.Value);
+				}
+			}
+
 		}
 
 		public sealed class GetRangeCommand : Command<FdbRangeChunk>
@@ -1055,7 +1353,7 @@ namespace FoundationDB.Filters.Logging
 				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
 				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
-				if (this.Options.IsReversed == true) s += ", reverse";
+				if (this.Options.IsReversed) s += ", reverse";
 				if (this.Options.Streaming.HasValue) s += ", " + this.Options.Streaming.Value.ToString();
 				if (this.Options.Fetch.HasValue) s += ", " + this.Options.Fetch.Value.ToString();
 				return s;
@@ -1071,6 +1369,20 @@ namespace FoundationDB.Filters.Logging
 					return s;
 				}
 				return base.GetResult(resolver);
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["begin"] = EncodeKeySelectorToJson(this.Begin);
+				obj["end"] = EncodeKeySelectorToJson(this.End);
+				obj["iteration"] = this.Iteration;
+				obj["options"] = JsonObject.FromObject(this.Options);
+				if (this.Result.HasValue)
+				{
+					//BUGBUG: encode key/value pairs!
+					//obj["values"] = EncodeValuesToJson(this.Result.Value.Items);
+				}
 			}
 
 		}
@@ -1134,6 +1446,19 @@ namespace FoundationDB.Filters.Logging
 				return base.GetResult(resolver);
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["begin"] = EncodeKeySelectorToJson(this.Begin);
+				obj["end"] = EncodeKeySelectorToJson(this.End);
+				obj["iteration"] = this.Iteration;
+				obj["options"] = JsonObject.FromObject(this.Options);
+				if (this.Result.HasValue)
+				{
+					obj["values"] = JsonArray.FromValues(this.Result.Value.Items.Span);
+				}
+			}
+
 		}
 
 		public sealed class VisitRangeCommand<TState> : Command<FdbRangeResult>
@@ -1195,6 +1520,19 @@ namespace FoundationDB.Filters.Logging
 				return base.GetResult(resolver);
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["begin"] = EncodeKeySelectorToJson(this.Begin);
+				obj["end"] = EncodeKeySelectorToJson(this.End);
+				obj["iteration"] = this.Iteration;
+				obj["options"] = JsonObject.FromObject(this.Options);
+				if (this.Result.HasValue)
+				{
+					obj["result"] = JsonObject.FromObject(this.Result.Value);
+				}
+			}
+
 		}
 
 		public sealed class CheckValueCommand : Command<(FdbValueCheckResult Result, Slice Actual)>
@@ -1215,7 +1553,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Key.Count + this.Expected.Count;
 
-			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : this.Result.Value.Actual.Count;
+			public override int? ResultBytes => !this.Result.HasValue ? null : this.Result.Value.Actual.Count;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -1236,16 +1574,48 @@ namespace FoundationDB.Filters.Logging
 					: $"`{value.Actual:V}` [{value.Result}]";
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["key"] = EncodeKeyToJson(this.Key);
+				obj["expected"] = EncodeValueToJson(this.Expected);
+				if (this.Result.HasValue)
+				{
+					obj["result"] = this.Result.Value.Result.ToString();
+					obj["actual"] = EncodeValueToJson(this.Result.Value.Actual);
+				}
+			}
+
 		}
 
 		public sealed class GetVersionStampCommand : Command<VersionStamp>
 		{
 			public override Operation Op => Operation.GetVersionStamp;
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				if (this.Result.HasValue)
+				{
+					obj["result"] = JsonValue.FromValue(this.Result.Value);
+				}
+			}
+
 		}
 
 		public sealed class GetReadVersionCommand : Command<long>
 		{
 			public override Operation Op => Operation.GetReadVersion;
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				if (this.Result.HasValue)
+				{
+					obj["result"] = this.Result.Value;
+				}
+			}
+
 		}
 
 		public sealed class GetMetadataVersionCommand : Command<VersionStamp?>
@@ -1262,7 +1632,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override int? ArgumentBytes => this.Key.Count;
 
-			public override int? ResultBytes => !this.Result.HasValue ? default(int?) : 10;
+			public override int? ResultBytes => !this.Result.HasValue ? null : 10;
 
 			public override string GetArguments(KeyResolver resolver)
 			{
@@ -1278,11 +1648,32 @@ namespace FoundationDB.Filters.Logging
 			{
 				return value?.ToString() ?? "<null>";
 			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["key"] = EncodeKeyToJson(this.Key);
+				if (this.Result.HasValue)
+				{
+					obj["result"] = JsonValue.FromValue(this.Result.Value);
+				}
+			}
+
 		}
 
 		public sealed class GetApproximateSizeCommand : Command<long>
 		{
 			public override Operation Op => Operation.GetApproximateSize;
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				if (this.Result.HasValue)
+				{
+					obj["result"] = this.Result.Value;
+				}
+			}
+
 		}
 
 		public sealed class GetAddressesForKeyCommand : Command<string[]>
@@ -1310,6 +1701,16 @@ namespace FoundationDB.Filters.Logging
 					case 2: return $"[2] {{ {value[0]}, {value[1]} }}";
 					case 3: return $"[3] {{ {value[0]}, {value[1]}, {value[2]} }}";
 					default: return $"[{value.Length}] {{ {value[0]}, {value[1]}, ..., {value[^1]} }}";
+				}
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["key"] = EncodeKeyToJson(this.Key);
+				if (this.Result.HasValue)
+				{
+					obj["result"] = this.Result.Value;
 				}
 			}
 
@@ -1351,6 +1752,17 @@ namespace FoundationDB.Filters.Logging
 				};
 			}
 
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["begin"] = EncodeKeyToJson(this.Begin);
+				obj["end"] = EncodeKeyToJson(this.End);
+				if (this.Result.HasValue)
+				{
+					obj["result"] = JsonArray.FromValues(this.Result.Value, v => v.ToString());
+				}
+			}
+
 		}
 
 		public sealed class GetEstimatedRangeSizeBytesCommand : Command<long>
@@ -1372,6 +1784,18 @@ namespace FoundationDB.Filters.Logging
 			public override int? ArgumentBytes => this.Begin.Count + this.End.Count;
 
 			public override string GetArguments(KeyResolver resolver) => string.Format(CultureInfo.InvariantCulture, "{0}...{1}", resolver.ResolveBegin(this.Begin), resolver.ResolveEnd(this.End));
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["begin"] = EncodeKeyToJson(this.Begin);
+				obj["end"] = EncodeKeyToJson(this.End);
+				if (this.Result.HasValue)
+				{
+					obj["result"] = this.Result.Value;
+				}
+			}
+
 		}
 
 		public sealed class TouchMetadataVersionKeyCommand : AtomicCommand
@@ -1385,11 +1809,19 @@ namespace FoundationDB.Filters.Logging
 		public sealed class CancelCommand : Command
 		{
 			public override Operation Op => Operation.Cancel;
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj) { }
+
 		}
 
 		public sealed class ResetCommand : Command
 		{
 			public override Operation Op => Operation.Reset;
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj) { }
+
 		}
 
 		public sealed class CommitCommand : Command
@@ -1404,6 +1836,13 @@ namespace FoundationDB.Filters.Logging
 				if (this.CommitVersion != null) return "@" + this.CommitVersion;
 				return base.GetResult(resolver);
 			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["commitVersion"] = this.CommitVersion;
+			}
+
 		}
 
 		public sealed class OnErrorCommand : Command
@@ -1421,6 +1860,13 @@ namespace FoundationDB.Filters.Logging
 			{
 				return string.Format(CultureInfo.InvariantCulture, "{0} ({1})", this.Code, (int)this.Code);
 			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["code"] = this.Code.ToString();
+			}
+
 		}
 
 		public sealed class WatchCommand : Command
@@ -1439,6 +1885,12 @@ namespace FoundationDB.Filters.Logging
 			public override string GetArguments(KeyResolver resolver)
 			{
 				return resolver.Resolve(this.Key);
+			}
+
+			/// <inheritdoc />
+			protected override void OnJsonSerialize(JsonObject obj)
+			{
+				obj["key"] = EncodeKeyToJson(this.Key);
 			}
 
 		}

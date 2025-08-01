@@ -26,13 +26,27 @@
 
 namespace FoundationDB.Filters.Logging
 {
-	using System.Collections.Concurrent;
 	using System.Reflection;
+	using System.Threading.Channels;
 	using FoundationDB.Client;
+	using SnowBank.Collections.CacheOblivious;
+
+	public sealed class FdbLoggingOptions
+	{
+
+		/// <summary>Fields that will be included in the logged transactions</summary>
+		public FdbLoggedFields Fields { get; set; }
+
+		/// <summary>Session Identifier attached to all logged transactions</summary>
+		public string? SessionId { get; set; }
+
+		public string? Origin { get; set; }
+
+	}
 
 	[Flags]
 	[PublicAPI]
-	public enum FdbLoggingOptions
+	public enum FdbLoggedFields
 	{
 		/// <summary>Default logging options</summary>
 		Default = 0,
@@ -51,36 +65,34 @@ namespace FoundationDB.Filters.Logging
 	/// <summary>Container that logs all operations performed by a transaction</summary>
 	public sealed partial class FdbTransactionLog
 	{
-		private int m_step;
 
-		private int m_operations;
-		private long m_readSize;
-		private long m_writeSize;
+		/// <summary>Sequence ID of the logged transaction</summary>
+		/// <remarks>
+		/// <para>This is a sequential counter of the transactions inside the current process</para>
+		/// <para>Use <see cref="Uuid"/> if you require a globally unique identifier</para>
+		/// </remarks>
+		public required int Id { get; init; }
 
-		/// <summary>Create an empty log for a newly created transaction</summary>
-		public FdbTransactionLog(FdbLoggingOptions options)
-		{
-			this.Options = options;
-			this.Commands = new ConcurrentQueue<Command>();
+		/// <summary>Unique ID for this transaction</summary>
+		public required Guid Uuid { get; init; }
 
-			if (this.ShouldCaptureTransactionStackTrace)
-			{
-				this.CallSite = CaptureStackTrace(2);
-			}
-		}
+		/// <summary>Session ID of the logged transaction</summary>
+		/// <remarks>If non-null, this is used to merge transaction logs produced by different "nodes" in the same "run", after the fact, in order to recreate a global timeline.</remarks>
+		public string? SessionId { get; init; }
 
-		/// <summary>ID of the logged transaction</summary>
-		public int Id { get; private set; }
+		/// <summary>Unique ID of the source of this transaction</summary>
+		/// <remarks>This will be <c>null</c> for locally generated transaction.</remarks>
+		public string? Origin { get; init; }
 
 		/// <summary>Logging options for this log</summary>
-		public FdbLoggingOptions Options { get; private set; }
+		public required FdbLoggedFields Fields { get; init; }
 
 		/// <summary>True if the transaction is Read Only</summary>
-		public bool IsReadOnly { get; private set; }
+		public bool IsReadOnly { get; init; }
 
 		/// <summary>StackTrace of the method that created this transaction</summary>
-		/// <remarks>Only if the <see cref="FdbLoggingOptions.RecordCreationStackTrace"/> option is set</remarks>
-		public StackTrace? CallSite { get; private set; }
+		/// <remarks>Only if the <see cref="FdbLoggedFields.RecordCreationStackTrace"/> option is set</remarks>
+		public StackTrace? CallSite { get; init; }
 
 		#region Interning...
 		
@@ -246,7 +258,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		internal StackTrace CaptureStackTrace(int numStackFramesToSkip)
+		internal static StackTrace CaptureStackTrace(int numStackFramesToSkip)
 		{
 #if DEBUG
 			const bool NEED_FILE_INFO = true;
@@ -256,24 +268,18 @@ namespace FoundationDB.Filters.Logging
 			return new StackTrace(1 + numStackFramesToSkip, NEED_FILE_INFO);
 		}
 
-		/// <summary>Checks if we need to record the stacktrace of the creation of the transaction</summary>
-		internal bool ShouldCaptureTransactionStackTrace
-		{
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => (this.Options & FdbLoggingOptions.RecordCreationStackTrace) != 0;
-		}
-
-		internal bool ShouldCaptureOperationStackTrace
-		{
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get => (this.Options & FdbLoggingOptions.RecordOperationStackTrace) != 0;
-		}
-
 		/// <summary>Number of operations performed by the transaction</summary>
-		public int Operations => m_operations;
+		public int Operations { get; private set; }
+
+		/// <summary>Lock used to update the internal state</summary>
+#if NET9_0_OR_GREATER
+		private readonly System.Threading.Lock Lock = new();
+#else
+		private readonly object Lock = new();
+#endif
 
 		/// <summary>List of all commands processed by the transaction</summary>
-		public ConcurrentQueue<Command> Commands { get; private set; }
+		public required List<Command> Commands { get; init; }
 
 		/// <summary>Timestamp of the start of transaction</summary>
 		public long StartTimestamp { get; private set; }
@@ -295,23 +301,29 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Internal step counter of the transaction</summary>
 		/// <remarks>This counter is used to detect sequential vs parallel commands</remarks>
-		public int Step => m_step;
+		public int Step { get; private set; }
 
 		/// <summary>Read size of the last commit attempt</summary>
 		/// <remarks>This value only account for read commands in the last attempt</remarks>
-		public long ReadSize => m_readSize;
+		public long ReadSize { get; private set; }
 
 		/// <summary>Write size of the last commit attempt</summary>
 		/// <remarks>This value only account for write commands in the last attempt</remarks>
-		public long WriteSize => m_writeSize;
+		public long WriteSize { get; private set; }
 
 		/// <summary>Commit size of the last commit attempt</summary>
-		/// <remarks>This value only account for write commands in the last attempt</remarks>
-		public long CommitSize { get; internal set; }
+		/// <remarks>
+		/// <para>This value only account for write commands in the last attempt</para>
+		/// <para>It will be <c>null</c> for transactions that are read-only, or did not attempt to commit</para>
+		/// </remarks>
+		public long? CommitSize { get; internal set; }
 
 		/// <summary>Total of the commit size of all attempts performed by this transaction</summary>
-		/// <remarks>This value include the size of all previous retry attempts</remarks>
-		public long TotalCommitSize { get; internal set; }
+		/// <remarks>
+		/// <para>This value include the size of all previous retry attempts</para>
+		/// <para>It will be <c>null</c> for transactions that are read-only, or did not attempt to commit</para>
+		/// </remarks>
+		public long? TotalCommitSize { get; internal set; }
 
 		/// <summary>If true, the transaction has completed (either Commit() completed successfully or Dispose was called)</summary>
 		public bool Completed { get; private set; }
@@ -319,6 +331,12 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Total number of attempts to commit this transaction</summary>
 		/// <remarks>This value is increment on each call to Commit()</remarks>
 		public int Attempts { get; internal set; }
+
+		/// <summary>Sets to <c>true</c> if at least one command failed to execute</summary>
+		public bool HasError { get; internal set; }
+
+		/// <summary>Sets to <c>true</c> if at least one attempt of the transaction fails to commit with <see cref="FdbError.NotCommitted"/></summary>
+		public bool HasConflict { get; internal set; }
 
 		/// <summary>Receives the actual value of the VersionStamps generated by this transaction</summary>
 		/// <remarks>This value will be non-null only if the last attempt used VersionStamped operations and committed successfully.</remarks>
@@ -337,13 +355,11 @@ namespace FoundationDB.Filters.Logging
 		public TimeSpan TotalDuration => this.StopTimestamp == 0 ? GetTimeOffset() : GetDuration(this.StopTimestamp - this.StartTimestamp);
 
 		/// <summary>Marks the start of the transaction</summary>
-		internal void Start(IFdbTransaction trans)
+		internal void Start(IFdbTransaction trans, DateTimeOffset start)
 		{
 			Contract.Debug.Requires(trans != null);
 
-			this.Id = trans.Id;
-			this.IsReadOnly = trans.IsReadOnly;
-			this.StartedUtc = DateTimeOffset.UtcNow; //TODO: use a configurable clock?
+			this.StartedUtc = start; //TODO: use a configurable clock?
 			this.StartTimestamp = GetTimestamp();
 		}
 
@@ -369,21 +385,34 @@ namespace FoundationDB.Filters.Logging
 			AddOperation(new LogCommand(text), countAsOperation: false);
 		}
 
+		public FdbTransactionLog.WatchCommand RecordWatch(Slice key)
+		{
+			var cmd = new FdbTransactionLog.WatchCommand(Grab(key));
+			AddOperation(cmd);
+			return cmd;
+		}
+
 		/// <summary>Adds a new already completed command to the log</summary>
 		public void AddOperation(Command cmd, bool countAsOperation = true)
 		{
 			Contract.Debug.Requires(cmd != null);
 
 			var ts = GetTimeOffset();
-			int step = Volatile.Read(ref m_step);
 
 			cmd.StartOffset = ts;
-			cmd.Step = step;
 			cmd.EndOffset = cmd.StartOffset;
 			cmd.ThreadId = Environment.CurrentManagedThreadId;
-			if (this.ShouldCaptureOperationStackTrace) cmd.CallSite = CaptureStackTrace(1);
-			if (countAsOperation) Interlocked.Increment(ref m_operations);
-			this.Commands.Enqueue(cmd);
+			if ((this.Fields & FdbLoggedFields.RecordOperationStackTrace) != 0)
+			{
+				cmd.CallSite = CaptureStackTrace(2);
+			}
+
+			lock (this.Lock)
+			{
+				cmd.Step = this.Step;
+				if (countAsOperation) ++this.Operations;
+				this.Commands.Add(cmd);
+			}
 		}
 
 		/// <summary>Start tracking the execution of a new command</summary>
@@ -392,15 +421,21 @@ namespace FoundationDB.Filters.Logging
 			Contract.Debug.Requires(cmd != null);
 
 			var ts = GetTimeOffset();
-			int step = Volatile.Read(ref m_step);
 
 			cmd.StartOffset = ts;
-			cmd.Step = step;
 			cmd.ThreadId = Environment.CurrentManagedThreadId;
-			if (this.ShouldCaptureOperationStackTrace) cmd.CallSite = CaptureStackTrace(2);
-			if (cmd.ArgumentBytes.HasValue) Interlocked.Add(ref m_writeSize, cmd.ArgumentBytes.Value);
-			Interlocked.Increment(ref m_operations);
-			this.Commands.Enqueue(cmd);
+			if ((this.Fields & FdbLoggedFields.RecordOperationStackTrace) != 0)
+			{
+				cmd.CallSite = CaptureStackTrace(4);
+			}
+
+			lock (this.Lock)
+			{
+				cmd.Step = this.Step;
+				if (cmd.ArgumentBytes.HasValue) this.WriteSize += cmd.ArgumentBytes.Value;
+				++this.Operations;
+				this.Commands.Add(cmd);
+			}
 		}
 
 		/// <summary>Mark the end of the execution of a command</summary>
@@ -409,12 +444,105 @@ namespace FoundationDB.Filters.Logging
 			Contract.Debug.Requires(cmd != null);
 
 			var ts = GetTimeOffset();
-			var step = Interlocked.Increment(ref m_step);
 
 			cmd.EndOffset = ts;
-			cmd.EndStep = step;
 			cmd.Error = error;
-			if (cmd.ResultBytes.HasValue) Interlocked.Add(ref m_readSize, cmd.ResultBytes.Value);
+
+			lock (this.Lock)
+			{
+				cmd.EndStep = ++this.Step;
+				if (cmd.ResultBytes.HasValue)
+				{
+					this.ReadSize += cmd.ResultBytes.Value;
+				}
+
+				if (error is FdbException fdbEx)
+				{
+					this.HasError = true;
+					switch (fdbEx.Code)
+					{
+						case FdbError.NotCommitted:
+						{
+							this.HasConflict = true;
+							//TODO: detect cache validation errors vs "regular" conflicts?
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		public JsonObject ToJson(bool readOnly = true)
+		{
+			var obj = new JsonObject();
+			obj["id"] = this.Id;
+			obj["uuid"] = this.Uuid;
+			obj["startedAt"] = this.StartedUtc;
+			obj.AddIfNotNull("stoppedAt", this.StoppedUtc);
+			obj["totalDuration"] = this.TotalDuration;
+			obj.AddIfNonZero("attempts", this.Attempts);
+			obj.AddIfNonZero("operations", this.Operations);
+			obj.AddIfTrue("readOnly", this.IsReadOnly);
+			obj.AddIfNonZero("readSize", this.ReadSize);
+			obj.AddIfNonZero("writeSize", this.WriteSize);
+			obj.AddIfNotNull("commitVersion", this.CommittedVersion);
+			obj.AddIfNotNull("committedAt", this.CommittedUtc);
+			obj.AddIfNonZero("commitSize", this.CommitSize);
+			obj.AddIfNonZero("totalCommitSize", this.TotalCommitSize);
+			obj.AddIfTrue("hasError", this.HasError);
+			obj.AddIfTrue("hasConflict", this.HasConflict);
+			lock (this.Commands)
+			{
+				var commands = new JsonArray(this.Commands.Count);
+				foreach (var command in this.Commands)
+				{
+					commands.Add(command.ToJson(readOnly));
+				}
+				if (readOnly)
+				{
+					CrystalJsonMarshall.FreezeTopLevel(commands);
+				}
+				obj["commands"] = commands;
+			}
+			obj.AddIfNotNull("sid", this.SessionId);
+			obj.AddIfNotNull("origin", this.Origin);
+			if (readOnly)
+			{
+				CrystalJsonMarshall.FreezeTopLevel(obj);
+			}
+			return obj;
+		}
+
+		public static FdbTransactionLog FromJson(JsonObject obj)
+		{
+			Contract.NotNull(obj);
+			var id = obj.Get<int>("id");
+			var uuid = obj.Get<Guid>("uuid");
+			var commands = Command.FromJson(obj.GetArray("commands"));
+			var log = new FdbTransactionLog()
+			{
+				Id = id,
+				Uuid = uuid,
+				SessionId = obj.Get<string?>("sid", null),
+				Origin = obj.Get<string?>("origin", null),
+				Fields = FdbLoggedFields.Default, //BUGBUG: should we serialize the fields as well?
+				StartedUtc = obj.Get<DateTimeOffset>("startedAt"),
+				StoppedUtc = obj.Get<DateTimeOffset?>("stoppedAt", null),
+				Attempts = obj.Get<int>("attempts", 0),
+				Operations = obj.Get<int>("operations", 0),
+				IsReadOnly = obj.Get<bool>("readOnly", false),
+				ReadSize = obj.Get<long>("readSize", 0),
+				WriteSize = obj.Get<long>("writeSize", 0),
+				CommittedVersion = obj.Get<long?>("commitVersion", null),
+				CommittedUtc = obj.Get<DateTimeOffset?>("committedAt", null),
+				CommitSize = obj.Get<long?>("commitSize", null),
+				TotalCommitSize = obj.Get<long?>("totalCommitSize", null),
+				HasError = obj.Get<bool>("hasError", false),
+				HasConflict = obj.Get<bool>("hasConflict", false),
+				Commands = commands,
+			};
+
+			return log;
 		}
 
 		/// <summary>Generate an ASCII report with all the commands that were executed by the transaction</summary>
@@ -424,9 +552,9 @@ namespace FoundationDB.Filters.Logging
 
 			var sb = new StringBuilder(1024);
 
-			var commands = this.Commands.ToArray();
+			var commands = this.Commands;
 
-			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {commands.Length:N0} operations, started {this.StartedUtc.TimeOfDay}Z");
+			sb.Append(CultureInfo.InvariantCulture, $"Transaction #{this.Id} ({(this.IsReadOnly ? "read-only" : "read/write")}, {commands.Count:N0} operations, started {this.StartedUtc.TimeOfDay}Z");
 			if (this.StoppedUtc.HasValue)
 			{
 				sb.Append(CultureInfo.InvariantCulture, $", ended {this.StoppedUtc.Value.TimeOfDay}Z)");
@@ -439,9 +567,8 @@ namespace FoundationDB.Filters.Logging
 			sb.AppendLine();
 
 			int reads = 0, writes = 0;
-			for (int i = 0; i < commands.Length; i++)
+			foreach (var cmd in commands)
 			{
-				var cmd = commands[i];
 				if (detailed)
 				{
 					sb.Append(CultureInfo.InvariantCulture, $"{cmd.Step,3} - T+{cmd.StartOffset.TotalMilliseconds,7:##0.000} ({cmd.Duration.Ticks / 10.0,7:##,##0} µs) : {cmd.ToString(keyResolver)}");
@@ -509,7 +636,7 @@ namespace FoundationDB.Filters.Logging
 
 				// look for the timestamps of the first and last commands
 				var first = TimeSpan.Zero;
-				foreach (Command cmd in commands)
+				foreach (var cmd in commands)
 				{
 					if (cmd.Op == Operation.Log) continue;
 					first = cmd.StartOffset;
@@ -671,6 +798,7 @@ namespace FoundationDB.Filters.Logging
 				return '#';
 			}
 
+			// ReSharper disable once CompareOfFloatsByEqualityOperator
 			if (start == end) return '|';
 
 			var palette =
@@ -747,6 +875,239 @@ namespace FoundationDB.Filters.Logging
 			Watch,
 			/// <summary>Comments, annotations, debug output attached to the transaction</summary>
 			Annotation
+		}
+
+	}
+
+	public enum FdbTransactionFileFormat
+	{
+		Invalid = 0,
+
+		/// <summary>Output each log as a JSON object on a single line, using '\r\n' as separator.</summary>
+		/// <remarks><see href="https://jsonlines.org/"/></remarks>
+		JsonLines,
+
+		/// <summary>Output each transaction as a textual timing report.</summary>
+		Text,
+	}
+
+	public sealed class FdbTransactionFileLogger : IDisposable
+	{
+
+		public const int DefaultBatchSize = 100;
+
+		public static readonly TimeSpan DefaultThrottlingDelay = TimeSpan.FromMilliseconds(250);
+
+		public string FilePath { get; init; }
+
+		public FdbTransactionFileFormat Format { get; init; }
+
+		public int BatchSize { get; init; }
+
+		public TimeSpan ThrottlingDelay { get; init; }
+
+		private Channel<FdbTransactionLog> Logs { get; } = Channel.CreateUnbounded<FdbTransactionLog>(new() { SingleReader = true, SingleWriter = false, AllowSynchronousContinuations = false });
+
+		private CancellationTokenSource? Lifecycle { get; set; }
+
+		public FdbTransactionFileLogger(string filePath, FdbTransactionFileFormat format, int batchSize = DefaultBatchSize, TimeSpan throttlingDelay = default)
+		{
+			Contract.NotNullOrEmpty(filePath);
+			Contract.GreaterOrEqual(batchSize, 1);
+			Contract.GreaterOrEqual(throttlingDelay, TimeSpan.Zero);
+			if (format is not (FdbTransactionFileFormat.JsonLines or FdbTransactionFileFormat.Text)) throw new ArgumentException("Transaction file format not supported", nameof(format));
+
+			if (throttlingDelay == TimeSpan.Zero) throttlingDelay = DefaultThrottlingDelay;
+
+			this.FilePath = filePath;
+			this.Format = format;
+			this.BatchSize = batchSize;
+			this.ThrottlingDelay = throttlingDelay;
+		}
+
+		public void Publish(FdbTransactionLog log)
+		{
+			this.Logs.Writer.TryWrite(log);
+		}
+
+		public async Task Run(CancellationToken stoppingToken)
+		{
+			var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+			this.Lifecycle = cts;
+			var ct = cts.Token;
+
+			var reader = this.Logs.Reader;
+
+			var batchSize = this.BatchSize;
+			var batch = new List<string>(batchSize);
+
+			var path = Path.GetFullPath(this.FilePath);
+
+			if (!File.Exists(path))
+			{
+				// TODO: handle case when we cannot create the path of file (access rights?, IO error?)
+				if (!Directory.Exists(Path.GetDirectoryName(path)))
+				{
+					Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+				}
+			}
+
+			bool complete = false;
+
+			while (!ct.IsCancellationRequested)
+			{
+				if (!complete)
+				{
+					await Task.Delay(this.ThrottlingDelay, ct).ConfigureAwait(false);
+				}
+
+				await reader.WaitToReadAsync(ct).ConfigureAwait(false);
+
+				complete = false;
+				while (reader.TryRead(out var log))
+				{
+					switch (this.Format)
+					{
+						case FdbTransactionFileFormat.JsonLines:
+						{
+							try
+							{
+								batch.Add(log.ToJson().ToJsonText());
+							}
+							catch (Exception e)
+							{
+
+							}
+
+							break;
+						}
+						case FdbTransactionFileFormat.Text:
+						{
+							batch.Add(log.GetTimingsReport(true));
+							break;
+						}
+					}
+					if (batch.Count >= batchSize)
+					{
+						complete = true;
+						break;
+					}
+				}
+
+				try
+				{
+					await File.AppendAllLinesAsync(path, batch, ct).ConfigureAwait(false);
+				}
+				catch (Exception e)
+				{
+					//TODO: log error
+					//TODO: buffer for a bit?
+					complete = false;
+				}
+
+				batch.Clear();
+			}
+		}
+
+		public void Dispose()
+		{
+			this.Lifecycle?.Cancel();
+		}
+
+		public static FdbTransactionHistory LoadFrom(IEnumerable<string> paths)
+		{
+			var history = new FdbTransactionHistory();
+			foreach (var path in paths)
+			{
+				var lines = File.ReadAllLines(path);
+				foreach (var line in lines)
+				{
+					if (string.IsNullOrWhiteSpace(line) || line.StartsWith("//"))
+					{
+						continue;
+					}
+
+					var obj = JsonObject.Parse(line);
+					var log = FdbTransactionLog.FromJson(obj);
+					history.Add(log);
+				}
+			}
+
+			return history;
+		}
+
+	}
+
+	public sealed class FdbTransactionHistory
+	{
+
+		[DebuggerDisplay("Count={Concurrent.Count}")]
+		public sealed class TimeSlice
+		{
+
+			public List<FdbTransactionLog> Concurrent { get; init; }
+
+			public TimeSlice(FdbTransactionLog log)
+			{
+				this.Concurrent = [ log ];
+			}
+
+			/// <inheritdoc />
+			public override string ToString() => $"[{this.Concurrent.Count}] {{ {string.Join(", ", this.Concurrent.Select(l => l.Id))} }}";
+
+			public bool HasConflict()
+			{
+				foreach (var log in this.Concurrent)
+				{
+					if (log.HasConflict) return true;
+				}
+				return false;
+			}
+
+		}
+
+		public List<FdbTransactionLog> Transactions { get; } = new();
+
+		public ColaRangeDictionary<long, TimeSlice> Timeline = new();
+
+		public void Add(FdbTransactionLog log)
+		{
+			this.Transactions.Add(log);
+			this.Timeline.Merge(
+				log.StartedUtc.UtcTicks,
+				log.StoppedUtc.GetValueOrDefault().UtcTicks,
+				log,
+				static (prev, log) =>
+				{
+					if (prev is null) return new(log);
+					prev.Concurrent.Add(log);
+					return prev;
+				}
+			);
+		}
+
+		/// <summary>Returns a sequence of all transactions in the timeline that failed to commit due to a conflict</summary>
+		public IEnumerable<FdbTransactionLog> GetConflictedTransactions()
+		{
+			return this.Transactions
+				.Where(log => log.HasConflict)
+				.OrderBy(log => log.StartedUtc);
+		}
+
+		public FdbTransactionLog[] FindIntersecting(FdbTransactionLog log, bool writeOnly = false)
+		{
+			var set = new Dictionary<Guid, FdbTransactionLog>();
+			foreach (var entry in this.Timeline.Scan(log.StartedUtc.UtcTicks, log.StoppedUtc!.Value.UtcTicks))
+			{
+				foreach (var l in entry.Value.Concurrent)
+				{
+					if (l == log) continue;
+					if (writeOnly && l.IsReadOnly) continue;
+					set.TryAdd(l.Uuid, l);
+				}
+			}
+
+			return set.Values.OrderBy(l => l.StartedUtc).ToArray();
 		}
 
 	}

@@ -195,7 +195,8 @@ namespace FoundationDB.Client
 			trans.UseSettings(this.Options);
 			if (this.DefaultLogHandler != null)
 			{
-				trans.SetLogHandler(this.DefaultLogHandler, this.DefaultLogOptions);
+				var now = DateTimeOffset.UtcNow; //TODO: use IClock or TimeProvider!
+				trans.SetLogHandler(this.DefaultLogHandler, this.DefaultLogOptions, now);
 			}
 		}
 
@@ -386,10 +387,10 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc/>
-		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions options = default)
+		public void SetDefaultLogHandler(Action<FdbTransactionLog>? handler, FdbLoggingOptions? options = null)
 		{
 			this.DefaultLogHandler = handler;
-			this.DefaultLogOptions = options;
+			this.DefaultLogOptions = options ?? new();
 		}
 
 		private Action<FdbTransactionLog>? DefaultLogHandler { get; set; }

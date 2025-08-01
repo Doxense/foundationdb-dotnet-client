@@ -67,8 +67,7 @@ namespace FoundationDB.DependencyInjection
 		public Action<FdbTransactionLog>? DefaultLogHandler { get; set; }
 
 		/// <summary>Default logging options</summary>
-		/// <remarks>Only used if <see cref="DefaultLogHandler"/> is not <c>null</c></remarks>
-		public FdbLoggingOptions DefaultLogOptions { get; set; }
+		public FdbLoggingOptions DefaultLogOptions { get; set; } = new();
 
 	}
 

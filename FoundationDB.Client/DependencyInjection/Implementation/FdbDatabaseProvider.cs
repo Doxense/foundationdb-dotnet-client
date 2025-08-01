@@ -142,8 +142,9 @@ namespace FoundationDB.DependencyInjection
 					// connect to the cluster
 					var db = await Fdb.OpenAsync(this.ProviderOptions.ConnectionOptions, this.LifeTime.Token).ConfigureAwait(false);
 
-					if (this.ProviderOptions.DefaultLogHandler != null)
+					if (this.ProviderOptions.DefaultLogHandler is not null)
 					{ // enable transaction capture and logging!
+
 						db.SetDefaultLogHandler(this.ProviderOptions.DefaultLogHandler, this.ProviderOptions.DefaultLogOptions);
 					}
 
