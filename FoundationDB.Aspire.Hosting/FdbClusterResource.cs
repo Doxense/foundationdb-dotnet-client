@@ -92,15 +92,24 @@ namespace Aspire.Hosting.ApplicationModel
 		/// <remarks>
 		/// <para>This corresponds to the 'description' part of the equivalent 'fdb.cluster' file.</para>
 		/// <para>This value is for humans only, and is not significant for the connection itself.</para>
+		/// <para>Defaults to <c>"docker"</c> when omitted.</para>
 		/// </remarks>
 		public string? ClusterDescription { get; set; } = "docker";
 
-		/// <summary>Specified the 'id' part of the locally generated 'fdb.cluster' file.</summary>
+		/// <summary>Specifies the 'id' part of the locally generated 'fdb.cluster' file.</summary>
 		/// <remarks>
 		/// <para>This corresponds to the 'id' part of the equivalent 'fdb.cluster' file.</para>
 		/// <para>This value <b>must</b> match the id of the cluster, and if incorrect or changed, may prevent the process from connecting successfully.</para>
+		/// <para>Defaults to <c>"docker"</c> when omitted.</para>
 		/// </remarks>
 		public string? ClusterId { get; set; } = "docker";
+
+		/// <summary>Specifies the common Session ID used by all resources when logging transactions, during local development.</summary>
+		/// <remarks>
+		/// <para>All transactions logged by any node using this cluster resource will use the same session identifier, allowing for easier merging and scanning for conflicting transactions or correlated errors.</para>
+		/// <para>This should only be used during local development.</para>
+		/// </remarks>
+		public string? LogSessionId { get; set; }
 
 		/// <inheritdoc />
 		public ReferenceExpression ConnectionStringExpression => ReferenceExpression.Create($"{GetConnectionString()}");
@@ -160,6 +169,11 @@ namespace Aspire.Hosting.ApplicationModel
 			if (this.ReadOnly == true)
 			{
 				builder["ReadOnly"] = true;
+			}
+
+			if (this.LogSessionId is not null)
+			{
+				builder["LogSessionId"] = this.LogSessionId;
 			}
 
 			return builder.ConnectionString;

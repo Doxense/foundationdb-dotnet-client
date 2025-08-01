@@ -30,6 +30,7 @@ namespace Microsoft.Extensions.Hosting
 	using System.Data.Common;
 	using System.Globalization;
 	using System.IO;
+	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Aspire.FoundationDb.Client;
@@ -258,6 +259,18 @@ namespace Microsoft.Extensions.Hosting
 				else if (settings.DefaultTracing != null)
 				{
 					options.ConnectionOptions.DefaultTracing = (FdbTracingOptions) settings.DefaultTracing.Value;
+				}
+
+				// LogSessionId=(string)
+				if (cnx != null && cnx.ContainsKey("LogSessionId"))
+				{
+					var logSessionId = ((string?) cnx["LogSessionId"])?.Trim() ?? "";
+					if (logSessionId.Length > 1024)
+					{
+						throw new InvalidOperationException("Log Session ID is too large");
+					}
+					options.DefaultLogOptions.SessionId = logSessionId;
+					options.DefaultLogOptions.Origin = $"{Assembly.GetEntryAssembly()?.GetName().Name}_{Environment.ProcessId}";
 				}
 
 				// run additional custom configuration

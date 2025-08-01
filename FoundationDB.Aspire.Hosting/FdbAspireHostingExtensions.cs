@@ -310,8 +310,9 @@ namespace Aspire.Hosting
 		/// <param name="retryLimit">Default transaction max retry limit (or 0 for infinite retries)</param>
 		/// <param name="readOnly">If true, the process will only have read-only access to the FoundationDB cluster.</param>
 		/// <param name="tracing">Default tracing options</param>
+		/// <param name="logSessionId">Default common Log Session Id</param>
 		/// <remarks>These settings will be applied to the default <see cref="FdbConnectionOptions">connection options</see>, and can be overriden per transaction, or during the program startup.</remarks>
-		public static IResourceBuilder<FdbClusterResource> WithDefaults(this IResourceBuilder<FdbClusterResource> builder, TimeSpan? timeout = null, int? retryLimit = null, bool? readOnly = null, FdbTracingOptions? tracing = null)
+		public static IResourceBuilder<FdbClusterResource> WithDefaults(this IResourceBuilder<FdbClusterResource> builder, TimeSpan? timeout = null, int? retryLimit = null, bool? readOnly = null, FdbTracingOptions? tracing = null, string? logSessionId = null)
 		{
 			Contract.NotNull(builder);
 			var fdbCluster = builder.Resource;
@@ -319,7 +320,44 @@ namespace Aspire.Hosting
 			if (retryLimit != null) fdbCluster.DefaultRetryLimit = retryLimit;
 			if (readOnly != null) fdbCluster.ReadOnly = readOnly;
 			if (tracing != null) fdbCluster.DefaultTracing = tracing;
+			if (logSessionId != null) fdbCluster.LogSessionId = logSessionId;
 			return builder;
+		}
+
+		/// <summary>Sets the Session ID used when logging transactions to this local cluster.</summary>
+		/// <param name="builder">FDB cluster builder</param>
+		/// <param name="sessionId">Common Session Identifier used by all transactions logged.</param>
+		/// <remarks>
+		/// <para>This identifier will be injected, via the connection string, to all resources that reference this cluster, and will be automatically be assigned to all logged transactions.</para>
+		/// <para>Once a session has been completed, this identifier could then be used to match conflicting transactions, or to recreate a sensible history of what happened during a specific time window.</para>
+		/// </remarks>
+		public static IResourceBuilder<FdbClusterResource> WithLogSessionId(this IResourceBuilder<FdbClusterResource> builder, string sessionId)
+		{
+			Contract.NotNull(builder);
+			Contract.NotNullOrEmpty(sessionId);
+			if (sessionId.Length > 1024) throw new ArgumentException("Log Session ID is too large.");
+
+			builder.Resource.LogSessionId = sessionId;
+			return builder;
+		}
+
+		/// <summary>Sets the Session ID used when logging transactions to this local cluster to a pseudo-random value.</summary>
+		/// <param name="builder">FDB cluster builder</param>
+		/// <remarks>
+		/// <para>The identifier will be generated using the current time, the hostname and current PID. This will ensure that any log file that will use this identifier should be mostly sorted chronologically.</para>
+		/// <para>This identifier will be injected, via the connection string, to all resources that reference this cluster, and will be automatically be assigned to all logged transactions.</para>
+		/// <para>Once a session has been completed, this identifier could then be used to match conflicting transactions, or to recreate a sensible history of what happened during a specific time window.</para>
+		/// </remarks>
+		public static IResourceBuilder<FdbClusterResource> WithRandomizedLogSessionId(this IResourceBuilder<FdbClusterResource> builder)
+		{
+			// we use a mix of the starting time, the PID of the AppHost itself, and some randomness
+			// => this should ensure that logs are somewhat sorted chronologically
+			var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+			var host = Environment.MachineName;
+			var pid = Environment.ProcessId;
+			var prefix = string.Create(CultureInfo.InvariantCulture, $"{now}_{host}_{pid:D05}");
+
+			return builder.WithLogSessionId(prefix);
 		}
 
 		#endregion
