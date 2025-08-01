@@ -1217,6 +1217,25 @@ namespace FoundationDB.Client.Tests
 				Assert.That(ckWorld, Is.GreaterThan(ckFirst).And.GreaterThan(ckHello).And.EqualTo(ckWorld).And.LessThan(ckLast));
 				Assert.That(ckLast, Is.GreaterThan(ckFirst).And.GreaterThan(ckWorld).And.GreaterThan(ckWorld).And.EqualTo(ckLast));
 			}
+			{ // System that is actual SpecialKey
+				var k = FdbKey.ToSystemKey(Slice.FromStringAscii("\xFF/status/json"));
+				Assert.That(k.IsSpecial, Is.True);
+				Assert.That(k.SuffixBytes.ToString(), Is.EqualTo("/status/json"));
+				Assert.That(k.SuffixString, Is.Null);
+				Assert.That(k.ToSlice().ToString(), Is.EqualTo("<FF><FF>/status/json"));
+
+				k = FdbKey.ToSystemKey(Slice.FromStringAscii("\xFF/status/json").Span);
+				Assert.That(k.IsSpecial, Is.True);
+				Assert.That(k.SuffixBytes.ToString(), Is.EqualTo("/status/json"));
+				Assert.That(k.SuffixString, Is.Null);
+				Assert.That(k.ToSlice().ToString(), Is.EqualTo("<FF><FF>/status/json"));
+
+				k = FdbKey.ToSystemKey("\xFF/status/json");
+				Assert.That(k.IsSpecial, Is.True);
+				Assert.That(k.SuffixString, Is.EqualTo("/status/json"));
+				Assert.That(k.SuffixBytes, Is.EqualTo(Slice.Nil));
+				Assert.That(k.ToSlice().ToString(), Is.EqualTo("<FF><FF>/status/json"));
+			}
 		}
 
 		[Test]

@@ -286,17 +286,22 @@ namespace FoundationDB.Client
 		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
 		[Pure]
 		public static FdbSystemKey ToSystemKey(ReadOnlySpan<byte> relativeKey)
-			=> new(Slice.FromBytes(relativeKey), special: false);
+			=> relativeKey.Length == 0 ? FdbSystemKey.System
+			 : relativeKey[0] != 0xFF ? new(Slice.FromBytes(relativeKey), special: false)
+			 : new(Slice.FromBytes(relativeKey[1..]), special: true);
 
 		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
 		[Pure]
 		public static FdbSystemKey ToSystemKey(Slice relativeKey)
-			=> !relativeKey.IsNull ? new(relativeKey, special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+			=> relativeKey.IsNull ? throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey))
+			 : relativeKey.Count == 0 ? FdbSystemKey.System
+			 : relativeKey[0] != 0xFF ? new(relativeKey, special: false)
+			 : new(relativeKey.Substring(1), special: true);
 
 		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
 		[Pure]
 		public static FdbSystemKey ToSystemKey(byte[] relativeKey)
-			=> relativeKey is not null ? new(relativeKey.AsSlice(), special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+			=> relativeKey is not null ? ToSystemKey(relativeKey.AsSlice()) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
 
 		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
 		/// <remarks>
@@ -305,7 +310,10 @@ namespace FoundationDB.Client
 		/// </remarks>
 		[Pure]
 		public static FdbSystemKey ToSystemKey(string relativeKey)
-			=> relativeKey is not null ? new(relativeKey, special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+			=> relativeKey is null ? throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey))
+			 : relativeKey.Length == 0 ? FdbSystemKey.System
+			 : relativeKey[0] != '\xFF' ? new(relativeKey, special: false)
+			 : new(relativeKey.Substring(1), special: true);
 
 		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
 		/// <remarks>
@@ -314,7 +322,9 @@ namespace FoundationDB.Client
 		/// </remarks>
 		[Pure]
 		public static FdbSystemKey ToSystemKey(ReadOnlySpan<char> relativeKey)
-			=> new(relativeKey.ToString(), special: false);
+			=> relativeKey.Length == 0 ? FdbSystemKey.System
+			 : relativeKey[0] != '\xFF' ? new(relativeKey.ToString(), special: false) 
+			 : new(relativeKey[1..].ToString(), special: true);
 
 		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
 		/// <remarks>

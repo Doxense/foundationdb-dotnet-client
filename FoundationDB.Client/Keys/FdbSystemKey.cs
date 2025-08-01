@@ -26,6 +26,7 @@
 
 namespace FoundationDB.Client
 {
+	using System;
 	using System.ComponentModel;
 
 	/// <summary>Wraps a <see cref="Slice"/> that wraps a key in either the System (<c>`\xFF`</c>) or Special Key (<c>`\xFF\xFF`</c>) subspaces</summary>
@@ -53,6 +54,8 @@ namespace FoundationDB.Client
 			this.IsSpecial = special;
 			this.SuffixBytes = suffix;
 			this.SuffixString = null;
+
+			Contract.Debug.Ensures(this.IsSpecial || !this.SuffixBytes.StartsWith(0xFF));
 		}
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -61,15 +64,19 @@ namespace FoundationDB.Client
 			this.IsSpecial = special;
 			this.SuffixBytes = default;
 			this.SuffixString = suffix;
+
+			Contract.Debug.Ensures(this.IsSpecial || !this.SuffixString.StartsWith('\xFF'));
 		}
 
 		/// <summary>If <c>true</c>, uses the <c>`\xFF\xFF`</c> prefix (for special keys); otherwise, uses the <c>`\xFF`</c> prefix (for regular system keys)</summary>
 		public readonly bool IsSpecial;
 
 		/// <summary>Rest of the key (as bytes)</summary>
+		/// <remarks>This is only present if <see cref="SuffixString"/> is <c>null</c></remarks>
 		public readonly Slice SuffixBytes;
 
 		/// <summary>Rest of the key (as raw string)</summary>
+		/// <remarks>If <c>null</c> then <see cref="SuffixBytes"/> contains the rest of the key</remarks>
 		public readonly string? SuffixString;
 
 		/// <inheritdoc />
@@ -80,64 +87,87 @@ namespace FoundationDB.Client
 		[Pure]
 		public FdbSystemKey Bytes(Slice suffix)
 		{
-			if (suffix.Count == 0) return this;
-
-			int count = this.SuffixString?.Length ?? this.SuffixBytes.Count;
-
-			if (count == 0)
+			if (suffix.Count == 0)
 			{
-				if (!this.IsSpecial && suffix[0] == 0xFF)
-				{
-					return suffix.Count > 1 ? new(suffix[1..], special: true) : Special;
-				}
-				return new(suffix, this.IsSpecial);
+				return this;
+			}
+
+			bool special = this.IsSpecial;
+			if (!special && suffix.StartsWith(0xFF))
+			{ // promote to SpecialKey
+				special = true;
+				suffix = suffix.Substring(1);
 			}
 
 			return this.SuffixString is null
-				? new(this.SuffixBytes + suffix, special: IsSpecial)
-				: new(Slice.FromStringAscii(this.SuffixString) + suffix, special: IsSpecial);
+				? new(this.SuffixBytes + suffix, special)
+				: new(Slice.FromStringAscii(this.SuffixString) + suffix, special);
 		}
 
 		[Pure]
 		public FdbSystemKey Bytes(ReadOnlySpan<byte> suffix)
 		{
-			if (suffix.Length == 0) return this;
-
-			int count = this.SuffixString?.Length ?? this.SuffixBytes.Count;
-
-			if (count == 0)
+			if (suffix.Length == 0)
 			{
-				if (!this.IsSpecial && suffix[0] == 0xFF)
-				{
-					return suffix.Length > 1 ? new(Slice.FromBytes(suffix[1..]), special: true) : Special;
-				}
-				return new(Slice.FromBytes(suffix), this.IsSpecial);
+				return this;
+			}
+
+			bool special = this.IsSpecial;
+			if (!special && suffix[0] == 0xFF)
+			{ // promote to SpecialKey
+				special = true;
+				suffix = suffix[1..];
 			}
 
 			return this.SuffixString is null
-				? new(this.SuffixBytes.Concat(suffix), special: IsSpecial)
-				: new(Slice.FromStringAscii(this.SuffixString).Concat(suffix), special: IsSpecial);
+				? new(this.SuffixBytes.Concat(suffix), special)
+				: new(Slice.FromStringAscii(this.SuffixString).Concat(suffix), special);
 		}
 
 		[Pure]
 		public FdbSystemKey Bytes(string suffix)
 		{
-			if (this.SuffixString is not null)
+			if (string.IsNullOrEmpty(suffix))
 			{
-				return new(this.SuffixString + suffix, special: this.IsSpecial);
+				return this;
 			}
-			return Bytes(Slice.FromStringAscii(suffix));
+
+			if (this.SuffixString is null)
+			{
+				return Bytes(Slice.FromStringAscii(suffix));
+			}
+
+			bool special = IsSpecial;
+			if (!special && suffix[0] == '\xFF')
+			{ // promote to SpecialKey
+				special = true;
+				suffix = suffix[1..];
+			}
+
+			return new(this.SuffixString + suffix, special);
 		}
 
 		[Pure]
 		public FdbSystemKey Bytes(ReadOnlySpan<char> suffix)
 		{
-			if (suffix.Length == 0) return this;
-			if (this.SuffixString is not null)
+			if (suffix.Length == 0)
 			{
-				return new(string.Concat(this.SuffixString, suffix), special: this.IsSpecial);
+				return this;
 			}
-			return Bytes(Slice.FromStringAscii(suffix));
+
+			if (this.SuffixString is null)
+			{
+				return Bytes(Slice.FromStringAscii(suffix));
+			}
+
+			bool special = IsSpecial;
+			if (!special && suffix[0] == '\xFF')
+			{ // promote to SpecialKey
+				special = true;
+				suffix = suffix[1..];
+			}
+
+			return new(string.Concat(this.SuffixString, suffix), special);
 		}
 
 		#region Equals(...)
@@ -187,7 +217,6 @@ namespace FoundationDB.Client
 		{
 			if (this.IsSpecial != other.IsSpecial)
 			{
-				//BUGBUG: we need to check if one has \xFF in its suffix !
 				return false;
 			}
 
@@ -234,16 +263,37 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbSystemKey other)
 		{
-			if (this.IsSpecial == other.IsSpecial)
+			switch (this.IsSpecial, other.IsSpecial)
 			{
-				switch (this.SuffixString, other.SuffixString)
+				case (false, false) or (true, true):
 				{
-					case (not null, not null): return string.CompareOrdinal(this.SuffixString, other.SuffixString);
-					case (null, null): return this.SuffixBytes.CompareTo(other.SuffixBytes);
+					switch (this.SuffixString, other.SuffixString)
+					{
+						case (not null, not null):
+						{
+							return string.CompareOrdinal(this.SuffixString, other.SuffixString);
+						}
+						case (null, null):
+						{
+							return this.SuffixBytes.CompareTo(other.SuffixBytes);
+						}
+						default:
+						{
+							// fallback: slow path
+							return FdbKeyHelpers.Compare(in this, in other);
+						}
+					}
+				}
+				case (false, true):
+				{ // SystemKey < SpecialKey
+					return -1;
+				}
+				case (true, false):
+				{ // SpecialKey > SystemKey
+					return +1;
 				}
 			}
-			// fallback: slow path
-			return FdbKeyHelpers.Compare(in this, in other);
+
 		}
 
 		/// <inheritdoc />
@@ -259,12 +309,12 @@ namespace FoundationDB.Client
 		public int CompareTo(ReadOnlySpan<byte> other)
 		{
 			if (other.Length == 0 || other[0] != 0xFF)
-			{ // the key is by definition smaller
+			{ // Regular Key < System Key
 				return +1;
 			}
 
 			if (this.IsSpecial)
-			{ // \xFF \xFF ...
+			{ // \xFF\xFF...
 				if (other.Length > 1 && other[1] != 0xFF)
 				{
 					return +1;
@@ -276,7 +326,7 @@ namespace FoundationDB.Client
 				}
 			}
 			else
-			{ // \xFF ...
+			{ // \xFF...
 				if (this.SuffixString is null)
 				{
 					return this.SuffixBytes.CompareTo(other[1..]);
@@ -291,7 +341,17 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int FastCompareTo<TOtherKey>(in TOtherKey other)
 			where TOtherKey : struct, IFdbKey
-			=> FdbKeyHelpers.Compare(in this, in other);
+		{
+			if (typeof(TOtherKey) == typeof(FdbSystemKey))
+			{
+				return CompareTo((FdbSystemKey) (object) other);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return CompareTo(((FdbRawKey) (object) other).Span);
+			}
+			return FdbKeyHelpers.Compare(in this, in other);
+		}
 
 		#endregion
 
