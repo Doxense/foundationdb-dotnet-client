@@ -747,6 +747,12 @@ namespace FoundationDB.Client
 			if (key.Length > 1)
 			{
 				byte c = key[0];
+
+				if (c == 0xFF)
+				{ // this is most probably a SystemKey
+					//return Slice.Dump(key);
+				}
+
 				//OPTIMIZE: maybe we need a lookup table
 #if NET8_0_OR_GREATER
 				if (PossibleTupleFirstBytes.Contains(c))
@@ -754,80 +760,63 @@ namespace FoundationDB.Client
 				if (c <= 28 || c == 32 || c == 33 || c == 48 || c == 49 || c >= 254)
 #endif
 				{ // it could be a tuple...
-					try
-					{
-						SpanTuple tuple = default;
-						string? suffix = null;
-						bool skip = false;
 
-						try
-						{
-							switch (mode)
+					// handle some corner cases when dealing with begin/end keys...
+					switch (mode)
+					{
+						case PrettyPrintMode.End:
+						{ // the last byte will either be FF, or incremented
+							// for tuples, the worst cases are for byte[]/strings (which normally end with 00)
+							// => pack(("string",))+\xFF => <02>string<00><FF>
+							// => string(("string",)) => <02>string<01>
+							switch (key[^1])
 							{
-								case PrettyPrintMode.End:
-								{ // the last byte will either be FF, or incremented
-									// for tuples, the worst cases are for byte[]/strings (which normally end with 00)
-									// => pack(("string",))+\xFF => <02>string<00><FF>
-									// => string(("string",)) => <02>string<01>
-									switch (key[^1])
+								case 0xFF:
+								{
+									if (TuPack.TryUnpack(key[..^1], out var tuple))
 									{
-										case 0xFF:
-										{
-											//***README*** if you break under here, see README in the last catch() block
-											tuple = TuPack.Unpack(key[..^1]);
-											suffix = ".<FF>";
-											break;
-										}
-										case 0x01:
-										{
-											//TODO: HACKHACK: until we find another solution, we have to make a copy :(
-											var tmp = key.ToArray();
-											tmp[^1] = 0;
-											//***README*** if you break under here, see README in the last catch() block
-											tuple = TuPack.Unpack(tmp);
-											suffix = " + 1";
-											break;
-										}
+										return tuple.ToString() + ".<FF>";
 									}
 									break;
 								}
-								case PrettyPrintMode.Begin:
-								{ // the last byte will usually be 00
-
-									// We can't really know if the tuple ended with NULL (serialized to <00>) or if a <00> was added,
-									// but since the ToRange() on tuples add a <00> we can bet on the fact that it is not part of the tuple itself.
-									// except maybe if we have "00 FF 00" which would be the expected form of a string that ends with a <00>
-
-									if (key.Length > 2 && key[-1] == 0 && key[-2] != 0xFF)
+								case 0x01:
+								{
+									//TODO: HACKHACK: until we find another solution, we have to make a copy :(
+									var tmp = key.ToArray();
+									tmp[^1] = 0;
+									if (TuPack.TryUnpack(tmp, out var tuple))
 									{
-										//***README*** if you break under here, see README in the last catch() block
-										tuple = TuPack.Unpack(key[..^1]);
-										suffix = ".<00>";
+										return tuple.ToString() + "+1";
 									}
 									break;
 								}
 							}
+							break;
 						}
-						catch (Exception e)
-						{
-							suffix = null;
-							skip = e is not (FormatException or ArgumentOutOfRangeException);
-						}
+						case PrettyPrintMode.Begin:
+						{ // the last byte will usually be 00
 
-						if (tuple.Count == 0 && !skip)
-						{ // attempt a regular decoding
-							//***README*** if you break under here, see README in the last catch() block
-							tuple = TuPack.Unpack(key);
-						}
+							// We can't really know if the tuple ended with NULL (serialized to <00>) or if a <00> was added,
+							// but since the ToRange() on tuples add a <00> we can bet on the fact that it is not part of the tuple itself.
+							// except maybe if we have "00 FF 00" which would be the expected form of a string that ends with a <00>
 
-						if (tuple.Count != 0) return tuple.ToString() + suffix;
+							if (key.Length > 2 && key[-1] == 0 && key[-2] != 0xFF)
+							{
+								//***README*** if you break under here, see README in the last catch() block
+								if (TuPack.TryUnpack(key[..^1], out var tuple))
+								{
+									return tuple.ToString() + ".<00>";
+								}
+							}
+							break;
+						}
 					}
-					catch (Exception)
-					{
-						//README: If Visual Studio is breaking inside some Tuple parsing method somewhere inside this try/catch,
-						// this is because your debugger is configured to automatically break on thrown exceptions of type FormatException, ArgumentException, or InvalidOperation.
-						// Unfortunately, there isn't much you can do except unchecking "break when this exception type is thrown". If you know a way to disable locally this behaviour, please fix this!
-						// => only other option would be to redesign the parsing of tuples as a TryParseXXX() that does not throw, OR to have a VerifyTuple() methods that only checks for validity....
+					// attempt a regular decoding
+					{ 
+						if (TuPack.TryUnpack(key, out var tuple))
+						{
+							return tuple.ToString();
+						}
 					}
 				}
 			}

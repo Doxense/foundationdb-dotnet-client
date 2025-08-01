@@ -228,6 +228,11 @@ namespace FoundationDB.Client.Tests
 				Assert.That(FdbKey.PrettyPrint(t, FdbKey.PrettyPrintMode.Single), Is.EqualTo("(123,)"));
 				Assert.That(FdbKey.PrettyPrint(t + 0x00, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(123,).<00>"));
 				Assert.That(FdbKey.PrettyPrint(t + 0xFF, FdbKey.PrettyPrintMode.End), Is.EqualTo("(123,).<FF>"));
+
+				// Directory Layer Keys
+				Assert.That(FdbKey.Dump(Slice.FromBytes([ 0xFE, 0x01, (byte) 'v', (byte) 'e', (byte) 'r', (byte) 's', (byte) 'i', (byte) 'o', (byte) 'n', 0x00 ])), Is.EqualTo("(|Directory|, `version`)"));
+				Assert.That(FdbKey.Dump(Slice.FromBytes([ 0xFE, 0x01, 0xFE, 0x00, 0x01, (byte) 's', (byte) 't', (byte) 'a', (byte) 'm', (byte) 'p', 0x00 ])), Is.EqualTo("(|Directory|, `<FE>`, `stamp`)"));
+				Assert.That(FdbKey.Dump(Slice.FromBytes([ 0xFE, 0x01, 0x15, 0x2A, 0x00, 0x01, (byte) 'l', (byte) 'a', (byte) 'y', (byte) 'e', (byte) 'r', 0x00 ])), Is.EqualTo("(|Directory|, `<15>*`, `layer`)"));
 			});
 		}
 
