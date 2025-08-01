@@ -28,7 +28,175 @@ namespace FoundationDB.Client
 {
 	using System.ComponentModel;
 
-	/// <summary>Wraps a <see cref="Slice"/> that wraps a pre-encoded binary suffix, relative to a subspace</summary>
+	/// <summary>Wraps a pre-encoded binary suffix and a Tuple suffix</summary>
+	/// <typeparam name="TTuple">Type of the tuple suffix</typeparam>
+	public readonly struct FdbTupleSuffixKey<TTuple> : IFdbKey
+		, IEquatable<FdbTupleSuffixKey<TTuple>>, IComparable<FdbTupleSuffixKey<TTuple>>
+		where TTuple : IVarTuple
+	{
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[SkipLocalsInit]
+		internal FdbTupleSuffixKey(Slice prefix, in TTuple suffix)
+		{
+			this.Prefix = prefix;
+			this.Suffix = suffix;
+		}
+
+		public readonly Slice Prefix;
+
+		public readonly TTuple Suffix;
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => null;
+
+		#region Equals(...)
+
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		public override int GetHashCode() => throw FdbKeyHelpers.ErrorCannotComputeHashCodeMessage();
+
+		/// <inheritdoc />
+		public override bool Equals([NotNullWhen(true)] object? other) => other switch
+		{
+			Slice bytes => this.Equals(bytes),
+			FdbTupleSuffixKey<TTuple> key => this.Equals(key),
+			FdbRawKey key => this.Equals(key),
+			IFdbKey key => FdbKeyHelpers.AreEqual(in this, key),
+			_ => false,
+		};
+
+		/// <inheritdoc />
+		[Obsolete(FdbKeyHelpers.PreferFastEqualToForKeysMessage)]
+		public bool Equals([NotNullWhen(true)] IFdbKey? other) => other switch
+		{
+			null => false,
+			FdbTupleSuffixKey<TTuple> key => this.Equals(key),
+			FdbRawKey key => this.Equals(key),
+			_ => FdbKeyHelpers.AreEqual(in this, other),
+		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool FastEqualTo<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (typeof(TOtherKey) == typeof(FdbTupleSuffixKey<TTuple>))
+			{
+				return this.Prefix.Equals(((FdbTupleSuffixKey<TTuple>) (object) other).Prefix) && this.Suffix.Equals(((FdbTupleSuffixKey<TTuple>) (object) other).Suffix);
+			}
+			if (typeof(TOtherKey) == typeof(FdbRawKey))
+			{
+				return Equals(((FdbRawKey) (object) other).Data);
+			}
+			return FdbKeyHelpers.AreEqual(in this, in other);
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbTupleSuffixKey<TTuple> other) => this.Prefix.Equals(other.Prefix) && this.Suffix.Equals(other.Suffix);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(FdbRawKey other) => Equals(other.Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(Slice other) => Equals(other.Span);
+
+		/// <inheritdoc cref="Equals(Slice)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyHelpers.AreEqual(in this, other);
+
+		/// <inheritdoc />
+		public int CompareTo(object? obj) => obj switch
+		{
+			Slice key => CompareTo(key.Span),
+			FdbRawKey key => CompareTo(key.Span),
+			FdbTupleSuffixKey<TTuple> key => CompareTo(key),
+			IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+			_ => throw new NotSupportedException()
+		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbTupleSuffixKey<TTuple> other)
+		{
+			var cmp = this.Prefix.CompareTo(other.Prefix);
+			if (cmp == 0) cmp = this.Suffix.CompareTo(other.Suffix);
+			return cmp;
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(FdbRawKey other)
+			=> FdbKeyHelpers.Compare(in this, other.Data);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(Slice other)
+			=> FdbKeyHelpers.Compare(in this, other);
+
+		/// <inheritdoc cref="CompareTo(Slice)" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int CompareTo(ReadOnlySpan<byte> other)
+			=> FdbKeyHelpers.Compare(in this, other);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int FastCompareTo<TOtherKey>(in TOtherKey other)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.Compare(in this, in other);
+
+		#endregion
+
+		/// <inheritdoc />
+		public override string ToString() => ToString(null);
+
+		/// <inheritdoc />
+		public string ToString(string? format, IFormatProvider? formatProvider = null)
+			=> string.Create(formatProvider, $"{this}");
+
+		/// <inheritdoc />
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
+			=> destination.TryWrite(provider, $"{FdbKey.PrettyPrint(this.Prefix, FdbKey.PrettyPrintMode.Single)}.{this.Suffix}", out charsWritten);
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSpan(out ReadOnlySpan<byte> span)
+		{
+			span = default;
+			return false;
+		}
+
+		/// <inheritdoc />
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool TryGetSizeHint(out int sizeHint)
+		{
+			//PERF: we don't have an easy way to estimate the size of a TTuple yet!
+			sizeHint = 0;
+			return false;
+		}
+
+		/// <inheritdoc />
+		public bool TryEncode(Span<byte> destination, out int bytesWritten)
+		{
+			if (this.Prefix.TryCopyTo(destination, out var prefixLen)
+			 && TupleEncoder.TryPackTo(destination[prefixLen..], out var suffixLen, default, this.Suffix))
+			{
+				bytesWritten = prefixLen + suffixLen;
+				return true;
+			}
+
+			bytesWritten = 0;
+			return false;
+		}
+
+	}
+
+	/// <summary>Wraps a parent key, followed by a Tuple suffix</summary>
+	/// <typeparam name="TKey">Type of the parent key</typeparam>
+	/// <typeparam name="TTuple">Type of the tuple suffix</typeparam>
 	public readonly struct FdbTupleSuffixKey<TKey, TTuple> : IFdbKey
 		, IEquatable<FdbTupleSuffixKey<TKey, TTuple>>, IComparable<FdbTupleSuffixKey<TKey, TTuple>>
 		where TKey : struct, IFdbKey

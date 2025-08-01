@@ -197,6 +197,8 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -222,6 +224,10 @@ namespace FoundationDB.Client
 			_ => throw new FormatException(),
 		};
 
+		#endregion
+
+		#region ISpanEncodable...
+
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryGetSpan(out ReadOnlySpan<byte> span)
@@ -244,6 +250,264 @@ namespace FoundationDB.Client
 		{
 			return this.Data.TryCopyTo(destination, out bytesWritten);
 		}
+
+		#endregion
+
+		/// <summary>Returns the pre-encoded binary representation of this key</summary>
+		/// <remarks>This method is "free" and will not cause any memory allocations</remarks>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice ToSlice() => this.Data;
+
+		/// <summary>Returns a pooled copy of the pre-encoded binary representation of this key</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => pool is null ? SliceOwner.Wrap(this.Data) : SliceOwner.Copy(this.Data, pool);
+
+		/// <summary>Tests if this key is a prefix of the given key</summary>
+		/// <param name="key">Key being tested</param>
+		/// <returns><c>true</c> if key starts with the same bytes as the current key; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>The key `foobar` is contained inside `foo` because it starts with `foo`, but `bar` is NOT contained inside `foo` because it does not have the same prefix.</para>
+		/// <para>Any key contains "itself", so `foo` is contained inside `foo`</para>
+		/// </remarks>
+		[Pure]
+		public bool Contains(Slice key) => key.StartsWith(this.Data);
+
+		/// <summary>Tests if this key is a prefix of the given key</summary>
+		/// <param name="key">Key being tested</param>
+		/// <returns><c>true</c> if key starts with the same bytes as the current key; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>The key `foobar` is contained inside `foo` because it starts with `foo`, but `bar` is NOT contained inside `foo` because it does not have the same prefix.</para>
+		/// <para>Any key contains "itself", so `foo` is contained inside `foo`</para>
+		/// </remarks>
+		[Pure]
+		public bool Contains(ReadOnlySpan<byte> key) => key.StartsWith(this.Data.Span);
+
+		/// <summary>Tests if this key is a prefix of the given key</summary>
+		/// <param name="key">Key being tested</param>
+		/// <returns><c>true</c> if key starts with the same bytes as the current key; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>The key `foobar` is contained inside `foo` because it starts with `foo`, but `bar` is NOT contained inside `foo` because it does not have the same prefix.</para>
+		/// <para>Any key contains "itself", so `foo` is contained inside `foo`</para>
+		/// </remarks>
+		[Pure]
+		public bool Contains<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			if (typeof(TKey) == typeof(FdbRawKey))
+			{
+				return Contains(((FdbRawKey) (object) key).Span);
+			}
+
+			if (key.TryGetSpan(out var keySpan))
+			{
+				return Contains(keySpan);
+			}
+
+			using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
+			return Contains(keyBytes.Span);
+		}
+
+		/// <summary>Extracts the suffix from a key that is a child of the current key</summary>
+		/// <param name="key">Give that starts with the current key</param>
+		/// <returns>Suffix part of the key</returns>
+		/// <exception cref="ArgumentException">If <paramref name="key"/> is not a child of this key</exception>
+		/// <remarks>Example:<code lang="c#">
+		/// FdbKey.FromBytes("foo").GetSuffix(Slice.FromBytes("foobar")) // => `bar`
+		/// FdbKey.FromBytes("foo").GetSuffix(Slice.FromBytes("foo")) // => ``
+		/// FdbKey.FromBytes("foo").GetSuffix(Slice.FromBytes("bar")) // => throws
+		/// </code></remarks>
+		[Pure]
+		public Slice GetSuffix(Slice key)
+		{
+			if (!TryGetSuffix(key, out var suffix))
+			{
+				throw new ArgumentException("The key does not have the expected prefix.", nameof(key));
+			}
+			return suffix;
+		}
+
+		/// <summary>Extracts the suffix from a key that is a child of the current key</summary>
+		/// <param name="key">Give that starts with the current key</param>
+		/// <returns>Suffix part of the key</returns>
+		/// <exception cref="ArgumentException">If <paramref name="key"/> is not a child of this key</exception>
+		/// <remarks>Example:<code lang="c#">
+		/// FdbKey.FromBytes("foo").GetSuffix("foobar"u8) // => `bar`
+		/// FdbKey.FromBytes("foo").GetSuffix("foo"u8) // => ``
+		/// FdbKey.FromBytes("foo").GetSuffix("bar"u8) // => throws
+		/// </code></remarks>
+		[Pure]
+		public ReadOnlySpan<byte> GetSuffix(ReadOnlySpan<byte> key)
+		{
+			if (!TryGetSuffix(key, out var suffix))
+			{
+				throw new ArgumentException("The key does not have the expected prefix.", nameof(key));
+			}
+			return suffix;
+		}
+
+		/// <summary>Extracts the suffix from a key that is a child of the current key</summary>
+		/// <param name="key">Give that starts with the current key</param>
+		/// <param name="suffix">Receives the suffix part of the key</param>
+		/// <returns><c>true</c> if <paramref name="key"/> starts with this key's prefix; otherwise, <c>false</c></returns>
+		/// <exception cref="ArgumentException">If <paramref name="key"/> is not a child of this key</exception>
+		/// <remarks>Example:<code lang="c#">
+		/// FdbKey.FromBytes("foo").TryGetSuffix(Slice.FromBytes("foobar"), out var suffix) // => true, suffix = `bar`
+		/// FdbKey.FromBytes("foo").TryGetSuffix(Slice.FromBytes("foo"), out var suffix) // => true, suffix = ``
+		/// FdbKey.FromBytes("foo").TryGetSuffix(Slice.FromBytes("bar"), out var suffix) // => false
+		/// </code></remarks>
+		[Pure]
+		public bool TryGetSuffix(Slice key, out Slice suffix)
+		{
+			if (key.IsNull || key.Count < this.Data.Count || !key.StartsWith(this.Data))
+			{
+				suffix = default;
+				return false;
+			}
+
+			suffix = key.Substring(this.Data.Count);
+			return true;
+		}
+
+		/// <summary>Extracts the suffix from a key that is a child of the current key</summary>
+		/// <param name="key">Give that starts with the current key</param>
+		/// <param name="suffix">Receives the suffix part of the key</param>
+		/// <returns><c>true</c> if <paramref name="key"/> starts with this key's prefix; otherwise, <c>false</c></returns>
+		/// <exception cref="ArgumentException">If <paramref name="key"/> is not a child of this key</exception>
+		/// <remarks>Example:<code lang="c#">
+		/// FdbKey.FromBytes("foo").TryGetSuffix("foobar"u8, out var suffix) // => true, suffix = `bar`
+		/// FdbKey.FromBytes("foo").TryGetSuffix("foo"u8, out var suffix) // => true, suffix = ``
+		/// FdbKey.FromBytes("foo").TryGetSuffix("bar"u8, out var suffix) // => false
+		/// </code></remarks>
+		[Pure]
+		public bool TryGetSuffix(ReadOnlySpan<byte> key, out ReadOnlySpan<byte> suffix)
+		{
+			if (key.Length < this.Data.Count || !key.StartsWith(this.Span))
+			{
+				suffix = default;
+				return false;
+			}
+
+			suffix = key[this.Data.Count..];
+			return true;
+		}
+
+		#region IFdbKey.Key(...)...
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1>> Key<T1>(T1 item1)
+			=> new(this.Data, new(item1));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2>> Key<T1, T2>(T1 item1, T2 item2)
+			=> new(this.Data, new(item1, item2));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3>> Key<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
+			=> new(this.Data, new(item1, item2, item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4>> Key<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+			=> new(this.Data, new(item1, item2, item3, item4));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5>> Key<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+			=> new(this.Data, new(item1, item2, item3, item4, item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6>> Key<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+			=> new(this.Data, new(item1, item2, item3, item4, item5, item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6, T7>> Key<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+			=> new(this.Data, new(item1, item2, item3, item4, item5, item6, item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6, T7, T8>> Key<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+			=> new(this.Data, new(item1, item2, item3, item4, item5, item6, item7, item8));
+
+		#endregion
+
+		#region IFdbKey.Tuple(STuple<...>)
+
+		/// <summary>Appends the packed elements of a tuple after the current key</summary>
+		/// <typeparam name="TTuple">Type of the tuple</typeparam>
+		/// <param name="items">Tuples with the items to append</param>
+		/// <returns>New key that will append the <paramref name="items"/> at the end of the current key</returns>
+		public FdbTupleSuffixKey<TTuple> Tuple<TTuple>(TTuple items)
+			where TTuple : IVarTuple
+		{
+			return new(this.Data, items);
+		}
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1>> Tuple<T1>(in STuple<T1> items)
+			=> new(this.Data, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2>> Tuple<T1, T2>(in STuple<T1, T2> items)
+			=> new(this.Data, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3>> Tuple<T1, T2, T3>(in STuple<T1, T2, T3> items)
+			=> new(this.Data, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4>> Tuple<T1, T2, T3, T4>(in STuple<T1, T2, T3, T4> items)
+			=> new(this.Data, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5>> Tuple<T1, T2, T3, T4, T5>(in STuple<T1, T2, T3, T4, T5> items)
+			=> new(this.Data, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6>> Tuple<T1, T2, T3, T4, T5, T6>(in STuple<T1, T2, T3, T4, T5, T6> items)
+			=> new(this.Data, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6, T7>> Tuple<T1, T2, T3, T4, T5, T6, T7>(in STuple<T1, T2, T3, T4, T5, T6, T7> items)
+			=> new(this.Data, in items);
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6, T7, T8>> Tuple<T1, T2, T3, T4, T5, T6, T7, T8>(in STuple<T1, T2, T3, T4, T5, T6, T7, T8> items)
+			=> new(this.Data, in items);
+
+		#endregion
+
+		#region IFdbKey.Tuple(ValueTuple<...>)
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1>> Tuple<T1>(in ValueTuple<T1> items)
+			=> new(this.Data, new(items.Item1));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2>> Tuple<T1, T2>(in ValueTuple<T1, T2> items)
+			=> new(this.Data, new(items.Item1, items.Item2));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3>> Tuple<T1, T2, T3>(in ValueTuple<T1, T2, T3> items)
+			=> new(this.Data, new(items.Item1, items.Item2, items.Item3));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4>> Tuple<T1, T2, T3, T4>(in ValueTuple<T1, T2, T3, T4> items)
+			=> new(this.Data, new(items.Item1, items.Item2, items.Item3, items.Item4));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5>> Tuple<T1, T2, T3, T4, T5>(in ValueTuple<T1, T2, T3, T4, T5> items)
+			=> new(this.Data, new(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6>> Tuple<T1, T2, T3, T4, T5, T6>(in ValueTuple<T1, T2, T3, T4, T5, T6> items)
+			=> new(this.Data, new(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6, T7>> Tuple<T1, T2, T3, T4, T5, T6, T7>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7> items)
+			=> new(this.Data, new(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6, items.Item7));
+
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbTupleSuffixKey<STuple<T1, T2, T3, T4, T5, T6, T7, T8>> Tuple<T1, T2, T3, T4, T5, T6, T7, T8>(in ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> items)
+			=> new(this.Data, new(items.Item1, items.Item2, items.Item3, items.Item4, items.Item5, items.Item6, items.Item7, items.Item8));
+
+		#endregion
 
 
 	}
