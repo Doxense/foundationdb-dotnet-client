@@ -28,7 +28,7 @@
 // ReSharper disable RedundantCast
 // ReSharper disable ReplaceAsyncWithTaskReturn
 
-//#define ENABLE_LOGGING
+#define ENABLE_LOGGING
 
 namespace FoundationDB.Client.Tests
 {
@@ -897,6 +897,10 @@ namespace FoundationDB.Client.Tests
 			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
 			var dl = FdbDirectoryLayer.Create(location);
 
 			using var tr = db.BeginTransaction(this.Cancellation);
@@ -958,6 +962,10 @@ namespace FoundationDB.Client.Tests
 			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
 			var dl = FdbDirectoryLayer.Create(location);
 
 			using var tr = db.BeginTransaction(this.Cancellation);
@@ -999,6 +1007,10 @@ namespace FoundationDB.Client.Tests
 			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
 			var directory = FdbDirectoryLayer.Create(location);
 
 			// CreateOrOpen
@@ -1039,6 +1051,10 @@ namespace FoundationDB.Client.Tests
 			using var db = await OpenTestDatabaseAsync();
 			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
 
 			var dl = FdbDirectoryLayer.Create(location);
 			Log(dl);
@@ -1133,6 +1149,10 @@ namespace FoundationDB.Client.Tests
 			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
 
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
+
 			var dl = FdbDirectoryLayer.Create(location);
 			Log(dl);
 
@@ -1187,6 +1207,10 @@ namespace FoundationDB.Client.Tests
 			using var db = await OpenTestDatabaseAsync();
 			var location = db.Root.WithPrefix(TuPack.EncodeKey("DL"));
 			await CleanLocation(db, location);
+
+#if ENABLE_LOGGING
+			db.SetDefaultLogHandler((log) => Log(log.GetTimingsReport(true)));
+#endif
 
 			// to keep the test db in a good shape, we will still use tuples for our custom prefix,
 			// but using strings so that they do not collide with the integers used by the normal allocator
