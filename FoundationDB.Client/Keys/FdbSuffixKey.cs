@@ -109,6 +109,16 @@ namespace FoundationDB.Client
 		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyHelpers.AreEqual(in this, other);
 
 		/// <inheritdoc />
+		public int CompareTo(object? obj) => obj switch
+		{
+			Slice key => CompareTo(key.Span),
+			FdbRawKey key => CompareTo(key.Span),
+			FdbTupleSuffixKey<TKey, TTuple> key => CompareTo(key),
+			IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+			_ => throw new NotSupportedException()
+		};
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbTupleSuffixKey<TKey, TTuple> other)
 		{
@@ -277,6 +287,16 @@ namespace FoundationDB.Client
 			var suffixSpan = this.Subspace.GetPrefix().Span;
 			return other.StartsWith(suffixSpan) && other[suffixSpan.Length..].SequenceEqual(suffixSpan);
 		}
+
+		/// <inheritdoc />
+		public int CompareTo(object? obj) => obj switch
+		{
+			Slice key => CompareTo(key.Span),
+			FdbRawKey key => CompareTo(key.Span),
+			FdbSuffixKey key => CompareTo(key),
+			IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+			_ => throw new NotSupportedException()
+		};
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -467,6 +487,16 @@ namespace FoundationDB.Client
 		/// <inheritdoc cref="Equals(Slice)"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<byte> other) => FdbKeyHelpers.AreEqual(in this, other);
+
+		/// <inheritdoc />
+		public int CompareTo(object? obj) => obj switch
+		{
+			Slice key => CompareTo(key.Span),
+			FdbRawKey key => CompareTo(key.Span),
+			FdbSuffixKey<TKey> key => CompareTo(key),
+			IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+			_ => throw new NotSupportedException()
+		};
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbSuffixKey<TKey> other)

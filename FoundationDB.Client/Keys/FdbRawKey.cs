@@ -109,6 +109,17 @@ namespace FoundationDB.Client
 		public bool Equals(ReadOnlySpan<byte> other) => this.Data.Equals(other);
 
 		/// <inheritdoc />
+		public int CompareTo(object? obj) => obj switch
+		{
+			Slice key => CompareTo(key.Span),
+			FdbRawKey key => CompareTo(key.Span),
+			FdbTupleKey key => -key.CompareTo(this.Span),
+			FdbSuffixKey key => -key.CompareTo(this.Span),
+			IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+			_ => throw new NotSupportedException()
+		};
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbRawKey other) => this.Data.CompareTo(other.Data);
 

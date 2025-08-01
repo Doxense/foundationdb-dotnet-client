@@ -30,7 +30,6 @@
 
 namespace FoundationDB.Client.Tests
 {
-	using SnowBank.Data.Tuples.Binary;
 
 	[TestFixture]
 	[Category("Fdb-Client-InProc")]
@@ -150,7 +149,6 @@ namespace FoundationDB.Client.Tests
 				Assert.That($"***{k:P}$$$", Is.EqualTo("***(\"hello\", 123, \"world\")$$$"));
 				Assert.That($"***{k:G}$$$", Is.EqualTo("***FdbRawKey(<02>hello<00><15>{<02>world<00>)$$$"));
 			}
-
 		}
 
 		[Test]
@@ -1112,11 +1110,13 @@ namespace FoundationDB.Client.Tests
 				var k = FdbSystemKey.System;
 				Log($"# {k}");
 				Assert.That(k.IsSpecial, Is.False);
-				Assert.That(k.Suffix, Is.EqualTo(Slice.Empty));
+				Assert.That(k.SuffixString, Is.Null);
+				Assert.That(k.SuffixBytes, Is.EqualTo(Slice.Empty));
 
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0xFF ])));
 
 				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.Empty, false)));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey("", false)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF ]))));
 				Assert.That(k, Is.EqualTo(Slice.FromBytes([ 0xFF ])));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.System))));
@@ -1130,11 +1130,13 @@ namespace FoundationDB.Client.Tests
 				var k = FdbSystemKey.Special;
 				Log($"# {k}");
 				Assert.That(k.IsSpecial, Is.True);
-				Assert.That(k.Suffix, Is.EqualTo(Slice.Empty));
+				Assert.That(k.SuffixString, Is.Null);
+				Assert.That(k.SuffixBytes, Is.EqualTo(Slice.Empty));
 
 				Assert.That(k.ToSlice(), Is.EqualTo(Slice.FromBytes([ 0xFF, 0xFF ])));
 
 				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.Empty, true)));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey("", true)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(Slice.FromBytes([ 0xFF, 0xFF ]))));
 				Assert.That(k, Is.EqualTo(Slice.FromBytes([ 0xFF, 0xFF ])));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.Special))));
@@ -1148,43 +1150,72 @@ namespace FoundationDB.Client.Tests
 
 				Log($"# {k}");
 				Assert.That(k.IsSpecial, Is.False);
-				Assert.That(k.Suffix, Is.EqualTo(Slice.FromString("/metadataVersion")));
+				Assert.That(k.SuffixString, Is.EqualTo("/metadataVersion"));
+				Assert.That(k.SuffixBytes, Is.EqualTo(Slice.Nil));
 
 				var expectedBytes = Slice.FromByteString("\xFF/metadataVersion");
 				Assert.That(k.ToSlice(), Is.EqualTo(expectedBytes));
 
-				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.FromString("/metadataVersion"), special: false)));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.FromStringAscii("/metadataVersion"), special: false)));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey("/metadataVersion", special: false)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(expectedBytes)));
 				Assert.That(k, Is.EqualTo(expectedBytes));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.SystemKey("/metadataVersion")))));
 
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/metadataVersion"), special: true)));
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/metadataversion"), special: false)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromStringAscii("/metadataVersion"), special: true)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromStringAscii("/metadataversion"), special: false)));
 				Assert.That(k, Is.Not.EqualTo(new FdbVarTupleValue(STuple.Create(TuPackUserType.SpecialKey("/metadataVersion")))));
 
 			}
 			{ // Special: Status Json
-				var k = FdbKey.ToSpecialKey("/status/json");
+				var k = FdbKey.ToSpecialKey(Slice.FromStringAscii("/status/json"));
 				Log($"# {k}");
 				Assert.That(k.IsSpecial, Is.True);
-				Assert.That(k.Suffix, Is.EqualTo(Slice.FromString("/status/json")));
+				Assert.That(k.SuffixString, Is.Null);
+				Assert.That(k.SuffixBytes, Is.EqualTo(Slice.FromStringAscii("/status/json")));
 
 				var expectedBytes = Slice.FromByteString("\xFF\xFF/status/json");
 				Assert.That(k.ToSlice(), Is.EqualTo(expectedBytes));
 
-				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.FromString("/status/json"), special: true)));
+				Assert.That(k, Is.EqualTo(new FdbSystemKey(Slice.FromStringAscii("/status/json"), special: true)));
 				Assert.That(k, Is.EqualTo(new FdbRawKey(expectedBytes)));
 				Assert.That(k, Is.EqualTo(expectedBytes));
 				Assert.That(k, Is.EqualTo(new FdbTupleKey(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))));
 
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/json"), special: false)));
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/JSON"), special: true)));
-				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromString("/status/json/"), special: true)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromStringAscii("/status/json"), special: false)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromStringAscii("/status/JSON"), special: true)));
+				Assert.That(k, Is.Not.EqualTo(new FdbSystemKey(Slice.FromStringAscii("/status/json/"), special: true)));
 				Assert.That(k, Is.Not.EqualTo(new FdbVarTupleValue(STuple.Create(TuPackUserType.SystemKey("/status/json")))));
 
-				Assert.That(k.FastEqualTo<FdbSystemKey>(new(Slice.FromString("/status/json"), special: true)), Is.True);
+				Assert.That(k.FastEqualTo<FdbSystemKey>(new(Slice.FromStringAscii("/status/json"), special: true)), Is.True);
+				Assert.That(k.FastEqualTo<FdbSystemKey>(new("/status/json", special: true)), Is.True);
 				Assert.That(k.FastEqualTo<FdbRawKey>(new(expectedBytes)), Is.True);
 				Assert.That(k.FastEqualTo<FdbTupleKey>(new(null, STuple.Create(TuPackUserType.SpecialKey("/status/json")))), Is.True);
+			}
+			{ // Special Key: Transaction Conflicting Keys...
+				var ckFirst = FdbSystemKey.TransactionConflictingKeys;
+				var ckHello = FdbSystemKey.TransactionConflictingKeys.Bytes(TuPack.EncodeKey("hello", 123));
+				var ckWorld = FdbSystemKey.TransactionConflictingKeys.Tuple(("world", 456));
+				var ckLast = FdbKey.ToSpecialKey("/transaction/conflicting_keys/\xFF");
+				Log($"# {ckFirst}");
+				Log($"# {ckHello}");
+				Log($"# {ckWorld}");
+				Log($"# {ckLast}");
+
+				Assert.That(ckFirst.ToSlice(), Is.EqualTo(Slice.FromStringAscii("\xFF\xFF/transaction/conflicting_keys/")));
+				Assert.That(ckHello.ToSlice(), Is.EqualTo(Slice.FromStringAscii("\xFF\xFF/transaction/conflicting_keys/\x02hello\x00\x15{")));
+				Assert.That(ckWorld.ToSlice(), Is.EqualTo(Slice.FromStringAscii("\xFF\xFF/transaction/conflicting_keys/\x02world\x00\x16\x01\xC8")));
+				Assert.That(ckLast.ToSlice(), Is.EqualTo(Slice.FromStringAscii("\xFF\xFF/transaction/conflicting_keys/\xFF")));
+
+				Assert.That(ckFirst.ToString(), Is.EqualTo("<FF><FF>/transaction/conflicting_keys/"));
+				Assert.That(ckHello.ToString(), Is.EqualTo("<FF><FF>/transaction/conflicting_keys/<02>hello<00><15>{"));
+				Assert.That(ckWorld.ToString(), Is.EqualTo("<FF><FF>/transaction/conflicting_keys/.(\"world\", 456)")); //REVIEW: this is not pretty
+				Assert.That(ckLast.ToString(), Is.EqualTo("<FF><FF>/transaction/conflicting_keys/<FF>"));
+
+				Assert.That(ckFirst, Is.EqualTo(ckFirst).And.LessThan(ckHello).And.LessThan(ckWorld).And.LessThan(ckLast));
+				Assert.That(ckHello, Is.GreaterThan(ckFirst).And.EqualTo(ckHello).And.LessThan(ckWorld).And.LessThan(ckLast));
+				Assert.That(ckWorld, Is.GreaterThan(ckFirst).And.GreaterThan(ckHello).And.EqualTo(ckWorld).And.LessThan(ckLast));
+				Assert.That(ckLast, Is.GreaterThan(ckFirst).And.GreaterThan(ckWorld).And.GreaterThan(ckWorld).And.EqualTo(ckLast));
 			}
 		}
 

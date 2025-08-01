@@ -41,6 +41,7 @@ global using FoundationDB.Client;
 global using FoundationDB.Client.Tests;
 global using NUnit.Framework;
 global using SnowBank.Buffers;
+global using SnowBank.Data.Tuples.Binary;
 global using SnowBank.Linq;
 global using SnowBank.Runtime;
 global using SnowBank.Testing;

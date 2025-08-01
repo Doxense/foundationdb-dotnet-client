@@ -37,6 +37,7 @@ namespace FoundationDB.Client
 		, IEquatable<FdbRawKey>, IComparable<FdbRawKey>
 		, IEquatable<Slice>, IComparable<Slice>
 		, IEquatable<IFdbKey>
+		, IComparable
 #if NET9_0_OR_GREATER
 		, IEquatable<ReadOnlySpan<byte>>, IComparable<ReadOnlySpan<byte>>
 #endif

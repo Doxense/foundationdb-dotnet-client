@@ -80,6 +80,33 @@ namespace FoundationDB.Client
 			return bytes.Data.StartsWith((byte) 0xFF);
 		}
 
+		/// <summary>Checks if the key is in the System keyspace (starts with <c>`\xFF`</c>)</summary>
+		public static bool IsSpecial<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
+		{
+			if (typeof(TKey) == typeof(FdbSystemKey))
+			{
+				return ((FdbSystemKey) (object) key).IsSpecial;
+			}
+
+			// if the key is complete, 
+			if (key.TryGetSpan(out var span))
+			{
+				return span.Length >= 2 && span[0] == 0xFF && span[1] == 0xFF;
+			}
+
+			// check the subspace prefix (rare, but could happen)
+			var subspace = key.GetSubspace();
+			if (subspace is not null && subspace.TryGetSpan(out span) && span.Length >= 2)
+			{
+				return span[0] == 0xFF && span[1] == 0xFF;
+			}
+
+			// we have to render the key, unfortunately
+			using var bytes = Encode(in key, ArrayPool<byte>.Shared);
+			return bytes.Data.StartsWith([ 0xFF, 0xFF ]);
+		}
+
 		/// <summary>Compares the prefix of two subspaces for equality</summary>
 		public static bool AreEqual(IKeySubspace? subspace, IKeySubspace? other)
 		{

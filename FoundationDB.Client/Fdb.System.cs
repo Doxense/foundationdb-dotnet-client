@@ -44,13 +44,13 @@ namespace FoundationDB.Client
 			// => eg. Fdb.System.MaxValue.Array[0] = 42;
 
 			/// <summary>"\xFF\xFF"</summary>
-			public static readonly Slice MaxValue = Slice.FromByteString("\xFF\xFF");
+			public static readonly Slice MaxValue = Slice.FromBytes([ 0xFF, 0xFF ]);
 
 			/// <summary>"\xFF\x00"</summary>
-			public static readonly Slice MinValue = Slice.FromByteString("\xFF\x00");
+			public static readonly Slice MinValue = Slice.FromBytes([ 0xFF, 0x00 ]);
 
 			/// <summary>"\xFF\xFF"</summary>
-			public static readonly Slice SpecialKeyPrefix = Slice.FromByteString("\xFF\xFF");
+			public static readonly Slice SpecialKeyPrefix = Slice.FromBytes([ 0xFF, 0xFF ]);
 
 			/// <summary>"\xFF/metadataVersion"</summary>
 			public static readonly Slice MetadataVersionKey = Slice.FromByteString("\xff/metadataVersion");
@@ -65,40 +65,50 @@ namespace FoundationDB.Client
 			/// <summary>"\xFF/backupDataFormat"</summary>
 			public static readonly Slice BackupDataFormat = Slice.FromByteString("\xFF/backupDataFormat");
 
-			/// <summary>"\xFF/conf/"</summary>
+			/// <summary>`\xFF/conf/...`</summary>
 			public static readonly Slice ConfigPrefix = Slice.FromByteString("\xFF/conf/");
 
-			/// <summary>"\xFF/coordinators"</summary>
+			/// <summary>`\xFF/coordinators`</summary>
 			public static readonly Slice Coordinators = Slice.FromByteString("\xFF/coordinators");
 
-			/// <summary>"\xFF/globals/"</summary>
+			/// <summary>`\xFF/globals/...`</summary>
 			public static readonly Slice GlobalsPrefix = Slice.FromByteString("\xFF/globals/");
 
-			/// <summary>"\xFF/init_id"</summary>
+			/// <summary><c>`\xFF/init_id`</c></summary>
 			public static readonly Slice InitId = Slice.FromByteString("\xFF/init_id");
 
-			/// <summary>"\xFF/keyServer/(key_boundary)" => (..., node_id, ...)</summary>
+			/// <summary><c>`\xFF/keyServer/(key_boundary)`</c> => (..., node_id, ...)</summary>
 			public static readonly Slice KeyServers = Slice.FromByteString("\xFF/keyServers/");
 
-			/// <summary>"\xFF/serverKeys/(node_id)/(key_boundary)" => ('' | '1')</summary>
+			/// <summary><c>`\xFF/serverKeys/(node_id)/(key_boundary)`</c> => ('' | '1')</summary>
 			public static readonly Slice ServerKeys = Slice.FromByteString("\xFF/serverKeys/");
 
-			/// <summary>"\xFF/serverList/(node_id)" => (..., node_id, machine_id, datacenter_id, ...)</summary>
+			/// <summary><c>`\xFF/serverList/(node_id)`</c> => (..., node_id, machine_id, datacenter_id, ...)</summary>
 			public static readonly Slice ServerList = Slice.FromByteString("\xFF/serverList/");
 
-			/// <summary>"\xFF/workers/(ip:port)/..." => datacenter + machine + mclass</summary>
+			/// <summary><c>`\xFF/workers/(ip:port)/...`</c> => datacenter + machine + mclass</summary>
 			public static readonly Slice WorkersPrefix = Slice.FromByteString("\xFF/workers/");
+
+			/// <summary><c>`\xFF\xFF/status/json`</c> => { JSON }</summary>
+			public static readonly Slice StatusJson = Slice.FromByteString("\xFF/\xFF/status/json");
+
+			/// <summary><c>`\xFF\xFF/transaction/conflicting_keys/`...</c> => ('0' | '1')</summary>
+			public static readonly Slice TransactionConflictingKeysPrefix = Slice.FromByteString("\xFF\xFF/transaction/conflicting_keys/");
 
 			#region JSON Status
 
 			/// <summary>Query the current status of the cluster</summary>
+			/// <remarks>Task that returns a <see cref="FdbSystemStatus"/> instance that wraps the parsed JSON document.</remarks>
+			/// <remarks>
+			/// <para>This method will read the <c>`\xFF\xFF/status/json`</c> special key, and parse the result JSON bytes.</para>
+			/// </remarks>
 			public static async Task<FdbSystemStatus?> GetStatusAsync(IFdbReadOnlyTransaction trans)
 			{
 				Contract.NotNull(trans);
 
 				// read the special key "\xFF\xFF/status/json"
 				var doc = await trans.GetAsync(
-					FdbKey.ToSpecialKey("/status/json"),
+					FdbSystemKey.StatusJson,
 					(value, found) => found ? CrystalJson.Parse(value).AsObject() : null
 				).ConfigureAwait(false);
 

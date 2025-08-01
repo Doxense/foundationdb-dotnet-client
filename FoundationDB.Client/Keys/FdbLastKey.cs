@@ -138,6 +138,16 @@ namespace FoundationDB.Client
 			=> FdbKeyHelpers.AreEqual(in this, other);
 
 		/// <inheritdoc />
+		public int CompareTo(object? obj) => obj switch
+		{
+			Slice key => CompareTo(key.Span),
+			FdbRawKey key => CompareTo(key.Span),
+			FdbLastKey<TKey> key => CompareTo(key),
+			IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+			_ => throw new NotSupportedException()
+		};
+
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int CompareTo(FdbLastKey<TKey> other)
 			=> FdbKeyHelpers.Compare(in this.Parent, in other.Parent);

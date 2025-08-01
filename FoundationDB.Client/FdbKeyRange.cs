@@ -344,6 +344,16 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
+			public int CompareTo(object? obj) => obj switch
+			{
+				Slice key => CompareTo(key.Span),
+				FdbRawKey key => CompareTo(key.Span),
+				BeginKey key => CompareTo(key),
+				IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+				_ => throw new NotSupportedException()
+			};
+
+			/// <inheritdoc />
 			public int CompareTo(BeginKey other) => this.Range.LowerMode switch
 			{
 				KeyRangeMode.Default or KeyRangeMode.Inclusive => this.Range.LowerKey.FastCompareTo(in other),
@@ -518,6 +528,16 @@ namespace FoundationDB.Client
 				}
 				return FdbKeyHelpers.AreEqual(in this, in other);
 			}
+
+			/// <inheritdoc />
+			public int CompareTo(object? obj) => obj switch
+			{
+				Slice key => CompareTo(key.Span),
+				FdbRawKey key => CompareTo(key.Span),
+				EndKey key => CompareTo(key),
+				IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+				_ => throw new NotSupportedException()
+			};
 
 			/// <inheritdoc />
 			public int CompareTo(EndKey other) => this.Range.UpperMode switch

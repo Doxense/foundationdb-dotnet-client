@@ -34,7 +34,8 @@ namespace FoundationDB.Client
 	/// <para>This key is the first key that comes after all the children of its previous sibling</para>
 	/// <para>It is frequently used as the end (exclusive) of a range read.</para>
 	/// </remarks>
-	public readonly struct FdbNextSiblingKey<TKey> : IFdbKey, IEquatable<FdbNextSiblingKey<TKey>>, IComparable<FdbNextSiblingKey<TKey>>
+	public readonly struct FdbNextSiblingKey<TKey> : IFdbKey
+		, IEquatable<FdbNextSiblingKey<TKey>>, IComparable<FdbNextSiblingKey<TKey>>
 		where TKey : struct, IFdbKey
 	{
 
@@ -134,6 +135,16 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(ReadOnlySpan<byte> other)
 			=> FdbKeyHelpers.AreEqual(in this, other);
+
+		/// <inheritdoc />
+		public int CompareTo(object? obj) => obj switch
+		{
+			Slice key => CompareTo(key.Span),
+			FdbRawKey key => CompareTo(key.Span),
+			FdbNextSiblingKey<TKey> key => CompareTo(key),
+			IFdbKey other => FdbKeyHelpers.Compare(in this, other),
+			_ => throw new NotSupportedException()
+		};
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

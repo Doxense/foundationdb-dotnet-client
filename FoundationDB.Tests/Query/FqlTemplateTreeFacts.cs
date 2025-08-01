@@ -12,7 +12,6 @@
 namespace FoundationDB.Client.Tests
 {
 	using NUnit.Framework.Internal.Execution;
-	using SnowBank.Data.Tuples.Binary;
 
 	[TestFixture]
 	[Category("Fdb-Client-InProc")]

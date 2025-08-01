@@ -30,7 +30,6 @@
 namespace FoundationDB.Client.Tests
 {
 	using System.Text;
-	using SnowBank.Data.Tuples.Binary;
 
 	[TestFixture]
 	[Category("Fdb-Client-InProc")]

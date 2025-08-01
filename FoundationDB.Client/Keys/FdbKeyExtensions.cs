@@ -513,7 +513,13 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsSystemKey<TKey>(this TKey key)
 			where TKey : struct, IFdbKey
-			=> FdbKey.IsSystemKey(in key);
+			=> FdbKeyHelpers.IsSystem(in key);
+
+		/// <summary>Checks if the key is in the System keyspace (starts with <c>`\xFF`</c>)</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsSpecialKey<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsSpecial(in key);
 
 		#endregion
 

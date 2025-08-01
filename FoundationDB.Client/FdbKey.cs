@@ -299,11 +299,28 @@ namespace FoundationDB.Client
 			=> relativeKey is not null ? new(relativeKey.AsSlice(), special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
 
 		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
+		/// <remarks>
+		/// <para>For example, <c>FdbKey.ToSystemKey("/metadataVersion")</c> will generate the key <c>`\xFF/metadataVersion`</c></para>
+		/// <para>The <paramref name="relativeKey"/> MUST NOT contain any characters greater than 0xFF. See <see cref="Slice.FromStringAscii(string)"/> for more details.</para>
+		/// </remarks>
 		[Pure]
 		public static FdbSystemKey ToSystemKey(string relativeKey)
-			=> relativeKey is not null ? new(Slice.FromString(relativeKey), special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+			=> relativeKey is not null ? new(relativeKey, special: false) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+
+		/// <summary>Returns a key in the System subspace (<c>`\xFF....`</c>)</summary>
+		/// <remarks>
+		/// <para>For example, <c>FdbKey.ToSystemKey("/metadataVersion".AsSpan())</c> will generate the key <c>`\xFF/metadataVersion`</c></para>
+		/// <para>The <paramref name="relativeKey"/> MUST NOT contain any characters greater than 0xFF. See <see cref="Slice.FromStringAscii(string)"/> for more details.</para>
+		/// </remarks>
+		[Pure]
+		public static FdbSystemKey ToSystemKey(ReadOnlySpan<char> relativeKey)
+			=> new(relativeKey.ToString(), special: false);
 
 		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		/// <remarks>
+		/// <para>The <paramref name="relativeKey"/> MUST NOT contain any characters greater than 0xFF. See <see cref="Slice.FromStringAscii(string)"/> for more details.</para>
+		/// <para>Please be careful when using UTF-8 string literals: the value <c>"\xff/hello/world"u8</c> will be encoded as UTF-8, meaning that it will start with bytes <c>[ 0xC3, 0xBF, ...]</c> and NOT <c>[ 0xFF, .... ]</c> !</para>
+		/// </remarks>
 		[Pure]
 		public static FdbSystemKey ToSpecialKey(ReadOnlySpan<byte> relativeKey)
 			=> new(Slice.FromBytes(relativeKey), special: true);
@@ -319,9 +336,16 @@ namespace FoundationDB.Client
 			=> relativeKey is not null ? new(relativeKey.AsSlice(), special: true) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
 
 		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		/// <remarks>The <paramref name="relativeKey"/> MUST NOT contain any characters greater than 0xFF. See <see cref="Slice.FromStringAscii(string)"/> for more details.</remarks>
 		[Pure]
 		public static FdbSystemKey ToSpecialKey(string relativeKey)
-			=> relativeKey is not null ? new(Slice.FromString(relativeKey), special: true) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+			=> relativeKey is not null ? new(relativeKey, special: true) : throw Fdb.Errors.KeyCannotBeNull(nameof(relativeKey));
+
+		/// <summary>Returns a key in the Special Key subspace (<c>`\xFF\xFF....`</c>)</summary>
+		/// <remarks>The <paramref name="relativeKey"/> MUST NOT contain any characters greater than 0xFF. See <see cref="Slice.FromStringAscii(string)"/> for more details.</remarks>
+		[Pure]
+		public static FdbSystemKey ToSpecialKey(ReadOnlySpan<char> relativeKey)
+			=> new(relativeKey.ToString(), special: true);
 
 		#endregion
 
@@ -878,13 +902,22 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static bool IsSystemKey<TKey>(in TKey key)
 			where TKey : struct, IFdbKey
-		{
-			if (typeof(TKey) == typeof(FdbSystemKey))
-			{
-				return true;
-			}
-			return FdbKeyHelpers.IsSystem(in key);
-		}
+			=> FdbKeyHelpers.IsSystem(in key);
+
+		/// <summary>Checks if the key is in the SpecialKey keyspace (starts with <c>`\xFF\xFF`</c>)</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsSpecialKey(Slice key) => IsSpecialKey(key.Span);
+
+		/// <summary>Checks if the key is in the SpecialKey keyspace (starts with <c>`\xFF\xFF`</c>)</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsSpecialKey(ReadOnlySpan<byte> key)
+			=> key.Length >= 2 && key[0] == 0xFF && key[1] == 0xFF;
+
+		/// <summary>Checks if the key is in the System keyspace (starts with <c>`\xFF`</c>)</summary>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool IsSpecialKey<TKey>(in TKey key)
+			where TKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsSpecial(in key);
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
 		/// <param name="key">Key to verify</param>
