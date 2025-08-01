@@ -125,7 +125,7 @@ namespace FoundationDB.Client
 		#region Success Handlers...
 
 		/// <summary>List of one or more state change callback</summary>
-		/// <remarks>Either null, a single Delegate, or an array Delegate[]</remarks>
+		/// <remarks>Either <c>null</c>, a single <see cref="Delegate"/>, or an array of Delegate</remarks>
 		private object? StateCallbacks; // interlocked!
 
 		private void RegisterStateCallback(object callback)
@@ -169,8 +169,17 @@ namespace FoundationDB.Client
 			{
 				case IHandleTransactionLifecycle htl:
 				{
-					htl.OnTransactionStateChanged(arg);
+					htl.OnTransactionStateChanged(ctx, arg);
 					return Task.CompletedTask;
+				}
+				case Action<IFdbTransaction, FdbTransactionState> act:
+				{
+					act(ctx.Transaction!, arg);
+					return Task.CompletedTask;
+				}
+				case Func<IFdbTransaction, FdbTransactionState, CancellationToken, Task> fct:
+				{
+					return fct(ctx.Transaction!, arg, ct);
 				}
 				case Action<FdbOperationContext, FdbTransactionState> act:
 				{
@@ -197,18 +206,113 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Register a callback that will only be called once the transaction has completed successfully (after a commit for write transactions)</summary>
-		/// <remarks>NOTE: there are _no_ guarantees that the callback will fire at all, so this should only be used for cache updates or idempotent operations!</remarks>
-		public void OnSuccess(Action<FdbOperationContext, FdbTransactionState> callback)
+		/// <summary>Registers an observer that will only be called once the transaction state changes</summary>
+		public void Observe(IHandleTransactionLifecycle observer)
 		{
-			RegisterStateCallback(callback ?? throw new ArgumentNullException(nameof(callback)));
+			Contract.NotNull(observer);
+			RegisterStateCallback(observer);
+		}
+
+		/// <summary>Registers a callback that will be called when the transaction state changes</summary>
+		public void Observe(Action<FdbOperationContext, FdbTransactionState> callback)
+		{
+			Contract.NotNull(callback);
+			RegisterStateCallback(callback);
+		}
+
+		/// <summary>Registers a callback that will be called when the transaction state changes</summary>
+		public void Observe(Func<FdbOperationContext, CancellationToken, Task> callback)
+		{
+			Contract.NotNull(callback);
+			RegisterStateCallback(callback);
 		}
 
 		/// <summary>Register a callback that will only be called once the transaction has completed successfully (after a commit for write transactions)</summary>
 		/// <remarks>NOTE: there are _no_ guarantees that the callback will fire at all, so this should only be used for cache updates or idempotent operations!</remarks>
-		public void OnSuccess(Func<FdbOperationContext, FdbTransactionState, CancellationToken, Task> callback)
+		public void OnCommitFailed(Action<IFdbTransaction, FdbError> callback)
 		{
-			RegisterStateCallback(callback ?? throw new ArgumentNullException(nameof(callback)));
+			Contract.NotNull(callback);
+
+			void CommitFailedHandler(IFdbTransaction tr, FdbTransactionState state)
+			{
+				if (state is FdbTransactionState.Faulted) callback(tr, tr.Context.PreviousError);
+			}
+
+			RegisterStateCallback((Action<IFdbTransaction, FdbTransactionState>) CommitFailedHandler);
+		}
+
+		/// <summary>Register a callback that will only be called once the transaction has completed successfully (after a commit for write transactions)</summary>
+		/// <remarks>
+		/// <para>Please note that it is <b>NOT</b> guaranteed that the callback will be called at all! This should only be used for cache updates, idempotent operations, or for logging purpose.</para>
+		/// </remarks>
+		public void OnCommitFailed(Func<IFdbTransaction, FdbError, CancellationToken, Task> callback)
+		{
+			Contract.NotNull(callback);
+
+			Task CommitFailedHandler(IFdbTransaction tr, FdbTransactionState state, CancellationToken cancel)
+				=> state is FdbTransactionState.Faulted ? callback(tr, tr.Context.PreviousError, cancel) : Task.CompletedTask;
+
+			RegisterStateCallback((Func<IFdbTransaction, FdbTransactionState, CancellationToken, Task>) CommitFailedHandler);
+		}
+
+		/// <summary>Register a callback that will be called if the transaction fails to commit with a <see cref="FdbError.NotCommitted"/> error (conflict with another transaction)</summary>
+		/// <remarks>
+		/// <para>Please note that it is <b>NOT</b> guaranteed that the callback will be called at all! This should only be used for cache updates, idempotent operations, or for logging purpose.</para>
+		/// </remarks>
+		public void OnConflict(Action<IFdbTransaction> callback)
+		{
+			Contract.NotNull(callback);
+
+			void ConflictHandler(IFdbTransaction tr, FdbTransactionState state)
+			{
+				if (state is FdbTransactionState.Faulted && tr.Context.PreviousError == FdbError.NotCommitted) callback(tr);
+			}
+
+			RegisterStateCallback((Action<IFdbTransaction, FdbTransactionState>) ConflictHandler);
+		}
+
+		/// <summary>Register a callback that will only be called once the transaction has completed successfully (after a commit for write transactions)</summary>
+		/// <remarks>
+		/// <para>Please note that it is <b>NOT</b> guaranteed that the callback will be called at all! This should only be used for cache updates, idempotent operations, or for logging purpose.</para>
+		/// </remarks>
+		public void OnConflict(Func<IFdbTransaction, CancellationToken, Task> callback)
+		{
+			Contract.NotNull(callback);
+
+			Task ConflictHandler(IFdbTransaction tr, FdbTransactionState state, CancellationToken cancel)
+				=> state is FdbTransactionState.Faulted && tr.Context.PreviousError == FdbError.NotCommitted ? callback(tr, cancel) : Task.CompletedTask;
+
+			RegisterStateCallback((Func<IFdbTransaction, FdbTransactionState, CancellationToken, Task>) ConflictHandler);
+		}
+
+		/// <summary>Register a callback that will only be called once the transaction has completed successfully (after a commit for write transactions)</summary>
+		/// <remarks>
+		/// <para>Please note that it is <b>NOT</b> guaranteed that the callback will be called at all! This should only be used for cache updates, idempotent operations, or for logging purpose.</para>
+		/// </remarks>
+		public void OnSuccess(Action<IFdbTransaction> callback)
+		{
+			Contract.NotNull(callback);
+
+			void SuccessHandler(IFdbTransaction tr, FdbTransactionState state)
+			{
+				if (state is FdbTransactionState.Commit or FdbTransactionState.Completed) callback(tr);
+			}
+
+			RegisterStateCallback((Action<IFdbTransaction, FdbTransactionState>) SuccessHandler);
+		}
+
+		/// <summary>Register a callback that will only be called once the transaction has completed successfully (after a commit for write transactions)</summary>
+		/// <remarks>
+		/// <para>Please note that it is <b>NOT</b> guaranteed that the callback will be called at all! This should only be used for cache updates, idempotent operations, or for logging purpose.</para>
+		/// </remarks>
+		public void OnSuccess(Func<IFdbTransaction, CancellationToken, Task> callback)
+		{
+			Contract.NotNull(callback);
+
+			Task SuccessHandler(IFdbTransaction tr, FdbTransactionState state, CancellationToken cancel)
+				=> state is FdbTransactionState.Commit or FdbTransactionState.Completed ? callback(tr, cancel) : Task.CompletedTask;
+
+			RegisterStateCallback((Func<IFdbTransaction, FdbTransactionState, CancellationToken, Task>) SuccessHandler);
 		}
 
 		#endregion
@@ -1630,8 +1734,9 @@ namespace FoundationDB.Client
 	public interface IHandleTransactionLifecycle
 	{
 		/// <summary>Called when the transaction state changes (reset, commit, rollback, ...)</summary>
-		/// <param name="state">Reason for the state change</param>
-		void OnTransactionStateChanged(FdbTransactionState state);
+		/// <param name="ctx">Context that changed state</param>
+		/// <param name="state">New state</param>
+		void OnTransactionStateChanged(FdbOperationContext ctx, FdbTransactionState state);
 
 	}
 
