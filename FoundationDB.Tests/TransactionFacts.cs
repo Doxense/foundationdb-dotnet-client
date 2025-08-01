@@ -4583,6 +4583,163 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Get_Conflicting_Keys_Manually()
+		{
+			using var db = await OpenTestPartitionAsync();
+			await CleanLocation(db);
+
+			// setup
+			await db.WriteAsync(async (tr) =>
+			{
+				var subspace = await db.Root.Resolve(tr);
+				tr.Set(subspace.Key("A"), Text("Initial A"));
+				tr.Set(subspace.Key("B"), Text("Initial B"));
+				tr.Set(subspace.Key("C"), Text("Initial C"));
+				tr.Set(subspace.Key("D"), Text("Initial D")); // Eurobeat intensifies
+			}, this.Cancellation);
+
+
+			Log("Start T1 & T2");
+			using var t1 = db.BeginTransaction(this.Cancellation);
+			using var t2 = db.BeginTransaction(this.Cancellation);
+
+			// enable Conflicting Keys option
+			t1.Options.WithReportConflictingKeys();
+
+			// T1: read values, change something
+			Log("# T1: read/write");
+			var subspace1 = await db.Root.Resolve(t1);
+			_ = await t1.GetAsync(subspace1.Key("A"));
+			_ = await t1.GetAsync(subspace1.Key("B"));
+			_ = await t1.GetAsync(subspace1.Key("C"));
+			_ = await t1.GetAsync(subspace1.Key("D"));
+			t1.Set(subspace1.Key("X"), Text("Something"));
+
+			// T2: modifies values read by T1
+			Log("# T2: write");
+			var subspace2 = await db.Root.Resolve(t2);
+			t2.Set(subspace2.Key("A"), Text("Updated A"));
+			t2.Clear(subspace2.Key("B"));
+			t2.ClearRange(subspace2.Key("C").ToRange(inclusive: true));
+
+			// T2 commits first, should succeed
+			Log("# T2: Commit");
+			Assert.That(async () => await t2.CommitAsync(), Throws.Nothing);
+
+			// T1 commits second, should fail with NotCommited
+			Log("# T1: Commit");
+			Assert.That(async () => await t1.CommitAsync(), Throws.InstanceOf<FdbException>(out var captured));
+			Log($"> {captured.Exception.Code}");
+			Assert.That(captured.Exception.Code, Is.EqualTo(FdbError.NotCommitted));
+
+			// now, we should be able to get the list of conflicts by reading the special key
+			Log("T1: Read Conflincting Keys");
+			var res = await t1.GetRange(FdbSystemKey.TransactionConflictingKeys.ToRange()).ToArrayAsync();
+			Log($"> got {res.Length} results");
+			foreach (var kv in res)
+			{
+				Log($"  - {kv.Key}: {kv.Value}");
+				Assert.That(kv.Key.StartsWith(Fdb.System.TransactionConflictingKeysPrefix));
+				Assert.That(kv.Value.Count, Is.EqualTo(1));
+				Assert.That(kv.Value[0], Is.AnyOf('0', '1'));
+			}
+			// we expect 3 conflicts, each conflict with a begin/end key
+			Assert.That(res.Count, Is.EqualTo(3 * 2));
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Conflicting_Keys_Automatically()
+		{
+			using var db = await OpenTestPartitionAsync();
+			await CleanLocation(db);
+
+			// setup
+			await db.WriteAsync(async (tr) =>
+			{
+				var subspace = await db.Root.Resolve(tr);
+				tr.Set(subspace.Key("A"), Text("Initial A"));
+				tr.Set(subspace.Key("B"), Text("Initial B"));
+				tr.Set(subspace.Key("C"), Text("Initial C"));
+				tr.Set(subspace.Key("D"), Text("Initial D")); // Eurobeat intensifies
+			}, this.Cancellation);
+
+			static async Task<List<KeyRange>> GetConflictingKeys(IFdbReadOnlyTransaction tr)
+			{
+				// Reading all keys inside \xFF\xFF/transaction/conflicting_keys/ should return a list of "bounds" of the conflicting ranges
+				// - each range start with a k/v pair with value '1' (ASCII 49), and the tail of the key will be the start of the range (inclusive).
+				// - the following k/v pair should have value '0' (ASCII 48), and the tail of the key will be the end of the range (exclusive).
+
+				var res = new List<KeyRange>();
+				Slice begin = Slice.Nil;
+				await foreach (var kv in tr.GetRange(FdbSystemKey.TransactionConflictingKeys.ToRange(inclusive: true)))
+				{
+					if (!kv.Key.StartsWith(Fdb.System.TransactionConflictingKeysPrefix) || kv.Value.Count != 1 || kv.Value[0] != (begin.IsNull ? (byte)'1' : (byte)'0'))
+					{ // something's wrong with the encoding ??
+#if DEBUG
+						// check if the range is correct, or maybe the encoding has changed since 7.4 ?
+						if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+#endif
+						break;
+					}
+					if (begin.IsNull)
+					{
+						begin = kv.Key.Substring(Fdb.System.TransactionConflictingKeysPrefix.Count);
+					}
+					else
+					{
+						var end = kv.Key.Substring(Fdb.System.TransactionConflictingKeysPrefix.Count);
+						res.Add(new KeyRange(begin, end));
+						begin = default;
+					}
+				}
+				return res;
+			}
+
+			Log("Start");
+			await db.WriteAsync(async t1 =>
+			{
+				Log($"# T1: #{t1.Context.Retries}");
+
+				// enable Conflicting Keys option
+				t1.Options.WithReportConflictingKeys();
+				t1.Context.OnConflict(async (tr, _) =>
+				{
+					Log($"#!# OnCommitFailure called: {tr.Context.PreviousError}");
+					var conflictingKeys = await GetConflictingKeys(tr);
+					Log($"#!# found {conflictingKeys.Count} ranges:");
+					foreach (var kr in conflictingKeys)
+					{
+						Log($"#!# - {kr}");
+					}
+				});
+
+				// T1: read values, change something
+				if (t1.Context.Retries == 0)
+				{
+					Log("# T1: read/write");
+					var subspace1 = await db.Root.Resolve(t1);
+					_ = await t1.GetAsync(subspace1.Key("A"));
+					_ = await t1.GetAsync(subspace1.Key("B"));
+					_ = await t1.GetAsync(subspace1.Key("C"));
+					_ = await t1.GetAsync(subspace1.Key("D"));
+					t1.Set(subspace1.Key("X"), Text("Something"));
+				}
+
+				// T2: modifies values read by T1
+				Log("# T2: write");
+				await db.WriteAsync(async t2 =>
+				{
+					var subspace2 = await db.Root.Resolve(t2);
+					t2.Set(subspace2.Key("A"), Text("Updated A"));
+					t2.Clear(subspace2.Key("B"));
+					t2.ClearRange(subspace2.Key("C").ToRange(inclusive: true));
+				}, this.Cancellation);
+
+			}, this.Cancellation);
+
+		}
+
 	}
 
 }

@@ -309,6 +309,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Transaction that will be configured for the current attempt.</param>
 		/// <remarks>
 		/// <para>See <see cref="FdbTransactionOption.ReportConflictingKeys"/>.</para>
+		/// <para>When <see cref="IFdbTransaction.CommitAsync"/> fails with error <see cref="FdbError.NotCommitted"/> (1020), you can retrieve the conflicting keys by performing a read range under the special key <c>`\xFF\xFF/transaction/conflicting_keys/`</c></para>
 		/// </remarks>
 		public static IFdbTransactionOptions WithReportConflictingKeys(this IFdbTransactionOptions options)
 		{

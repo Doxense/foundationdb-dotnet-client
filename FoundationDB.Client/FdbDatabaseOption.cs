@@ -99,6 +99,7 @@ namespace FoundationDB.Client
 		/// <remarks>This feature is in development and not ready for general use.</remarks>
 		TransactionAutomaticIdempotency = 506,
 
+		/// <summary>Allows <c>get</c> operations to read from sections of keyspace that have become unreadable because of versionstamp operations. This sets the <see cref="FdbTransactionOption.BypassUnreadable"/> option of each transaction created by this database.</summary>
 		TransactionBypassUnreadable = 700,
 
 		/// <summary>Disable the protection that abort any pending operation on a transaction when at least one of them fails</summary>

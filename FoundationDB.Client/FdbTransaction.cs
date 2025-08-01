@@ -837,10 +837,18 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<FdbRangeChunk<TResult>> GetRangeAsync<TState, TResult>(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions? options, int iteration)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+
+			// GetRange() may be used to read special keys after a failed commit (ex: \xff\xff/transaction/conflicting_keys/...), so we have to allow some cases
+			if (FdbKey.IsSpecialKey(beginInclusive.Key))
+			{
+				EnsureStillValid(allowFromNetworkThread: false, allowFailedState: true);
+			}
+			else
+			{
+				EnsureCanRead();
+			}
 
 			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(iteration);
@@ -997,9 +1005,18 @@ namespace FoundationDB.Client
 		[Pure, LinqTunnel]
 		internal FdbKeyValueRangeQuery GetRangeCore(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, bool snapshot)
 		{
-			EnsureCanRead();
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+
+			// GetRange() may be used to read special keys after a failed commit (ex: \xff\xff/transaction/conflicting_keys/...), so we have to allow some cases
+			if (FdbKey.IsSpecialKey(beginInclusive.Key))
+			{
+				EnsureStillValid(allowFromNetworkThread: false, allowFailedState: true);
+			}
+			else
+			{
+				EnsureCanRead();
+			}
 
 			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(0);

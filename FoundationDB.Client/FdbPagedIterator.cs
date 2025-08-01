@@ -161,7 +161,6 @@ namespace FoundationDB.Client
 			Contract.Debug.Requires(this.Iteration >= 0);
 
 			this.Cancellation.ThrowIfCancellationRequested();
-			this.Query.Transaction.EnsureCanRead();
 
 			this.Iteration++;
 
@@ -195,7 +194,7 @@ namespace FoundationDB.Client
 
 			//BUGBUG: mix the custom cancellation token with the transaction, if it is different !
 			var tr = (this.Query.IsSnapshot ? this.Query.Transaction.Snapshot : this.Query.Transaction);
-			var query = tr.GetRangeAsync<TState, TResult>(
+			var query = tr.GetRangeAsync(
 				this.Begin,
 				this.End,
 				this.State,
