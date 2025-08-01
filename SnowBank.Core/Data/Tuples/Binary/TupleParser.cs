@@ -3174,8 +3174,11 @@ namespace SnowBank.Data.Tuples.Binary
 				}
 
 				case TupleTypes.Directory:
+				{ // <FE>
+					return reader.TryReadBytes(1, out token, out error);
+				}
 				case TupleTypes.Escape:
-				{ // <FE> or <FF>
+				{ // <FF>....
 
 					// if <FF> and this is the first byte, we are reading a system key like "\xFF/something"
 					if (reader.Cursor == 0)

@@ -1439,6 +1439,7 @@ namespace SnowBank.Data.Tuples.Binary
 
 					case TupleTypes.Directory:
 					{
+						// should only be one byte (followed by other tuple segments)
 						if (slice.Length == 1) return TuPackUserType.Directory;
 						break;
 					}
@@ -1586,14 +1587,9 @@ namespace SnowBank.Data.Tuples.Binary
 						if (slice.Length == 1)
 						{
 							sb.Append("|Directory|");
+							return;
 						}
-						else
-						{
-							sb.Append("|Directory:");
-							sb.Append(Slice.Dump(slice[1..]));
-							sb.Append('|');
-						}
-						return;
+						break;
 					}
 					case TupleTypes.Escape:
 					{
@@ -1603,7 +1599,7 @@ namespace SnowBank.Data.Tuples.Binary
 						}
 						else
 						{
-							sb.Append("|Directory:");
+							sb.Append("|System:");
 							sb.Append(Slice.Dump(slice[1..]));
 							sb.Append('|');
 						}
@@ -3867,8 +3863,8 @@ namespace SnowBank.Data.Tuples.Binary
 
 		internal static bool TryUnpack(scoped ref TupleReader reader, out SpanTuple tuple, out Exception? error)
 		{
-			// most tuples will probably fit within (prefix, sub-prefix, id, key) so pre-allocating with 4 should be ok...
-			var items = new Range[4];
+			// (PartitionPrefix, SubspacePrefix, TENANT_PREFIX, LAYER_SUBSPACE, A, B, C, D)
+			var items = new Range[8];
 
 			int p = 0;
 			while (true)
@@ -3877,15 +3873,14 @@ namespace SnowBank.Data.Tuples.Binary
 				{
 					if (error != null)
 					{
-						tuple = default;
-						return false;
+						goto too_small;
 					}
 					break;
 				}
 
 				if (p >= items.Length)
 				{
-					// note: do not grow exponentially, because tuples will never but very large...
+					// note: do not grow exponentially, because tuple keys don't really have that many elements
 					Array.Resize(ref items, p + 4);
 				}
 				items[p++] = token;
@@ -3893,13 +3888,17 @@ namespace SnowBank.Data.Tuples.Binary
 
 			if (reader.HasMore)
 			{
-				tuple = default;
-				return false;
+				goto too_small;
 			}
 
 			tuple = new SpanTuple(reader.Input, p == 0 ? [ ] : items.AsSpan(0, p));
 			error = null;
 			return true;
+
+		too_small:
+			tuple = default;
+			return false;
+
 		}
 
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
