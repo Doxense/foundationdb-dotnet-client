@@ -40,9 +40,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_FdbRawKey_Basics()
 		{
-			FdbRawKey hello = Slice.FromBytes("hello"u8);
-			FdbRawKey world = Slice.FromBytes("world"u8);
-			FdbRawKey tuple = TuPack.EncodeKey("hello", 123, "world");
+			FdbRawKey hello = FdbKey.FromBytes("hello"u8);
+			FdbRawKey world = FdbKey.FromBytes("world"u8);
+			FdbRawKey tuple = FdbKey.FromBytes(TuPack.EncodeKey("hello", 123, "world"));
 
 			{ // Empty
 				var k = FdbKey.FromBytes(Slice.Empty);

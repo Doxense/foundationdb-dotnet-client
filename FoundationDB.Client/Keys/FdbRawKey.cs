@@ -245,8 +245,6 @@ namespace FoundationDB.Client
 			return this.Data.TryCopyTo(destination, out bytesWritten);
 		}
 
-		/// <summary>Converts a slice into a <see cref="FdbRawKey"/></summary>
-		public static implicit operator FdbRawKey(Slice key) => new(key);
 
 	}
 

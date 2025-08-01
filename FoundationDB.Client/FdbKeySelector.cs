@@ -59,21 +59,21 @@ namespace FoundationDB.Client
 		/// <summary>Creates a key selector that will select the last key in the database that is less than <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<FdbRawKey> LastLessThan(Slice key)
-			=> new(key, false, 0);
+			=> new(FdbKey.FromBytes(key), false, 0);
 
 		/// <summary>Creates a key selector that will select the last key in the database that is less than or equal to <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<FdbRawKey> LastLessOrEqual(Slice key)
-			=> new(key, true, 0);
+			=> new(FdbKey.FromBytes(key), true, 0);
 
 		/// <summary>Creates a key selector that will select the first key in the database that is greater than <paramref name="key"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static FdbKeySelector<FdbRawKey> FirstGreaterThan(Slice key)
-			=> new(key, true, 1);
+			=> new(FdbKey.FromBytes(key), true, 1);
 
 		/// <summary>Creates a key selector that will select the first key in the database that is greater than or equal to <paramref name="key"/></summary>
 		public static FdbKeySelector<FdbRawKey> FirstGreaterOrEqual(Slice key)
-			=> new(key, false, 1);
+			=> new(FdbKey.FromBytes(key), false, 1);
 
 	}
 
