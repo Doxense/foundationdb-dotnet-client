@@ -744,15 +744,36 @@ namespace System
 
 		/// <summary>Dangerously create a slice containing string converted to the local ANSI code page. All non-ANSI characters may be corrupted or converted to '?', and this slice may not decode properly on a different system.</summary>
 		/// <remarks>
-		/// WARNING: if you put a string that contains non-ANSI chars, it will be silently corrupted! This should only be used to store keywords or 'safe' strings, and when the decoding will only happen on the same system, or systems using the same codepage.
-		/// Slices encoded by this method are not guaranteed to be decoded without loss. <b>YOU'VE BEEN WARNED!</b>
+		/// <para>WARNING: if you put a string that contains non-ANSI chars, it will be silently corrupted! This should only be used to store keywords or 'safe' strings, and when the decoding will only happen on the same system, or systems using the same codepage.</para>
+		/// <para>Slices encoded by this method are not guaranteed to be decoded without loss. <b>YOU'VE BEEN WARNED!</b></para>
 		/// </remarks>
+		/// <seealso cref="FromStringUtf8(string)"/>
+		/// <seealso cref="FromStringAscii(string)"/>
 		[Pure]
 		public static Slice FromStringAnsi(string? text)
 		{
-			return text == null ? Slice.Nil
-				 : text.Length == 0 ? Slice.Empty
-				 : new Slice(Encoding.Default.GetBytes(text));
+			return text == null ? Slice.Nil : FromStringAnsi(text.AsSpan());
+		}
+
+		/// <summary>Dangerously create a slice containing string converted to the local ANSI code page. All non-ANSI characters may be corrupted or converted to '?', and this slice may not decode properly on a different system.</summary>
+		/// <remarks>
+		/// <para>WARNING: if you put a string that contains non-ANSI chars, it will be silently corrupted! This should only be used to store keywords or 'safe' strings, and when the decoding will only happen on the same system, or systems using the same codepage.</para>
+		/// <para>Slices encoded by this method are not guaranteed to be decoded without loss. <b>YOU'VE BEEN WARNED!</b></para>
+		/// </remarks>
+		/// <seealso cref="FromStringUtf8(string)"/>
+		/// <seealso cref="FromStringAscii(string)"/>
+		[Pure]
+		public static Slice FromStringAnsi(ReadOnlySpan<char> text)
+		{
+			if (text.Length == 0)
+			{
+				return Slice.Empty;
+			}
+
+			int capacity = Encoding.Default.GetByteCount(text);
+			var tmp = new byte[capacity];
+			int written = Encoding.Default.GetBytes(text, tmp);
+			return new Slice(tmp, 0, written);
 		}
 
 		/// <summary>Create a slice from an ASCII string, where all the characters map directory into bytes (0..255). The string will be checked before being encoded.</summary>
@@ -898,11 +919,14 @@ namespace System
 
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>.</summary>
 		/// <remarks>
-		/// This method is optimized for strings that usually contain only ASCII characters.
-		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
+		/// <para>This method is optimized for strings that usually contain only ASCII characters.</para>
+		/// <para>DO NOT call this method to encode special strings that contain binary prefixes, like <c>"\xFF/some/system/path"</c> or <c>"\xFE\x01\x02\x03"</c>, because they do not map to UTF-8 directly.</para>
+		/// <para>For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.</para>
 		/// </remarks>
+		/// <see cref="FromByteString(string)"/>
+		/// <see cref="FromStringAscii(string)"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice FromString(string? value)
 		{
 			//REVIEW: what if people call FromString("\xFF/some/system/path") by mistake?
@@ -914,11 +938,14 @@ namespace System
 
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>.</summary>
 		/// <remarks>
-		/// This method is optimized for strings that usually contain only ASCII characters.
-		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// <para>This method is optimized for strings that usually contain only ASCII characters.</para>
+		/// <para>DO NOT call this method to encode special strings that contain binary prefixes, like <c>"\xFF/some/system/path"</c> or <c>"\xFE\x01\x02\x03"</c>, because they do not map to UTF-8 directly.</para>
+		/// <para>For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.</para>
 		/// </remarks>
+		/// <see cref="FromByteString(ReadOnlySpan{char})"/>
+		/// <see cref="FromStringAscii(ReadOnlySpan{char})"/>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice FromString(ReadOnlySpan<char> value)
 		{
 			byte[]? _ = null;
@@ -927,11 +954,14 @@ namespace System
 
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>.</summary>
 		/// <remarks>
-		/// This method is optimized for strings that usually contain only ASCII characters.
-		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
-		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// <para>This method is optimized for strings that usually contain only ASCII characters.</para>
+		/// <para>DO NOT call this method to encode special strings that contain binary prefixes, like <c>"\xFF/some/system/path"</c> or <c>"\xFE\x01\x02\x03"</c>, because they do not map to UTF-8 directly.</para>
+		/// <para>For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.</para>
 		/// </remarks>
+		/// <see cref="FromByteString(ReadOnlySpan{char},ref byte[])"/>
+		/// <see cref="FromStringAscii(ReadOnlySpan{char},ref byte[])"/>
 		[Pure]
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public static Slice FromString(ReadOnlySpan<char> value, ref byte[]? buffer)
 		{
 			if (value.Length == 0)
@@ -976,13 +1006,18 @@ namespace System
 
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>.</summary>
 		/// <remarks>
-		/// The slice will NOT include the UTF-8 BOM.
-		/// This method will not try to identify ASCII-only strings:
-		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
-		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(string)"/>.
-		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
+		/// <para>The slice will NOT include the UTF-8 BOM.</para>
+		/// <para>This method will not try to identify ASCII-only strings:
+		/// If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
+		/// If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(string)"/>.
+		/// </para>
+		/// <para>
+		/// DO NOT call this method to encode special strings that contain binary prefixes, like <c>"\xFF/some/system/path"</c> or <c>"\xFE\x01\x02\x03"</c>, because they do not map to UTF-8 directly.
 		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
+		/// </para>
 		/// </remarks>
+		/// <see cref="FromByteString(string)"/>
+		/// <see cref="FromStringAscii(string)"/>
 		[Pure]
 		public static Slice FromStringUtf8(string? value)
 		{
@@ -997,12 +1032,16 @@ namespace System
 		/// <remarks>
 		/// <para>The slice will NOT include the UTF-8 BOM.</para>
 		/// <para>This method will not try to identify ASCII-only strings:
-		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(string)"/>.
-		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(ReadOnlySpan{char})"/>.
+		/// If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(System.ReadOnlySpan{char})"/>.
+		/// If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(System.ReadOnlySpan{char})"/>.
 		/// </para>
-		/// <para>DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.</para>
-		/// <para>For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.</para>
+		/// <para>
+		/// DO NOT call this method to encode special strings that contain binary prefixes, like <c>"\xFF/some/system/path"</c> or <c>"\xFE\x01\x02\x03"</c>, because they do not map to UTF-8 directly.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// </para>
 		/// </remarks>
+		/// <see cref="FromByteString(System.ReadOnlySpan{char})"/>
+		/// <see cref="FromStringAscii(System.ReadOnlySpan{char})"/>
 		[Pure]
 		public static Slice FromStringUtf8(ReadOnlySpan<char> value)
 		{
@@ -1020,7 +1059,17 @@ namespace System
 		/// <summary>Creates a <see cref="SliceOwner"/> containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
 		/// <remarks>
 		/// <para>The slice will NOT include the UTF-8 BOM.</para>
+		/// <para>This method will not try to identify ASCII-only strings:
+		/// If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(System.ReadOnlySpan{char},ref byte[])"/>.
+		/// If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(System.ReadOnlySpan{char},ref byte[])"/>.
+		/// </para>
+		/// <para>
+		/// DO NOT call this method to encode special strings that contain binary prefixes, like <c>"\xFF/some/system/path"</c> or <c>"\xFE\x01\x02\x03"</c>, because they do not map to UTF-8 directly.
+		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(System.ReadOnlySpan{char},ref byte[])"/>.
+		/// </para>
 		/// </remarks>
+		/// <see cref="FromByteString(System.ReadOnlySpan{char},ref byte[])"/>
+		/// <see cref="FromStringAscii(System.ReadOnlySpan{char},ref byte[])"/>
 		[Pure, MustDisposeResource]
 		public static SliceOwner FromStringUtf8(ReadOnlySpan<char> value, ArrayPool<byte> pool)
 		{
@@ -1037,12 +1086,15 @@ namespace System
 
 		/// <summary>Create a slice containing the UTF-8 bytes of subsection of the string <paramref name="value"/>.</summary>
 		/// <remarks>
-		/// The slice will NOT include the UTF-8 BOM.
-		/// This method will not try to identify ASCII-only strings:
-		/// - If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(ReadOnlySpan{char})"/>.
-		/// - If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(ReadOnlySpan{char})"/>.
+		/// <para>The slice will NOT include the UTF-8 BOM.</para>
+		/// <para>This method will not try to identify ASCII-only strings:
+		/// If the string provided can ONLY contain ASCII, you should use <see cref="FromStringAscii(ReadOnlySpan{char})"/>.
+		/// If it is more frequent for the string to be ASCII-only than having UNICODE characters, consider using <see cref="FromString(ReadOnlySpan{char})"/>.
+		/// </para>
+		/// <para>
 		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
 		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(ReadOnlySpan{char})"/>.
+		/// </para>
 		/// </remarks>
 		[Pure]
 		public static Slice FromStringUtf8(ReadOnlySpan<char> value, ref byte[]? buffer, out bool asciiOnly)
@@ -1085,17 +1137,19 @@ namespace System
 
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/>, prefixed by the UTF-8 BOM.</summary>
 		/// <remarks>
-		/// If the string is null, an empty slice is returned.
-		/// If the string is empty, the UTF-8 BOM is returned.
-		/// DO NOT call this method to encode special strings that contain binary prefixes, like "\xFF/some/system/path" or "\xFE\x01\x02\x03", because they do not map to UTF-8 directly.
+		/// <para>If the string is <c>null</c>, the <see cref="Slice.Nil"/> slice is returned.</para>
+		/// <para>If the string is empty, the UTF-8 BOM is returned.</para>
+		/// <para>
+		/// DO NOT call this method to encode special strings that contain binary prefixes, like <c>"\xFF/some/system/path"</c> or <c>"\xFE\x01\x02\x03"</c>, because they do not map to UTF-8 directly.
 		/// For these case, or when you know that the string only contains ASCII only (with 100% certainty), you should use <see cref="FromByteString(string)"/>.
+		/// </para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static Slice FromStringUtf8WithBom(string? value)
 		{
 			//REVIEW: what if people call FromString("\xFF/some/system/path") by mistake?
 			// Should be special case when the string starts with \xFF (or \xFF\xFF)? What about \xFE ?
-			if (value == null) return default;
+			if (value == null) return Slice.Nil;
 			byte[]? __ = null;
 			return FromStringUtf8WithBom(value.AsSpan(), ref __, out _);
 		}

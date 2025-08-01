@@ -188,12 +188,13 @@ namespace System
 		/// <param name="source">Array of bytes to copy</param>
 		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/>, or <see cref="Slice.Nil"/> if <paramref name="source"/> is <c>null</c></returns>
 		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
-		/// <example><code>
+		/// <example><code lang="c#">
 		/// Slice.FromBytes((byte[]) null)             // => Slice.Nil
 		/// Slice.FromBytes(new byte[0])               // => Slice.Empty
 		/// Slice.FromBytes(new byte[] { 0x12, 0x34 }) // => [ 0x12, 0x34 ]
 		/// Slice.FromBytes("Hello"u8.ToArray())       // => [ 0x48, 0x65, 0x6c, 0x6c, 0x6f ]
 		/// </code></example>
+		/// <seealso cref="FromBytes(ReadOnlySpan{byte})"/>
 		[Pure]
 		public static Slice FromBytes(byte[]? source)
 		{
@@ -209,12 +210,18 @@ namespace System
 		/// <summary>Creates a new slice by copying the contents of a span of bytes</summary>
 		/// <param name="source">Span of bytes to copy</param>
 		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/></returns>
-		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
-		/// <example><code>
+		/// <remarks>
+		/// <para>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty.</para>
+		/// <para>Please be careful when using UTF-8 string literals: the value <c>"\xff..."u8</c> will be encoded as UTF-8, meaning that it will start with bytes <c>[ 0xC3, 0xBF, ...]</c> and <b>NOT</b> <c>[ 0xFF, .... ]</c> as you could expect! Only <c>'\x00'</c> is safe to use in this way.</para>
+		/// </remarks>
+		/// <example><code lang="c#">
 		/// Slice.FromBytes([])             // => Slice.Empty
 		/// Slice.FromBytes([ 0x12, 0x34 ]) // => [ 0x12, 0x34 ]
 		/// Slice.FromBytes("Hello"u8)      // => [ 0x48, 0x65, 0x6c, 0x6c, 0x6f ]
+		/// Slice.FromBytes("\x00"u8)       // => [ 0x00 ]
+		/// Slice.FromBytes("\xff"u8)       // => [ 0xC3, 0xBF ] !!!
 		/// </code></example>
+		/// <seealso cref="FromBytes(byte[])"/>
 		[Pure]
 		public static Slice FromBytes(ReadOnlySpan<byte> source)
 		{
@@ -229,11 +236,16 @@ namespace System
 		/// <summary>Creates a new slice by copying the contents of a span of bytes</summary>
 		/// <param name="source">Span of bytes to copy</param>
 		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/></returns>
-		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
-		/// <example><code>
+		/// <remarks>
+		/// <para>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty.</para>
+		/// <para>Please be careful when using UTF-8 string literals: the value <c>"\xff..."u8</c> will be encoded as UTF-8, meaning that it will start with bytes <c>[ 0xC3, 0xBF, ...]</c> and <b>NOT</b> <c>[ 0xFF, .... ]</c> as you could expect! Only <c>'\x00'</c> is safe to use in this way.</para>
+		/// </remarks>
+		/// <example><code lang="c#">
 		/// Slice.FromBytes([])             // => Slice.Empty
 		/// Slice.FromBytes([ 0x12, 0x34 ]) // => [ 0x12, 0x34 ]
 		/// Slice.FromBytes("Hello"u8)      // => [ 0x48, 0x65, 0x6c, 0x6c, 0x6f ]
+		/// Slice.FromBytes("\x00"u8)       // => [ 0x00 ]
+		/// Slice.FromBytes("\xff"u8)       // => [ 0xC3, 0xBF ] !!!
 		/// </code></example>
 		[Pure]
 		public static Slice FromBytes(Span<byte> source)
@@ -250,7 +262,10 @@ namespace System
 		/// <param name="source">Span of bytes to copy</param>
 		/// <param name="buffer">Buffer that should be used to store the bytes. If <c>null</c> or too small, it will be replaced by a newly allocated buffer (with length rounded to the next power of two)</param>
 		/// <returns><see cref="Slice"/> that points to a copy of the bytes in <paramref name="source"/>, and uses the <paramref name="buffer"/> as its backing store</returns>
-		/// <remarks>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty</remarks>
+		/// <remarks>
+		/// <para>Returns the <see cref="Slice.Empty"/> singleton if <paramref name="source"/> is empty.</para>
+		/// <para>Please be careful when using UTF-8 string literals: the value <c>"\xff..."u8</c> will be encoded as UTF-8, meaning that it will start with bytes <c>[ 0xC3, 0xBF, ...]</c> and <b>NOT</b> <c>[ 0xFF, .... ]</c> as you could expect! Only <c>'\x00'</c> is safe to use in this way.</para>
+		/// </remarks>
 		/// <example><code>
 		/// // no initial buffer
 		/// byte[]? buffer = null;
@@ -277,7 +292,10 @@ namespace System
 		/// <param name="source">Span of bytes to copy</param>
 		/// <param name="pool">Pool used to allocate the backing array</param>
 		/// <returns><see cref="SliceOwner"/> that points to a copy of the bytes in <paramref name="source"/>, using an array rented from the <paramref name="pool"/> as its backing store.</returns>
-		/// <remarks>The return value must be <see cref="SliceOwner.Dispose">disposed</see> for the buffer to return to the pool.</remarks>
+		/// <remarks>
+		/// <para>The return value must be <see cref="SliceOwner.Dispose">disposed</see> for the buffer to return to the pool.</para>
+		/// <para>Please be careful when using UTF-8 string literals: the value <c>"\xff..."u8</c> will be encoded as UTF-8, meaning that it will start with bytes <c>[ 0xC3, 0xBF, ...]</c> and <b>NOT</b> <c>[ 0xFF, .... ]</c> as you could expect! Only <c>'\x00'</c> is safe to use in this way.</para>
+		/// </remarks>
 		/// <example><code>
 		/// Span&lt;byte> data = /* .... */;
 		/// using(var buffer = Slice.FromBytes(data, ArrayPool&lt;byte>.Shared))
@@ -2463,11 +2481,17 @@ namespace System
 		/// <see langword="true" /> if the formatting was successful; otherwise, <see langword="false" />.</returns>
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
 		{
-			//TODO: BUGBUG: OPTIMIZE: make this method really optimized and without any allocations!
+			//PERF: make this method really optimized and without any allocations!
 			charsWritten = 0;
+
+			switch (format)
+			{
+				case "" or "D" or "d": return Dump(destination, out charsWritten, this.Span);
+				case "R" or "r": return Dump(destination, out charsWritten, this.Span, int.MaxValue);
+			}
+
 			string s = format switch
 			{
-				"" or "D" or "d" => Dump(this),
 				"N" => ToHexString(),
 				"n" => ToHexStringLower(),
 				"X" => ToHexString(' '),
@@ -2532,6 +2556,7 @@ namespace System
 				"k" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: true, lower: true),
 				"V" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: false, lower: false),
 				"v" => PrettyPrint(this.Span, Slice.DefaultPrettyPrintSize, biasKey: false, lower: true),
+				"R" or "r" => Dump(this, int.MaxValue),
 				_ => throw new FormatException("Format is invalid or not supported")
 			};
 		}
@@ -2635,6 +2660,54 @@ namespace System
 			}
 			if (truncated) sb.Append("[\u2026]"); // Unicode for '...'
 			return sb.ToString();
+		}
+
+		public static bool Dump(Span<char> destination, out int charsWritten, ReadOnlySpan<byte> value, int maxSize = Slice.DefaultPrettyPrintSize)
+		{
+			if (value.Length == 0) return "<empty>".TryCopyTo(destination, out charsWritten);
+
+			bool truncated = value.Length > maxSize;
+			if (truncated)
+			{
+				value = value[..maxSize];
+			}
+
+			var tail = destination;
+			// in best case, all bytes encode to a single char
+			if (tail.Length < value.Length) goto too_small;
+
+			foreach(var c in value)
+			{
+				if (c is < 32 or >= 127 or 60)
+				{
+					if (tail.Length < 4) goto too_small;
+					int x = c >> 4;
+					int y = c & 0xF;
+					tail[0] = '<';
+					tail[1] = (char) (x + (x < 10 ? 48 : 55));
+					tail[2] = (char) (y + (y < 10 ? 48 : 55));
+					tail[3] = '>';
+					tail = tail[4..];
+				}
+				else
+				{
+					if (tail.Length == 0) goto too_small;
+					tail[0] = (char) c;
+					tail = tail[1..];
+				}
+			}
+			if (truncated)
+			{
+				if (!"[\u2026]".TryCopyTo(tail)) goto too_small; // Unicode for '...'
+				tail = tail[3..];
+			}
+
+			charsWritten = destination.Length - tail.Length;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
 		}
 
 		#region Streams...
