@@ -24,6 +24,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
+// ReSharper disable IdentifierTypo
+
 namespace SnowBank.Testing
 {
 	using System.Net;
@@ -31,6 +33,8 @@ namespace SnowBank.Testing
 	using System.Net.Sockets;
 	using NUnit.Framework.Constraints;
 
+	/// <summary>Box that captures any exception thrown by the current assertion</summary>
+	/// <typeparam name="TException">Type of the expected exception</typeparam>
 	public sealed class Pokeball<TException> where TException : Exception
 	{
 		private Exception? CapturedException { get; set; }
@@ -70,11 +74,14 @@ namespace SnowBank.Testing
 			}
 			return sb.ToString();
 		}
+
 	}
 
 	internal class CatchExceptionConstraint<TException> : Constraint
 		where TException : Exception
 	{
+
+		/// <summary>Box that will store the captured exception</summary>
 		public Pokeball<TException> Ball { get; }
 
 		public CatchExceptionConstraint(Pokeball<TException> ball)
@@ -92,7 +99,7 @@ namespace SnowBank.Testing
 			}
 			this.Ball.Capture((Exception?) (object?) actual);
 			// success!
-			return new ConstraintResult(this, this.Ball.Exception, true);
+			return new(this, this.Ball.Exception, true);
 		}
 
 	}
