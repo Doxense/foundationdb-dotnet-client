@@ -358,7 +358,7 @@ namespace FoundationDB.Client
 		{
 			lock (this.Context.PadLock)
 			{
-				return this.CachedReadVersion ??= FetchReadVersionInternal();
+				return this.CachedReadVersion ??= PerformGetReadVersionOperation();
 			}
 		}
 
@@ -380,10 +380,13 @@ namespace FoundationDB.Client
 		}
 
 		[MethodImpl(MethodImplOptions.NoInlining)]
-		private Task<long> FetchReadVersionInternal()
+		private Task<long> PerformGetReadVersionOperation()
 		{
-			return m_log == null ? m_handler.GetReadVersionAsync(m_cancellation) : ExecuteLogged(this);
+			return m_log is null
+				? m_handler.GetReadVersionAsync(m_cancellation)
+				: ExecuteLogged(this);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<long> ExecuteLogged(FdbTransaction self)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -404,6 +407,7 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public void SetReadVersion(long version)
 		{
+			Contract.GreaterThan(version, 0);
 			EnsureCanRead();
 
 			m_log?.Annotate($"Set read version to {version:N0}");
@@ -627,9 +631,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<Slice> GetAsync(ReadOnlySpan<byte> key)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeyIsValid(key);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -641,9 +644,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<TResult> GetAsync<TResult>(ReadOnlySpan<byte> key, FdbValueDecoder<TResult> valueDecoder)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeyIsValid(key);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -655,9 +657,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<TResult> GetAsync<TState, TResult>(ReadOnlySpan<byte> key, TState valueState, FdbValueDecoder<TState, TResult> valueDecoder)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeyIsValid(key);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", $"Getting value for '{key.ToString()}'");
@@ -670,8 +671,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGet(this);
 
-			return m_log == null ? m_handler.GetAsync(key, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, snapshot);
+			return m_log is null
+				? m_handler.GetAsync(key, snapshot: snapshot, m_cancellation)
+				: ExecuteLogged(this, key, snapshot);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<Slice> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -684,8 +688,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGet(this);
 
-			return m_log == null ? m_handler.GetAsync(key, snapshot: snapshot, valueDecoder, m_cancellation) : ExecuteLogged(this, key, snapshot, valueDecoder);
+			return m_log is null
+				? m_handler.GetAsync(key, snapshot: snapshot, valueDecoder, m_cancellation)
+				: ExecuteLogged(this, key, snapshot, valueDecoder);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<TResult> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, FdbValueDecoder<TResult> valueDecoder)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -698,8 +705,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGet(this);
 
-			return m_log == null ? m_handler.GetAsync(key, snapshot: snapshot, valueState, valueDecoder, m_cancellation) : ExecuteLogged(this, key, snapshot, valueState, valueDecoder);
+			return m_log is null
+				? m_handler.GetAsync(key, snapshot: snapshot, valueState, valueDecoder, m_cancellation)
+				: ExecuteLogged(this, key, snapshot, valueState, valueDecoder);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<TResult> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, TValueState valueState, FdbValueDecoder<TValueState, TResult> valueDecoder)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -711,9 +721,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<(FdbValueCheckResult Result, Slice Actual)> CheckValueAsync(ReadOnlySpan<byte> key, Slice expected)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeyIsValid(key);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ValueCheckAsync", $"Checking the value for '{key.ToString()}'");
@@ -726,8 +735,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGet(this); //REVIEW: use a specific operation type for this?
 
-			return m_log == null ? m_handler.CheckValueAsync(key, expected, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, key, expected, snapshot);
+			return m_log is null
+				? m_handler.CheckValueAsync(key, expected, snapshot: snapshot, m_cancellation)
+				: ExecuteLogged(this, key, expected, snapshot);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<(FdbValueCheckResult Result, Slice Actual)> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, Slice expected, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -743,9 +755,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<Slice[]> GetValuesAsync(ReadOnlySpan<Slice> keys)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeysAreValid(keys);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -758,8 +769,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGet(this, keys.Length);
 
-			return m_log == null ? m_handler.GetValuesAsync(keys, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, snapshot);
+			return m_log is null
+				? m_handler.GetValuesAsync(keys, snapshot: snapshot, m_cancellation)
+				: ExecuteLogged(this, keys, snapshot);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -770,9 +784,8 @@ namespace FoundationDB.Client
 
 		public Task GetValuesAsync<TResult>(ReadOnlySpan<Slice> keys, Memory<TResult> results, FdbValueDecoder<TResult> valueDecoder)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeysAreValid(keys);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -785,8 +798,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGet(this, keys.Length);
 
-			return m_log == null ? m_handler.GetValuesAsync(keys, values, valueDecoder, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, values, valueDecoder, snapshot);
+			return m_log is null
+				? m_handler.GetValuesAsync(keys, values, valueDecoder, snapshot: snapshot, m_cancellation)
+				: ExecuteLogged(this, keys, values, valueDecoder, snapshot);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, Memory<TValue> values, FdbValueDecoder<TValue> valueDecoder, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -797,9 +813,8 @@ namespace FoundationDB.Client
 
 		public Task GetValuesAsync<TValueState, TResult>(ReadOnlySpan<Slice> keys, Memory<TResult> results, TValueState valueState, FdbValueDecoder<TValueState, TResult> valueDecoder)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeysAreValid(keys);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", $"Getting batch of {keys.Length} values ...");
@@ -812,8 +827,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGet(this, keys.Length);
 
-			return m_log == null ? m_handler.GetValuesAsync(keys, values, valueState, valueDecoder, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, keys, values, valueState, valueDecoder, snapshot);
+			return m_log is null
+				? m_handler.GetValuesAsync(keys, values, valueState, valueDecoder, snapshot: snapshot, m_cancellation)
+				: ExecuteLogged(this, keys, values, valueState, valueDecoder, snapshot);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, Memory<TValue> values, TValueState valueState, FdbValueDecoder<TValueState, TValue> valueDecoder, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -833,10 +851,18 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<FdbRangeChunk> GetRangeAsync(KeySpanSelector beginInclusive, KeySpanSelector endExclusive, FdbRangeOptions? options, int iteration)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+
+			// GetRange() may be used to read special keys after a failed commit (ex: \xff\xff/transaction/conflicting_keys/...), so we have to allow some cases
+			if (FdbKey.IsSpecialKey(beginInclusive.Key))
+			{
+				EnsureStillValid(allowFromNetworkThread: false, allowFailedState: true);
+			}
+			else
+			{
+				EnsureCanRead();
+			}
 
 			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(iteration);
@@ -886,10 +912,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGetRange(this);
 
-			return m_log == null
+			return m_log is null
 				? m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot, m_cancellation)
 				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, options, iteration);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<FdbRangeChunk> ExecuteLogged(FdbTransaction self, KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -923,10 +950,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGetRange(this);
 
-			return m_log == null
+			return m_log is null
 				? m_handler.GetRangeAsync(beginInclusive, endExclusive, snapshot, state, decoder, options, iteration, m_cancellation)
 				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, state, decoder, options, iteration);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<FdbRangeChunk<TResult>> ExecuteLogged(FdbTransaction self, KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -964,10 +992,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGetRange(this);
 
-			return m_log == null
+			return m_log is null
 				? m_handler.VisitRangeAsync<TState>(beginInclusive.ToSpan(), endExclusive.ToSpan(), snapshot, state, visitor, options, iteration, m_cancellation)
 				: ExecuteLogged(this, beginInclusive, endExclusive, snapshot, state, visitor, options, iteration);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<FdbRangeResult> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -1001,10 +1030,9 @@ namespace FoundationDB.Client
 		internal FdbRangeQuery<TState, TResult> GetRangeCore<TState, TResult>(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder)
 		{
 			Contract.Debug.Requires(decoder != null);
-
-			EnsureCanRead();
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+			EnsureCanRead();
 
 			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(0);
@@ -1084,10 +1112,9 @@ namespace FoundationDB.Client
 		internal async Task VisitRangeCore<TState>(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, bool snapshot, TState state, FdbKeyValueAction<TState> handler)
 		{
 			Contract.Debug.Requires(handler != null);
-
-			EnsureCanRead();
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
 			FdbKey.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+			EnsureCanRead();
 
 			options = FdbRangeOptions.EnsureDefaults(options, FdbStreamingMode.Iterator, FdbFetchMode.KeysAndValues);
 			options.EnsureLegalValues(0);
@@ -1182,9 +1209,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<Slice> GetKeyAsync(KeySpanSelector selector)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeyIsValid(selector.Key);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", $"Getting key '{selector.ToString()}'");
@@ -1197,8 +1223,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGetKey(this);
 
-			return m_log == null ? m_handler.GetKeyAsync(selector, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selector, snapshot);
+			return m_log is null
+				? m_handler.GetKeyAsync(selector, snapshot: snapshot, m_cancellation)
+				: ExecuteLogged(this, selector, snapshot);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<Slice> ExecuteLogged(FdbTransaction self, KeySpanSelector selector, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -1214,12 +1243,11 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<Slice[]> GetKeysAsync(ReadOnlySpan<KeySelector> selectors)
 		{
-			EnsureCanRead();
-
 			for (int i = 0; i < selectors.Length; i++)
 			{
 				FdbKey.EnsureKeyIsValid(selectors[i].Key);
 			}
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", $"Getting batch of {selectors.Length} keys ...");
@@ -1233,8 +1261,11 @@ namespace FoundationDB.Client
 		{
 			FdbClientInstrumentation.ReportGetKey(this, selectors.Length);
 
-			return m_log == null ? m_handler.GetKeysAsync(selectors, snapshot: snapshot, m_cancellation) : ExecuteLogged(this, selectors, snapshot);
+			return m_log is null
+				? m_handler.GetKeysAsync(selectors, snapshot: snapshot, m_cancellation)
+				: ExecuteLogged(this, selectors, snapshot);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<KeySelector> selectors, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -1566,9 +1597,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<string[]> GetAddressesForKeyAsync(ReadOnlySpan<byte> key)
 		{
-			EnsureCanRead();
-
 			FdbKey.EnsureKeyIsValid(key);
+			EnsureCanRead();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", $"Getting addresses for key '{FdbKey.Dump(key)}'");
@@ -1579,8 +1609,11 @@ namespace FoundationDB.Client
 
 		private Task<string[]> PerformGetAddressesForKeyOperation(ReadOnlySpan<byte> key)
 		{
-			return m_log == null ? m_handler.GetAddressesForKeyAsync(key, m_cancellation) : ExecuteLogged(this, key);
+			return m_log is null
+				? m_handler.GetAddressesForKeyAsync(key, m_cancellation)
+				: ExecuteLogged(this, key);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<string[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -1596,6 +1629,9 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<Slice[]> GetRangeSplitPointsAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
 		{
+			FdbKey.EnsureKeyIsValid(beginKey);
+			FdbKey.EnsureKeyIsValid(endKey);
+			Contract.Positive(chunkSize);
 			EnsureCanRead();
 
 			// available since 7.0
@@ -1611,10 +1647,6 @@ namespace FoundationDB.Client
 				}
 			}
 
-			FdbKey.EnsureKeyIsValid(beginKey);
-			FdbKey.EnsureKeyIsValid(endKey);
-			Contract.Positive(chunkSize);
-
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeSplitPointsAsync", $"Getting split points for range '{FdbKey.Dump(beginKey)}'..'{FdbKey.Dump(endKey)}'");
 #endif
@@ -1624,8 +1656,11 @@ namespace FoundationDB.Client
 
 		private Task<Slice[]> PerformGetRangeSplitPointsOperation(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
 		{
-			return m_log == null ? m_handler.GetRangeSplitPointsAsync(beginKey, endKey, chunkSize, m_cancellation) : ExecuteLogged(this, beginKey, endKey, chunkSize);
+			return m_log is null
+				? m_handler.GetRangeSplitPointsAsync(beginKey, endKey, chunkSize, m_cancellation)
+				: ExecuteLogged(this, beginKey, endKey, chunkSize);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey, long chunkSize)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -1641,6 +1676,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public Task<long> GetEstimatedRangeSizeBytesAsync(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
 		{
+			FdbKey.EnsureKeyIsValid(beginKey);
+			FdbKey.EnsureKeyIsValid(endKey);
 			EnsureCanRead();
 
 			// available since 7.0
@@ -1656,9 +1693,6 @@ namespace FoundationDB.Client
 				}
 			}
 
-			FdbKey.EnsureKeyIsValid(beginKey);
-			FdbKey.EnsureKeyIsValid(endKey);
-
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetEstimatedRangeSizeBytesAsync", $"Getting estimate size for range '{FdbKey.Dump(beginKey)}'..'{FdbKey.Dump(endKey)}'");
 #endif
@@ -1668,8 +1702,11 @@ namespace FoundationDB.Client
 
 		private Task<long> PerformGetEstimatedRangeSizeBytesOperation(ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
 		{
-			return m_log == null ? m_handler.GetEstimatedRangeSizeBytesAsync(beginKey, endKey, m_cancellation) : ExecuteLogged(this, beginKey, endKey);
+			return m_log is null
+				? m_handler.GetEstimatedRangeSizeBytesAsync(beginKey, endKey, m_cancellation)
+				: ExecuteLogged(this, beginKey, endKey);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<long> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> beginKey, ReadOnlySpan<byte> endKey)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -1692,8 +1729,11 @@ namespace FoundationDB.Client
 
 		private Task<long> PerformGetApproximateSizeOperation()
 		{
-			return m_log == null ? m_handler.GetApproximateSizeAsync(m_cancellation) : ExecuteLogged(this);
+			return m_log is null
+				? m_handler.GetApproximateSizeAsync(m_cancellation)
+				: ExecuteLogged(this);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<long> ExecuteLogged(FdbTransaction self)
 				=> self.m_log!.ExecuteAsync(
 					self,
@@ -1735,8 +1775,11 @@ namespace FoundationDB.Client
 
 		private Task PerformCommitOperation()
 		{
-			return m_log == null ? m_handler.CommitAsync(m_cancellation) : ExecuteLogged(this);
+			return m_log is null
+				? m_handler.CommitAsync(m_cancellation)
+				: ExecuteLogged(this);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task ExecuteLogged(FdbTransaction self)
 			{
 				long size = self.Size;
@@ -1826,8 +1869,11 @@ namespace FoundationDB.Client
 
 		private Task PerformOnErrorOperation(FdbError code)
 		{
-			return m_log == null ? m_handler.OnErrorAsync(code, ct: m_cancellation) : ExecuteLogged(this, code);
+			return m_log is null
+				? m_handler.OnErrorAsync(code, ct: m_cancellation)
+				: ExecuteLogged(this, code);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task ExecuteLogged(FdbTransaction self, FdbError code)
 			{
 				self.m_log!.RequiresVersionStamp = false;
@@ -1906,6 +1952,7 @@ namespace FoundationDB.Client
 				ExecuteLogged(this);
 			}
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static void ExecuteLogged(FdbTransaction self)
 			{
 				self.m_log!.RequiresVersionStamp = false;
