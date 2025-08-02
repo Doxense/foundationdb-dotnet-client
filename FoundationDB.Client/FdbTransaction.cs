@@ -679,7 +679,7 @@ namespace FoundationDB.Client
 			static Task<Slice> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
-					new FdbTransactionLog.GetCommand(self.m_log.Grab(key), snapshot),
+					new FdbTransactionLog.GetCommand<Slice>(self.m_log.Grab(key), snapshot),
 					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, tr.m_cancellation)
 				);
 		}
@@ -695,9 +695,9 @@ namespace FoundationDB.Client
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<TResult> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, FdbValueDecoder<TResult> valueDecoder)
 				=> self.m_log!.ExecuteAsync(
-					self,
-					new FdbTransactionLog.GetCommand<TResult>(self.m_log.Grab(key), valueDecoder, snapshot),
-					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, cmd.Decoder, tr.m_cancellation)
+					(Transaction: self, Decoder: valueDecoder),
+					new FdbTransactionLog.GetCommand<TResult>(self.m_log.Grab(key), snapshot),
+					(s, cmd) => s.Transaction.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, s.Decoder, s.Transaction.m_cancellation)
 				);
 		}
 
@@ -712,9 +712,9 @@ namespace FoundationDB.Client
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<TResult> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, bool snapshot, TValueState valueState, FdbValueDecoder<TValueState, TResult> valueDecoder)
 				=> self.m_log!.ExecuteAsync(
-					self,
-					new FdbTransactionLog.GetCommand<TValueState, TResult>(self.m_log.Grab(key), valueState, valueDecoder, snapshot),
-					(tr, cmd) => tr.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, cmd.State, cmd.Decoder, tr.m_cancellation)
+					(Transaction: self, State: valueState, Decoder: valueDecoder),
+					new FdbTransactionLog.GetCommand<TResult>(self.m_log.Grab(key), snapshot),
+					(s, cmd) => s.Transaction.m_handler.GetAsync(cmd.Key.Span, cmd.Snapshot, s.State, s.Decoder, s.Transaction.m_cancellation)
 				);
 		}
 
@@ -743,7 +743,7 @@ namespace FoundationDB.Client
 			static Task<(FdbValueCheckResult Result, Slice Actual)> ExecuteLogged(FdbTransaction self, ReadOnlySpan<byte> key, Slice expected, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
-					new FdbTransactionLog.CheckValueCommand(self.m_log.Grab(key), self.m_log.Grab(expected)) { Snapshot = snapshot },
+					new FdbTransactionLog.CheckValueCommand(self.m_log.Grab(key), self.m_log.Grab(expected), snapshot),
 					(tr, cmd) => tr.m_handler.CheckValueAsync(cmd.Key.Span, cmd.Expected, cmd.Snapshot, tr.m_cancellation)
 				);
 		}
@@ -805,9 +805,10 @@ namespace FoundationDB.Client
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, Memory<TValue> values, FdbValueDecoder<TValue> valueDecoder, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
-					self,
-					new FdbTransactionLog.GetValuesCommand<TValue>(self.m_log.Grab(keys), values, valueDecoder, snapshot),
-					(tr, cmd) => tr.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Values, cmd.Decoder, cmd.Snapshot, tr.m_cancellation)
+					(Transaction: self, Values: values, Decoder: valueDecoder),
+					new FdbTransactionLog.GetValuesCommand<TValue>(self.m_log.Grab(keys), new TValue[keys.Length], snapshot),
+					(s, cmd) => s.Transaction.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Values, s.Decoder, cmd.Snapshot, s.Transaction.m_cancellation),
+					(s, cmd, _) => cmd.Values.CopyTo(s.Values)
 				);
 		}
 
@@ -834,9 +835,10 @@ namespace FoundationDB.Client
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task ExecuteLogged(FdbTransaction self, ReadOnlySpan<Slice> keys, Memory<TValue> values, TValueState valueState, FdbValueDecoder<TValueState, TValue> valueDecoder, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
-					self,
-					new FdbTransactionLog.GetValuesCommand<TValueState, TValue>(self.m_log.Grab(keys), values, valueState, valueDecoder, snapshot),
-					(tr, cmd) => tr.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Values, cmd.State, cmd.Decoder, cmd.Snapshot, tr.m_cancellation)
+					(Transaction: self, Values: values, State: valueState, Decoder: valueDecoder),
+					new FdbTransactionLog.GetValuesCommand<TValue>(self.m_log.Grab(keys), new TValue[keys.Length], snapshot),
+					(s, cmd) => s.Transaction.m_handler.GetValuesAsync(cmd.Keys.AsSpan(), cmd.Values, s.State, s.Decoder, cmd.Snapshot, s.Transaction.m_cancellation),
+					(s, cmd, _) => cmd.Values.CopyTo(s.Values)
 				);
 		}
 
@@ -957,25 +959,23 @@ namespace FoundationDB.Client
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<FdbRangeChunk<TResult>> ExecuteLogged(FdbTransaction self, KeySpanSelector beginInclusive, KeySpanSelector endExclusive, bool snapshot, TState state, FdbKeyValueDecoder<TState, TResult> decoder, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
-					self,
-					new FdbTransactionLog.GetRangeCommand<TState, TResult>(
+					(Transaction: self, State: state, Decoder: decoder),
+					new FdbTransactionLog.GetRangeCommand<TResult>(
 						self.m_log.Grab(beginInclusive),
 						self.m_log.Grab(endExclusive),
 						snapshot,
 						options,
-						iteration,
-						state,
-						decoder
+						iteration
 					),
-					(tr, cmd) => tr.m_handler.GetRangeAsync<TState, TResult>(
+					(s, cmd) => s.Transaction.m_handler.GetRangeAsync<TState, TResult>(
 						cmd.Begin.ToSpan(),
 						cmd.End.ToSpan(),
 						cmd.Snapshot,
-						cmd.State,
-						cmd.Decoder,
+						s.State,
+						s.Decoder,
 						cmd.Options,
 						cmd.Iteration,
-						tr.m_cancellation
+						s.Transaction.m_cancellation
 					)
 				);
 		}
@@ -999,25 +999,23 @@ namespace FoundationDB.Client
 			[MethodImpl(MethodImplOptions.NoInlining)]
 			static Task<FdbRangeResult> ExecuteLogged(FdbTransaction self, KeySelector beginInclusive, KeySelector endExclusive, bool snapshot, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions options, int iteration)
 				=> self.m_log!.ExecuteAsync(
-					self,
-					new FdbTransactionLog.VisitRangeCommand<TState>(
+					(Transaction: self, State: state, Visitor: visitor),
+					new FdbTransactionLog.VisitRangeCommand(
 						self.m_log.Grab(beginInclusive),
 						self.m_log.Grab(endExclusive),
 						snapshot,
 						options,
-						iteration,
-						state,
-						visitor
+						iteration
 					),
-					(tr, cmd) => tr.m_handler.VisitRangeAsync<TState>(
+					(s, cmd) => s.Transaction.m_handler.VisitRangeAsync<TState>(
 						cmd.Begin.ToSpan(),
 						cmd.End.ToSpan(),
 						cmd.Snapshot,
-						cmd.State,
-						cmd.Visitor,
+						s.State,
+						s.Visitor,
 						cmd.Options,
 						cmd.Iteration,
-						tr.m_cancellation
+						s.Transaction.m_cancellation
 					)
 				);
 		}
@@ -1231,7 +1229,7 @@ namespace FoundationDB.Client
 			static Task<Slice> ExecuteLogged(FdbTransaction self, KeySpanSelector selector, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
-					new FdbTransactionLog.GetKeyCommand(self.m_log.Grab(selector)) { Snapshot =  snapshot },
+					new FdbTransactionLog.GetKeyCommand(self.m_log.Grab(selector), snapshot),
 					(tr, cmd) => tr.m_handler.GetKeyAsync(cmd.Selector.ToSpan(), cmd.Snapshot, tr.m_cancellation)
 				);
 		}
@@ -1269,7 +1267,7 @@ namespace FoundationDB.Client
 			static Task<Slice[]> ExecuteLogged(FdbTransaction self, ReadOnlySpan<KeySelector> selectors, bool snapshot)
 				=> self.m_log!.ExecuteAsync(
 					self,
-					new FdbTransactionLog.GetKeysCommand(self.m_log.Grab(selectors)) { Snapshot =  snapshot },
+					new FdbTransactionLog.GetKeysCommand(self.m_log.Grab(selectors), snapshot),
 					(tr, cmd) => tr.m_handler.GetKeysAsync(cmd.Selectors, cmd.Snapshot, tr.m_cancellation)
 				);
 		}
@@ -1848,9 +1846,25 @@ namespace FoundationDB.Client
 
 		private FdbWatch PerformWatchOperation(Slice key, CancellationToken ct)
 		{
-			m_log?.RecordWatch(key);
+			if (m_log is null)
+			{
+				return m_handler.Watch(key, ct);
+			}
+			else
+			{
+				return ExecuteLogged(this, key, ct);
+			}
 
-			return m_handler.Watch(key, ct);
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static FdbWatch ExecuteLogged(FdbTransaction self, Slice key, CancellationToken ct)
+			{
+				self.m_log!.RequiresVersionStamp = false;
+				return self.m_log.Execute(
+					(Transaction: self, Lifetime: ct),
+					new FdbTransactionLog.WatchCommand(self.m_log.Grab(key), ct),
+					(s, cmd) => s.Transaction.m_handler.Watch(cmd.Key, s.Lifetime)
+				);
+			}
 		}
 
 		#endregion

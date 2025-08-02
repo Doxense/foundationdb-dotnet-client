@@ -80,6 +80,17 @@ namespace FoundationDB.Filters.Logging
 			return JsonArray.FromValues(values, EncodeValueToJson);
 		}
 
+		private static JsonArray EncodeKeyValuePairsToJson(ReadOnlySpan<KeyValuePair<Slice, Slice>> kvs)
+		{
+			var arr = new JsonArray(kvs.Length);
+			foreach (var kv in kvs)
+			{
+				arr.Add(JsonArray.ReadOnly.Create(EncodeKeyToJson(kv.Key), EncodeValueToJson(kv.Value)));
+			}
+			CrystalJsonMarshall.FreezeTopLevel(arr.Freeze());
+			return arr;
+		}
+
 		/// <summary>Base class of all types of operations performed on a transaction</summary>
 		[DebuggerDisplay("{ToString(),nq}")]
 		public abstract class Command
@@ -395,7 +406,7 @@ namespace FoundationDB.Filters.Logging
 
 				if (this.Result.Failed) return "<error>";
 				if (!this.Result.HasValue) return "<n/a>";
-				if (this.Result.Value == null) return "<null>";
+				if (this.Result.Value is null) return "<null>";
 
 				string res = Dump(this.Result.Value, resolver);
 				if (res.Length > MAX_LENGTH)
@@ -851,11 +862,14 @@ namespace FoundationDB.Filters.Logging
 
 		}
 
-		public sealed class GetCommand : Command<Slice>
+		/// <summary>Represents a <see cref="IFdbReadOnlyTransaction.GetAsync"/> operation</summary>
+		/// <typeparam name="TResult">Type of the decoded value (or <see cref="Slice"/> for raw reads)</typeparam>
+		public sealed class GetCommand<TResult> : Command<TResult>
 		{
 			/// <summary>Key read from the database</summary>
 			public Slice Key { get; }
 
+			/// <inheritdoc />
 			public override Operation Op => Operation.Get;
 
 			public GetCommand(Slice key, bool snapshot)
@@ -864,78 +878,55 @@ namespace FoundationDB.Filters.Logging
 				this.Snapshot = snapshot;
 			}
 
+			/// <inheritdoc />
 			public override int? ArgumentBytes => this.Key.Count;
 
-			public override int? ResultBytes => this.Result.HasValue ? this.Result.Value.Count : null;
-
-			public override string GetArguments(KeyResolver resolver)
+			/// <inheritdoc />
+			public override int? ResultBytes
 			{
-				return resolver.Resolve(this.Key);
-			}
-
-			public override string GetResult(KeyResolver resolver)
-			{
-				if (this.Result.HasValue)
+				get
 				{
-					if (this.Result.Value.IsNull) return "not_found";
-					if (this.Result.Value.IsEmpty) return "''";
+					if (typeof(TResult) == typeof(Slice))
+					{
+						return this.Result.HasValue ? ((Slice) (object) this.Result.Value!).Count : null;
+					}
+					return null;
+					//BUGBUG: how to track the actual number of bytes?
 				}
-				return base.GetResult(resolver);
-			}
-
-			protected override string Dump(Slice value, KeyResolver resolver)
-			{
-				return value.ToString("P");
 			}
 
 			/// <inheritdoc />
-			protected override void OnJsonSerialize(JsonObject obj)
-			{
-				obj["key"] = EncodeKeyToJson(this.Key);
-				if (this.Result.HasValue)
-				{
-					obj["value"] = EncodeValueToJson(this.Result.Value);
-				}
-			}
-
-		}
-
-		public sealed class GetCommand<TResult> : Command<TResult>
-		{
-			/// <summary>Key read from the database</summary>
-			public Slice Key { get; }
-
-			public FdbValueDecoder<TResult> Decoder { get; }
-
-			public override Operation Op => Operation.Get;
-
-			public GetCommand(Slice key, FdbValueDecoder<TResult> decoder, bool snapshot)
-			{
-				this.Key = key;
-				this.Decoder = decoder;
-				this.Snapshot = snapshot;
-			}
-
-			public override int? ArgumentBytes => this.Key.Count;
-
-			public override int? ResultBytes => null; //BUGBUG: how to track the actual number of bytes?
-
 			public override string GetArguments(KeyResolver resolver)
 			{
 				return resolver.Resolve(this.Key);
 			}
 
+			/// <inheritdoc />
 			public override string GetResult(KeyResolver resolver)
 			{
 				if (this.Result.HasValue)
 				{
-					return STuple.Formatter.Stringify(this.Result.Value);
+					if (typeof(TResult) == typeof(Slice))
+					{
+						if (((Slice) (object) this.Result.Value!).IsNull) return "not_found";
+						if (((Slice) (object) this.Result.Value!).IsEmpty) return "''";
+					}
+					else
+					{
+						return STuple.Formatter.Stringify(this.Result.Value);
+					}
 				}
 				return base.GetResult(resolver);
 			}
 
+			/// <inheritdoc />
 			protected override string Dump(TResult value, KeyResolver resolver)
 			{
+				if (typeof(TResult) == typeof(Slice))
+				{
+					return ((Slice) (object) value!).ToString("P");
+				}
+
 				return STuple.Formatter.Stringify(value);
 			}
 
@@ -945,61 +936,14 @@ namespace FoundationDB.Filters.Logging
 				obj["key"] = EncodeKeyToJson(this.Key);
 				if (this.Result.HasValue)
 				{
-					obj["value"] = JsonValue.FromValue(this.Result.Value);
-				}
-			}
-
-		}
-
-		public sealed class GetCommand<TState, TResult> : Command<TResult>
-		{
-			/// <summary>Key read from the database</summary>
-			public Slice Key { get; }
-
-			public TState State { get; }
-
-			public FdbValueDecoder<TState, TResult> Decoder { get; }
-
-			public override Operation Op => Operation.Get;
-
-			public GetCommand(Slice key, TState state, FdbValueDecoder<TState, TResult> decoder, bool snapshot)
-			{
-				this.Key = key;
-				this.State = state;
-				this.Decoder = decoder;
-				this.Snapshot = snapshot;
-			}
-
-			public override int? ArgumentBytes => this.Key.Count;
-
-			public override int? ResultBytes => null; //BUGBUG: how to track the actual number of bytes?
-
-			public override string GetArguments(KeyResolver resolver)
-			{
-				return resolver.Resolve(this.Key);
-			}
-
-			public override string GetResult(KeyResolver resolver)
-			{
-				if (this.Result.HasValue)
-				{
-					return STuple.Formatter.Stringify(this.Result.Value);
-				}
-				return base.GetResult(resolver);
-			}
-
-			protected override string Dump(TResult value, KeyResolver resolver)
-			{
-				return STuple.Formatter.Stringify(value);
-			}
-
-			/// <inheritdoc />
-			protected override void OnJsonSerialize(JsonObject obj)
-			{
-				obj["key"] = EncodeKeyToJson(this.Key);
-				if (this.Result.HasValue)
-				{
-					obj["value"] = JsonValue.FromValue(this.Result.Value);
+					if (typeof(TResult) == typeof(Slice))
+					{
+						obj["value"] = EncodeValueToJson((Slice) (object) this.Result.Value!);
+					}
+					else
+					{
+						obj["value"] = JsonValue.FromValue(this.Result.Value);
+					}
 				}
 			}
 
@@ -1012,9 +956,10 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.GetKey;
 
-			public GetKeyCommand(KeySelector selector)
+			public GetKeyCommand(KeySelector selector, bool snapshot)
 			{
 				this.Selector = selector;
+				this.Snapshot = snapshot;
 			}
 
 			public override int? ArgumentBytes => this.Selector.Key.Count;
@@ -1114,19 +1059,15 @@ namespace FoundationDB.Filters.Logging
 			public Slice[] Keys { get; }
 
 			/// <summary>Buffer where the decoded values will be stored</summary>
-			public Memory<TValue> Values { get; }
-
-			/// <summary>Decoder used to extract the values from the result of each read</summary>
-			public FdbValueDecoder<TValue> Decoder { get; }
+			public TValue[] Values { get; }
 
 			public override Operation Op => Operation.GetValues;
 
-			public GetValuesCommand(Slice[] keys, Memory<TValue> values, FdbValueDecoder<TValue> decoder, bool snapshot)
+			public GetValuesCommand(Slice[] keys, TValue[] values, bool snapshot)
 			{
-				Contract.Debug.Requires(keys != null && values.Length >= keys.Length && decoder != null);
+				Contract.Debug.Requires(keys != null && values.Length >= keys.Length);
 				this.Keys = keys;
 				this.Values = values;
-				this.Decoder = decoder;
 				this.Snapshot = snapshot;
 			}
 
@@ -1134,15 +1075,32 @@ namespace FoundationDB.Filters.Logging
 			{
 				get
 				{
-					int sum = 0;
-					for (int i = 0; i < this.Keys.Length; i++) sum += this.Keys[i].Count;
-					return sum;
+					long sum = 0;
+					for (int i = 0; i < this.Keys.Length; i++)
+					{
+						sum += this.Keys[i].Count;
+					}
+					return sum <= int.MaxValue ? unchecked((int) sum) : null;
 				}
 			}
 
 			public override int? ResultBytes
 			{
-				get => null; //TODO: how to account for the number of bytes received?
+				get
+				{
+					if (typeof(TValue) == typeof(Slice))
+					{
+						if (this.Result.HasValue)
+						{
+							var array = (Slice[]) (object) this.Values;
+							long sum = 0;
+							for (int i = 0; i < array.Length; i++) sum += array[i].Count;
+							return sum <= int.MaxValue ? unchecked((int) sum) : null;
+						}
+					}
+					//TODO: how to account for the number of bytes received?
+					return null;
+				}
 			}
 
 			public override string GetArguments(KeyResolver resolver)
@@ -1155,14 +1113,29 @@ namespace FoundationDB.Filters.Logging
 
 			protected override string Dump(long res, KeyResolver resolver)
 			{
-				return this.Values.Length switch
+				var values = this.Values.AsSpan();
+				if (typeof(TValue) == typeof(Slice))
 				{
-					0 => "<empty>",
-					1 => string.Create(CultureInfo.InvariantCulture, $"[1] {{ {this.Values.Span[0]} }}"),
-					2 => string.Create(CultureInfo.InvariantCulture, $"[2] {{ {this.Values.Span[0]}, {this.Values.Span[1]} }}"),
-					3 => string.Create(CultureInfo.InvariantCulture, $"[3] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, {this.Values.Span[2]} }}"),
-					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, ..., {this.Values.Span[^1]} }}")
-				};
+					return values.Length switch
+					{
+						0 => "<empty>",
+						1 => string.Create(CultureInfo.InvariantCulture, $"[1] {{ {values[0]:P} }}"),
+						2 => string.Create(CultureInfo.InvariantCulture, $"[2] {{ {values[0]:P}, {values[1]:P} }}"),
+						3 => string.Create(CultureInfo.InvariantCulture, $"[3] {{ {values[0]:P}, {values[1]:P}, {values[2]:P} }}"),
+						_ => string.Create(CultureInfo.InvariantCulture, $"[{values.Length:N0}] {{ {values[0]:P}, {values[1]:P}, ..., {values[^1]:P} }}")
+					};
+				}
+				else
+				{
+					return values.Length switch
+					{
+						0 => "<empty>",
+						1 => string.Create(CultureInfo.InvariantCulture, $"[1] {{ {values[0]} }}"),
+						2 => string.Create(CultureInfo.InvariantCulture, $"[2] {{ {values[0]}, {values[1]} }}"),
+						3 => string.Create(CultureInfo.InvariantCulture, $"[3] {{ {values[0]}, {values[1]}, {values[2]} }}"),
+						_ => string.Create(CultureInfo.InvariantCulture, $"[{values.Length:N0}] {{ {values[0]}, {values[1]}, ..., {values[^1]} }}")
+					};
+				}
 			}
 
 			/// <inheritdoc />
@@ -1171,80 +1144,14 @@ namespace FoundationDB.Filters.Logging
 				obj["keys"] = EncodeKeysToJson(this.Keys);
 				if (this.Result.HasValue)
 				{
-					obj["values"] = JsonArray.FromValues(this.Values.Span);
-				}
-			}
-
-		}
-
-		public sealed class GetValuesCommand<TState, TValue> : Command<long>
-		{
-
-			/// <summary>List of keys read from the database</summary>
-			public Slice[] Keys { get; }
-
-			/// <summary>Buffer where the decoded values will be stored</summary>
-			public Memory<TValue> Values { get; }
-
-			public TState State { get; }
-
-			/// <summary>Decoder used to extract the values from the result of each read</summary>
-			public FdbValueDecoder<TState, TValue> Decoder { get; }
-
-			public override Operation Op => Operation.GetValues;
-
-			public GetValuesCommand(Slice[] keys, Memory<TValue> values, TState state, FdbValueDecoder<TState, TValue> decoder, bool snapshot)
-			{
-				Contract.Debug.Requires(keys != null && values.Length >= keys.Length && decoder != null);
-				this.Keys = keys;
-				this.Values = values;
-				this.State = state;
-				this.Decoder = decoder;
-				this.Snapshot = snapshot;
-			}
-
-			public override int? ArgumentBytes
-			{
-				get
-				{
-					int sum = 0;
-					for (int i = 0; i < this.Keys.Length; i++) sum += this.Keys[i].Count;
-					return sum;
-				}
-			}
-
-			public override int? ResultBytes
-			{
-				get => null; //TODO: how to account for the number of bytes received?
-			}
-
-			public override string GetArguments(KeyResolver resolver)
-			{
-				string s = string.Concat("[", this.Keys.Length.ToString(), "] {");
-				if (this.Keys.Length > 0) s += resolver.Resolve(this.Keys[0]);
-				if (this.Keys.Length > 1) s += " ... " + resolver.Resolve(this.Keys[^1]);
-				return s + " }";
-			}
-
-			protected override string Dump(long res, KeyResolver resolver)
-			{
-				return this.Values.Length switch
-				{
-					0 => "<empty>",
-					1 => string.Create(CultureInfo.InvariantCulture, $"[1] {{ {this.Values.Span[0]} }}"),
-					2 => string.Create(CultureInfo.InvariantCulture, $"[2] {{ {this.Values.Span[0]}, {this.Values.Span[1]} }}"),
-					3 => string.Create(CultureInfo.InvariantCulture, $"[3] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, {this.Values.Span[2]} }}"),
-					_ => string.Create(CultureInfo.InvariantCulture, $"[{this.Values.Length:N0}] {{ {this.Values.Span[0]}, {this.Values.Span[1]}, ..., {this.Values.Span[^1]} }}")
-				};
-			}
-
-			/// <inheritdoc />
-			protected override void OnJsonSerialize(JsonObject obj)
-			{
-				obj["keys"] = EncodeKeysToJson(this.Keys);
-				if (this.Result.HasValue)
-				{
-					obj["values"] = JsonArray.FromValues(this.Values.Span);
+					if (typeof(TValue) == typeof(Slice))
+					{
+						obj["values"] = EncodeValuesToJson((Slice[]) (object) this.Values);
+					}
+					else
+					{
+						obj["values"] = JsonArray.FromValues(this.Values);
+					}
 				}
 			}
 
@@ -1257,10 +1164,11 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.GetKeys;
 
-			public GetKeysCommand(KeySelector[] selectors)
+			public GetKeysCommand(KeySelector[] selectors, bool snapshot)
 			{
 				Contract.Debug.Requires(selectors != null);
 				this.Selectors = selectors;
+				this.Snapshot = snapshot;
 			}
 
 			public override int? ArgumentBytes
@@ -1380,14 +1288,13 @@ namespace FoundationDB.Filters.Logging
 				obj["options"] = JsonObject.FromObject(this.Options);
 				if (this.Result.HasValue)
 				{
-					//BUGBUG: encode key/value pairs!
-					//obj["values"] = EncodeValuesToJson(this.Result.Value.Items);
+					obj["values"] = EncodeKeyValuePairsToJson(this.Result.Value.Items);
 				}
 			}
 
 		}
 
-		public sealed class GetRangeCommand<TState, TResult> : Command<FdbRangeChunk<TResult>>
+		public sealed class GetRangeCommand<TResult> : Command<FdbRangeChunk<TResult>>
 		{
 			/// <summary>Selector to the start of the range</summary>
 			public KeySelector Begin { get; }
@@ -1401,21 +1308,15 @@ namespace FoundationDB.Filters.Logging
 			/// <summary>Iteration number</summary>
 			public int Iteration { get; }
 
-			public TState State { get; }
-
-			public FdbKeyValueDecoder<TState, TResult> Decoder { get; }
-
 			public override Operation Op => Operation.GetRange;
 
-			public GetRangeCommand(KeySelector begin, KeySelector end, bool snapshot, FdbRangeOptions options, int iteration, TState state, FdbKeyValueDecoder<TState, TResult> decoder)
+			public GetRangeCommand(KeySelector begin, KeySelector end, bool snapshot, FdbRangeOptions options, int iteration)
 			{
 				this.Begin = begin;
 				this.End = end;
 				this.Snapshot = snapshot;
 				this.Options = options;
 				this.Iteration = iteration;
-				this.State = state;
-				this.Decoder = decoder;
 			}
 
 			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
@@ -1425,12 +1326,12 @@ namespace FoundationDB.Filters.Logging
 			public override string GetArguments(KeyResolver resolver)
 			{
 				//TODO: use resolver!
-				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
-				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
-				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
+				string s = $"{this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin)} <= k < {this.End.PrettyPrint(FdbKey.PrettyPrintMode.End)}";
+				if (this.Iteration > 1) s += $", #{this.Iteration:N0}";
+				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += $", limit({this.Options.Limit.Value:N0})";
 				if (this.Options.IsReversed) s += ", reverse";
-				if (this.Options.Streaming.HasValue) s += ", " + this.Options.Streaming.Value.ToString();
-				if (this.Options.Fetch.HasValue) s += ", " + this.Options.Fetch.Value.ToString();
+				if (this.Options.Streaming.HasValue) s += $", {this.Options.Streaming.Value}";
+				if (this.Options.Fetch.HasValue) s += $", {this.Options.Fetch.Value}";
 				return s;
 			}
 
@@ -1439,9 +1340,7 @@ namespace FoundationDB.Filters.Logging
 				var chunk = this.Result.GetValueOrDefault();
 				if (chunk != null)
 				{
-					string s = $"{chunk.Count:N0} result(s)";
-					if (chunk.HasMore) s += ", has_more";
-					return s;
+					return string.Create(CultureInfo.InvariantCulture, $"{chunk.Count:N0} result(s){(chunk.HasMore ? ", has_more" : "")}");
 				}
 				return base.GetResult(resolver);
 			}
@@ -1455,13 +1354,31 @@ namespace FoundationDB.Filters.Logging
 				obj["options"] = JsonObject.FromObject(this.Options);
 				if (this.Result.HasValue)
 				{
-					obj["values"] = JsonArray.FromValues(this.Result.Value.Items.Span);
+					if (typeof(TResult) == typeof(KeyValuePair<Slice, Slice>))
+					{
+						obj["values"] = EncodeKeyValuePairsToJson(((FdbRangeChunk<KeyValuePair<Slice, Slice>>) (object) this.Result.Value).Items.Span);
+					}
+					else if (typeof(TResult) == typeof(Slice))
+					{
+						if (this.Options.Fetch == FdbFetchMode.ValuesOnly)
+						{
+							obj["values"] = EncodeValuesToJson(((FdbRangeChunk<Slice>) (object) this.Result.Value).Items.Span);
+						}
+						else
+						{
+							obj["values"] = EncodeKeysToJson(((FdbRangeChunk<Slice>) (object) this.Result.Value).Items.Span);
+						}
+					}
+					else
+					{
+						obj["values"] = JsonArray.FromValues(this.Result.Value.Items.Span);
+					}
 				}
 			}
 
 		}
 
-		public sealed class VisitRangeCommand<TState> : Command<FdbRangeResult>
+		public sealed class VisitRangeCommand : Command<FdbRangeResult>
 		{
 			/// <summary>Selector to the start of the range</summary>
 			public KeySelector Begin { get; }
@@ -1475,21 +1392,15 @@ namespace FoundationDB.Filters.Logging
 			/// <summary>Iteration number</summary>
 			public int Iteration { get; }
 
-			public TState State { get; }
-
-			public FdbKeyValueAction<TState> Visitor { get; }
-
 			public override Operation Op => Operation.GetRange;
 
-			public VisitRangeCommand(KeySelector begin, KeySelector end, bool snapshot, FdbRangeOptions options, int iteration, TState state, FdbKeyValueAction<TState> visitor)
+			public VisitRangeCommand(KeySelector begin, KeySelector end, bool snapshot, FdbRangeOptions options, int iteration)
 			{
 				this.Begin = begin;
 				this.End = end;
 				this.Snapshot = snapshot;
 				this.Options = options;
 				this.Iteration = iteration;
-				this.State = state;
-				this.Visitor = visitor;
 			}
 
 			public override int? ArgumentBytes => this.Begin.Key.Count + this.End.Key.Count;
@@ -1545,10 +1456,11 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.CheckValue;
 
-			public CheckValueCommand(Slice key, Slice expected)
+			public CheckValueCommand(Slice key, Slice expected, bool snapshot)
 			{
 				this.Key = key;
 				this.Expected = expected;
+				this.Snapshot = snapshot;
 			}
 
 			public override int? ArgumentBytes => this.Key.Count + this.Expected.Count;
@@ -1875,7 +1787,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op => Operation.Watch;
 
-			public WatchCommand(Slice key)
+			public WatchCommand(Slice key, CancellationToken lifetime)
 			{
 				this.Key = key;
 			}

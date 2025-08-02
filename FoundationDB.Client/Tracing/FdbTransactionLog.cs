@@ -95,89 +95,100 @@ namespace FoundationDB.Filters.Logging
 		public StackTrace? CallSite { get; init; }
 
 		#region Interning...
-		
-		private byte[] m_buffer = new byte[1024];
-		private int m_offset;
-#if NET9_0_OR_GREATER
-		private readonly Lock m_lock = new();
-#else
-		private readonly object m_lock = new();
-#endif
 
-		internal Slice Grab(Slice slice)
+		/// <summary>Buffer used to store interned keys and values captured by this log</summary>
+		private SliceBuffer m_buffer = new(4096);
+
+		/// <summary>Capture slices larger than this size will be allocated on the heap; otherwise, they will be interned in the local buffer</summary>
+		private const int MAX_INTERNING_SIZE = 1024;
+
+		[Pure]
+		internal Slice Grab(Slice bytes)
 		{
-			if (slice.IsNullOrEmpty) return slice.IsNull ? Slice.Nil : Slice.Empty;
-
-			lock (m_lock)
+			switch (bytes.Count)
 			{
-				if (slice.Count > m_buffer.Length - m_offset)
-				{ // not enough ?
-					if (slice.Count >= 2048)
-					{
-						return slice.Copy();
-					}
-					m_buffer = new byte[4096];
-					m_offset = 0;
+				case 0 or > MAX_INTERNING_SIZE:
+				{
+					return bytes.Copy();
 				}
-
-				int start = m_offset;
-				slice.CopyTo(m_buffer, m_offset);
-				m_offset += slice.Count;
-				return m_buffer.AsSlice(start, slice.Count);
+				default:
+				{
+					lock (this.Lock)
+					{
+						return m_buffer.Intern(bytes);
+					}
+				}
 			}
 		}
 
-		internal Slice Grab(ReadOnlySpan<byte> slice)
+		[Pure]
+		internal Slice Grab(ReadOnlySpan<byte> bytes)
 		{
-			if (slice.Length == 0) return Slice.Empty;
-
-			lock (m_lock)
+			switch (bytes.Length)
 			{
-				if (slice.Length > m_buffer.Length - m_offset)
-				{ // not enough ?
-					if (slice.Length >= 2048)
-					{
-						return slice.ToArray().AsSlice();
-					}
-					m_buffer = new byte[4096];
-					m_offset = 0;
+				case 0:
+				{
+					return Slice.Empty;
 				}
-
-				int start = m_offset;
-				slice.CopyTo(m_buffer.AsSpan(m_offset));
-				m_offset += slice.Length;
-				return m_buffer.AsSlice(start, slice.Length);
+				case > MAX_INTERNING_SIZE:
+				{
+					return Slice.FromBytes(bytes);
+				}
+				default:
+				{
+					lock (this.Lock)
+					{
+						return m_buffer.Intern(bytes);
+					}
+				}
 			}
 		}
 
+		[Pure]
 		internal Slice[] Grab(ReadOnlySpan<Slice> slices)
 		{
-			if (slices.Length == 0) return [ ];
-
-			lock (m_lock)
+			if (slices.Length == 0)
 			{
-				int total = 0;
-				for (int i = 0; i < slices.Length; i++)
-				{
-					total += slices[i].Count;
-				}
-
-				if (total > m_buffer.Length - m_offset)
-				{
-					return FdbKey.Merge(Slice.Empty, slices);
-				}
-
-				var res = new Slice[slices.Length];
-				for (int i = 0; i < slices.Length; i++)
-				{
-					res[i] = Grab(slices[i]);
-				}
-				return res;
+				return [ ];
 			}
+
+			var res = new Slice[slices.Length];
+
+			// first pass to deal with empty/large values
+			bool useBuffer = false;
+			for (int i = 0; i < slices.Length; i++)
+			{
+				if (slices[i].Count is 0 or > MAX_INTERNING_SIZE)
+				{
+					res[i] = slices[i].Copy();
+				}
+				else
+				{
+					useBuffer = true;
+				}
+			}
+
+			if (useBuffer)
+			{ // we have values that must be interned
+				lock (this.Lock)
+				{
+					for (int i = 0; i < slices.Length; i++)
+					{
+						if (slices[i].Count is > 0 and <= MAX_INTERNING_SIZE)
+						{
+							res[i] = m_buffer.Intern(slices[i]);
+						}
+					}
+				}
+			}
+
+			return res;
 		}
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal KeySelector Grab(KeySelector selector) => new(Grab(selector.Key), selector.OrEqual, selector.Offset);
 
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal KeySelector Grab(KeySpanSelector selector) => new(Grab(selector.Key), selector.OrEqual, selector.Offset);
 
 		internal KeySelector[] Grab(ReadOnlySpan<KeySelector> selectors)
@@ -185,23 +196,49 @@ namespace FoundationDB.Filters.Logging
 			if (selectors.Length == 0) return [ ];
 
 			var res = new KeySelector[selectors.Length];
+
+			bool useBuffer = false;
 			for (int i = 0; i < selectors.Length; i++)
 			{
-				res[i] = Grab(selectors[i]);
+				ref readonly KeySelector selector = ref selectors[i];
+				if (selector.Key.Count is 0 or > MAX_INTERNING_SIZE)
+				{
+					res[i] = new(selector.Key.Copy(), selector.OrEqual, selector.Offset);
+				}
+				else
+				{
+					useBuffer = true;
+				}
 			}
+
+			if (useBuffer)
+			{
+				lock (this.Lock)
+				{
+					for (int i = 0; i < selectors.Length; i++)
+					{
+						ref readonly KeySelector selector = ref selectors[i];
+						if (selector.Key.Count is > 0 and <= MAX_INTERNING_SIZE)
+						{
+							res[i] = new(Grab(selector.Key), selector.OrEqual, selector.Offset);
+						}
+					}
+				}
+			}
+
 			return res;
 		}
 
 		#endregion
 
-		internal void Execute<TCommand>(FdbTransaction tr, TCommand cmd, Action<FdbTransaction, TCommand> action)
+		internal void Execute<TState, TCommand>(TState state, TCommand cmd, Action<TState, TCommand> action)
 			where TCommand : FdbTransactionLog.Command
 		{
 			Exception? error = null;
 			BeginOperation(cmd);
 			try
 			{
-				action(tr, cmd);
+				action(state, cmd);
 			}
 			catch (Exception e)
 			{
@@ -214,14 +251,14 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		internal async Task ExecuteAsync<TCommand>(FdbTransaction tr, TCommand cmd, Func<FdbTransaction, TCommand, Task> lambda, Action<FdbTransaction, TCommand, FdbTransactionLog>? onSuccess = null)
+		internal TResult Execute<TState, TCommand, TResult>(TState state, TCommand cmd, Func<TState, TCommand, TResult> handler)
 			where TCommand : FdbTransactionLog.Command
 		{
 			Exception? error = null;
 			BeginOperation(cmd);
 			try
 			{
-				await lambda(tr, cmd).ConfigureAwait(false);
+				return handler(state, cmd);
 			}
 			catch (Exception e)
 			{
@@ -231,18 +268,41 @@ namespace FoundationDB.Filters.Logging
 			finally
 			{
 				EndOperation(cmd, error);
-				if (error == null) onSuccess?.Invoke(tr, cmd, this);
 			}
 		}
 
-		internal async Task<TResult> ExecuteAsync<TCommand, TResult>(FdbTransaction tr, TCommand cmd, Func<FdbTransaction, TCommand, Task<TResult>> lambda)
+		internal async Task ExecuteAsync<TState, TCommand>(TState state, TCommand cmd, Func<TState, TCommand, Task> handle, Action<TState, TCommand, FdbTransactionLog>? onSuccess = null)
+			where TCommand : FdbTransactionLog.Command
+		{
+			Exception? error = null;
+			BeginOperation(cmd);
+			try
+			{
+				await handle(state, cmd).ConfigureAwait(false);
+			}
+			catch (Exception e)
+			{
+				error = e;
+				throw;
+			}
+			finally
+			{
+				EndOperation(cmd, error);
+				if (error is null)
+				{
+					onSuccess?.Invoke(state, cmd, this);
+				}
+			}
+		}
+
+		internal async Task<TResult> ExecuteAsync<TState, TCommand, TResult>(TState state, TCommand cmd, Func<TState, TCommand, Task<TResult>> lambda)
 			where TCommand : FdbTransactionLog.Command<TResult>
 		{
 			Exception? error = null;
 			BeginOperation(cmd);
 			try
 			{
-				TResult result = await lambda(tr, cmd).ConfigureAwait(false);
+				TResult result = await lambda(state, cmd).ConfigureAwait(false);
 				cmd.Result = Maybe.Return<TResult>(result);
 				return result;
 			}
@@ -265,11 +325,8 @@ namespace FoundationDB.Filters.Logging
 #else
 			const bool NEED_FILE_INFO = false;
 #endif
-			return new StackTrace(1 + numStackFramesToSkip, NEED_FILE_INFO);
+			return new(1 + numStackFramesToSkip, NEED_FILE_INFO);
 		}
-
-		/// <summary>Number of operations performed by the transaction</summary>
-		public int Operations { get; private set; }
 
 		/// <summary>Lock used to update the internal state</summary>
 #if NET9_0_OR_GREATER
@@ -278,14 +335,25 @@ namespace FoundationDB.Filters.Logging
 		private readonly object Lock = new();
 #endif
 
+		/// <summary>Number of operations performed by the transaction</summary>
+		public int Operations { get; private set; }
+
 		/// <summary>List of all commands processed by the transaction</summary>
 		public required List<Command> Commands { get; init; }
+
+		/// <summary>List of the start of each segment in the log (attempt or retry).</summary>
+		/// <remarks>
+		/// <para>Each entry in the list corresponds to the index of the first command for the corresponding segment</para>
+		/// <para>If the list is null (or empty), then the log contains only a single segment</para>
+		/// <para>For example, in a log with 20 commands and segments <c>[0, 7, 15]</c>, then commands 0 to 6 belong to the first attempt, commands 7 to 14 belong to the second attempt, and commands 15 to 19 belong to the third and last attempt.</para>
+		/// </remarks>
+		public List<int>? Segments { get; private set; }
 
 		/// <summary>Timestamp of the start of transaction</summary>
 		public long StartTimestamp { get; private set; }
 
 		/// <summary>Timestamp of the end of transaction</summary>
-		public long StopTimestamp { get; private set; }
+		public long? StopTimestamp { get; private set; }
 
 		/// <summary>Timestamp (UTC) of the start of transaction</summary>
 		public DateTimeOffset StartedUtc { get; internal set; }
@@ -339,20 +407,28 @@ namespace FoundationDB.Filters.Logging
 		public bool HasConflict { get; internal set; }
 
 		/// <summary>Receives the actual value of the VersionStamps generated by this transaction</summary>
-		/// <remarks>This value will be non-null only if the last attempt used VersionStamped operations and committed successfully.</remarks>
+		/// <remarks>
+		/// <para>This value will be non-null only if the last attempt used <see cref="FdbMutationType.VersionStampedKey"/> or <see cref="FdbMutationType.VersionStampedValue"/> operations and committed successfully.</para>
+		/// </remarks>
 		public VersionStamp? VersionStamp { get; internal set; }
 
+		/// <summary>If set to <c>true</c>, the <see cref="VersionStamp"/> of this transaction will be captured when it commits successfully</summary>
 		internal bool RequiresVersionStamp { get; set; }
 
-		internal static long GetTimestamp() => Stopwatch.GetTimestamp();
+		/// <summary>Total duration of the transaction (including all attempts)</summary>
+		/// <remarks>If the transaction is still ongoing, returns the time elapsed since the start.</remarks>
+		public TimeSpan TotalDuration => GetElapsedTime(this.StartTimestamp, this.StopTimestamp ?? Stopwatch.GetTimestamp());
 
-		internal TimeSpan GetTimeOffset() => GetDuration(GetTimestamp() - this.StartTimestamp);
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		internal TimeSpan GetTimeOffset() => GetElapsedTime(this.StartTimestamp, Stopwatch.GetTimestamp());
 
-		internal static TimeSpan GetDuration(long elapsed) => TimeSpan.FromTicks((long)Math.Round(((double)elapsed / Stopwatch.Frequency) * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero));
+		/// <summary>Return the duration between two timestamps</summary>
+		/// <remarks>The duration is rounded "away from zero", which is a different behavior than <see cref="Stopwatch.GetElapsedTime(long,long)"/> which truncates the ticks ("towards zero")</remarks>
+		[Pure]
+		internal static TimeSpan GetElapsedTime(long startingTimestamp, long endingTimestamp)
+			=> new((long) Math.Round((endingTimestamp - startingTimestamp) * s_tickFrequency, MidpointRounding.AwayFromZero));
 
-		/// <summary>Total duration of the transaction</summary>
-		/// <remarks>If the transaction has not yet ended, returns the time elapsed since the start.</remarks>
-		public TimeSpan TotalDuration => this.StopTimestamp == 0 ? GetTimeOffset() : GetDuration(this.StopTimestamp - this.StartTimestamp);
+		private static readonly double s_tickFrequency = (double)TimeSpan.TicksPerSecond / Stopwatch.Frequency; // Cached ratio between timestamp values and BCL ticks
 
 		/// <summary>Marks the start of the transaction</summary>
 		internal void Start(IFdbTransaction trans, DateTimeOffset start)
@@ -360,7 +436,7 @@ namespace FoundationDB.Filters.Logging
 			Contract.Debug.Requires(trans != null);
 
 			this.StartedUtc = start; //TODO: use a configurable clock?
-			this.StartTimestamp = GetTimestamp();
+			this.StartTimestamp = Stopwatch.GetTimestamp();
 		}
 
 		/// <summary>Marks the end of the transaction</summary>
@@ -374,22 +450,10 @@ namespace FoundationDB.Filters.Logging
 				return false;
 			}
 
-			this.Completed = true;
-			this.StopTimestamp = GetTimestamp();
+			this.StopTimestamp = Stopwatch.GetTimestamp();
 			this.StoppedUtc = DateTimeOffset.UtcNow; //TODO: use a configurable clock?
+			this.Completed = true;
 			return true;
-		}
-
-		public void Annotate(string text)
-		{
-			AddOperation(new LogCommand(text), countAsOperation: false);
-		}
-
-		public FdbTransactionLog.WatchCommand RecordWatch(Slice key)
-		{
-			var cmd = new FdbTransactionLog.WatchCommand(Grab(key));
-			AddOperation(cmd);
-			return cmd;
 		}
 
 		/// <summary>Adds a new already completed command to the log</summary>
@@ -415,7 +479,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		/// <summary>Start tracking the execution of a new command</summary>
+		/// <summary>Starts tracking the execution of a new command</summary>
 		public void BeginOperation(Command cmd)
 		{
 			Contract.Debug.Requires(cmd != null);
@@ -433,12 +497,23 @@ namespace FoundationDB.Filters.Logging
 			{
 				cmd.Step = this.Step;
 				if (cmd.ArgumentBytes.HasValue) this.WriteSize += cmd.ArgumentBytes.Value;
-				++this.Operations;
+				if (cmd.Op == Operation.Reset)
+				{ // start of a new segment
+					if (this.Segments is null)
+					{
+						this.Segments = [ 0, this.Commands.Count ];
+					}
+					else
+					{
+						this.Segments.Add(this.Commands.Count);
+					}
+				}
 				this.Commands.Add(cmd);
+				++this.Operations;
 			}
 		}
 
-		/// <summary>Mark the end of the execution of a command</summary>
+		/// <summary>Marks the end of the execution of a command</summary>
 		public void EndOperation(Command cmd, Exception? error = null)
 		{
 			Contract.Debug.Requires(cmd != null);
@@ -471,6 +546,14 @@ namespace FoundationDB.Filters.Logging
 				}
 			}
 		}
+
+		/// <summary>Adds a debug annotation to the log</summary>
+		public void Annotate(string text)
+		{
+			AddOperation(new LogCommand(text), countAsOperation: false);
+		}
+
+		#region JSON Serialization...
 
 		public JsonObject ToJson(bool readOnly = true)
 		{
@@ -544,6 +627,10 @@ namespace FoundationDB.Filters.Logging
 
 			return log;
 		}
+
+		#endregion
+
+		#region Reports Generation...
 
 		/// <summary>Generate an ASCII report with all the commands that were executed by the transaction</summary>
 		public string GetCommandsReport(bool detailed = false, KeyResolver? keyResolver = null)
@@ -826,6 +913,8 @@ namespace FoundationDB.Filters.Logging
 			}
 			return new string(tmp);
 		}
+
+		#endregion
 
 		/// <summary>List of all operation types supported by a transaction</summary>
 		public enum Operation
