@@ -89,9 +89,9 @@ namespace FoundationDB.Client
 		//note: field accessed via interlocked operations!
 
 #if NET9_0_OR_GREATER
-		private readonly Lock PadLock = new();
+		internal readonly Lock PadLock = new();
 #else
-		private readonly object PadLock = new();
+		internal readonly object PadLock = new();
 #endif
 
 		/// <summary>Current <see cref="System.Diagnostics.Activity"/>, if tracing is enabled</summary>

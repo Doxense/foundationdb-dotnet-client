@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 	using System.Buffers.Binary;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
-
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Filters.Logging;
@@ -357,7 +356,7 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private Task<long> GetReadVersionSlow()
 		{
-			lock (this)
+			lock (this.Context.PadLock)
 			{
 				return this.CachedReadVersion ??= FetchReadVersionInternal();
 			}
@@ -367,7 +366,7 @@ namespace FoundationDB.Client
 		/// <param name="readVersion">If the method returns <see langword="true"/>, receives the read version that a call to <see cref="GetReadVersionAsync"/> produced</param>
 		internal bool TryGetCachedReadVersion(out long readVersion)
 		{
-			lock (this)
+			lock (this.Context.PadLock)
 			{
 				if (this.CachedReadVersion?.Status == TaskStatus.RanToCompletion)
 				{
@@ -435,7 +434,7 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.NoInlining)]
 		private Dictionary<Slice, (Task<VersionStamp?> Task, bool Snapshot)> GetMetadataVersionKeysCacheSlow()
 		{
-			lock (this)
+			lock (this.Context.PadLock)
 			{
 				return this.MetadataVersionKeysCache ??= new Dictionary<Slice, (Task<VersionStamp?>, bool)>(Slice.Comparer.Default);
 			}
@@ -460,7 +459,7 @@ namespace FoundationDB.Client
 			// note: we have to lock because there could be another thread calling TouchMetadataVersionKey at the same time!
 			// concurrent calls will be serialized internally by the network thread, which should prevent a concurrent write from causing us to throw error code 1036
 
-			lock (this)
+			lock (this.Context.PadLock)
 			{
 				var cache = GetMetadataVersionKeysCache();
 				if (!cache.TryGetValue(key, out t) || t.Task == null!) //BUGBUG: should this be null or PoisonedMetadataVersion ?
@@ -508,7 +507,7 @@ namespace FoundationDB.Client
 					// Basically this means "we don't know yet", and the caller should decide on a case by case how to deal with it
 
 					//note: the transaction will FAIL to commit! this only helps for transactions that decide to not commit given this result.
-					lock (this)
+					lock (this.Context.PadLock)
 					{
 						// poison this key!
 						GetMetadataVersionKeysCache()[key] = (FdbTransaction.PoisonedMetadataVersion, false);
@@ -531,7 +530,7 @@ namespace FoundationDB.Client
 			// note: we have to lock because there could be another thread calling GetMetadataVersionKey at the same time!
 			// concurrent calls will be serialized internally by the network thread, which should prevent a concurrent read from throwing error code 1036
 
-			lock (this)
+			lock (this.Context.PadLock)
 			{
 				var cache = GetMetadataVersionKeysCache();
 				if (cache.TryGetValue(key, out var t) && t.Task == PoisonedMetadataVersion)
@@ -579,7 +578,7 @@ namespace FoundationDB.Client
 			}
 			x |= 0xFF00000000000000UL;
 
-			lock (this)
+			lock (this.Context.PadLock)
 			{
 				ulong token = m_versionStampToken;
 				if (token == 0)
