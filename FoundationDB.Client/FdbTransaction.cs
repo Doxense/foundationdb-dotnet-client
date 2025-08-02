@@ -1462,6 +1462,10 @@ namespace FoundationDB.Client
 			}
 			else
 			{
+				if (type is FdbMutationType.VersionStampedKey or FdbMutationType.VersionStampedValue)
+				{ // we want to capture the actual versionstamp used by this transaction (when it commits)
+					m_log.RequiresVersionStamp = true;
+				}
 				ExecuteLogged(this, key, param, type);
 			}
 
