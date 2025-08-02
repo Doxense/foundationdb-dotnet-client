@@ -26,12 +26,11 @@
 
 namespace FoundationDB.Client
 {
-	using SnowBank.Buffers.Text;
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString(),nq}")]
 	[PublicAPI]
-	public readonly struct KeySelector : IEquatable<KeySelector>, IFormattable
+	public readonly struct KeySelector : IEquatable<KeySelector>, ISpanFormattable
 	{
 
 		/// <summary>Key of the selector</summary>
@@ -170,42 +169,80 @@ namespace FoundationDB.Client
 		public override string ToString() => ToString(null);
 
 		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
-		public string ToString(string? format, IFormatProvider? formatProvider = null) => PrettyPrint(FdbKey.PrettyPrintMode.Single);
-
-		/// <summary>Returns a displayable representation of the key selector</summary>
-		[Pure]
-		public string PrettyPrint(FdbKey.PrettyPrintMode mode)
+		public string ToString(string? format, IFormatProvider? formatProvider = null) => format switch
 		{
-			Span<char> tmp = stackalloc char[128];
-			using var sb = new FastStringBuilder(tmp);
+			null or "" or "D" or "d" or "P" or "p" => string.Create(formatProvider, $"{this}"),
+			"B" or "b" => string.Create(formatProvider, $"{this:B}"),
+			"E" or "e" => string.Create(formatProvider, $"{this:E}"),
+			"X" => string.Create(formatProvider, $"{this:X}"),
+			"x" => string.Create(formatProvider, $"{this:x}"),
+			_ => throw new FormatException()
+		};
+
+		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
+		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? formatProvider = null)
+		{
+			string keyFormat = format switch
+			{
+				"" or "D" or "d" or "P" or "p" => "",
+				"B" or "b" => "B",
+				"E" or "e" => "E",
+				"X" => "X",
+				"x" => "x",
+				_ => throw new FormatException()
+			};
+
+			var buffer = destination;
 
 			int offset = this.Offset;
 			if (offset < 1)
 			{
-				sb.Append(this.OrEqual ? "lLE{" : "lLT{");
+				if (!buffer.TryAppendAndAdvance(this.OrEqual ? "lLE{" : "lLT{")) goto too_small;
 			}
 			else
 			{
 				--offset;
-				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
+				if (!buffer.TryAppendAndAdvance(this.OrEqual ? "fGT{" : "fGE{")) goto too_small;
 			}
-			//PERF: optimize!
-			sb.Append(FdbKey.PrettyPrint(this.Key, mode));
-			sb.Append('}');
+
+			if (!this.Key.TryFormat(buffer, out int keyLen, keyFormat, formatProvider))
+			{
+				goto too_small;
+			}
+			buffer = buffer[keyLen..];
+
+			if (!buffer.TryAppendAndAdvance('}')) goto too_small;
 
 			if (offset > 0)
 			{
-				sb.Append(" + ");
-				sb.Append(offset);
+				if (!buffer.TryAppendAndAdvance(" + ")) goto too_small;
+				if (!offset.TryFormat(buffer, out int offsetLen)) goto too_small;
+				destination = destination[offsetLen..];
 			}
 			else if (offset < 0)
 			{
-				sb.Append(" - ");
-				sb.Append(-offset);
+				if (!buffer.TryAppendAndAdvance(" - ")) goto too_small;
+				if (!(-offset).TryFormat(buffer, out int offsetLen)) goto too_small;
+				destination = destination[offsetLen..];
 			}
 
-			return sb.ToString();
+			charsWritten = destination.Length - buffer.Length;
+			return true;
+
+		too_small:
+			charsWritten = 0;
+			return false;
 		}
+
+		/// <summary>Returns a displayable representation of the key selector</summary>
+		[Pure]
+		public string PrettyPrint(FdbKey.PrettyPrintMode mode) => ToString(mode switch
+		{
+			FdbKey.PrettyPrintMode.Single => "",
+			FdbKey.PrettyPrintMode.Begin => "B",
+			FdbKey.PrettyPrintMode.End => "E",
+			_ => throw new FormatException(),
+		});
 
 	}
 
