@@ -306,6 +306,82 @@ namespace SnowBank.Buffers.Text
 #endif
 		}
 
+		/// <summary>Appends a value that implements <see cref="IFormattable"/> or <see cref="ISpanFormattable"/> at the end of the buffer</summary>
+		public void AppendFormatted<TFormattable>(TFormattable value)
+		{
+			if (value is null) return;
+
+			if (typeof(TFormattable).IsAssignableFrom(typeof(IFormattable)))
+			{
+				if (typeof(TFormattable).IsAssignableTo(typeof(ISpanFormattable)))
+				{
+					int charsWritten;
+					while (!((ISpanFormattable) value).TryFormat(this.Chars[this.Position..], out charsWritten, default, null))
+					{
+						Grow();
+					}
+
+					Advance(charsWritten);
+					return;
+				}
+
+				Append(((IFormattable) value).ToString(null, null));
+				return;
+			}
+
+			Append(value.ToString());
+		}
+
+		/// <summary>Appends a value that implements <see cref="IFormattable"/> or <see cref="ISpanFormattable"/> at the end of the buffer</summary>
+		public void AppendFormatted<TFormattable>(TFormattable value, string? format, IFormatProvider? provider = null)
+		{
+			if (value is null) return;
+
+			if (typeof(TFormattable).IsAssignableFrom(typeof(IFormattable)))
+			{
+				if (typeof(TFormattable).IsAssignableTo(typeof(ISpanFormattable)))
+				{
+					int charsWritten;
+					while (!((ISpanFormattable) value).TryFormat(this.Chars[this.Position..], out charsWritten, format, provider))
+					{
+						Grow();
+					}
+
+					Advance(charsWritten);
+					return;
+				}
+
+				Append(((IFormattable) value).ToString(format, provider));
+				return;
+			}
+
+			Append(value.ToString());
+		}
+
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private void Grow()
+		{
+			const uint ARRAY_MAX_LENGTH = 0x7FFFFFC7; // same as Array.MaxLength
+
+			// the buffer is not large enough, we need to resize it
+			uint newCapacity = Math.Max((uint) this.Chars.Length + 1, Math.Min((uint) this.Chars.Length * 2, ARRAY_MAX_LENGTH));
+			int arraySize = (int) Math.Clamp(newCapacity, 256, int.MaxValue);
+			if (arraySize <= this.Chars.Length)
+			{
+				throw new InvalidOperationException("Could not format value because it would exceed the maximum allowed buffer size.");
+			}
+
+			char[] poolArray = ArrayPool<char>.Shared.Rent(arraySize);
+			this.Chars[..this.Position].CopyTo(poolArray);
+
+			char[]? toReturn = this.PooledBuffer;
+			this.Chars = this.PooledBuffer = poolArray;
+			if (toReturn is not null)
+			{
+				ArrayPool<char>.Shared.Return(toReturn);
+			}
+		}
+
 #if NET9_0_OR_GREATER
 
 		/// <summary>Appends a formatting string at the end of the buffer</summary>
@@ -817,7 +893,7 @@ namespace SnowBank.Buffers.Text
 			// Increase to at least the required size (this.Position + additionalCapacityBeyondPos), but try
 			// to double the size if possible, bounding the doubling to not go beyond the max array length.
 			int newCapacity = (int) Math.Max(
-				(uint) (this.Position + additionalCapacityBeyondPos),
+				checked((uint) (this.Position + additionalCapacityBeyondPos)),
 				Math.Min((uint) this.Chars.Length * 2, ARRAY_MAX_LENGTH)
 			);
 
