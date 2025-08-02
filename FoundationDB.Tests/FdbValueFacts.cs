@@ -44,6 +44,11 @@ namespace FoundationDB.Client.Tests
 				var rawValue = Slice.FromBytes("Hello, World!"u8);
 
 				var value = FdbValue.ToBytes(rawValue);
+
+				Assert.That(value.Data, Is.EqualTo(rawValue));
+				Assert.That(value.TypeHint, Is.EqualTo(FdbValueTypeHint.Binary));
+				Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Binary));
+
 				Assert.That(value.ToSlice(), Is.EqualTo(rawValue));
 				Assert.That(value.TryGetSpan(out var span), Is.True.WithOutput(span.ToSlice()).EqualTo(rawValue));
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawValue.Count));
@@ -52,6 +57,11 @@ namespace FoundationDB.Client.Tests
 				var rawValue = "Hello, World!"u8.ToArray();
 
 				var value = FdbValue.ToBytes(rawValue);
+
+				Assert.That(value.Data, Is.EqualTo(rawValue));
+				Assert.That(value.TypeHint, Is.EqualTo(FdbValueTypeHint.Binary));
+				Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Binary));
+
 				Assert.That(value.ToSlice().ToArray(), Is.EqualTo(rawValue));
 				Assert.That(value.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(rawValue));
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(rawValue.Length));
@@ -61,6 +71,11 @@ namespace FoundationDB.Client.Tests
 				ms.Write("Hello, World!"u8);
 
 				var value = FdbValue.ToBytes(ms);
+
+				Assert.That(value.Data, Is.SameAs(ms));
+				Assert.That(value.TypeHint, Is.EqualTo(FdbValueTypeHint.Binary));
+				Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Binary));
+
 				Assert.That(value.ToSlice().ToArray(), Is.EqualTo(ms.ToArray()));
 				Assert.That(value.TryGetSpan(out var span), Is.True.WithOutput(span.ToArray()).EqualTo(ms.ToArray()));
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(ms.Length));
@@ -78,6 +93,9 @@ namespace FoundationDB.Client.Tests
 
 				{ // string
 					var value = FdbValue.ToTextUtf8(literal);
+					Assert.That(value.Text.ToString(), Is.EqualTo(literal));
+					Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Utf8));
+
 					var slice = value.ToSlice();
 					Log($"> actual  : [{slice.Count:N0}] `{slice}`");
 					Assert.That(slice, Is.EqualTo(expected));
@@ -86,12 +104,18 @@ namespace FoundationDB.Client.Tests
 				}
 				{ // ReadOnlyMemory<char>
 					var value = FdbValue.ToTextUtf8(literal.ToArray().AsMemory());
+					Assert.That(value.Text.ToString(), Is.EqualTo(literal));
+					Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Utf8));
+
 					Assert.That(value.ToSlice(), Is.EqualTo(expected));
 					Assert.That(value.TryGetSpan(out var span), Is.EqualTo(expectedUtf8.Length == 0).WithOutput(span.Length).Zero);
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
 				}
 				{ // char[]
 					var value = FdbValue.ToTextUtf8(literal.ToArray());
+					Assert.That(value.Text.ToString(), Is.EqualTo(literal));
+					Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Utf8));
+
 					Assert.That(value.ToSlice(), Is.EqualTo(expected));
 					Assert.That(value.TryGetSpan(out var span), Is.EqualTo(expectedUtf8.Length == 0).WithOutput(span.Length).Zero);
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
@@ -99,12 +123,18 @@ namespace FoundationDB.Client.Tests
 				{ // StringBuilder
 					var sb = new StringBuilder().Append(literal);
 					var value = FdbValue.ToTextUtf8(sb);
+					Assert.That(value.Data!.ToString(), Is.EqualTo(literal));
+					Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Utf8));
+
 					Assert.That(value.ToSlice(), Is.EqualTo(expected));
 					Assert.That(value.TryGetSpan(out var span), Is.EqualTo(expectedUtf8.Length == 0).WithOutput(span.Length).Zero);
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count)); // GetMaxByteCount() always add 3 bytes to the length (for the BOM??)
 				}
 				{ // ReadOnlySpan<char>
 					var value = FdbValue.ToTextUtf8(literal.AsSpan());
+					Assert.That(value.Text.ToString(), Is.EqualTo(literal));
+					Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Utf8));
+
 					Assert.That(value.ToSlice(), Is.EqualTo(expected));
 					Assert.That(value.TryGetSpan(out var span), Is.EqualTo(expectedUtf8.Length == 0).WithOutput(span.Length).Zero);
 					Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
@@ -205,6 +235,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(expected.Count));
+				Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.IntegerLittleEndian));
 				Log();
 			}
 
@@ -272,6 +303,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).EqualTo(expected.Count));
+				Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.IntegerBigEndian));
 				Log();
 			}
 
@@ -339,6 +371,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
+				Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.IntegerLittleEndian));
 				Log();
 			}
 
@@ -407,6 +440,7 @@ namespace FoundationDB.Client.Tests
 				}
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.True.WithOutput(size).GreaterThanOrEqualTo(expected.Count));
+				Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.IntegerBigEndian));
 				Log();
 			}
 
@@ -485,6 +519,7 @@ namespace FoundationDB.Client.Tests
 
 				Assert.That(value.TryGetSpan(out var span), Is.False.WithOutput(span.Length).Zero);
 				Assert.That(value.TryGetSizeHint(out int size), Is.False.WithOutput(size).Zero);
+				Assert.That(value.GetTypeHint(), Is.EqualTo(FdbValueTypeHint.Json));
 				Log();
 			}
 

@@ -32,26 +32,37 @@ namespace FoundationDB.Client
 	public readonly struct FdbRawValue : IFdbValue
 	{
 
+		/// <summary>Value that is equivalent to the <see cref="Slice.Nil"/> slice.</summary>
+		/// <remarks>This can be used to represent a missing value, or a "Not Found" result.</remarks>
 		public static readonly FdbRawValue Nil;
 
+		/// <summary>Value that is equivalent to the <see cref="Slice.Empty"/> slice.</summary>
 		public static readonly FdbRawValue Empty = new(Slice.Empty);
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawValue Return(Slice slice) => new(slice);
-
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal FdbRawValue(Slice data)
+		internal FdbRawValue(Slice data, FdbValueTypeHint typeHint = FdbValueTypeHint.None)
 		{
 			this.Data = data;
+			this.TypeHint = typeHint;
 		}
 
+		/// <summary>Wrapped bytes</summary>
 		public readonly Slice Data;
+
+		/// <summary>Hint about the type of the wrapped data</summary>
+		public readonly FdbValueTypeHint TypeHint;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => this.TypeHint;
 
 		public ReadOnlySpan<byte> Span
 		{
 			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 			get => this.Data.Span;
 		}
+
+		#region Formatting...
 
 		/// <inheritdoc />
 		public override string ToString() => this.Data.ToString();
@@ -63,6 +74,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 			=> this.Data.TryFormat(destination, out charsWritten, format, provider);
+
+		#endregion
 
 		#region ISpanEncodable...
 

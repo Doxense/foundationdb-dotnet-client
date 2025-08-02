@@ -37,12 +37,21 @@ namespace FoundationDB.Client
 	{
 
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbValue(TValue? data)
+		public FdbValue(TValue? data, FdbValueTypeHint typeHint = FdbValueTypeHint.None)
 		{
 			this.Data = data;
+			this.TypeHint = typeHint;
 		}
 
+		/// <summary>Wrapped value</summary>
 		public readonly TValue? Data;
+
+		/// <summary>Hint about the type of data</summary>
+		public readonly FdbValueTypeHint TypeHint;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => this.TypeHint;
 
 		#region Formatting...
 

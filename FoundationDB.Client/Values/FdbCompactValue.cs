@@ -35,7 +35,12 @@ namespace FoundationDB.Client
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbCompactLittleEndianUInt32Value(uint value) => this.Value = value;
 
+		/// <summary>Integer value</summary>
 		public readonly uint Value;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.IntegerLittleEndian;
 
 		#region Formatting...
 
@@ -130,7 +135,12 @@ namespace FoundationDB.Client
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbCompactLittleEndianUInt64Value(ulong value) => this.Value = value;
 
+		/// <summary>Integer value</summary>
 		public readonly ulong Value;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.IntegerLittleEndian;
 
 		#region Formatting...
 
@@ -225,7 +235,12 @@ namespace FoundationDB.Client
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbCompactBigEndianUInt32Value(uint value) => this.Value = value;
 
+		/// <summary>Integer value</summary>
 		public readonly uint Value;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.IntegerBigEndian;
 
 		#region Formatting...
 
@@ -320,7 +335,12 @@ namespace FoundationDB.Client
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbCompactBigEndianUInt64Value(ulong value) => this.Value = value;
 
+		/// <summary>Integer value</summary>
 		public readonly ulong Value;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.IntegerBigEndian;
 
 		#region Formatting...
 

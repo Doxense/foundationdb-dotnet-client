@@ -39,9 +39,15 @@ namespace FoundationDB.Client
 			this.JsonSettings = settings;
 		}
 
+		/// <summary>JSON Value</summary>
 		public readonly JsonValue Data;
 
+		/// <summary>JSON Serialization Settings</summary>
 		public readonly CrystalJsonSettings? JsonSettings;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.Json;
 
 		#region Formatting...
 
@@ -176,11 +182,18 @@ namespace FoundationDB.Client
 			this.JsonSettings = settings;
 		}
 
+		/// <summary>Serialized instance</summary>
 		public readonly T? Data;
 
+		/// <summary>Custom Serializer (optional)</summary>
 		public readonly IJsonSerializer<T>? Serializer;
 
+		/// <summary>JSON Serialization Settings</summary>
 		public readonly CrystalJsonSettings? JsonSettings;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.Json;
 
 		#region Formatting...
 

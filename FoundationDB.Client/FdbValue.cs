@@ -56,20 +56,22 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a value that wraps a <see cref="Slice"/></summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawValue ToBytes(Slice value) => new(value);
+		public static FdbRawValue ToBytes(Slice value) => new(value, FdbValueTypeHint.Binary);
 
 		/// <summary>Returns a value that wraps a byte array</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawValue ToBytes(byte[] value) => new(value.AsSlice());
+		public static FdbRawValue ToBytes(byte[] value) => new(value.AsSlice(), FdbValueTypeHint.Binary);
 
 		/// <summary>Returns a value that wraps a byte array</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawValue ToBytes(byte[] value, int start, int length) => new(value.AsSlice(start, length));
+		public static FdbRawValue ToBytes(byte[] value, int start, int length) => new(value.AsSlice(start, length), FdbValueTypeHint.Binary);
+
+		/// <summary>Returns a value that wraps a memory region</summary>
+		public static FdbRawMemoryValue ToBytes(ReadOnlyMemory<byte> value) => new(value, FdbValueTypeHint.Binary);
 
 #if NET9_0_OR_GREATER
 		/// <summary>Returns a value that wraps a span of bytes</summary>
-		public static FdbRawSpanValue ToBytes(ReadOnlySpan<byte> value)
-			=> new(value);
+		public static FdbRawSpanValue ToBytes(ReadOnlySpan<byte> value) => new(value, FdbValueTypeHint.Binary);
 #else
 		/// <summary>Returns a value that wraps a span of bytes</summary>
 		/// <remarks>
@@ -77,14 +79,13 @@ namespace FoundationDB.Client
 		/// <para>Please consider using <see cref="Slice"/> instead, or upgrade to .NET 9.0 or higher.</para>
 		/// </remarks>
 		[OverloadResolutionPriority(-1)]
-		public static FdbRawValue ToBytes(ReadOnlySpan<byte> value)
-			=> new(Slice.FromBytes(value));
+		public static FdbRawValue ToBytes(ReadOnlySpan<byte> value) => new(Slice.FromBytes(value), FdbValueTypeHint.Binary);
 #endif
 
 		/// <summary>Returns a value that wraps the content of a <see cref="MemoryStream"/></summary>
 		/// <remarks>The stream will be written from the start, and NOT the current position.</remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbValue<MemoryStream, SpanEncoders.RawEncoder> ToBytes(MemoryStream value) => new(value);
+		public static FdbValue<MemoryStream, SpanEncoders.RawEncoder> ToBytes(MemoryStream value) => new(value, FdbValueTypeHint.Binary);
 
 		#endregion
 
@@ -176,7 +177,7 @@ namespace FoundationDB.Client
 		public static FdbUtf8Value ToTextUtf8(string? value) => new(value.AsMemory());
 
 		/// <summary>Returns a value that wraps a StringBuilder, encoded as UTF-8 bytes</summary>
-		public static FdbValue<StringBuilder, SpanEncoders.Utf8Encoder> ToTextUtf8(StringBuilder? value) => new(value);
+		public static FdbValue<StringBuilder, SpanEncoders.Utf8Encoder> ToTextUtf8(StringBuilder? value) => new(value, FdbValueTypeHint.Utf8);
 
 		/// <summary>Returns a value that wraps a char array, encoded as UTF-8 bytes</summary>
 		public static FdbUtf8Value ToTextUtf8(char[] value) => new(value.AsMemory());

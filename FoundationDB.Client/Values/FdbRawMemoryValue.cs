@@ -32,16 +32,22 @@ namespace FoundationDB.Client
 	public readonly struct FdbRawMemoryValue : IFdbValue
 	{
 
-		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static FdbRawMemoryValue Return(ReadOnlyMemory<byte> slice) => new(slice);
-
 		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal FdbRawMemoryValue(ReadOnlyMemory<byte> data)
+		public FdbRawMemoryValue(ReadOnlyMemory<byte> data, FdbValueTypeHint typeHint = FdbValueTypeHint.None)
 		{
 			this.Data = data;
+			this.TypeHint = typeHint;
 		}
 
+		/// <summary>Memory segment</summary>
 		public readonly ReadOnlyMemory<byte> Data;
+
+		/// <summary>Hint about the type of data</summary>
+		public readonly FdbValueTypeHint TypeHint;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => this.TypeHint;
 
 		public ReadOnlySpan<byte> Span
 		{

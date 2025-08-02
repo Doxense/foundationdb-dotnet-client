@@ -24,11 +24,11 @@ namespace FoundationDB.Client.Tests
 		{
 			var builder = FqlTemplateTree.CreateBuilder();
 
-			builder.Add("Events", FqlTupleExpression.Create().Integer(0, "RECORDS").VarString("id").Integer(0, "EVENTS").VarInteger("gen").VarVStamp("rev").MaybeMore(), (_) => FqlValueTypeHint.Json);
-			builder.Add("Snapshots", FqlTupleExpression.Create().Integer(0, "RECORDS").VarString("id").Integer(1, "SNAPSHOTS").VarInteger("gen").VarVStamp("rev"), (_) => FqlValueTypeHint.VersionStamp);
-			builder.Add("Logs", FqlTupleExpression.Create().Integer(1, "LOGS").VarVStamp("cursor"), (_) => FqlValueTypeHint.Tuple);
-			builder.Add("Servers", FqlTupleExpression.Create().Integer(2, "SERVERS").VarString("id"), (_) => FqlValueTypeHint.Tuple);
-			builder.Add("Cursors", FqlTupleExpression.Create().Integer(3, "CURSORS").VarVStamp("cursor").VarString("id"), (_) => FqlValueTypeHint.None);
+			builder.Add("Events", FqlTupleExpression.Create().Integer(0, "RECORDS").VarString("id").Integer(0, "EVENTS").VarInteger("gen").VarVStamp("rev").MaybeMore(), (_) => FdbValueTypeHint.Json);
+			builder.Add("Snapshots", FqlTupleExpression.Create().Integer(0, "RECORDS").VarString("id").Integer(1, "SNAPSHOTS").VarInteger("gen").VarVStamp("rev"), (_) => FdbValueTypeHint.VersionStamp);
+			builder.Add("Logs", FqlTupleExpression.Create().Integer(1, "LOGS").VarVStamp("cursor"), (_) => FdbValueTypeHint.Tuple);
+			builder.Add("Servers", FqlTupleExpression.Create().Integer(2, "SERVERS").VarString("id"), (_) => FdbValueTypeHint.Tuple);
+			builder.Add("Cursors", FqlTupleExpression.Create().Integer(3, "CURSORS").VarVStamp("cursor").VarString("id"), (_) => FdbValueTypeHint.None);
 
 			var tree = builder.BuildTree();
 			//Dump(tree);
@@ -36,7 +36,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(tree, Is.Not.Null);
 			Assert.That(tree.GetTemplates().ToArray(), Has.Length.EqualTo(5));
 
-			static void VerifyIsMatch<TTuple>(FqlTemplateTree tree, in TTuple tuple, string expectedName, FqlValueTypeHint expectedHint)
+			static void VerifyIsMatch<TTuple>(FqlTemplateTree tree, in TTuple tuple, string expectedName, FdbValueTypeHint expectedHint)
 				where TTuple : IVarTuple
 			{
 				var packed = TuPack.Pack(in tuple);
@@ -57,35 +57,35 @@ namespace FoundationDB.Client.Tests
 				tree,
 				STuple.Create(0, "user42", 0, 123, VersionStamp.Complete(456, 789)),
 				"Events",
-				FqlValueTypeHint.Json
+				FdbValueTypeHint.Json
 			);
 
 			VerifyIsMatch(
 				tree,
 				STuple.Create(0, "user42", 1, 123, VersionStamp.Complete(456, 789)),
 				"Snapshots",
-				FqlValueTypeHint.VersionStamp
+				FdbValueTypeHint.VersionStamp
 			);
 
 			VerifyIsMatch(
 				tree,
 				STuple.Create(1, VersionStamp.Complete(123, 456)),
 				"Logs",
-				FqlValueTypeHint.Tuple
+				FdbValueTypeHint.Tuple
 			);
 
 			VerifyIsMatch(
 				tree,
 				STuple.Create(2, "host123"),
 				"Servers",
-				FqlValueTypeHint.Tuple
+				FdbValueTypeHint.Tuple
 			);
 
 			VerifyIsMatch(
 				tree,
 				STuple.Create(3, VersionStamp.Complete(123, 456), "host123"),
 				"Cursors",
-				FqlValueTypeHint.None
+				FdbValueTypeHint.None
 			);
 
 		}

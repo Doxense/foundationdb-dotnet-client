@@ -47,7 +47,12 @@ namespace FoundationDB.Client
 			this.Text = text;
 		}
 
+		/// <summary>Wrapped text fragment</summary>
 		public readonly ReadOnlyMemory<char> Text;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.Utf8;
 
 		#region Formatting...
 
@@ -157,7 +162,12 @@ namespace FoundationDB.Client
 			this.Text = text;
 		}
 
+		/// <summary>Wrapped text fragment</summary>
 		public readonly ReadOnlySpan<char> Text;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.Utf8;
 
 		#region Formatting...
 

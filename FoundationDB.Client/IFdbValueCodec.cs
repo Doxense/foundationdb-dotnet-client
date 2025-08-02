@@ -258,17 +258,20 @@ namespace FoundationDB.Client
 	public sealed class FdbValueEncoderCodec<TValue> : IFdbValueCodec<TValue, FdbRawValue>
 	{
 
-		public FdbValueEncoderCodec(IValueEncoder<TValue> encoder)
+		public FdbValueEncoderCodec(IValueEncoder<TValue> encoder, FdbValueTypeHint typeHint = FdbValueTypeHint.None)
 		{
 			this.Encoder = encoder;
+			this.TypeHint = typeHint;
 		}
 
 		public IValueEncoder<TValue> Encoder { get; }
 
+		public FdbValueTypeHint TypeHint { get; }
+
 		/// <inheritdoc />
 		public FdbRawValue EncodeValue(in TValue value)
 		{
-			return new(this.Encoder.EncodeValue(value));
+			return new(this.Encoder.EncodeValue(value), this.TypeHint);
 		}
 
 		/// <inheritdoc />

@@ -47,7 +47,14 @@ namespace FoundationDB.Client
 			this.Text = text;
 		}
 
+		/// <summary>Wrapped text fragment</summary>
 		public readonly ReadOnlyMemory<char> Text;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.Utf16;
+
+		#region Formatting...
 
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
@@ -60,6 +67,8 @@ namespace FoundationDB.Client
 		{
 			return destination.TryWrite($"\"{this.Text.Span}\"", out charsWritten); //TODO: escape?
 		}
+
+		#endregion
 
 		#region ISpanEncodable...
 
@@ -144,7 +153,14 @@ namespace FoundationDB.Client
 			this.Text = text;
 		}
 
+		/// <summary>Wrapped text fragment</summary>
 		public readonly ReadOnlySpan<char> Text;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => FdbValueTypeHint.Utf8;
+
+		#region Formatting...
 
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
@@ -157,6 +173,8 @@ namespace FoundationDB.Client
 		{
 			return destination.TryWrite($"\"{this.Text}\"", out charsWritten); //TODO: escape?
 		}
+
+		#endregion
 
 		#region ISpanEncodable...
 

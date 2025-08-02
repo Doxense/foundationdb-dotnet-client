@@ -34,13 +34,21 @@ namespace FoundationDB.Client
 	{
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public FdbRawSpanValue(ReadOnlySpan<byte> data)
+		public FdbRawSpanValue(ReadOnlySpan<byte> data, FdbValueTypeHint typeHint = FdbValueTypeHint.None)
 		{
 			this.Data = data;
+			this.TypeHint = typeHint;
 		}
 
 		/// <summary>Wrapped span</summary>
 		public readonly ReadOnlySpan<byte> Data;
+
+		/// <summary>Hint about the type of data</summary>
+		public readonly FdbValueTypeHint TypeHint;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public FdbValueTypeHint GetTypeHint() => this.TypeHint;
 
 		#region ISpanEncodable...
 

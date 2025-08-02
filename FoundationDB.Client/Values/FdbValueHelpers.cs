@@ -50,6 +50,17 @@ namespace FoundationDB.Client
 			{ // already cached!
 				return Unsafe.As<TValue, FdbRawValue>(ref Unsafe.AsRef(in value));
 			}
+
+			if (typeof(TValue) == typeof(Slice))
+			{ // we still need to copy the slice
+				return new(Unsafe.As<TValue, Slice>(ref Unsafe.AsRef(in value)).Copy());
+			}
+
+			if (typeof(TValue).IsAssignableTo(typeof(IFdbValue)))
+			{ // we need to also copy the type hint
+				return new(ToSlice(in value), Unsafe.As<TValue, IFdbValue>(ref Unsafe.AsRef(in value)).GetTypeHint());
+			}
+
 			return new(ToSlice(in value));
 		}
 
@@ -67,6 +78,11 @@ namespace FoundationDB.Client
 			if (typeof(TValue) == typeof(FdbRawValue))
 			{
 				return Unsafe.As<TValue, FdbRawValue>(ref Unsafe.AsRef(in value)).Data;
+			}
+
+			if (typeof(TValue) == typeof(Slice))
+			{
+				return Unsafe.As<TValue, Slice>(ref Unsafe.AsRef(in value));
 			}
 
 			if (value.TryGetSpan(out var span))

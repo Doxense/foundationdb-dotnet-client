@@ -31,7 +31,7 @@ namespace FoundationDB.Client
 			this.Hinter = hinter;
 		}
 
-		public FqlTemplateExpression(string name, FqlTupleExpression expr, FqlValueTypeHint hint)
+		public FqlTemplateExpression(string name, FqlTupleExpression expr, FdbValueTypeHint hint)
 		{
 			this.Name = name;
 			this.Expression = expr;
@@ -241,7 +241,7 @@ namespace FoundationDB.Client
 				Contract.NotNullOrEmpty(name);
 				Contract.NotNull(expr);
 
-				hinter ??= (_) => FqlValueTypeHint.None;
+				hinter ??= (_) => FdbValueTypeHint.None;
 				var template = new FqlTemplateExpression(name, expr, hinter);
 				Add(template);
 			}
@@ -313,72 +313,7 @@ namespace FoundationDB.Client
 
 	}
 
-	/// <summary>Represents the possible type for a value in the database</summary>
-	public enum FqlValueTypeHint
-	{
-		/// <summary>The type is unknown.</summary>
-		None = 1,
-
-		/// <summary>The value is raw binary that should be displayed as a raw hexadecimal dump</summary>
-		/// <remarks>This type can be used for files, binary blobs, or encoded/encrypted data.</remarks>
-		Binary,
-
-		/// <summary>The value is encoded using the Tuple format</summary>
-		/// <remarks>See <see cref="TuPack.Unpack(System.Slice)"/></remarks>
-		Tuple,
-
-		/// <summary>The value is a 7-bit ASCII encoded string.</summary>
-		Ascii,
-
-		/// <summary>The value is a UTF-8 encoded string.</summary>
-		/// <remarks>The value may include a UTF-8 BOM.</remarks>
-		Utf8,
-
-		/// <summary>The value is a little-endian integer value, that is best displayed in base-10.</summary>
-		IntegerLittleEndian,
-
-		/// <summary>The value is a big-endian integer value, that is best displayed in base-10.</summary>
-		IntegerBigEndian,
-
-		/// <summary>The value is a little-endian integer value, that is best displayed in base-16.</summary>
-		IntegerHexLittleEndian,
-
-		/// <summary>The value is a big-endian integer value, that is best displayed in base-16.</summary>
-		IntegerHexBigEndian,
-
-		/// <summary>The value is an integer that represents the number of elapsed milliseconds since the Unix epoch.</summary>
-		UnixTimeMillis,
-
-		/// <summary>The value is a 32-bit IEEE floating point number.</summary>
-		Single,
-
-		/// <summary>The value is a 64-bit IEEE floating point number.</summary>
-		Double,
-
-		/// <summary>The value is a 128-bit <see cref="Uuid128"/></summary>
-		Uuid128,
-
-		/// <summary>The value is a 96-bit <see cref="Uuid96"/></summary>
-		Uuid96,
-		
-		/// <summary>The value is an 80-bit <see cref="Uuid80"/></summary>
-		Uuid80,
-		
-		/// <summary>The value is a 64-bit <see cref="Uuid64"/></summary>
-		Uuid64,
-		
-		/// <summary>The value is a 48-bit <see cref="Uuid48"/></summary>
-		Uuid48,
-
-		/// <summary>The value is <see cref="VersionStamp"/></summary>
-		VersionStamp,
-
-		/// <summary>The value is a JSON Document (UTF-8)</summary>
-		Json,
-
-	}
-
-	public delegate FqlValueTypeHint FqlValueTypeHinter(SpanTuple tuple);
+	public delegate FdbValueTypeHint FqlValueTypeHinter(SpanTuple tuple);
 
 }
 
