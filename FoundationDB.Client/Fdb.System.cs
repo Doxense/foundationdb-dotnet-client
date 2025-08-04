@@ -175,22 +175,21 @@ namespace FoundationDB.Client
 			#endregion
 
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
-			/// <param name="db">Database to use for the operation</param>
-			/// <param name="ct">Token used to cancel the operation</param>
-			/// <remarks>Since the list of coordinators may change at any time, the results may already be obsolete once this method completes!</remarks>
-			public static async Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbDatabase db, CancellationToken ct)
+			/// <param name="tr">Transaction to use for the operation</param>
+			/// <remarks>
+			/// <para>Caution: This operation will set the <see cref="FdbTransactionOption.ReadSystemKeys"/> and <see cref="FdbTransactionOption.PrioritySystemImmediate"/> options on the transaction.
+			/// You should avoid mixing this method and other read-heavy operations in the same transaction.</para>
+			/// <para>Since the list of coordinators may change at any time, the results may already be obsolete once this method completes!</para>
+			/// </remarks>
+			public static async Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbReadOnlyTransaction tr)
 			{
-				Contract.NotNull(db);
+				Contract.NotNull(tr);
 
-				var coordinators = await db.ReadAsync((tr) =>
-				{
-					tr.Options.WithReadAccessToSystemKeys();
-					tr.Options.WithPrioritySystemImmediate();
-					//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
+				tr.Options.WithReadAccessToSystemKeys();
+				tr.Options.WithPrioritySystemImmediate();
+				//note: we ask for high priority, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
-					return tr.GetAsync(FdbKey.ToSystemKey("/coordinators"));
-				}, ct).ConfigureAwait(false);
-
+				var coordinators = await tr.GetAsync(FdbKey.ToSystemKey("/coordinators")).ConfigureAwait(false);
 				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");
 
 				return FdbClusterConnectionString.Parse(coordinators.ToStringAscii()!);
@@ -200,9 +199,22 @@ namespace FoundationDB.Client
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="ct">Token used to cancel the operation</param>
 			/// <remarks>Since the list of coordinators may change at any time, the results may already be obsolete once this method completes!</remarks>
-			public static async Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbDatabaseProvider db, CancellationToken ct)
+			public static Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbDatabase db, CancellationToken ct)
 			{
-				return await GetCoordinatorsAsync(await db.GetDatabase(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
+				Contract.NotNull(db);
+
+				return db.ReadAsync(GetCoordinatorsAsync, ct);
+			}
+
+			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
+			/// <param name="db">Database Provider to use for the operation</param>
+			/// <param name="ct">Token used to cancel the operation</param>
+			/// <remarks>Since the list of coordinators may change at any time, the results may already be obsolete once this method completes!</remarks>
+			public static Task<FdbClusterConnectionString> GetCoordinatorsAsync(IFdbDatabaseProvider db, CancellationToken ct)
+			{
+				Contract.NotNull(db);
+
+				return db.ReadAsync(GetCoordinatorsAsync, ct);
 			}
 
 			public static bool TryParseAddress(ReadOnlySpan<char> address, [MaybeNullWhen(false)] out IPAddress host, out int port, out bool tls)
