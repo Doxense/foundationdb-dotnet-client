@@ -89,7 +89,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> success, CancellationToken ct);
@@ -100,7 +100,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task WriteAsync(Action<IFdbTransaction> handler, Func<IFdbTransaction, Task> success, CancellationToken ct);
@@ -111,7 +111,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> success, CancellationToken ct);
@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Token used to cancel the operation</param>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task WriteAsync(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task> success, CancellationToken ct);
@@ -163,7 +163,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task<TResult> ReadWriteAsync<TResult>(Action<IFdbTransaction> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct);
@@ -175,7 +175,7 @@ namespace FoundationDB.Client
 		/// <returns>Result of the last successful execution of <paramref name="handler"/>.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task<TResult>> handler, Action<IFdbTransaction, TResult> success, CancellationToken ct);
@@ -187,7 +187,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, Task<TResult>> success, CancellationToken ct);
@@ -199,7 +199,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task<TResult> ReadWriteAsync<TResult>(Func<IFdbTransaction, Task> handler, Func<IFdbTransaction, TResult> success, CancellationToken ct);
@@ -211,7 +211,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, TResult> success, CancellationToken ct);
@@ -223,7 +223,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task<TResult> ReadWriteAsync<TIntermediate, TResult>(Func<IFdbTransaction, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);
@@ -236,7 +236,7 @@ namespace FoundationDB.Client
 		/// <returns>Result return by <paramref name="success"/>, if it was called.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically!
-		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the the <paramref name="success"/> handler!
+		/// Given that the <paramref name="handler"/> can run more than once, and that there is no guarantee that the transaction commits once it returns, you MUST NOT mutate any global state (counters, cache, global dictionary) inside this lambda, and only inside the <paramref name="success"/> handler!
 		/// Please note that there is NO guarantee that <paramref name="success"/> will be invoked even if the transaction commits successfully! The execution may be interrupted before the handler has time to execute.
 		/// </remarks>
 		Task<TResult> ReadWriteAsync<TState, TIntermediate, TResult>(TState state, Func<IFdbTransaction, TState, Task<TIntermediate>> handler, Func<IFdbTransaction, TIntermediate, Task<TResult>> success, CancellationToken ct);

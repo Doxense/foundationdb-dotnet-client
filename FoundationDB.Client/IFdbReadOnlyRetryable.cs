@@ -46,12 +46,12 @@ namespace FoundationDB.Client
 		//      or worse you could update multiple times a global value if the transaction is retried.
 		// 2. This is not composable: even though the actions themselves could be composable, the code that must deal with errors and cancellation is NOT.
 		//   If you want to write robust code you HAVE to know the exact behavior of the instance, which would force you to have different code path depending on the KIND of transactional instance you got.
-		//   => If you have to check the actual type (Transcation or Database) anyway, why not explicity ask for one or the other?
+		//   => If you have to check the actual type (Transaction or Database) anyway, why not explicitly ask for one or the other?
 		// 3. Since .NET cannot simulate the @transactional Python attribute behavior easily, you are forced to add multiple version of the methods, ones that takes IFdbTransactions and ones that take an IFdbTransactional
-		//   This create a lot of code duplication, and you end up with alias methods that are simply doing "FooAsync(IFdbTransaction dbOrTrans, ...) { return db.ReadWriteAsync((tr) => FooAsync(tr, ...), ...); }
+		//   This creates a lot of code duplication, and you end up with alias methods that are simply doing `FooAsync(IFdbTransaction dbOrTrans, ...) { return db.ReadWriteAsync((tr) => FooAsync(tr, ...), ...); }`
 		//   => the caller of the layer could easily write the same thing, and now would be in a position to compose multiple calls to the layer (and other layers) in the same retry loop.
 
-		// For these reasons, regular IFdbTransaction DO NOT implement this interfafe, and the interface is called "IFdbRetryable" instead of "IFdbTransactional" (which used to be the name of this interface before the design change)
+		// For these reasons, regular IFdbTransaction DO NOT implement this interface, and the interface is called "IFdbRetryable" instead of "IFdbTransactional" (which used to be the name of this interface before the design change)
 
 		#endregion
 
