@@ -1410,12 +1410,12 @@ namespace FoundationDB.Filters.Logging
 			public override string GetArguments(KeyResolver resolver)
 			{
 				//TODO: use resolver!
-				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
-				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
-				if (this.Options.Limit != null && this.Options.Limit.Value > 0) s += ", limit(" + this.Options.Limit.Value.ToString() + ")";
+				string s = $"{this.Begin:B} <= k < {this.End:E}";
+				if (this.Iteration > 1) s += $", #{this.Iteration:N0}";
+				if (this.Options.Limit is > 0) s += $", limit({this.Options.Limit.Value:N0})";
 				if (this.Options.IsReversed) s += ", reverse";
-				if (this.Options.Streaming.HasValue) s += ", " + this.Options.Streaming.Value.ToString();
-				if (this.Options.Fetch.HasValue) s += ", " + this.Options.Fetch.Value.ToString();
+				if (this.Options.Streaming.HasValue) s += $", {this.Options.Streaming.Value}";
+				if (this.Options.Fetch.HasValue) s += $", {this.Options.Fetch.Value}";
 				return s;
 			}
 
@@ -1424,9 +1424,7 @@ namespace FoundationDB.Filters.Logging
 				var result = this.Result.GetValueOrDefault();
 				if (result != null)
 				{
-					string s = $"{result.Count:N0} result(s)";
-					if (result.HasMore) s += ", has_more";
-					return s;
+					return string.Create(CultureInfo.InvariantCulture, $"{result.Count:N0} result(s){(result.HasMore ? ", has_more" : "")}");
 				}
 				return base.GetResult(resolver);
 			}
@@ -1740,7 +1738,7 @@ namespace FoundationDB.Filters.Logging
 		{
 			public override Operation Op => Operation.Commit;
 
-			/// <summary>Receives the commit version if it succeed</summary>
+			/// <summary>Receives the commit version, if it succeeds</summary>
 			public long? CommitVersion { get; internal set; }
 
 			public override string GetResult(KeyResolver resolver)

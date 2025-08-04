@@ -1059,15 +1059,7 @@ namespace FoundationDB.Filters.Logging
 					{
 						case FdbTransactionFileFormat.JsonLines:
 						{
-							try
-							{
-								batch.Add(log.ToJson().ToJsonText());
-							}
-							catch (Exception e)
-							{
-
-							}
-
+							batch.Add(log.ToJson().ToJsonText());
 							break;
 						}
 						case FdbTransactionFileFormat.Text:
