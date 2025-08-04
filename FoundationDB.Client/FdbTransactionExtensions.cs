@@ -3713,7 +3713,7 @@ namespace FoundationDB.Client
 		/// <param name="visitor">Lambda called for each key-value pair, in order.</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns></returns>
-		public static Task VisitRangeAsync<TState>(this IFdbReadOnlyTransaction trans, KeyRange range, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+		public static Task<long> VisitRangeAsync<TState>(this IFdbReadOnlyTransaction trans, KeyRange range, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 		{
 			return trans.VisitRangeAsync(range.Begin, range.End, state, visitor, options);
 		}
@@ -3727,7 +3727,7 @@ namespace FoundationDB.Client
 		/// <param name="visitor">Lambda called for each key-value pair, in order.</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns></returns>
-		public static Task VisitRangeAsync<TState>(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+		public static Task<long> VisitRangeAsync<TState>(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 		{
 			Contract.NotNull(trans);
 
@@ -3744,7 +3744,22 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc cref="VisitRangeAsync{TState}(IFdbReadOnlyTransaction,Slice,Slice,TState,FdbKeyValueAction{TState},FdbRangeOptions?)"/>
-		public static Task VisitRangeAsync<TBeginKey, TEndKey, TState>(this IFdbReadOnlyTransaction trans, in TBeginKey beginInclusive, in TEndKey endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+		public static Task<long> VisitRangeAsync<TKeyRange, TState>(this IFdbReadOnlyTransaction trans, in TKeyRange range, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+			where TKeyRange : struct, IFdbKeyRange
+		{
+			Contract.NotNull(trans);
+
+			return trans.VisitRangeAsync(
+				range.ToBeginSelector(),
+				range.ToEndSelector(),
+				state,
+				visitor,
+				options
+			);
+		}
+
+		/// <inheritdoc cref="VisitRangeAsync{TState}(IFdbReadOnlyTransaction,Slice,Slice,TState,FdbKeyValueAction{TState},FdbRangeOptions?)"/>
+		public static Task<long> VisitRangeAsync<TBeginKey, TEndKey, TState>(this IFdbReadOnlyTransaction trans, in TBeginKey beginInclusive, in TEndKey endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
 		{
@@ -3760,7 +3775,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc cref="IFdbReadOnlyTransaction.VisitRangeAsync{TState}"/>
-		public static Task VisitRangeAsync<TBeginKey, TEndKey, TState>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, in FdbKeySelector<TEndKey> endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+		public static Task<long> VisitRangeAsync<TBeginKey, TEndKey, TState>(this IFdbReadOnlyTransaction trans, in FdbKeySelector<TBeginKey> beginInclusive, in FdbKeySelector<TEndKey> endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 			where TBeginKey : struct, IFdbKey
 			where TEndKey : struct, IFdbKey
 		{

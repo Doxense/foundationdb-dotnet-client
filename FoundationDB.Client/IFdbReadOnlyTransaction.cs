@@ -252,8 +252,8 @@ namespace FoundationDB.Client
 		/// <param name="state">State that will be forwarded to the <paramref name="visitor"/></param>
 		/// <param name="visitor">Lambda called for each key-value pair, in order.</param>
 		/// <param name="options">Optional query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
-		/// <returns></returns>
-		Task VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null);
+		/// <returns>Number of key/value pairs visited</returns>
+		Task<long> VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null);
 
 		/// <summary>Check if the value from the database snapshot represented by the current transaction is equal to some <paramref name="expected"/> value.</summary>
 		/// <param name="key">Key to be looked up in the database</param>

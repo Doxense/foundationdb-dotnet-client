@@ -307,7 +307,7 @@ namespace FoundationDB.Client
 			}
 
 			/// <inheritdoc />
-			public Task VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+			public Task<long> VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 			{
 				// we have to memoize the selectors since we have to store them in the query :/
 				var beginSelector = beginInclusive.Memoize();

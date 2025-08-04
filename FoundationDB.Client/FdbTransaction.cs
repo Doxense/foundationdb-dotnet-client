@@ -1107,7 +1107,7 @@ namespace FoundationDB.Client
 		}
 
 		[LinqTunnel]
-		internal async Task VisitRangeCore<TState>(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, bool snapshot, TState state, FdbKeyValueAction<TState> handler)
+		internal async Task<long> VisitRangeCore<TState>(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions? options, bool snapshot, TState state, FdbKeyValueAction<TState> handler)
 		{
 			Contract.Debug.Requires(handler != null);
 			FdbKey.EnsureKeyIsValid(beginInclusive.Key);
@@ -1124,6 +1124,7 @@ namespace FoundationDB.Client
 			// the iteration starts at 1
 			int iteration = 1;
 			var cursor = beginInclusive;
+			long visited = 0;
 
 			while (true)
 			{
@@ -1138,7 +1139,10 @@ namespace FoundationDB.Client
 				// update the cursor to continue reading after the last key of this chunk
 				cursor = KeySelector.FirstGreaterThan(result.Last);
 				++iteration;
+				visited += result.Count;
 			}
+
+			return visited;
 		}
 
 		/// <inheritdoc />
@@ -1180,7 +1184,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <inheritdoc />
-		public Task VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
+		public Task<long> VisitRangeAsync<TState>(KeySelector beginInclusive, KeySelector endExclusive, TState state, FdbKeyValueAction<TState> visitor, FdbRangeOptions? options = null)
 		{
 			// we have to memoize the selectors since we have to store them in the query :/
 			var beginSelector = beginInclusive.Memoize();
