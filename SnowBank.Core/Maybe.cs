@@ -41,7 +41,7 @@ namespace System
 		public static readonly Maybe<T> Nothing;
 
 		/// <summary>Represents a result that is equal to the default of a type (<see langword="0"/>, <see langword="false"/>, <see langword="null"/>, ...)</summary>
-		public static readonly Maybe<T> Default = new(default);
+		public static readonly Maybe<T> Default = new(default!);
 
 		/// <summary>Cached completed Task that always return an empty value</summary>
 		public static readonly Task<Maybe<T>> EmptyTask = Task.FromResult(default(Maybe<T>));
@@ -66,14 +66,14 @@ namespace System
 
 		#endregion
 
-		public Maybe(T? value)
+		public Maybe(T value)
 		{
 			m_hasValue = true;
 			m_value = value;
 			m_errorContainer = null;
 		}
 
-		internal Maybe(bool hasValue, T? value, object? errorContainer)
+		internal Maybe(bool hasValue, T value, object? errorContainer)
 		{
 			Contract.Debug.Requires(errorContainer is null or Exception or ExceptionDispatchInfo);
 
@@ -241,13 +241,13 @@ namespace System
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> Failure(Exception error) => new(false, default, error);
+		public static Maybe<T> Failure(Exception error) => new(false, default!, error);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> Failure(ExceptionDispatchInfo error) => new(false, default, error);
+		public static Maybe<T> Failure(ExceptionDispatchInfo error) => new(false, default!, error);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> Failure(MaybeError error) => new(false, default, error.Container);
+		public static Maybe<T> Failure(MaybeError error) => new(false, default!, error.Container);
 
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static explicit operator T(Maybe<T> m) => m.Value;
@@ -460,7 +460,7 @@ namespace System
 		/// <para>If you need to map null values to <see cref="Maybe{T}.Nothing"/>, use <see cref="ReturnNotNull{T}(T?)"/> instead.</para>
 		/// </remarks>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static Maybe<T> Return<T>(T? value)
+		public static Maybe<T> Return<T>(T value)
 		{
 			// ENTER THE MONAD !
 			return new Maybe<T>(value);
@@ -589,7 +589,7 @@ namespace System
 			where T : struct
 		{
 			// EXIT THE MONAD
-			return m.HasValue ? m.Value : default(T?);
+			return m.HasValue ? m.Value : null;
 		}
 
 		/// <summary>Returns the value of the <see cref="Maybe{T}"/> if it has one, or the specified default value.</summary>
