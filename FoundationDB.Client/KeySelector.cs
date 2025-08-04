@@ -184,9 +184,9 @@ namespace FoundationDB.Client
 		{
 			string keyFormat = format switch
 			{
-				"" or "D" or "d" or "P" or "p" => "",
-				"B" or "b" => "B",
-				"E" or "e" => "E",
+				"" or "D" or "d" => "",
+				"P" or "p" => "P",
+				"B" or "b" or "E" or "e" => "K",
 				"X" => "X",
 				"x" => "x",
 				_ => throw new FormatException()
