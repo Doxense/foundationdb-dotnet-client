@@ -42,6 +42,7 @@ namespace FoundationDB.Client
 			where TKey : struct, IFdbKey
 			=> !key.IsNull && self.Contains(key.Span);
 
+		/// <summary>Returns a range that matches all possible children of this key</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <param name="key">Key that will be used as a prefix</param>
 		/// <param name="inclusive">If <c>true</c> the key itself will be included in the range; otherwise, the range will start immediately after this key.</param>
@@ -51,9 +52,23 @@ namespace FoundationDB.Client
 		/// <para>Ex: <c>subspace.GetKey(123).ToRange(inclusive: true)</c> will match <c>(..., 123)</c> as well as all the keys of the form <c>(..., 123, ...)</c>.</para>
 		/// <para>Please be careful when using this with tuples where the last elements is a <see cref="string"/> or <see cref="Slice"/>: the encoding adds an extra <c>0x00</c> bytes after the element (ex: <c>"hello"</c> => <c>`\x02hello\x00`</c>), which means that <c>(..., "abc")</c> is <b>NOT</b> a child of <c>(..., "ab")</c></para>
 		/// </remarks>
+		[Pure]
 		public static FdbKeyRange<TKey, TKey> ToRange<TKey>(this TKey key, bool inclusive = false)
 			where TKey : struct, IFdbKey
 			=> new(key, inclusive ? KeyRangeMode.Inclusive : KeyRangeMode.Exclusive, key, KeyRangeMode.NextSibling);
+
+		/// <summary>Returns a range that matches all children of this key that are legal tuple encodings (<c>(...).`\x00`</c> &lt;= <c>k</c> &lt; <c>(...).`\xFF`</c>)</summary>
+		/// <typeparam name="TKey">Type of the key</typeparam>
+		/// <param name="key">Key that will be used as a prefix</param>
+		/// <returns>Range that matches all keys that start with <paramref name="key"/> (excluded) followed by one or more tuple-encoded elements</returns>
+		/// <remarks>
+		/// <para>Ex: <c>subspace.GetKey(123).ToChildrenRange()</c> will match all the keys of the form <c>(..., 123, ...)</c>, but not <c>(..., 123)</c> itself.</para>
+		/// <para>Please be careful when using this with tuples where the last elements is a <see cref="string"/> or <see cref="Slice"/>: the encoding adds an extra <c>0x00</c> bytes after the element (ex: <c>"hello"</c> => <c>`\x02hello\x00`</c>), which means that <c>(..., "abc")</c> is <b>NOT</b> a child of <c>(..., "ab")</c></para>
+		/// </remarks>
+		[Pure]
+		public static FdbKeyRange<TKey, TKey> ToKeyRange<TKey>(this TKey key)
+			where TKey : struct, IFdbKey
+			=> new(key, KeyRangeMode.Exclusive, key, KeyRangeMode.Last);
 
 		/// <summary>Returns a range that matches only this key</summary>
 		/// <typeparam name="TKey">Type of the key</typeparam>
