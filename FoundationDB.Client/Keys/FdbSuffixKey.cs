@@ -47,8 +47,34 @@ namespace FoundationDB.Client
 
 		public readonly TTuple Suffix;
 
+		#region IFdbKey...
+
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => null;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+		{
+			return key.StartsWith(this.Prefix.Span) && FdbKeyHelpers.IsChildOf(in this, key);
+		}
+
+		/// <inheritdoc />
+		[Pure]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+		{
+			if (key.TryGetSpan(out var childSpan))
+			{
+				if (!childSpan.StartsWith(this.Prefix.Span))
+				{
+					return false;
+				}
+			}
+			return FdbKeyHelpers.IsChildOf(in this, in key);
+		}
+
+		#endregion
 
 		#region Equals(...)
 
@@ -150,6 +176,8 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -160,6 +188,10 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 			=> destination.TryWrite(provider, $"{FdbKey.PrettyPrint(this.Prefix, FdbKey.PrettyPrintMode.Single)}.{this.Suffix}", out charsWritten);
+
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -192,6 +224,8 @@ namespace FoundationDB.Client
 			return false;
 		}
 
+		#endregion
+
 	}
 
 	/// <summary>Wraps a parent key, followed by a Tuple suffix</summary>
@@ -215,8 +249,22 @@ namespace FoundationDB.Client
 
 		public readonly TTuple Suffix;
 
+		#region IFdbKey...
+
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key) => FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
 
 		#region Equals(...)
 
@@ -318,6 +366,8 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -328,6 +378,10 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 			=> destination.TryWrite(provider, $"{this.Parent}.{this.Suffix}", out charsWritten);
+
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -360,6 +414,8 @@ namespace FoundationDB.Client
 			return false;
 		}
 
+		#endregion
+
 	}
 	
 	/// <summary>Wraps a <see cref="Slice"/> that wraps a pre-encoded binary suffix, relative to a subspace</summary>
@@ -367,12 +423,11 @@ namespace FoundationDB.Client
 		, IEquatable<FdbSuffixKey>, IComparable<FdbSuffixKey>
 	{
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		[SkipLocalsInit]
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal FdbSuffixKey(IKeySubspace subspace, Slice suffix)
 		{
-			this.Suffix = suffix;
 			this.Subspace = subspace;
+			this.Suffix = suffix;
 		}
 
 		/// <summary>Parent subspace</summary>
@@ -381,8 +436,51 @@ namespace FoundationDB.Client
 		/// <summary>Suffix added after the parent's prefix</summary>
 		public readonly Slice Suffix;
 
+		#region IFdbKey...
+
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+		{
+			var prefix = this.Subspace.GetPrefix().Span;
+			var suffix = this.Suffix.Span;
+
+			int length = checked(prefix.Length + suffix.Length);
+			if (key.Length < length) return false;
+
+			return key.StartsWith(prefix) && key[prefix.Length..].StartsWith(suffix);
+		}
+
+		/// <inheritdoc />
+		[Pure]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		/// <inheritdoc cref="FdbKeyHelpers.ToSlice{TKey}(in TKey)"/>
+		[Pure]
+		public Slice ToSlice() => this.Subspace.GetPrefix() + this.Suffix;
+
+		/// <inheritdoc cref="FdbKeyHelpers.ToSlice{TKey}(in TKey,System.Buffers.ArrayPool{byte}?)"/>
+		[Pure]
+		public SliceOwner ToSlice(ArrayPool<byte>? pool)
+		{
+			if (pool is null) return SliceOwner.Wrap(ToSlice());
+
+			var prefix = this.Subspace.GetPrefix().Span;
+			var suffix = this.Suffix.Span;
+			int length = checked(prefix.Length + suffix.Length);
+
+			var buffer = pool.Rent(length);
+			prefix.CopyTo(buffer);
+			suffix.CopyTo(buffer.AsSpan(0, prefix.Length));
+			return SliceOwner.Create(buffer.AsSlice(0, length), pool);
+		}
+
+		#endregion
 
 		#region Equals(...)
 
@@ -526,6 +624,8 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -536,6 +636,10 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 			=> destination.TryWrite(provider, $"[{this.Subspace}] `{this.Suffix}`", out charsWritten);
+
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -567,6 +671,8 @@ namespace FoundationDB.Client
 			return false;
 		}
 
+		#endregion
+
 	}
 
 	/// <summary>Wraps another <see cref="IFdbKey"/>, with an added binary suffix</summary>
@@ -590,8 +696,23 @@ namespace FoundationDB.Client
 		/// <summary>Suffix added after the key</summary>
 		public readonly Slice Suffix;
 
+		#region IFdbKey...
+
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
 
 		#region Equals(...)
 
@@ -697,6 +818,8 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -707,6 +830,10 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 			=> destination.TryWrite(provider, $"{this.Parent} + `{this.Suffix}`", out charsWritten);
+
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -742,6 +869,8 @@ namespace FoundationDB.Client
 			bytesWritten = 0;
 			return false;
 		}
+
+		#endregion
 
 	}
 

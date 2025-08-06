@@ -36,7 +36,12 @@ namespace FoundationDB.Client
 
 		#region Ranges...
 
-		/// <summary>Returns a range that matches all the children of this key</summary>
+		/// <inheritdoc cref="IFdbKey.Contains"/>
+		[Pure]
+		public static bool Contains<TKey>(this TKey self, Slice key)
+			where TKey : struct, IFdbKey
+			=> !key.IsNull && self.Contains(key.Span);
+
 		/// <typeparam name="TKey">Type of the key</typeparam>
 		/// <param name="key">Key that will be used as a prefix</param>
 		/// <param name="inclusive">If <c>true</c> the key itself will be included in the range; otherwise, the range will start immediately after this key.</param>

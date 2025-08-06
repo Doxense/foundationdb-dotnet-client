@@ -41,8 +41,33 @@ namespace FoundationDB.Client
 
 		public readonly IKeySubspace Subspace;
 
+		#region IFdbKey...
+
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> key.StartsWith(this.Subspace.GetPrefix().Span);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(this.Subspace.GetPrefix().Span, in key);
+
+		/// <inheritdoc cref="FdbKeyHelpers.ToSlice{TKey}(in TKey)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public Slice ToSlice() => this.Subspace.GetPrefix();
+
+		/// <inheritdoc cref="FdbKeyHelpers.ToSlice{TKey}(in TKey,System.Buffers.ArrayPool{byte}?)"/>
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public SliceOwner ToSlice(ArrayPool<byte>? pool) => pool is null
+			? SliceOwner.Wrap(this.Subspace.GetPrefix())
+			: SliceOwner.Copy(this.Subspace.GetPrefix(), pool);
+
+		#endregion
 
 		#region Equals(...)
 
@@ -141,6 +166,8 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -151,6 +178,10 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 			=> destination.TryWrite(provider, $"{this.Subspace}", out charsWritten);
+
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -166,6 +197,8 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten)
 			=> this.Subspace.TryEncode(destination, out bytesWritten);
+
+		#endregion
 
 	}
 

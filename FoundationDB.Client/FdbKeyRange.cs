@@ -276,8 +276,23 @@ namespace FoundationDB.Client
 			/// <summary>Parent range</summary>
 			public readonly FdbKeyRange<TLowerKey, TUpperKey> Range;
 
+			#region IFdbKey...
+
 			/// <inheritdoc />
 			public IKeySubspace? GetSubspace() => this.Range.LowerKey.GetSubspace();
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool Contains(ReadOnlySpan<byte> key)
+				=> FdbKeyHelpers.IsChildOf(in this, key);
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool Contains<TOtherKey>(in TOtherKey key)
+				where TOtherKey : struct, IFdbKey
+				=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+			#endregion
 
 			#region Equals()...
 
@@ -454,8 +469,23 @@ namespace FoundationDB.Client
 
 			public readonly FdbKeyRange<TLowerKey, TUpperKey> Range;
 
+			#region IFdbKey...
+
 			/// <inheritdoc />
 			public IKeySubspace? GetSubspace() => this.Range.UpperKey.GetSubspace();
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool Contains(ReadOnlySpan<byte> key)
+				=> FdbKeyHelpers.IsChildOf(in this, key);
+
+			/// <inheritdoc />
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public bool Contains<TOtherKey>(in TOtherKey key)
+				where TOtherKey : struct, IFdbKey
+				=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+			#endregion
 
 			#region Equals()...
 

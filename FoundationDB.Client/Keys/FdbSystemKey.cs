@@ -79,8 +79,84 @@ namespace FoundationDB.Client
 		/// <remarks>If <c>null</c> then <see cref="SuffixBytes"/> contains the rest of the key</remarks>
 		public readonly string? SuffixString;
 
+		#region IFdbKey...
+
 		/// <inheritdoc />
 		IKeySubspace? IFdbKey.GetSubspace() => null;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+		{
+			if (key.Length == 0 || key[0] != 0xFF)
+			{
+				return false;
+			}
+
+			if (this.IsSpecial && (key.Length < 2 || key[1] != 0xFF))
+			{
+				return false;
+			}
+
+			return this.SuffixString is null
+				? key[(this.IsSpecial ? 2 : 1)..].StartsWith(key)
+				: FdbKeyHelpers.IsChildOf(in this, key);
+		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		/// <inheritdoc cref="FdbKeyHelpers.ToSlice{TKey}(in TKey)"/>
+		public Slice ToSlice()
+		{
+			if (this.SuffixString is not null) return FdbKeyHelpers.ToSlice(in this);
+
+			var suffix = this.SuffixBytes.Span;
+			var res = new byte[checked((this.IsSpecial ? 2 : 1) + suffix.Length)];
+			if (this.IsSpecial)
+			{
+				res[0] = 0xFF;
+				res[1] = 0xFF;
+				suffix.CopyTo(res.AsSpan(2));
+			}
+			else
+			{
+				res[0] = 0xFF;
+				suffix.CopyTo(res.AsSpan(1));
+			}
+			return res.AsSlice();
+		}
+
+		/// <inheritdoc cref="FdbKeyHelpers.ToSlice{TKey}(in TKey)"/>
+		[MustDisposeResource]
+		public SliceOwner ToSlice(ArrayPool<byte>? pool)
+		{
+			if (pool is null) return SliceOwner.Wrap(ToSlice());
+			if (this.SuffixString is not null) return FdbKeyHelpers.ToSlice(in this, pool);
+
+			var suffix = this.SuffixBytes.Span;
+			int length = checked((this.IsSpecial ? 2 : 1) + suffix.Length);
+			var res = pool.Rent(length);
+			if (this.IsSpecial)
+			{
+				res[0] = 0xFF;
+				res[1] = 0xFF;
+				suffix.CopyTo(res.AsSpan(2));
+			}
+			else
+			{
+				res[0] = 0xFF;
+				suffix.CopyTo(res.AsSpan(1));
+			}
+			return SliceOwner.Create(res.AsSlice(0, length), pool);
+		}
+
+		#endregion
+
+		#region Bytes(...)
 
 		public FdbSystemKey Bytes(FdbRawKey key) => Bytes(key.Data);
 
@@ -169,6 +245,8 @@ namespace FoundationDB.Client
 
 			return new(string.Concat(this.SuffixString, suffix), special);
 		}
+
+		#endregion
 
 		#region Equals(...)
 
@@ -355,6 +433,8 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -371,6 +451,10 @@ namespace FoundationDB.Client
 				: (this.SuffixBytes.Count == 0
 					? (this.IsSpecial ? "<FF><FF>" : "<FF>").TryCopyTo(destination, out charsWritten)
 					: destination.TryWrite(provider, $"{(this.IsSpecial ? "<FF><FF>" : "<FF>")}{this.SuffixBytes:R}", out charsWritten));
+
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -451,6 +535,8 @@ namespace FoundationDB.Client
 			bytesWritten = 0;
 			return false;
 		}
+
+		#endregion
 
 	}
 

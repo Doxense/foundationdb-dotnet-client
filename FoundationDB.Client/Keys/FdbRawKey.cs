@@ -262,49 +262,20 @@ namespace FoundationDB.Client
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public SliceOwner ToSlice(ArrayPool<byte>? pool) => pool is null ? SliceOwner.Wrap(this.Data) : SliceOwner.Copy(this.Data, pool);
 
-		/// <summary>Tests if this key is a prefix of the given key</summary>
-		/// <param name="key">Key being tested</param>
-		/// <returns><c>true</c> if key starts with the same bytes as the current key; otherwise, <c>false</c></returns>
-		/// <remarks>
-		/// <para>The key `foobar` is contained inside `foo` because it starts with `foo`, but `bar` is NOT contained inside `foo` because it does not have the same prefix.</para>
-		/// <para>Any key contains "itself", so `foo` is contained inside `foo`</para>
-		/// </remarks>
-		[Pure]
+		/// <inheritdoc cref="IFdbKey.Contains" />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Contains(Slice key) => key.StartsWith(this.Data);
 
-		/// <summary>Tests if this key is a prefix of the given key</summary>
-		/// <param name="key">Key being tested</param>
-		/// <returns><c>true</c> if key starts with the same bytes as the current key; otherwise, <c>false</c></returns>
-		/// <remarks>
-		/// <para>The key `foobar` is contained inside `foo` because it starts with `foo`, but `bar` is NOT contained inside `foo` because it does not have the same prefix.</para>
-		/// <para>Any key contains "itself", so `foo` is contained inside `foo`</para>
-		/// </remarks>
-		[Pure]
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Contains(ReadOnlySpan<byte> key) => key.StartsWith(this.Data.Span);
 
-		/// <summary>Tests if this key is a prefix of the given key</summary>
-		/// <param name="key">Key being tested</param>
-		/// <returns><c>true</c> if key starts with the same bytes as the current key; otherwise, <c>false</c></returns>
-		/// <remarks>
-		/// <para>The key `foobar` is contained inside `foo` because it starts with `foo`, but `bar` is NOT contained inside `foo` because it does not have the same prefix.</para>
-		/// <para>Any key contains "itself", so `foo` is contained inside `foo`</para>
-		/// </remarks>
+		/// <inheritdoc />
 		[Pure]
-		public bool Contains<TKey>(in TKey key)
-			where TKey : struct, IFdbKey
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
 		{
-			if (typeof(TKey) == typeof(FdbRawKey))
-			{
-				return Contains(((FdbRawKey) (object) key).Span);
-			}
-
-			if (key.TryGetSpan(out var keySpan))
-			{
-				return Contains(keySpan);
-			}
-
-			using var keyBytes = FdbKeyHelpers.Encode(in key, ArrayPool<byte>.Shared);
-			return Contains(keyBytes.Span);
+			return FdbKeyHelpers.IsChildOf(this.Span, key);
 		}
 
 		/// <summary>Extracts the suffix from a key that is a child of the current key</summary>

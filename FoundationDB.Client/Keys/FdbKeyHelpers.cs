@@ -275,7 +275,7 @@ namespace FoundationDB.Client
 		/// <param name="expectedBytes">Expected encoded bytes</param>
 		/// <returns><c>true</c> if the key encodes to the exact same bytes; otherwise, <c>false</c></returns>
 		/// <remarks>
-		/// <para>If the key is not pre-encoded, this method will encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// <para>If the key is not pre-encoded, this method may need to encode the value into a pooled buffer, and then compare the bytes.</para>
 		/// </remarks>
 		public static bool AreEqual<TKey>(in TKey key, ReadOnlySpan<byte> expectedBytes)
 			where TKey : struct, IFdbKey
@@ -287,6 +287,80 @@ namespace FoundationDB.Client
 
 			using var bytes = Encode(in key, ArrayPool<byte>.Shared);
 			return bytes.Span.SequenceEqual(expectedBytes);
+		}
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TParentKey">Type of the parent key</typeparam>
+		/// <param name="parent">Parent key</param>
+		/// <param name="childBytes">Bytes of the encoded child key to test</param>
+		/// <param name="excluded">If <c>true</c>, exclude the parent key itself.</param>
+		/// <returns><c>true</c> if the encoded child key starts with the same bytes as the encoded parent key; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the key is not pre-encoded, this method may need to encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool IsChildOf<TParentKey>(in TParentKey parent, ReadOnlySpan<byte> childBytes, bool excluded = false)
+			where TParentKey : struct, IFdbKey
+		{
+			if (parent.TryGetSpan(out var parentSpan))
+			{
+				return childBytes.StartsWith(parentSpan) && (!excluded || childBytes.Length > parentSpan.Length);
+			}
+
+			using var bytes = Encode(in parent, ArrayPool<byte>.Shared);
+			return childBytes.StartsWith(bytes.Span) && (!excluded || childBytes.Length > bytes.Span.Length);
+		}
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TChildKey">Type of the potential child key</typeparam>
+		/// <param name="parentBytes">Bytes of the encoded parent key</param>
+		/// <param name="child">Child key to test</param>
+		/// <param name="excluded">If <c>true</c>, exclude the parent key itself.</param>
+		/// <returns><c>true</c> if the encoded child key starts with the same bytes as the encoded parent key; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the key is not pre-encoded, this method may need to encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool IsChildOf<TChildKey>(ReadOnlySpan<byte> parentBytes, in TChildKey child, bool excluded = false)
+			where TChildKey : struct, IFdbKey
+		{
+			if (child.TryGetSpan(out var childSpan))
+			{
+				return childSpan.StartsWith(parentBytes) && (!excluded || childSpan.Length > parentBytes.Length);
+			}
+
+			using var childBytes = Encode(in child, ArrayPool<byte>.Shared);
+			return childBytes.Span.StartsWith(parentBytes) && (!excluded || childBytes.Count > parentBytes.Length);
+		}
+
+		/// <summary>Checks if the key, once encoded, would be equal to the specified bytes</summary>
+		/// <typeparam name="TParentKey">Type of the parent key</typeparam>
+		/// <typeparam name="TChildKey">Type of the potential child key</typeparam>
+		/// <param name="parent">Parent key</param>
+		/// <param name="child">Child key to test</param>
+		/// <param name="excluded">If <c>true</c>, exclude the parent key itself.</param>
+		/// <returns><c>true</c> if the encoded child key starts with the same bytes as the encoded parent key; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>If the key is not pre-encoded, this method may need to encode the value into a pooled buffer, and then compare the bytes.</para>
+		/// </remarks>
+		public static bool IsChildOf<TParentKey, TChildKey>(in TParentKey parent, in TChildKey child, bool excluded = false)
+			where TParentKey : struct, IFdbKey
+			where TChildKey : struct, IFdbKey
+		{
+			if (child.TryGetSpan(out var childSpan))
+			{
+				return parent.Contains(childSpan);
+			}
+
+			if (parent.TryGetSpan(out var parentSpan))
+			{
+				using var childBytes = Encode(in child, ArrayPool<byte>.Shared);
+				return childBytes.Span.StartsWith(parentSpan) && (!excluded || childBytes.Count > parentSpan.Length);
+			}
+			else
+			{
+				using var parentBytes = Encode(in parent, ArrayPool<byte>.Shared);
+				using var childBytes = Encode(in child, ArrayPool<byte>.Shared);
+				return childBytes.Span.StartsWith(parentBytes.Span) && (!excluded || childBytes.Count > parentBytes.Count);
+			}
 		}
 
 		/// <summary>Encodes this key into <see cref="Slice"/></summary>

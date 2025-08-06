@@ -223,6 +223,10 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Append(...)
+
+		//REVIEW: should these be renamed to Key(...) ?
+
 		/// <summary>Appends an element to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey Append<T1>(T1 item1) => new(this.Subspace, this.Items.Append(item1));
@@ -254,6 +258,26 @@ namespace FoundationDB.Client
 		/// <summary>Appends eight elements to the key</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public FdbTupleKey Append<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8) => new(this.Subspace, STuple.Concat(this.Items, STuple.Create(item1, item2, item3, item4, item5, item6, item7, item8)));
+
+		#endregion
+
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
 
 		#region Formatting...
 
@@ -292,8 +316,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -307,6 +330,8 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten)
 			=> TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, this.Items);
+
+		#endregion
 
 	}
 
@@ -639,6 +664,26 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
+
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -672,8 +717,9 @@ namespace FoundationDB.Client
 			_ => throw new FormatException(),
 		};
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#endregion
+
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -696,6 +742,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryEncodeKey(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, this.Item1);
+
+		#endregion
 
 	}
 
@@ -1019,6 +1067,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
+
 		#region Formatting...
 
 		/// <inheritdoc />
@@ -1056,8 +1122,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1081,6 +1146,7 @@ namespace FoundationDB.Client
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, in this.Items);
 
+		#endregion
 	}
 
 	/// <summary>Key that is composed of a 3-tuple inside a subspace</summary>
@@ -1394,6 +1460,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
+
 		#region Formatting...
 
 		/// <inheritdoc />
@@ -1431,8 +1515,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1455,6 +1538,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, in this.Items);
+
+		#endregion
 
 	}
 
@@ -1760,6 +1845,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
+
 		#region Formatting...
 
 		/// <inheritdoc />
@@ -1797,8 +1900,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1821,6 +1923,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, in this.Items);
+
+		#endregion
 
 	}
 
@@ -2117,6 +2221,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
+
 		#region Formatting...
 
 		/// <inheritdoc />
@@ -2154,8 +2276,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2178,6 +2299,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, in this.Items);
+
+		#endregion
 
 	}
 
@@ -2465,6 +2588,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
+
 		#region Formatting...
 
 		/// <inheritdoc />
@@ -2502,8 +2643,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2526,6 +2666,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, in this.Items);
+
+		#endregion
 
 	}
 
@@ -2804,6 +2946,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
+
 		#region Formatting...
 
 		/// <inheritdoc />
@@ -2841,8 +3001,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -2865,6 +3024,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, in this.Items);
+
+		#endregion
 
 	}
 
@@ -3136,6 +3297,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+			=> FdbKeyHelpers.IsChildOf(in this, key);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+			=> FdbKeyHelpers.IsChildOf(in this, in key);
+
+		#endregion
+
 		#region Formatting...
 
 		/// <inheritdoc />
@@ -3173,8 +3352,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Subspace;
+		#region ISpanEncodable...
 
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3197,6 +3375,8 @@ namespace FoundationDB.Client
 		/// <inheritdoc />
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool TryEncode(Span<byte> destination, out int bytesWritten) => TupleEncoder.TryPackTo(destination, out bytesWritten, this.Subspace is not null ? this.Subspace.GetPrefix().Span : default, in this.Items);
+
+		#endregion
 
 	}
 

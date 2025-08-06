@@ -71,6 +71,26 @@ namespace FoundationDB.Client
 		/// <summary>Tests if the key is <c>Nil</c></summary>
 		bool IsNull => false;
 
+		/// <summary>Tests if this key is a prefix of the given key</summary>
+		/// <param name="key">Key being tested</param>
+		/// <returns><c>true</c> if key starts with the same bytes as the current key; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>The key `foobar` is contained inside `foo` because it starts with `foo`, but `bar` is NOT contained inside `foo` because it does not have the same prefix.</para>
+		/// <para>Any key contains "itself", so `foo` is contained inside `foo`</para>
+		/// </remarks>
+		[Pure]
+		bool Contains(ReadOnlySpan<byte> key);
+
+		/// <summary>Tests if this key is a prefix of the given key</summary>
+		/// <param name="key">Key being tested</param>
+		/// <returns><c>true</c> if key starts with the same bytes as the current key; otherwise, <c>false</c></returns>
+		/// <remarks>
+		/// <para>The key `foobar` is contained inside `foo` because it starts with `foo`, but `bar` is NOT contained inside `foo` because it does not have the same prefix.</para>
+		/// <para>Any key contains "itself", so `foo` is contained inside `foo`</para>
+		/// </remarks>
+		[Pure]
+		bool Contains<TOtherKey>(in TOtherKey key) where TOtherKey : struct, IFdbKey;
+
 	}
 
 }

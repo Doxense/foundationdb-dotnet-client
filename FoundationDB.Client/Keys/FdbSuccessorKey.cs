@@ -48,7 +48,44 @@ namespace FoundationDB.Client
 		}
 
 		public readonly TKey Parent;
-		
+
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+		{
+			if (this.Parent.TryGetSpan(out var parentSpan))
+			{
+				return key.Length > parentSpan.Length && key[parentSpan.Length] == 0 && key.StartsWith(parentSpan);
+			}
+
+			if (typeof(TKey) == typeof(FdbSuffixKey))
+			{
+				var parent = ((FdbSuffixKey) (object) this.Parent).Subspace.GetPrefix().Span;
+				var suffix = ((FdbSuffixKey) (object) this.Parent).Suffix.Span;
+				int length = checked(parent.Length + suffix.Length);
+				return key.Length > length && key[length] == 0 && key.StartsWith(parent) && key[parent.Length..].StartsWith(suffix);
+			}
+
+			return FdbKeyHelpers.IsChildOf(in this, key);
+		}
+
+		/// <inheritdoc />
+		[Pure]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+		{
+			return FdbKeyHelpers.IsChildOf(in this, in key);
+		}
+
+		#endregion
+
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -74,8 +111,7 @@ namespace FoundationDB.Client
 			_ => throw new FormatException(),
 		};
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+		#endregion
 
 		#region Equals(...)
 

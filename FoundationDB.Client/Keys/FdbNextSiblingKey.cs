@@ -46,6 +46,44 @@ namespace FoundationDB.Client
 
 		public readonly TKey Parent;
 
+		#region IFdbKey...
+
+		/// <inheritdoc />
+		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public bool Contains(ReadOnlySpan<byte> key)
+		{
+			// the only thing we can quickly check, is that is key is less than or equal to our parent, then it is NOT a child
+			if (this.Parent.TryGetSpan(out var parentSpan))
+			{
+				if (parentSpan.SequenceCompareTo(key) <= 0)
+				{ // if child of previous sibling of parent, it cannot be a child of its next sibling
+					return false;
+				}
+				if (key.StartsWith(parentSpan))
+				{ // if child of parent, it cannot be child of its next sibling
+					return false;
+				}
+			}
+
+			return FdbKeyHelpers.IsChildOf(in this, key);
+		}
+
+		/// <inheritdoc />
+		[Pure]
+		public bool Contains<TOtherKey>(in TOtherKey key)
+			where TOtherKey : struct, IFdbKey
+		{
+			return FdbKeyHelpers.IsChildOf(in this, in key);
+		}
+		
+		#endregion
+
+		#region Formatting...
+
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
 
@@ -71,8 +109,7 @@ namespace FoundationDB.Client
 			_ => throw new FormatException(),
 		};
 
-		/// <inheritdoc />
-		IKeySubspace? IFdbKey.GetSubspace() => this.Parent.GetSubspace();
+		#endregion
 
 		#region Equals(...)
 
@@ -174,6 +211,8 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region ISpanEncodable...
+
 		/// <inheritdoc />
 		public bool TryGetSpan(out ReadOnlySpan<byte> span)
 		{
@@ -231,6 +270,8 @@ namespace FoundationDB.Client
 			return false;
 
 		}
+
+		#endregion
 
 	}
 
