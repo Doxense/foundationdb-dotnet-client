@@ -1081,6 +1081,9 @@ namespace FoundationDB.Filters.Logging
 				}
 				catch (Exception e)
 				{
+#if DEBUG
+					System.Diagnostics.Debug.WriteLine($"ERROR: failed to append to transaction log {path}: {e}");
+#endif
 					//TODO: log error
 					//TODO: buffer for a bit?
 					complete = false;

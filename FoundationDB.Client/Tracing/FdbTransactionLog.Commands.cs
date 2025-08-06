@@ -1288,7 +1288,7 @@ namespace FoundationDB.Filters.Logging
 				obj["options"] = JsonObject.FromObject(this.Options);
 				if (this.Result.HasValue)
 				{
-					obj["values"] = EncodeKeyValuePairsToJson(this.Result.Value.Items);
+					obj["values"] = EncodeKeyValuePairsToJson(this.Result.Value!.Items);
 				}
 			}
 
@@ -1356,22 +1356,22 @@ namespace FoundationDB.Filters.Logging
 				{
 					if (typeof(TResult) == typeof(KeyValuePair<Slice, Slice>))
 					{
-						obj["values"] = EncodeKeyValuePairsToJson(((FdbRangeChunk<KeyValuePair<Slice, Slice>>) (object) this.Result.Value).Items.Span);
+						obj["values"] = EncodeKeyValuePairsToJson(((FdbRangeChunk<KeyValuePair<Slice, Slice>>) (object) this.Result.Value!).Items.Span);
 					}
 					else if (typeof(TResult) == typeof(Slice))
 					{
 						if (this.Options.Fetch == FdbFetchMode.ValuesOnly)
 						{
-							obj["values"] = EncodeValuesToJson(((FdbRangeChunk<Slice>) (object) this.Result.Value).Items.Span);
+							obj["values"] = EncodeValuesToJson(((FdbRangeChunk<Slice>) (object) this.Result.Value!).Items.Span);
 						}
 						else
 						{
-							obj["values"] = EncodeKeysToJson(((FdbRangeChunk<Slice>) (object) this.Result.Value).Items.Span);
+							obj["values"] = EncodeKeysToJson(((FdbRangeChunk<Slice>) (object) this.Result.Value!).Items.Span);
 						}
 					}
 					else
 					{
-						obj["values"] = JsonArray.FromValues(this.Result.Value.Items.Span);
+						obj["values"] = JsonArray.FromValues(this.Result.Value!.Items.Span);
 					}
 				}
 			}
