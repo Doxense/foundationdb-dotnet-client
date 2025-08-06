@@ -1130,6 +1130,7 @@ namespace FoundationDB.Client
 			{
 				// visit the next page of results
 				var result = await PerformVisitRangeOperation(cursor, endExclusive, snapshot, state, handler, options, iteration).ConfigureAwait(false);
+				visited += result.Count;
 
 				if (!result.HasMore)
 				{ // we are done
@@ -1139,7 +1140,6 @@ namespace FoundationDB.Client
 				// update the cursor to continue reading after the last key of this chunk
 				cursor = KeySelector.FirstGreaterThan(result.Last);
 				++iteration;
-				visited += result.Count;
 			}
 
 			return visited;
