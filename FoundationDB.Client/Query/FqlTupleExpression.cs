@@ -29,6 +29,7 @@
 namespace FoundationDB.Client
 {
 	using System.Numerics;
+	using System.Xml.Linq;
 
 	[PublicAPI]
 	public enum FqlItemType
@@ -1135,61 +1136,61 @@ namespace FoundationDB.Client
 		public FqlTupleExpression VarCount(string? name = null) => Add(FqlTupleItem.Variable(FqlVariableTypes.Count, name));
 
 		/// <summary>Adds a <see cref="FqlItemType.Nil"/> constant literal</summary>
-		public FqlTupleExpression Nil() => Add(FqlTupleItem.Nil());
+		public FqlTupleExpression Nil(string? name = null) => Add(FqlTupleItem.Nil(name));
 
 		/// <summary>Adds a <see cref="FqlItemType.Boolean"/> constant literal</summary>
-		public FqlTupleExpression Boolean(bool value) => Add(FqlTupleItem.Boolean(value));
+		public FqlTupleExpression Boolean(bool value, string? name = null) => Add(FqlTupleItem.Boolean(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
 		public FqlTupleExpression Integer(int value, string? name = null) => Add(FqlTupleItem.Int(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
-		public FqlTupleExpression Integer(long value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression Integer(long value, string? name = null) => Add(FqlTupleItem.Int(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
-		public FqlTupleExpression Integer(uint value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression Integer(uint value, string? name = null) => Add(FqlTupleItem.Int(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
-		public FqlTupleExpression Integer(ulong value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression Integer(ulong value, string? name = null) => Add(FqlTupleItem.Int(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
-		public FqlTupleExpression Integer(Int128 value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression Integer(Int128 value, string? name = null) => Add(FqlTupleItem.Int(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
-		public FqlTupleExpression Integer(UInt128 value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression Integer(UInt128 value, string? name = null) => Add(FqlTupleItem.Int(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Integer"/> literal</summary>
-		public FqlTupleExpression Integer(BigInteger value) => Add(FqlTupleItem.Int(value));
+		public FqlTupleExpression Integer(BigInteger value, string? name = null) => Add(FqlTupleItem.Int(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Number"/> literal</summary>
-		public FqlTupleExpression Number(float value) => Add(FqlTupleItem.Num(value));
+		public FqlTupleExpression Number(float value, string? name = null) => Add(FqlTupleItem.Num(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Number"/> literal</summary>
-		public FqlTupleExpression Number(double value) => Add(FqlTupleItem.Num(value));
+		public FqlTupleExpression Number(double value, string? name = null) => Add(FqlTupleItem.Num(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Number"/> literal</summary>
-		public FqlTupleExpression Number(Half value) => Add(FqlTupleItem.Num(value));
+		public FqlTupleExpression Number(Half value, string? name = null) => Add(FqlTupleItem.Num(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Number"/> literal</summary>
-		public FqlTupleExpression Number(decimal value) => Add(FqlTupleItem.Num(value));
+		public FqlTupleExpression Number(decimal value, string? name = null) => Add(FqlTupleItem.Num(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.String"/> literal</summary>
-		public FqlTupleExpression String(string value) => Add(FqlTupleItem.String(value));
+		public FqlTupleExpression String(string value, string? name = null) => Add(FqlTupleItem.String(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Bytes"/> literal</summary>
-		public FqlTupleExpression Bytes(Slice value) => Add(FqlTupleItem.Bytes(value));
+		public FqlTupleExpression Bytes(Slice value, string? name = null) => Add(FqlTupleItem.Bytes(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Uuid"/> literal</summary>
-		public FqlTupleExpression Uuid(Guid value) => Add(FqlTupleItem.Uuid(value));
+		public FqlTupleExpression Uuid(Guid value, string? name = null) => Add(FqlTupleItem.Uuid(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.Uuid"/> literal</summary>
-		public FqlTupleExpression Uuid(Uuid128 value) => Add(FqlTupleItem.Uuid(value));
+		public FqlTupleExpression Uuid(Uuid128 value, string? name = null) => Add(FqlTupleItem.Uuid(value, name));
 
 		/// <summary>Adds an embedded <see cref="FqlItemType.Tuple"/></summary>
-		public FqlTupleExpression Tuple(FqlTupleExpression value) => Add(FqlTupleItem.Tuple(value));
+		public FqlTupleExpression Tuple(FqlTupleExpression value, string? name = null) => Add(FqlTupleItem.Tuple(value, name));
 
 		/// <summary>Adds a constant <see cref="FqlItemType.VStamp"/> literal</summary>
-		public FqlTupleExpression VStamp(VersionStamp value) => Add(FqlTupleItem.VStamp(value));
+		public FqlTupleExpression VStamp(VersionStamp value, string? name = null) => Add(FqlTupleItem.VStamp(value, name));
 
 		#endregion
 
