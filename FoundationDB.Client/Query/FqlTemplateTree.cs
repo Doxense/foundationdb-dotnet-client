@@ -203,14 +203,34 @@ namespace FoundationDB.Client
 										if (types.HasFlag(FqlVariableTypes.Int)) return next;
 										break;
 									}
+									case TupleSegmentType.Single or TupleSegmentType.Double or TupleSegmentType.Decimal:
+									{
+										if (types.HasFlag(FqlVariableTypes.Num)) return next;
+										break;
+									}
 									case TupleSegmentType.Boolean:
 									{
 										if (types.HasFlag(FqlVariableTypes.Bool)) return next;
 										break;
 									}
+									case TupleSegmentType.Uuid128:
+									{
+										if (types.HasFlag(FqlVariableTypes.Uuid)) return next;
+										break;
+									}
 									case TupleSegmentType.VersionStamp80 or TupleSegmentType.VersionStamp96:
 									{
 										if (types.HasFlag(FqlVariableTypes.VStamp)) return next;
+										break;
+									}
+									case TupleSegmentType.Uuid64:
+									{ //REVIEW: is this correct? we treat Uuid64 like a UInt64
+										if (types.HasFlag(FqlVariableTypes.Int)) return next;
+										break;
+									}
+									case TupleSegmentType.Tuple:
+									{
+										if (types.HasFlag(FqlVariableTypes.Tuple)) return next;
 										break;
 									}
 								}
