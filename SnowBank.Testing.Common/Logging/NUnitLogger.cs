@@ -159,7 +159,7 @@ namespace SnowBank.Testing
 			// event id
 			if (this.Options.IncludeEventId && eventId != 0)
 			{
-				logBuilder.Append(" (").Append(eventId).Append(')');
+				logBuilder.Append($" (ID {eventId:X})");
 			}
 
 			// scope information
