@@ -1804,53 +1804,70 @@ namespace System
 
 		#region 16 bits...
 
+		
 		/// <summary>Converts a slice into a little-endian encoded, signed 16-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
 		[Pure]
-		public short ToInt16() => this.Count switch
+		public short ToInt16()
 		{
-			0 => 0,
-			1 => this.Array[this.Offset],
-			2 => BinaryPrimitives.ReadInt16LittleEndian(this.Array.AsSpan(this.Offset, 2)),
-			_ => this.Count >= 0 ? UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<short>(2) : throw UnsafeHelpers.Errors.SliceCountNotNeg()
-		};
+			var span = this.Span;
+			return span.Length switch
+			{
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadInt16LittleEndian(span),
+				_ => UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<short>(2)
+			};
+		}
 
 		/// <summary>Converts a slice into a big-endian encoded, signed 16-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
 		[Pure]
-		public short ToInt16BE() => this.Count switch
+		public short ToInt16BE()
 		{
-			0 => 0,
-			1 => this.Array[this.Offset],
-			2 => BinaryPrimitives.ReadInt16BigEndian(this.Array.AsSpan(this.Offset, 2)),
-			_ => this.Count >= 0 ? UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<short>(2) : throw UnsafeHelpers.Errors.SliceCountNotNeg()
-		};
+			var span = this.Span;
+			return span.Length switch
+			{
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadInt16BigEndian(span),
+				_ => UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<short>(2)
+			};
+		}
 
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 16-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
 		[Pure]
-		public ushort ToUInt16() => this.Count switch
+		public ushort ToUInt16()
 		{
-			0 => 0,
-			1 => this.Array[this.Offset],
-			2 => BinaryPrimitives.ReadUInt16LittleEndian(this.Array.AsSpan(this.Offset, 2)),
-			_ => this.Count >= 0 ? UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2) : throw UnsafeHelpers.Errors.SliceCountNotNeg()
-		};
+			var span = this.Span;
+			return span.Length switch
+			{
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
+				_ => UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2),
+			};
+		}
 
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 16-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
 		[Pure]
-		public ushort ToUInt16BE() => this.Count switch
+		public ushort ToUInt16BE()
 		{
-			0 => 0,
-			1 => this.Array[this.Offset],
-			2 => BinaryPrimitives.ReadUInt16BigEndian(this.Array.AsSpan(this.Offset, 2)),
-			_ => this.Count >= 0 ? UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2) : throw UnsafeHelpers.Errors.SliceCountNotNeg()
-		};
+			var span = this.Span;
+			return span.Length switch
+			{
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16BigEndian(span),
+				_ => UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<ushort>(2),
+			};
+		}
 
 		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
 		/// <param name="offset">Relative offset of the first byte</param>
@@ -2055,18 +2072,34 @@ namespace System
 		[Pure]
 		public int ToInt32()
 		{
-			// note: we ensure that offset is not negative by doing a cast to uint
-			uint off = checked((uint) this.Offset);
-			var arr = this.Array; // if null, will throw later with a nullref
-			return this.Count switch
+			var span = this.Span;
+			return span.Length switch
 			{
-				0   => 0,
-				1   => arr[off],
-				2   => MemoryMarshal.Read<ushort>(MemoryMarshal.CreateSpan(ref arr[off], 2)),
-				3   => arr[off] | (arr[off + 1] << 8) | (arr[off + 2] << 16),
-				4   => MemoryMarshal.Read<int>(MemoryMarshal.CreateSpan(ref arr[off], 4)),
-				_ => this.Count < 0 ? throw UnsafeHelpers.Errors.SliceCountNotNeg() : throw UnsafeHelpers.Errors.SliceTooLargeForConversion<int>(4),
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
+				3 => span[0] | (span[1] << 8) | (span[2] << 16),
+				4 => BinaryPrimitives.ReadInt32LittleEndian(span),
+				_ => UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<int>(4)
 			};
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, signed 32-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToInt32LittleEndian(out int value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = 0; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadInt16LittleEndian(span); return true;
+				case 3: value = span[0] | (span[1] << 8) | (span[2] << 16); return true;
+				case 4: value = BinaryPrimitives.ReadInt32LittleEndian(span); return true;
+				default: value = 0; return false;
+			}
 		}
 
 		/// <summary>Converts a slice into a big-endian encoded, signed 32-bit integer.</summary>
@@ -2075,40 +2108,69 @@ namespace System
 		[Pure]
 		public int ToInt32BE()
 		{
-			// note: we ensure that offset is not negative by doing a cast to uint
-			uint off = checked((uint)this.Offset);
-			var arr = this.Array; // if null, will throw later with a nullref
-			switch (this.Count) // if negative, will throw in the default case below
+			var span = this.Span;
+			return span.Length switch
 			{
-				case 0: return 0;
-				case 1: return arr[off];
-				case 2: return (arr[off] << 8) | arr[off + 1];
-				case 3: return (arr[off] << 16) | (arr[off + 1] << 8) | arr[off + 2];
-				case 4: return (arr[off] << 24) | (arr[off + 1] << 16) | (arr[off + 2] << 8) | arr[off + 3];
-				default:
-				{
-					if (this.Count < 0) UnsafeHelpers.Errors.ThrowSliceCountNotNeg();
-					return UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<int>(4);
-				}
-			}
+				0 => 0,
+				1 => span[0],
+				2 => BinaryPrimitives.ReadUInt16BigEndian(span),
+				3 => span[2] | (span[1] << 8) | (span[0] << 16),
+				4 => BinaryPrimitives.ReadInt32BigEndian(span),
+				_ => UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<int>(4)
+			};
 		}
 
+		/// <summary>Converts a slice into a big-endian encoded, signed 32-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToInt32BigEndian(out int value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = 0; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16BigEndian(span); return true;
+				case 3: value = span[2] | (span[1] << 8) | (span[0] << 16); return true;
+				case 4: value = BinaryPrimitives.ReadInt32BigEndian(span); return true;
+				default: value = 0; return false;
+			}
+		}
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 32-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 4 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
 		[Pure]
 		public uint ToUInt32()
 		{
-			var span = ValidateSpan();
+			var span = this.Span;
 			return span.Length switch
 			{
 				0 => 0,
 				1 => span[0],
 				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
-				3 => (uint) (span[0] | (span[1] << 8) | (span[2] << 16)),
+				3 => unchecked((uint) (span[0] | (span[1] << 8) | (span[2] << 16))),
 				4 => BinaryPrimitives.ReadUInt32LittleEndian(span),
 				_ => throw UnsafeHelpers.Errors.SliceTooLargeForConversion<uint>(4)
 			};
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 32-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToUInt32LittleEndian(out uint value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = 0; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16LittleEndian(span); return true;
+				case 3: value = unchecked((uint) (span[0] | (span[1] << 8) | (span[2] << 16))); return true;
+				case 4: value = BinaryPrimitives.ReadUInt32LittleEndian(span); return true;
+				default: value = 0; return false;
+			}
 		}
 
 		/// <summary>Converts a slice into a big-endian encoded, unsigned 32-bit integer.</summary>
@@ -2117,7 +2179,7 @@ namespace System
 		[Pure]
 		public uint ToUInt32BE()
 		{
-			var span = ValidateSpan();
+			var span = this.Span;
 			return this.Count switch
 			{
 				0 => 0,
@@ -2127,6 +2189,24 @@ namespace System
 				4 => BinaryPrimitives.ReadUInt32BigEndian(span),
 				_ => UnsafeHelpers.Errors.ThrowSliceTooLargeForConversion<uint>(4)
 			};
+		}
+
+		/// <summary>Converts a slice into a big-endian encoded, unsigned 32-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToUInt32BigEndian(out uint value)
+		{
+			var span = this.Span;
+			switch (this.Count)
+			{
+				case 0: value = 0; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16BigEndian(span); return true;
+				case 3: value = (uint)((span[0] << 16) | (span[1] << 8) | span[2]); return true;
+				case 4: value = BinaryPrimitives.ReadUInt32BigEndian(span); return true;
+				default: value = 0; return false;
+			}
 		}
 
 		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
@@ -2183,7 +2263,7 @@ namespace System
 		[Pure]
 		public long ToInt64()
 		{
-			var span = ValidateSpan();
+			var span = this.Span;
 			return span.Length switch
 			{
 				0 => 0,
@@ -2212,13 +2292,49 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a slice into a little-endian encoded, signed 64-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToInt64LittleEndian(out long value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = 0; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16LittleEndian(span); return true;
+				case 4: value = BinaryPrimitives.ReadUInt32LittleEndian(span); return true;
+				case 8: value = BinaryPrimitives.ReadInt64LittleEndian(span); return true;
+				default: return ToInt64Slow(span, out value);
+			}
+
+			static bool ToInt64Slow(ReadOnlySpan<byte> span, out long value)
+			{
+				int n = span.Length;
+				if (n > 8)
+				{
+					value = 0;
+					return false;
+				}
+
+				int p = n - 1;
+				value = span[p--];
+				while (--n > 0)
+				{
+					value = (value << 8) | span[p--];
+				}
+				return true;
+			}
+		}
+
 		/// <summary>Converts a slice into a big-endian encoded, signed 64-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
 		[Pure]
 		public long ToInt64BE()
 		{
-			var span = ValidateSpan();
+			var span = this.Span;
 			return span.Length switch
 			{
 				0 => 0,
@@ -2246,13 +2362,48 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a slice into a big-endian encoded, signed 64-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToInt64BigEndian(out long value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = 0; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16BigEndian(span); return true;
+				case 4: value = BinaryPrimitives.ReadUInt32BigEndian(span); return true;
+				case 8: value = BinaryPrimitives.ReadInt64BigEndian(span); return true;
+				default: return ToInt64BESlow(span, out value);
+			}
+
+			static bool ToInt64BESlow(ReadOnlySpan<byte> span, out long value)
+			{
+				Contract.Debug.Requires(span.Length > 2);
+				if (span.Length > 8)
+				{
+					value = 0;
+					return false;
+				}
+
+				value = 0;
+				foreach (var b in span)
+				{
+					value = (value << 8) | b;
+				}
+				return true;
+			}
+		}
+
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
 		[Pure]
 		public ulong ToUInt64()
 		{
-			var span = ValidateSpan();
+			var span = this.Span;
 			return span.Length switch
 			{
 				0 => 0,
@@ -2285,9 +2436,45 @@ namespace System
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
 		[Pure]
+		public bool TryConvertToUInt64LittleEndian(out ulong value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = 0; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16LittleEndian(span); return true;
+				case 4: value = BinaryPrimitives.ReadUInt32LittleEndian(span); return true;
+				case 8: value = BinaryPrimitives.ReadUInt64LittleEndian(span); return true;
+				default: return ToUInt64Slow(span, out value);
+			}
+
+			static bool ToUInt64Slow(ReadOnlySpan<byte> buffer, out ulong value)
+			{
+				int n = buffer.Length;
+				if (n > 8)
+				{
+					value = 0;
+					return false;
+				}
+
+				int p = n - 1;
+				value = buffer[p--];
+				while (--n > 0)
+				{
+					value = (value << 8) | buffer[p--];
+				}
+				return true;
+			}
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
 		public ulong ToUInt64BE()
 		{
-			var span = ValidateSpan();
+			var span = this.Span;
 			return span.Length switch
 			{
 				0 => 0,
@@ -2315,6 +2502,41 @@ namespace System
 
 			fail:
 				throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes.");
+			}
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToUInt64BigEndian(out ulong value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = 0; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16BigEndian(span); return true;
+				case 4: value = BinaryPrimitives.ReadUInt32BigEndian(span); return true;
+				case 8: value = BinaryPrimitives.ReadUInt64BigEndian(span); return true;
+				default: return ToUInt64BESlow(span, out value);
+			}
+
+			static bool ToUInt64BESlow(ReadOnlySpan<byte> buffer, out ulong value)
+			{
+				Contract.Debug.Requires(buffer.Length > 2);
+				if (buffer.Length > 8)
+				{
+					value = 0;
+					return false;
+				}
+
+				value = 0;
+				foreach(var b in buffer)
+				{
+					value = (value << 8) | b;
+				}
+				return true;
 			}
 		}
 
@@ -2392,6 +2614,39 @@ namespace System
 			throw new FormatException("Cannot convert slice into an Uuid64 because it has an incorrect size.");
 		}
 
+		/// <summary>Converts this slice into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
+		[Pure]
+		public bool TryConvertToUuid64(out Uuid64 value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0:
+				{
+					value = default;
+					return true;
+				}
+				case 8:
+				{ // binary (8 bytes)
+					return Uuid64.TryRead(span, out value);
+				}
+
+				case 16: // hex8
+				case 17: // hex8-hex8
+				case 19: // {hex8-hex8}
+				{
+					return Uuid64.TryParse(span, out value);
+				}
+				default:
+				{
+					value = default;
+					return false;
+				}
+			}
+		}
+
 		#endregion
 
 		#region Floating Point...
@@ -2410,6 +2665,22 @@ namespace System
 			throw new FormatException("Cannot convert slice into a Single because it is not exactly 4 bytes long.");
 		}
 
+		/// <summary>Converts a slice into a 32-bit IEEE floating point.</summary>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are less or more than 4 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToSingleLittleEndian(out float value)
+		{
+			var span = this.Span;
+			if (span.Length != 4)
+			{
+				value = 0f;
+				return span.Length == 0;
+			}
+			value = BinaryPrimitives.ReadSingleLittleEndian(span);
+			return true;
+		}
+
 		/// <summary>Converts a slice into a 32-bit IEEE floating point (in network order).</summary>
 		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 4 bytes</returns>
 		/// <exception cref="System.FormatException">If there are less or more than 4 bytes in the slice</exception>
@@ -2422,6 +2693,22 @@ namespace System
 			return BinaryPrimitives.ReadSingleBigEndian(span);
 		fail:
 			throw new FormatException("Cannot convert slice into a Single because it is not exactly 4 bytes long.");
+		}
+
+		/// <summary>Converts a slice into a 32-bit IEEE floating point (in network order).</summary>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are less or more than 4 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToSingleBigEndian(out float value)
+		{
+			var span = this.Span;
+			if (span.Length != 4)
+			{
+				value = 0f;
+				return span.Length == 0;
+			}
+			value = BinaryPrimitives.ReadSingleBigEndian(span);
+			return true;
 		}
 
 		/// <summary>Converts a slice into a 64-bit IEEE floating point.</summary>
@@ -2438,6 +2725,22 @@ namespace System
 			throw new FormatException("Cannot convert slice into a Double because it is not exactly 8 bytes long.");
 		}
 
+		/// <summary>Converts a slice into a 64-bit IEEE floating point.</summary>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are less or more than 8 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToDoubleLittleEndian(out double value)
+		{
+			var span = this.Span;
+			if (span.Length != 8)
+			{
+				value = 0d;
+				return span.Length == 0;
+			}
+			value = BinaryPrimitives.ReadDoubleLittleEndian(span);
+			return true;
+		}
+
 		/// <summary>Converts a slice into a 64-bit IEEE floating point (in network order).</summary>
 		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are less or more than 8 bytes in the slice</exception>
@@ -2450,6 +2753,22 @@ namespace System
 			return BinaryPrimitives.ReadDoubleBigEndian(span);
 		fail:
 			throw new FormatException("Cannot convert slice into a Double because it is not exactly 8 bytes long.");
+		}
+
+		/// <summary>Converts a slice into a 64-bit IEEE floating point (in network order).</summary>
+		/// <returns>0 of the slice is null or empty, a floating point number, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are less or more than 8 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToDoubleBigEndian(out double value)
+		{
+			var span = this.Span;
+			if (span.Length != 8)
+			{
+				value = 0d;
+				return span.Length == 0;
+			}
+			value = BinaryPrimitives.ReadDoubleBigEndian(span);
+			return true;
 		}
 
 #if NET8_0_OR_GREATER
@@ -2515,8 +2834,8 @@ namespace System
 		[Pure]
 		public Guid ToGuid()
 		{
-			EnsureSliceIsValid();
-			switch (this.Count)
+			var span = this.Span;
+			switch (span.Length)
 			{
 				case 0:
 				{
@@ -2527,14 +2846,15 @@ namespace System
 
 					// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
 					// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
-
-					return Uuid128.ReadUnsafe(this.Span);
+					return Uuid128.ReadUnsafe(span);
 				}
 				case 36:
 				{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
-
-					// ReSharper disable once AssignNullToNotNullAttribute
-					return Guid.Parse(ToByteString() ?? string.Empty);
+#if NET10_0_OR_GREATER
+					return Guid.Parse(span);
+#else
+					return Guid.Parse(ToByteString()!);
+#endif
 				}
 				default:
 				{
@@ -2543,22 +2863,74 @@ namespace System
 			}
 		}
 
+		/// <summary>Converts a slice into a Guid.</summary>
+		/// <returns>Native Guid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be a 16-byte RFC4122 GUID, or an ASCII string of 36 chars</remarks>
+		[Pure]
+		public bool TryConvertToGuid(out Guid value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0:
+				{
+					value = Guid.Empty;
+					return true;
+				}
+				case 16:
+				{ // direct byte array
+
+					// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
+					// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
+					value = Uuid128.ReadUnsafe(span);
+					return true;
+				}
+				case 36:
+				{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
+#if NET10_0_OR_GREATER
+					return Guid.TryParse(span, out value);
+#else
+					return Guid.TryParse(ToByteString()!, out value);
+#endif
+				}
+				default:
+				{
+					value = Guid.Empty;
+					return false;
+				}
+			}
+		}
 		/// <summary>Converts this slice into a 128-bit UUID.</summary>
 		/// <returns>Uuid decoded from the Slice.</returns>
 		/// <remarks>The slice can either be a 16-byte RFC4122 GUID, or an ASCII string of 36 chars</remarks>
 		[Pure]
 		public Uuid128 ToUuid128()
 		{
-			EnsureSliceIsValid();
-			return this.Count switch
+			var span = this.Span;
+			return span.Length switch
 			{
 				0 => default,
-				16 => Uuid128.Read(this),
-				36 => Uuid128.Parse(ToByteString()!),
+				16 => Uuid128.Read(span),
+				36 => Uuid128.Parse(span),
 				_ => throw ThrowHelper.FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size.")
 			};
 		}
 
+		/// <summary>Converts this slice into a 128-bit UUID.</summary>
+		/// <returns>Uuid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be a 16-byte RFC4122 GUID, or an ASCII string of 36 chars</remarks>
+		[Pure]
+		public bool TryConvertToUuid128(out Uuid128 value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = default; return true;
+				case 16: return Uuid128.TryRead(span, out value);
+				case 36: return Uuid128.TryParse(span, out value);
+				default: value = default; return false;
+			}
+		}
 #if NET8_0_OR_GREATER // System.Int128 and System.UInt128 are only usable starting from .NET 8.0 (technically 7.0, but we don't support it)
 
 		/// <summary>Converts a slice into a little-endian encoded, signed 128-bit integer.</summary>
@@ -2567,11 +2939,11 @@ namespace System
 		[Pure]
 		public Int128 ToInt128()
 		{
-			var span = ValidateSpan();
+			var span = this.Span;
 			return span.Length switch
 			{
 				0 => default,
-				1 => this[0],
+				1 => span[0],
 				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
 				4 => BinaryPrimitives.ReadUInt32LittleEndian(span),
 				8 => BinaryPrimitives.ReadUInt64LittleEndian(span),
@@ -2594,6 +2966,43 @@ namespace System
 
 			fail:
 				throw new FormatException("Cannot convert slice into an Int128 because it is larger than 16 bytes.");
+			}
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, signed 128-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToInt128(out Int128 value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = default; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16LittleEndian(span); return true;
+				case 4: value = BinaryPrimitives.ReadUInt32LittleEndian(span); return true;
+				case 8: value = BinaryPrimitives.ReadUInt64LittleEndian(span); return true;
+				case 16: value = BinaryPrimitives.ReadInt128LittleEndian(span); return true;
+				default: return ToInt128Slow(span, out value);
+			}
+
+			static bool ToInt128Slow(ReadOnlySpan<byte> buffer, out Int128 value)
+			{
+				int n = buffer.Length;
+				if (n > 16)
+				{
+					value = default;
+					return false;
+				}
+
+				int p = n - 1;
+				value = buffer[p--];
+				while (--n > 0)
+				{
+					value = (value << 8) | buffer[p--];
+				}
+				return true;
 			}
 		}
 
@@ -2637,11 +3046,11 @@ namespace System
 		[Pure]
 		public UInt128 ToUInt128()
 		{
-			var span = ValidateSpan();
+			var span = this.Span;
 			return span.Length switch
 			{
 				0 => default,
-				1 => this[0],
+				1 => span[0],
 				2 => BinaryPrimitives.ReadUInt16LittleEndian(span),
 				4 => BinaryPrimitives.ReadUInt32LittleEndian(span),
 				8 => BinaryPrimitives.ReadUInt64LittleEndian(span),
@@ -2654,7 +3063,6 @@ namespace System
 				int n = buffer.Length;
 				if (n > 16) goto fail;
 
-
 				int p = n - 1;
 				UInt128 value = buffer[p--];
 				while (--n > 0)
@@ -2665,6 +3073,43 @@ namespace System
 
 			fail:
 				throw new FormatException("Cannot convert slice into an UInt128 because it is larger than 16 bytes.");
+			}
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 128-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 16 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 16 bytes in the slice</exception>
+		[Pure]
+		public bool TryConvertToUInt128LittleEndian(out UInt128 value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0: value = default; return true;
+				case 1: value = span[0]; return true;
+				case 2: value = BinaryPrimitives.ReadUInt16LittleEndian(span); return true;
+				case 4: value = BinaryPrimitives.ReadUInt32LittleEndian(span); return true;
+				case 8: value = BinaryPrimitives.ReadUInt64LittleEndian(span); return true;
+				case 16: value = BinaryPrimitives.ReadUInt128LittleEndian(span); return true;
+				default: return ToUInt128Slow(span, out value);
+			}
+
+			static bool ToUInt128Slow(ReadOnlySpan<byte> buffer, out UInt128 value)
+			{
+				int n = buffer.Length;
+				if (n > 16)
+				{
+					value = default;
+					return false;
+				}
+
+				int p = n - 1;
+				value = buffer[p--];
+				while (--n > 0)
+				{
+					value = (value << 8) | buffer[p--];
+				}
+				return true;
 			}
 		}
 
@@ -2772,6 +3217,39 @@ namespace System
 			throw new FormatException("Cannot convert slice into an Uuid80 because it has an incorrect size.");
 		}
 
+		/// <summary>Converts this slice into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be an 10-byte array, or an ASCII string of 20, 22 or 24 chars</remarks>
+		[Pure]
+		public bool TryConvertToUuid48(out Uuid48 value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0:
+				{
+					value = default;
+					return true;
+				}
+				case 6:
+				{ // binary (6 bytes)
+					return Uuid48.TryRead(span, out value);
+				}
+
+				case 12: // XXXXXXXXXXXX
+				case 13: // XXXX-XXXXXXXX
+				case 15: // {XXXX-XXXXXXXX}
+				{
+					return Uuid48.TryParse(span, out value); 
+				}
+				default:
+				{
+					value = default;
+					return true;
+				}
+			}
+		}
+
 		#endregion
 
 		#region 80 bits...
@@ -2804,6 +3282,39 @@ namespace System
 			throw new FormatException("Cannot convert slice into an Uuid80 because it has an incorrect size.");
 		}
 
+		/// <summary>Converts this slice into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be an 10-byte array, or an ASCII string of 20, 22 or 24 chars</remarks>
+		[Pure]
+		public bool TryConvertToUuid80(out Uuid80 value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0:
+				{
+					value = default;
+					return true;
+				}
+				case 10:
+				{ // binary (10 bytes)
+					return Uuid80.TryRead(span, out value);
+				}
+
+				case 20: // XXXXXXXXXXXXXXXXXXXX
+				case 22: // XXXX-XXXXXXXX-XXXXXXXX
+				case 24: // {XXXX-XXXXXXXX-XXXXXXXX}
+				{
+					return Uuid80.TryParse(span, out value);
+				}
+				default:
+				{
+					value = default;
+					return false;
+				}
+			}
+		}
+
 		#endregion
 
 		#region 96 bits...
@@ -2834,6 +3345,39 @@ namespace System
 			}
 
 			throw new FormatException("Cannot convert slice into an Uuid96 because it has an incorrect size.");
+		}
+
+		/// <summary>Converts this slice into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be an 12-byte array, or an ASCII string of 24, 26 or 28 chars</remarks>
+		[Pure]
+		public bool TryConvertToUuid96(out Uuid96 value)
+		{
+			var span = this.Span;
+			switch (span.Length)
+			{
+				case 0:
+				{
+					value = default;
+					return true;
+				}
+				case 12:
+				{ // binary (12 bytes)
+					return Uuid96.TryRead(span, out value);
+				}
+
+				case 24: // XXXXXXXXXXXXXXXXXXXXXXXX
+				case 26: // XXXXXXXX-XXXXXXXX-XXXXXXXX
+				case 28: // {XXXXXXXX-XXXXXXXX-XXXXXXXX}
+				{
+					return Uuid96.TryParse(span, out value);
+				}
+				default:
+				{
+					value = default;
+					return false;
+				}
+			}
 		}
 
 		#endregion

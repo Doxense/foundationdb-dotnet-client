@@ -979,9 +979,9 @@ namespace SnowBank.Buffers.Tests
 
 			// should validate the arguments
 			var x = new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice();
-			Assert.That(() => MutateOffset(x, -1).ToInt64(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 9).ToInt64(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null!).ToInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(x, -1).ToInt64(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateCount(x, 9).ToInt64(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateArray(x, null!).ToInt64(), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 		#endregion
@@ -1111,9 +1111,9 @@ namespace SnowBank.Buffers.Tests
 
 			// should validate the arguments
 			var x = new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice();
-			Assert.That(() => MutateOffset(x, -1).ToInt64BE(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 9).ToInt64BE(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null!).ToInt64BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(x, -1).ToInt64BE(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateCount(x, 9).ToInt64BE(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateArray(x, null!).ToInt64BE(), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 		#endregion
@@ -1321,9 +1321,9 @@ namespace SnowBank.Buffers.Tests
 
 			// should validate the arguments
 			var x = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF }.AsSlice();
-			Assert.That(() => MutateOffset(x, -1).ToInt128(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 17).ToInt128(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null!).ToInt128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(x, -1).ToInt128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateCount(x, 17).ToInt128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateArray(x, null!).ToInt128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 #endif
@@ -1609,9 +1609,9 @@ namespace SnowBank.Buffers.Tests
 
 			// should validate the arguments
 			var x = new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }.AsSlice();
-			Assert.That(() => MutateOffset(x, -1).ToUInt64(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 9).ToUInt64(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null!).ToUInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(x, -1).ToUInt64(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateCount(x, 9).ToUInt64(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateArray(x, null!).ToUInt64(), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 #if NET8_0_OR_GREATER
@@ -1678,9 +1678,9 @@ namespace SnowBank.Buffers.Tests
 
 			// should validate the arguments
 			var x = new byte[] { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF }.AsSlice();
-			Assert.That(() => MutateOffset(x, -1).ToUInt128(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 17).ToUInt128(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null!).ToUInt128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(x, -1).ToUInt128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateCount(x, 17).ToUInt128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateArray(x, null!).ToUInt128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 #endif
@@ -1788,9 +1788,9 @@ namespace SnowBank.Buffers.Tests
 
 			// should validate the arguments
 			var x = new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice();
-			Assert.That(() => MutateOffset(x, -1).ToUInt64BE(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 9).ToUInt64BE(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null!).ToUInt64BE(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(x, -1).ToUInt64BE(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateCount(x, 9).ToUInt64BE(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateArray(x, null!).ToUInt64BE(), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 		#endregion
@@ -2034,9 +2034,9 @@ namespace SnowBank.Buffers.Tests
 
 			// should validate the arguments
 			var x = Slice.FromGuid(guid);
-			Assert.That(() => MutateOffset(x, -1).ToGuid(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 17).ToGuid(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null!).ToGuid(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(x, -1).ToGuid(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateCount(x, 17).ToGuid(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateArray(x, null!).ToGuid(), Throws.InstanceOf<ArgumentOutOfRangeException>());
 
 		}
 
@@ -2089,9 +2089,9 @@ namespace SnowBank.Buffers.Tests
 
 			// should validate the arguments
 			var x = Slice.FromUuid128(uuid);
-			Assert.That(() => MutateOffset(x, -1).ToUuid128(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 17).ToUuid128(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null!).ToUuid128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(x, -1).ToUuid128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateCount(x, 17).ToUuid128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => MutateArray(x, null!).ToUuid128(), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 		[Test]
