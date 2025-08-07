@@ -581,7 +581,7 @@ namespace SnowBank.Testing
 			if (m_cts?.IsCancellationRequested ?? false) return Task.FromCanceled(m_cts.Token);
 			if (ts.Length == 0) return Task.CompletedTask;
 			if (ts.Length == 1 && ts[0].IsCompleted) return ts[0];
-			return WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, message, $"WhenAll({tasksExpression})");
+			return WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, null, message, $"WhenAll({tasksExpression})");
 		}
 
 		/// <summary>Waits multiple tasks that should all complete within the specified time.</summary>
@@ -598,7 +598,7 @@ namespace SnowBank.Testing
 			var ts = (tasks as Task<TResult>[]) ?? tasks.ToArray();
 			this.Cancellation.ThrowIfCancellationRequested();
 			if (ts.Length == 0) return [ ];
-			await WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, message, $"WhenAll({tasksExpression})").ConfigureAwait(false);
+			await WaitForInternal(Task.WhenAll(ts), timeout, throwIfExpired: true, null, message, $"WhenAll({tasksExpression})").ConfigureAwait(false);
 			var res = new TResult[ts.Length];
 			for (int i = 0; i < res.Length; i++)
 			{
@@ -648,7 +648,7 @@ namespace SnowBank.Testing
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
 			     : task.IsCompleted ? task
-			     : WaitForInternal(task, timeout, throwIfExpired: true, message, taskExpression!);
+			     : WaitForInternal(task, timeout, throwIfExpired: true, null, message, taskExpression!);
 		}
 
 		/// <summary>Waits for a task that should complete within the specified time.</summary>
@@ -660,7 +660,7 @@ namespace SnowBank.Testing
 		{
 			return m_cts?.IsCancellationRequested == true ? Task.FromCanceled<bool>(m_cts.Token)
 				: task.IsCompleted ? task.AsTask()
-				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, message, taskExpression!);
+				: WaitForInternal(task.AsTask(), timeout, throwIfExpired: true, null, message, taskExpression!);
 		}
 
 		/// <summary>Waits for a task that should complete within the specified time.</summary>
@@ -692,7 +692,19 @@ namespace SnowBank.Testing
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
 				: task.IsCompleted ? task
-				: WaitForInternal(task, timeout, message, taskExpression!);
+				: WaitForInternal(task, timeout, null, message, taskExpression!);
+		}
+
+		/// <summary>Waits for a task that should complete within the specified time.</summary>
+		/// <remarks>
+		/// <para>The test will abort if the task did not complete (successfully or not) within the specified <paramref name="timeout"/>.</para>
+		/// <para>The <see cref="Cancellation">test cancellation token</see> should be used by the task in order for this safety feature to work! If the task is not linked to this token, it will not be canceled, and could run indefinitely.</para>
+		/// </remarks>
+		public Task<TResult> Await<TResult>(Task<TResult> task, TimeSpan timeout, Action onTimeout, string? message = null, [CallerArgumentExpression(nameof(task))] string? taskExpression = null)
+		{
+			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
+				: task.IsCompleted ? task
+				: WaitForInternal(task, timeout, onTimeout, message, taskExpression!);
 		}
 
 		/// <summary>Waits for a task that should complete within the specified time.</summary>
@@ -704,11 +716,11 @@ namespace SnowBank.Testing
 		{
 			return m_cts?.IsCancellationRequested == true  ? Task.FromCanceled<TResult>(m_cts.Token)
 				: task.IsCompleted ? task.AsTask()
-				: WaitForInternal(task.AsTask(), timeout, message, taskExpression!);
+				: WaitForInternal(task.AsTask(), timeout, null, message, taskExpression!);
 		}
 
 		[StackTraceHidden]
-		private async Task<bool> WaitForInternal(Task task, TimeSpan delay, bool throwIfExpired, string? message, string taskExpression)
+		private async Task<bool> WaitForInternal(Task task, TimeSpan delay, bool throwIfExpired, Action? onTimeout, string? message, string taskExpression)
 		{
 			bool success = false;
 			Exception? error = null;
@@ -723,16 +735,17 @@ namespace SnowBank.Testing
 					{ // timeout!
 						if (ct.IsCancellationRequested)
 						{
-							Log("### Wait aborted due to test cancellation! ###");
+							LogError("### Wait aborted due to test cancellation! ###");
 							Assert.Fail(message != null
 								? $"{message}. Test execution has been aborted because it took too long to execute!"
 								: "Test execution has been aborted because it took too long to execute!"
 							);
 						}
 
+						LogError("### Wait aborted due to timeout! ###");
+						onTimeout?.Invoke();
 						if (throwIfExpired)
 						{
-							Log("### Wait aborted due to timeout! ###");
 							Assert.Fail(message != null
 								? $"{message}. Operation took more than {delay} to execute: {taskExpression}"
 								: $"Operation took more than {delay} to execute: {taskExpression}"
@@ -763,7 +776,7 @@ namespace SnowBank.Testing
 			}
 		}
 
-		private async Task<TResult> WaitForInternal<TResult>(Task<TResult> task, TimeSpan delay, string? message, string taskExpression)
+		private async Task<TResult> WaitForInternal<TResult>(Task<TResult> task, TimeSpan delay, Action? onTimeout, string? message, string taskExpression)
 		{
 			bool? success = null;
 			Exception? error = null;
@@ -779,7 +792,7 @@ namespace SnowBank.Testing
 
 						if (ct.IsCancellationRequested)
 						{
-							Log("### Wait aborted due to test cancellation! ###");
+							LogError("### Wait aborted due to test cancellation! ###");
 							Assert.Fail(message != null
 								? $"{message}. Test execution has been aborted because it took too long to execute!"
 								: "Test execution has been aborted because it took too long to execute!"
@@ -787,7 +800,8 @@ namespace SnowBank.Testing
 						}
 						else
 						{
-							Log("### Wait aborted due to timeout! ###");
+							LogError("### Wait aborted due to timeout! ###");
+							onTimeout?.Invoke();
 							Assert.Fail(message != null
 								? $"{message}. Operation took more than {delay} to execute: {taskExpression}"
 								: $"Operation took more than {delay} to execute: {taskExpression}"
