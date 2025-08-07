@@ -25,6 +25,7 @@
 #endregion
 
 // ReSharper disable CompareOfFloatsByEqualityOperator
+#pragma warning disable NUnit2009
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
 namespace SnowBank.Core.Tests
@@ -80,7 +81,7 @@ namespace SnowBank.Core.Tests
 					Maybe.Nothing<string>(),
 					Maybe.Return("Hello"),
 					Maybe.Return("World"),
-					Maybe.Return(default(string)),
+					Maybe.Return(default(string)!),
 					Maybe.Error<string>(new InvalidOperationException("KABOOM!")),
 				};
 
@@ -112,7 +113,7 @@ namespace SnowBank.Core.Tests
 				Assert.That(Maybe.Return(default(string)).Equals("Hello"), Is.False, "<null> eq 'World'");
 				Assert.That(Maybe.Return("Hello").Equals("Hello"), Is.True, "'Hello' eq 'Hello'");
 				Assert.That(Maybe.Return("World").Equals("Hello"), Is.False, "'World' eq 'World'");
-				Assert.That(Maybe.Return("Hello").Equals(default(string)), Is.False, "'Hello' eq <null>");
+				Assert.That(Maybe.Return("Hello").Equals(null), Is.False, "'Hello' eq <null>");
 				Assert.That(Maybe.Error<string>(new InvalidOperationException("KABOOM!")).Equals("Hello"), Is.False, "<error> eq 'World'");
 			}
 
@@ -129,7 +130,7 @@ namespace SnowBank.Core.Tests
 				var ms = new[]
 				{
 					Maybe.Nothing<string>(),
-					Maybe.Return(default(string)),
+					Maybe.Return(default(string)!),
 					Maybe.Return("Hello"),
 					Maybe.Return("World"),
 					Maybe.Error<string>(new InvalidOperationException("KABOOM!")),

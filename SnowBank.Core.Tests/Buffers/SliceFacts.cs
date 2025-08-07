@@ -24,15 +24,21 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
-#pragma warning disable NUnit2043
+#pragma warning disable NUnit2009
 #pragma warning disable NUnit2010
+#pragma warning disable NUnit2043
 #pragma warning disable CA1825
 #pragma warning disable CA1861
+#pragma warning disable CS1718
 #pragma warning disable IDE0230
 // ReSharper disable AccessToDisposedClosure
 // ReSharper disable ImplicitlyCapturedClosure
+// ReSharper disable PreferConcreteValueOverDefault
 // ReSharper disable RedundantCast
+// ReSharper disable RedundantExplicitParamsArrayCreation
+// ReSharper disable StringLiteralTypo
 // ReSharper disable UseArrayEmptyMethod
+// ReSharper disable VariableLengthStringHexEscapeSequence
 
 namespace SnowBank.Buffers.Tests
 {
@@ -451,7 +457,7 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(Slice.FromChar('~').GetBytes(), Is.EqualTo(new byte[] { 126 }));
 			Assert.That(Slice.FromChar('\x7F').GetBytes(), Is.EqualTo(new byte[] { 127 }));
 
-			// 128 and above is multi-byte UTF-8
+			// 128 and above is multibyte UTF-8
 			Assert.That(Slice.FromChar('\x80').GetBytes(), Is.EqualTo(new byte[] { 0xC2, 0x80 }));
 			Assert.That(Slice.FromChar('é').GetBytes(), Is.EqualTo("é"u8.ToArray()));
 			Assert.That(Slice.FromChar('\u221E').GetBytes(), Is.EqualTo("\u221e"u8.ToArray()));
@@ -2175,7 +2181,6 @@ namespace SnowBank.Buffers.Tests
 		[SuppressMessage("ReSharper", "EqualExpressionComparison")]
 		public void Test_Slice_Equality()
 		{
-#pragma warning disable 1718
 			// a == b == c && x != y && a != x
 			var a = new byte[] { 1, 2, 3 }.AsSlice();
 			var b = new byte[] { 1, 2, 3 }.AsSlice();
@@ -2243,8 +2248,6 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(a != x, Is.True);
 			Assert.That(a != y, Is.True);
 			Assert.That(a != z, Is.True);
-#pragma warning restore 1718
-
 		}
 
 		[Test]
@@ -2755,7 +2758,7 @@ namespace SnowBank.Buffers.Tests
 				Assert.That(res, Is.EqualTo(Slice.Zero(17)));
 			}
 			{ // negative lengthshould throw
-				Assert.That(() => Slice.Create(-1, "hello", (buf, _) => { }), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => Slice.Create(-1, "hello", (_, _) => { }), Throws.InstanceOf<ArgumentException>());
 			}
 			{ // overflow should throw
 				Assert.That(() => Slice.Create(17, "hello", (buf, _) => { buf[17] = 255; }), Throws.InstanceOf<IndexOutOfRangeException>());
@@ -2775,7 +2778,7 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(Slice.Join(Slice.Empty, new[] { a }), Is.EqualTo(Value("A")));
 			Assert.That(Slice.Join(Slice.Empty, new[] { a, b }), Is.EqualTo(Value("ABB")));
 			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }), Is.EqualTo(Value("ABBCCC")));
-			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }).Offset, Is.Zero);
 			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }).Count, Is.EqualTo(6));
 
 			// single byte separator
@@ -2785,13 +2788,13 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(Slice.Join(sep, new[] { a }), Is.EqualTo(Value("A")));
 			Assert.That(Slice.Join(sep, new[] { a, b }), Is.EqualTo(Value("A,BB")));
 			Assert.That(Slice.Join(sep, new[] { a, b, c }), Is.EqualTo(Value("A,BB,CCC")));
-			Assert.That(Slice.Join(sep, new[] { a, b, c }).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(sep, new[] { a, b, c }).Offset, Is.Zero);
 			Assert.That(Slice.Join(sep, new[] { a, b, c }).Count, Is.EqualTo(8));
 			Assert.That(Slice.Join(sep, new[] { a, Slice.Empty, c }), Is.EqualTo(Value("A,,CCC")));
 			Assert.That(Slice.Join(sep, new[] { Slice.Empty, b, c }), Is.EqualTo(Value(",BB,CCC")));
 			Assert.That(Slice.Join(sep, new[] { Slice.Empty, Slice.Empty, Slice.Empty }), Is.EqualTo(Value(",,")));
 
-			// multi byte separator, with a non-0 offset
+			// multiple byte separator, with a non-0 offset
 			sep = Value("!<@>!").Substring(1, 3);
 			Assert.That(sep.Offset, Is.EqualTo(1));
 			Assert.That(Slice.Join(sep, Array.Empty<Slice>()), Is.EqualTo(Slice.Empty));
@@ -2799,7 +2802,7 @@ namespace SnowBank.Buffers.Tests
 			Assert.That(Slice.Join(sep, new[] { a }), Is.EqualTo(Value("A")));
 			Assert.That(Slice.Join(sep, new[] { a, b }), Is.EqualTo(Value("A<@>BB")));
 			Assert.That(Slice.Join(sep, new[] { a, b, c }), Is.EqualTo(Value("A<@>BB<@>CCC")));
-			Assert.That(Slice.Join(sep, new[] { a, b, c }).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(sep, new[] { a, b, c }).Offset, Is.Zero);
 			Assert.That(Slice.Join(sep, new[] { a, b, c }).Count, Is.EqualTo(12));
 
 			// join slices that use the same underlying buffer
@@ -2819,18 +2822,18 @@ namespace SnowBank.Buffers.Tests
 			// ReSharper disable PossibleMultipleEnumeration
 			var query = Enumerable.Range(1, 3).Select(c => Value(new string((char)(64 + c), c)));
 			Assert.That(Slice.Join(Slice.Empty, query), Is.EqualTo(Value("ABBCCC")));
-			Assert.That(Slice.Join(Slice.Empty, query).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(Slice.Empty, query).Offset, Is.Zero);
 			Assert.That(Slice.Join(Slice.Empty, query).Count, Is.EqualTo(6));
 
 			var sep = Slice.FromChar(',');
 			Assert.That(Slice.Join(sep, Enumerable.Empty<Slice>()), Is.EqualTo(Slice.Empty));
 			Assert.That(Slice.Join(sep, query), Is.EqualTo(Value("A,BB,CCC")));
-			Assert.That(Slice.Join(sep, query).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(sep, query).Offset, Is.Zero);
 			Assert.That(Slice.Join(sep, query).Count, Is.EqualTo(8));
 
 			var arr = query.ToArray();
 			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr), Is.EqualTo(Value("ABBCCC")));
-			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr).Offset, Is.Zero);
 			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr).Count, Is.EqualTo(6));
 			// ReSharper restore PossibleMultipleEnumeration
 		}
@@ -2863,15 +2866,17 @@ namespace SnowBank.Buffers.Tests
 
 			joined = Slice.JoinBytes(sep, tokens, 0, 0);
 			Assert.That(joined, Is.Not.Null);
-			Assert.That(joined.Length, Is.EqualTo(0));
+			Assert.That(joined.Length, Is.Zero);
 
 			joined = Slice.JoinBytes(sep, [ ], 0, 0);
 			Assert.That(joined, Is.Not.Null);
-			Assert.That(joined.Length, Is.EqualTo(0));
+			Assert.That(joined.Length, Is.Zero);
 
+#pragma warning disable IDE0301
 			joined = Slice.JoinBytes(sep, Enumerable.Empty<Slice>());
 			Assert.That(joined, Is.Not.Null);
-			Assert.That(joined.Length, Is.EqualTo(0));
+			Assert.That(joined.Length, Is.Zero);
+#pragma warning restore IDE0301
 
 			// ReSharper disable AssignNullToNotNullAttribute
 			Assert.That(() => Slice.JoinBytes(sep, default(Slice[])!, 0, 0), Throws.ArgumentNullException);
@@ -2984,7 +2989,7 @@ namespace SnowBank.Buffers.Tests
 				Assert.That(slice, Is.EqualTo(Value("hello world")));
 				Assert.That(buffer, Is.Not.Null);
 				Assert.That(slice.Array, Is.SameAs(buffer));
-				Assert.That(slice.Offset, Is.EqualTo(0));
+				Assert.That(slice.Offset, Is.Zero);
 
 				// reuse the buffer (with a smaller message)
 				var prev = buffer;
@@ -2992,7 +2997,7 @@ namespace SnowBank.Buffers.Tests
 				Assert.That(slice2, Is.EqualTo(Value("foobar")));
 				Assert.That(buffer, Is.SameAs(prev), "Should have reused the same buffer");
 				Assert.That(slice2.Array, Is.SameAs(buffer));
-				Assert.That(slice2.Offset, Is.EqualTo(0));
+				Assert.That(slice2.Offset, Is.Zero);
 				
 				//note: the previous slice should be overwritten !
 				Assert.That(slice, Is.EqualTo(Value("foobarworld")));
@@ -3004,7 +3009,7 @@ namespace SnowBank.Buffers.Tests
 				Assert.That(slice3, Is.EqualTo(big.ToArray().AsSlice()));
 				Assert.That(buffer, Is.Not.SameAs(prev), "Should have use a bigger buffer");
 				Assert.That(slice3.Array, Is.SameAs(buffer));
-				Assert.That(slice3.Offset, Is.EqualTo(0));
+				Assert.That(slice3.Offset, Is.Zero);
 
 				// previous slices should be left unchanged
 				Assert.That(slice, Is.EqualTo(Value("foobarworld")));

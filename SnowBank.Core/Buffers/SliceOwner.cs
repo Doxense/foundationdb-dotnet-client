@@ -98,9 +98,10 @@ namespace System
 		{
 			return
 				  pool == null ? new(data)
-				: data.Count > 0 ? new(data, pool)
+				: data.Count != 0 ? new(data, pool)
 				: CreateEmpty(data, pool);
 
+			[MethodImpl(MethodImplOptions.NoInlining)]
 			static SliceOwner CreateEmpty(Slice data, ArrayPool<byte> pool)
 			{
 				// we must make sure to NEVER return the array of Slice.Empty (which has a Length of 1) to the pool!

@@ -1,8 +1,7 @@
-root = true
 # Editor Config for foundationdb-dotnet-client
 
 # root
-
+root = true
 
 # Global defaults
 [*]
@@ -27,6 +26,10 @@ dotnet_style_qualification_for_property = true:warning
 dotnet_style_qualification_for_method = true:silent
 dotnet_style_qualification_for_event = true:silent
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:silent
+
+# dotnet Analyzers
+dotnet_diagnostic.CA1833.severity = warning
+
 [*.cs]
 csharp_indent_block_contents = true
 csharp_indent_braces = false
