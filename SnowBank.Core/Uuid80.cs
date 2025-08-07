@@ -551,6 +551,47 @@ namespace System
 		public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Uuid80 result)
 			=> TryParse(input, out result);
 
+		/// <summary>Try parsing a UTF-8 string representation of an <see cref="Uuid80"/></summary>
+		[Pure]
+		public static bool TryParse(ReadOnlySpan<byte> utf8Text, out Uuid80 result)
+		{
+			// we support the following formats: "{hex4-hex8-hex8}", "{hex20}", "hex4-hex8-hex8", "hex20" and "base62"
+			// we don't support base10 format, because there is no way to differentiate from hex or base62
+
+			// remove "{...}" if there is any
+			if (utf8Text.Length > 2 && utf8Text[0] == '{' && utf8Text[^1] == '}')
+			{
+				utf8Text = utf8Text[1..^1];
+			}
+
+			switch (utf8Text.Length)
+			{
+				case 0:
+				{ // empty is NOT allowed
+					result = default;
+					return false;
+				}
+				case 20:
+				{ // xxxxxxxxxxxxxxxxxxxx
+					return TryDecode16Unsafe(utf8Text, separator: false, out result);
+				}
+				case 22:
+				{ // xxxx-xxxxxxxx-xxxxxxxx
+					if (utf8Text[4] != '-' || utf8Text[13] != '-')
+					{
+						result = default;
+						return false;
+					}
+					return TryDecode16Unsafe(utf8Text, separator: true, out result);
+				}
+				default:
+				{
+					result = default;
+					return false;
+				}
+			}
+		}
+
 		#endregion
 
 		#region IFormattable...
@@ -846,22 +887,13 @@ namespace System
 		private const int INVALID_CHAR = -1;
 
 		[Pure]
-		private static int CharToHex(char c)
+		private static int CharToHex(char c) => c switch
 		{
-			if (c <= '9')
-			{
-				return c >= '0' ? (c - 48) : INVALID_CHAR;
-			}
-			if (c <= 'F')
-			{
-				return c >= 'A' ? (c - 55) : INVALID_CHAR;
-			}
-			if (c <= 'f')
-			{
-				return c >= 'a' ? (c - 87) : INVALID_CHAR;
-			}
-			return INVALID_CHAR;
-		}
+			<= '9' => c >= '0' ? (c - 48) : INVALID_CHAR,
+			<= 'F' => c >= 'A' ? (c - 55) : INVALID_CHAR,
+			<= 'f' => c >= 'a' ? (c - 87) : INVALID_CHAR,
+			_ => INVALID_CHAR
+		};
 
 		private static bool TryCharsToHex16(ReadOnlySpan<char> chars, out ushort result)
 		{
@@ -869,6 +901,23 @@ namespace System
 			for (int i = 0; i < 4; i++)
 			{
 				int a = CharToHex(chars[i]);
+				if (a == INVALID_CHAR)
+				{
+					result = 0;
+					return false;
+				}
+				word = (word << 4) | a;
+			}
+			result = (ushort) word;
+			return true;
+		}
+
+		private static bool TryCharsToHex16(ReadOnlySpan<byte> chars, out ushort result)
+		{
+			int word = 0;
+			for (int i = 0; i < 4; i++)
+			{
+				int a = CharToHex((char) chars[i]);
 				if (a == INVALID_CHAR)
 				{
 					result = 0;
@@ -897,7 +946,40 @@ namespace System
 			return true;
 		}
 
+		private static bool TryCharsToHex32(ReadOnlySpan<byte> chars, out uint result)
+		{
+			int word = 0;
+			for (int i = 0; i < 8; i++)
+			{
+				int a = CharToHex((char) chars[i]);
+				if (a == INVALID_CHAR)
+				{
+					result = 0;
+					return false;
+				}
+				word = (word << 4) | a;
+			}
+			result = (uint)word;
+			return true;
+		}
+
 		private static bool TryDecode16Unsafe(ReadOnlySpan<char> chars, bool separator, out Uuid80 result)
+		{
+			// aaaabbbbbbbbcccccccc
+			// aaaa-bbbbbbbb-cccccccc
+			if ((!separator || (chars[4] == '-' && chars[13] == '-'))
+			 && TryCharsToHex16(chars, out ushort hi)
+			 && TryCharsToHex32(chars.Slice(separator ? 5 : 4), out uint med)
+			 && TryCharsToHex32(chars.Slice(separator ? 14 : 12), out uint lo))
+			{
+				result = new(hi, med, lo);
+				return true;
+			}
+			result = default(Uuid80);
+			return false;
+		}
+
+		private static bool TryDecode16Unsafe(ReadOnlySpan<byte> chars, bool separator, out Uuid80 result)
 		{
 			// aaaabbbbbbbbcccccccc
 			// aaaa-bbbbbbbb-cccccccc

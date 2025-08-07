@@ -552,6 +552,63 @@ namespace System
 			}
 		}
 
+		/// <summary>Tries to parse a span of UTF-8 bytes into a <see cref="Uuid64"/></summary>
+		/// <param name="utf8Text">The span of characters to parse.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="utf8Text" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="utf8Text" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[Pure]
+		public static bool TryParse(ReadOnlySpan<byte> utf8Text, out Uuid64 result)
+		{
+			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
+			// we don't support base10 format, because there is no way to differentiate from hex or base62
+
+			switch (utf8Text.Length)
+			{
+				case 0:
+				{ // empty is NOT allowed
+					result = default;
+					return false;
+				}
+				case 16:
+				{ // xxxxxxxxxxxxxxxx
+					return TryDecode16Unsafe(utf8Text, separator: false, out result);
+				}
+				case 17:
+				{ // xxxxxxxx-xxxxxxxx
+					if (utf8Text[8] != '-')
+					{
+						result = default;
+						return false;
+					}
+
+					return TryDecode16Unsafe(utf8Text, separator: true, out result);
+				}
+				case 18:
+				{ // {xxxxxxxxxxxxxxxx}
+					if (utf8Text[0] != '{' || utf8Text[17] != '}')
+					{
+						result = default;
+						return false;
+					}
+					return TryDecode16Unsafe(utf8Text[1..^1], separator: false, out result);
+				}
+				case 19:
+				{ // {xxxxxxxx-xxxxxxxx}
+					if (utf8Text[0] != '{' || utf8Text[18] != '}')
+					{
+						result = default;
+						return false;
+					}
+					return TryDecode16Unsafe(utf8Text[1..^1], separator: true, out result);
+				}
+				default:
+				{
+					result = default;
+					return false;
+				}
+			}
+		}
+
 		/// <summary>Tries to parse a base-62 encoded literal into a <see cref="Uuid64"/></summary>
 		public static bool TryParseBase62(string? input, out Uuid64 result)
 		{
@@ -1115,7 +1172,37 @@ namespace System
 			return true;
 		}
 
+		private static bool TryCharsToHexUnsafe(ReadOnlySpan<byte> chars, out uint result)
+		{
+			int word = 0;
+			for (int i = 0; i < 8; i++)
+			{
+				int a = CharToHex((char) chars[i]);
+				if (a == INVALID_CHAR)
+				{
+					result = 0;
+					return false;
+				}
+				word = (word << 4) | a;
+			}
+			result = (uint)word;
+			return true;
+		}
+
 		private static bool TryDecode16Unsafe(ReadOnlySpan<char> chars, bool separator, out Uuid64 result)
+		{
+			if ((!separator || chars[8] == '-')
+			 && TryCharsToHexUnsafe(chars, out uint hi)
+			 && TryCharsToHexUnsafe(chars.Slice(separator ? 9 : 8), out uint lo))
+			{
+				result = new(((ulong)hi << 32) | lo);
+				return true;
+			}
+			result = default(Uuid64);
+			return false;
+		}
+
+		private static bool TryDecode16Unsafe(ReadOnlySpan<byte> chars, bool separator, out Uuid64 result)
 		{
 			if ((!separator || chars[8] == '-')
 			 && TryCharsToHexUnsafe(chars, out uint hi)

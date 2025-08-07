@@ -541,7 +541,80 @@ namespace System
 				}
 			}
 
+
 			static bool TryDecode16Unsafe(ReadOnlySpan<char> chars, bool separator, out Uuid48 result)
+			{
+				if ((!separator || chars[4] == '-')
+				    && ushort.TryParse(chars[..4], NumberStyles.HexNumber, null, out ushort hi)
+				    && uint.TryParse(chars[(separator ? 5 : 4)..], NumberStyles.HexNumber, null, out uint lo))
+				{
+					result = new Uuid48(hi, lo);
+					return true;
+				}
+				result = default(Uuid48);
+				return false;
+			}
+
+		}
+
+		/// <summary>Tries to parse a span of characters into a <see cref="Uuid48"/></summary>
+		/// <param name="utf8Text">The span of characters to parse.</param>
+		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="utf8Text" />, or an undefined value on failure.</param>
+		/// <returns> <see langword="true" /> if <paramref name="utf8Text" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
+		[Pure]
+		public static bool TryParse(ReadOnlySpan<byte> utf8Text, out Uuid48 result)
+		{
+			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
+			// we don't support base10 format, because there is no way to differentiate from hex or base62
+
+			switch (utf8Text.Length)
+			{
+				case 0:
+				{ // empty is NOT allowed
+					result = default;
+					return false;
+				}
+				case 12:
+				{ // xxxxxxxxxxxx
+					return TryDecode16Unsafe(utf8Text, separator: false, out result);
+				}
+				case 13:
+				{ // xxxx-xxxxxxxx
+					if (utf8Text[4] != '-')
+					{
+						result = default;
+						return false;
+					}
+
+					return TryDecode16Unsafe(utf8Text, separator: true, out result);
+				}
+				case 14:
+				{ // {xxxxxxxxxxxx}
+					if (utf8Text[0] != '{' || utf8Text[13] != '}')
+					{
+						result = default;
+						return false;
+					}
+					return TryDecode16Unsafe(utf8Text[1..^1], separator: false, out result);
+				}
+				case 15:
+				{ // {xxxx-xxxxxxxx}
+					if (utf8Text[0] != '{' || utf8Text[5] != '-' || utf8Text[14] != '}')
+					{
+						result = default;
+						return false;
+					}
+					return TryDecode16Unsafe(utf8Text[1..^1], separator: true, out result);
+				}
+				default:
+				{
+					result = default;
+					return false;
+				}
+			}
+
+
+			static bool TryDecode16Unsafe(ReadOnlySpan<byte> chars, bool separator, out Uuid48 result)
 			{
 				if ((!separator || chars[4] == '-')
 				    && ushort.TryParse(chars[..4], NumberStyles.HexNumber, null, out ushort hi)

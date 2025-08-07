@@ -593,6 +593,42 @@ namespace System
 		public static bool TryParse(ReadOnlySpan<char> input, IFormatProvider? provider, out Uuid96 result)
 			=> TryParse(input, out result);
 
+		/// <summary>Try parsing a UTF-8 string representation of an Uuid96</summary>
+		[Pure]
+		public static bool TryParse(ReadOnlySpan<byte> utf8Text, out Uuid96 result)
+		{
+			// we support the following formats: "{hex8-hex8}", "{hex16}", "hex8-hex8", "hex16" and "base62"
+			// we don't support base10 format, because there is no way to differentiate from hex or base62
+
+			// remove "{...}" if there is any
+			if (utf8Text.Length > 2 && utf8Text[0] == '{' && utf8Text[^1] == '}')
+			{
+				utf8Text = utf8Text.Slice(1, utf8Text.Length - 2);
+			}
+
+			result = default(Uuid96);
+			switch (utf8Text.Length)
+			{
+				case 0:
+				{ // empty
+					return true;
+				}
+				case 24:
+				{ // xxxxxxxxxxxxxxxxxxxxxxxx
+					return TryDecode16Unsafe(utf8Text, separator: false, out result);
+				}
+				case 26:
+				{ // xxxxxxxx-xxxxxxxx-xxxxxxxx
+					if (utf8Text[8] != '-' || utf8Text[17] != '-') return false;
+					return TryDecode16Unsafe(utf8Text, separator: true, out result);
+				}
+				default:
+				{
+					return false;
+				}
+			}
+		}
+
 		#endregion
 
 		#region IFormattable...
@@ -902,6 +938,23 @@ namespace System
 			return true;
 		}
 
+		private static bool TryCharsToHex32(ReadOnlySpan<byte> chars, out uint result)
+		{
+			int word = 0;
+			for (int i = 0; i < 8; i++)
+			{
+				int a = CharToHex((char) chars[i]);
+				if (a == INVALID_CHAR)
+				{
+					result = 0;
+					return false;
+				}
+				word = (word << 4) | a;
+			}
+			result = (uint)word;
+			return true;
+		}
+
 		private static bool TryDecode16Unsafe(ReadOnlySpan<char> chars, bool separator, out Uuid96 result)
 		{
 			// aaaaaaaabbbbbbbbcccccccc
@@ -910,6 +963,22 @@ namespace System
 			 && TryCharsToHex32(chars, out uint hi)
 			 && TryCharsToHex32(chars.Slice(separator ? 9 : 8), out uint med)
 			 && TryCharsToHex32(chars.Slice(separator ? 18 : 16), out uint lo))
+			{
+				result = new Uuid96(hi, med, lo);
+				return true;
+			}
+			result = default(Uuid96);
+			return false;
+		}
+
+		private static bool TryDecode16Unsafe(ReadOnlySpan<byte> chars, bool separator, out Uuid96 result)
+		{
+			// aaaaaaaabbbbbbbbcccccccc
+			// aaaaaaaa-bbbbbbbb-cccccccc
+			if ((!separator || (chars[8] == '-' && chars[17] == '-'))
+			    && TryCharsToHex32(chars, out uint hi)
+			    && TryCharsToHex32(chars.Slice(separator ? 9 : 8), out uint med)
+			    && TryCharsToHex32(chars.Slice(separator ? 18 : 16), out uint lo))
 			{
 				result = new Uuid96(hi, med, lo);
 				return true;
