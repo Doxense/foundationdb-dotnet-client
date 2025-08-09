@@ -45,6 +45,86 @@ namespace SnowBank.Testing
 	using SnowBank.Runtime.Converters;
 	using ILogger = Microsoft.Extensions.Logging.ILogger;
 
+	internal static class SimpleTestContractFailureInterceptor
+	{
+
+		static SimpleTestContractFailureInterceptor()
+		{
+			Contract.ContractFailed += ((sender, args) =>
+			{
+				var st = new StackTrace(skipFrames: 2, fNeedFileInfo: true);
+				SimpleTest.Log($"#!# ContractFailed: {args.FailureKind}, condition=\"{args.Condition}\", message=\"{args.Message}\"{Environment.NewLine}{CleanupStackTrace(st)}");
+				if (System.Diagnostics.Debugger.IsAttached) System.Diagnostics.Debugger.Break();
+			});
+		}
+
+		public static void InterceptContractFailures()
+		{
+			// this is just here so that the static ctor has a chance to run
+		}
+
+		public static string CleanupStackTrace(StackTrace st)
+		{
+			var sb = new StringBuilder();
+			int skipped = 0;
+			foreach (var line in st.ToString().Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries))
+			{
+				if (string.IsNullOrWhiteSpace(line)) continue;
+				if (line.Contains(" NUnit.Framework.", StringComparison.Ordinal)
+				 || line.Contains(" System.Threading.")
+				 || line.Contains(" System.Reflection.")
+				 || line.Contains(" SnowBank.Diagnostics.Contracts.Contract.")
+				 || line.Contains(" System.Delegate.")
+				 || line.Contains(" InvokeStub_ActualValueDelegate")
+				)
+				{
+					++skipped;
+					continue;
+				}
+
+				if (skipped > 0)
+				{
+					sb.AppendLine($"   ... (omitted {skipped:N0})");
+					skipped = 0;
+				}
+
+				string l = line;
+				int p;
+
+				if ((p = l.IndexOf(".<>c.", StringComparison.Ordinal)) > 0)
+				{
+					l = l[..p] + l[(p + 4)..];
+				}
+
+				if ((p = l.IndexOf(".<>c__DisplayClass", StringComparison.Ordinal)) > 0)
+				{
+					int q = l.IndexOf('.', p + ".<>c__DisplayClass".Length);
+					if (p > 0) l = l[..p] + l[q..];
+				}
+
+				if ((p = l.IndexOf(">b__", StringComparison.Ordinal)) > 0)
+				{
+					int q = l.AsSpan(0, p).LastIndexOf(".<");
+					int r = l.IndexOf('(');
+					if (q > 0 && r > q)
+					{
+						int s = l.IndexOf(')', r);
+						if (s > r)
+						{
+							l = l[..(q + 1)] + l[(q + 2)..p] + l[r..(s + 1)] + ".<lambda_" + l[(p + 4)..r] + ">" + l[(s + 1)..];
+						}
+					}
+				}
+
+				sb.AppendLine(l);
+			}
+
+			if (sb.Length >= Environment.NewLine.Length) sb.Length -= Environment.NewLine.Length;
+			return sb.ToString();
+		}
+
+	}
+
 	/// <summary>Base class for simple unit tests. Provides a set of useful services (logging, cancellation, async helpers, ...)</summary>
 	[DebuggerNonUserCode]
 	[PublicAPI]
@@ -103,6 +183,7 @@ namespace SnowBank.Testing
 		[OneTimeSetUp][DebuggerNonUserCode]
 		public static void BeforeEverything()
 		{
+			SimpleTestContractFailureInterceptor.InterceptContractFailures();
 			WriteToLog(CultureInfo.InvariantCulture, $"### {TestContext.CurrentContext.Test.ClassName} [START] @ {DateTime.Now.TimeOfDay}");
 		}
 
@@ -144,6 +225,9 @@ namespace SnowBank.Testing
 		/// <summary>Override this method to insert your own setup logic that should run before each test in this class.</summary>
 		protected virtual void OnBeforeEachTest()
 		{ }
+
+		/// <summary>Remove test-framework related frames from a capture <see cref="StackTrace"/></summary>
+		protected static string CleanupStackTrace(StackTrace st) => SimpleTestContractFailureInterceptor.CleanupStackTrace(st);
 
 		private List<Action<TestContext>> FailedCallbacks { get; } = [ ];
 
@@ -776,6 +860,7 @@ namespace SnowBank.Testing
 			}
 		}
 
+		[StackTraceHidden]
 		private async Task<TResult> WaitForInternal<TResult>(Task<TResult> task, TimeSpan delay, Action? onTimeout, string? message, string taskExpression)
 		{
 			bool? success = null;

@@ -1130,6 +1130,22 @@ namespace SnowBank.Diagnostics.Contracts
 			return new ContractException(kind, str, msg, conditionText, null);
 		}
 
+
+		/// <summary>
+		/// Allows a managed application environment such as an interactive interpreter (IronPython)
+		/// to be notified of contract failures and
+		/// potentially "handle" them, either by throwing a particular exception type, etc.  If any of the
+		/// event handlers sets the Cancel flag in the ContractFailedEventArgs, then the Contract class will
+		/// not pop up an assert dialog box or trigger escalation policy.  Hooking this event requires
+		/// full trust, because it will inform you of bugs in the appdomain and because the event handler
+		/// could allow you to continue execution.
+		/// </summary>
+		public static event EventHandler<SDC.ContractFailedEventArgs>? ContractFailed
+		{
+			add => SDC.Contract.ContractFailed += value;
+			remove => SDC.Contract.ContractFailed -= value;
+		}
+
 		#endregion
 
 	}
