@@ -110,12 +110,14 @@ namespace SnowBank.Data.Tuples
 
 		object? IReadOnlyList<object?>.this[int index] => this[index];
 
-		object? IVarTuple.this[int index] => this[index];
-
 		object? System.Runtime.CompilerServices.ITuple.this[int index] => this[index];
+
+		/// <inheritdoc />
+		object? IVarTuple.this[int index] => this[index];
 
 		public T this[int index] => m_items.Span[TupleHelpers.MapIndex(index, m_items.Length)];
 
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
@@ -151,9 +153,12 @@ namespace SnowBank.Data.Tuples
 		}
 
 		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
-		{
-			return TypeConverters.ConvertBoxed<TItem>(this[index]);
-		}
+			=> TypeConverters.ConvertBoxed<TItem>(this[index]);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
+			=> Get<TItem>(index.GetOffset(this.Count));
 
 		public TItem? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 		{

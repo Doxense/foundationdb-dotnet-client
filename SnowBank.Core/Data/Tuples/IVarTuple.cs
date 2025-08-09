@@ -38,7 +38,7 @@ namespace SnowBank.Data.Tuples
 		// Tuples should, by default, behave as closely to Python's tuples as possible. See http://docs.python.org/2/tutorial/datastructures.html#tuples-and-sequences
 
 		// Implementation notes:
-		// - Tuples are an immutable list of "objects", that can be indexed from the start or the end (negative indexes)
+		// - Tuples are equivalent to an immutable list of "objects"
 		// - Unless specified otherwise, end offsets are usually EXCLUDED.
 		// - Appending to a tuple returns a new tuple (does not mutate the previous)
 		// - Getting the substring of a tuple return a new tuple that tries to reuse the objects of the parent tuple
@@ -58,7 +58,7 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Returns the element at the specified index</summary>
 		/// <param name="index">Index of the element to return.</param>
 		//TODO: REVIEW: consider dropping the negative indexing? We have Index now for this use-case!
-		//TODO: REVIEW: why do we need this "new" overload? it looks the same as on IReadOnlyList<object?>... ?
+		//note: we need to repeat this property getter, otherwise "((IVarTuple) x)[123]" will call this[Index] instead!
 		new object? this[int index] { get; }
 
 		/// <summary>Returns a section of the tuple</summary>
@@ -70,6 +70,7 @@ namespace SnowBank.Data.Tuples
 		/// <para>If the range does not intersect with the tuple, the <see cref="STuple.Empty">empty tuple</see> will be returned.</para>
 		/// </returns>
 		//TODO: REVIEW: consider marking this overload as obsolete or even removing it, since we now have Range for this use case?
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		IVarTuple this[int? fromIncluded, int? toExcluded] { [Pure] get; }
 
 		/// <summary>Returns the element at the specified index</summary>
@@ -82,17 +83,30 @@ namespace SnowBank.Data.Tuples
 
 		/// <summary>Returns the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="TItem">Expected type of the item</typeparam>
-		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
+		/// <param name="index">Position of the item</param>
 		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
-		/// <example>
+		/// <remarks><code lang="c#">
 		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;string&gt;(0) => "Hello"</c></para>
-		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;int&gt;(-1) => 123</c></para>
-		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"</c></para>
-		/// </example>
+		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;int&gt;(2) => 123</c></para>
+		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;string&gt;(2) => "123"</c></para>
+		/// </code></remarks>
 		//REVIEW: consider dropping the negative indexing? We have Index now for this use-case!
 		[Pure]
 		TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index);
+
+		/// <summary>Returns the typed value of an item of the tuple, given its position</summary>
+		/// <typeparam name="TItem">Expected type of the item</typeparam>
+		/// <param name="index">Position of the item</param>
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
+		/// <remarks><code lang="c#">
+		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;string&gt;(0) => "Hello"</c></para>
+		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;int&gt;(^1) => 123</c></para>
+		/// <para><c>STuple.Create("Hello", "World", 123,).Get&lt;string&gt;(^1) => "123"</c></para>
+		/// </code></remarks>
+		[Pure]
+		TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index);
 
 		/// <summary>Returns the type value of the first item of the tuple</summary>
 		TItem? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>();
@@ -100,18 +114,20 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Returns the type value of the last item of the tuple</summary>
 		TItem? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>();
 
-		/// <summary>Creates a new Tuple by appending a single new value at the end of this tuple</summary>
-		/// <typeparam name="TItem">Type of the new value</typeparam>
-		/// <param name="value">Value that will be appended at the end</param>
-		/// <returns>New tuple with the new value</returns>
-		/// <example><c>STuple.Create("Hello").Append("World")</c> => <c>("Hello", "World")</c></example>
-		/// <remarks>If <typeparamref name="TItem"/> is an <see cref="IVarTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IVarTuple.Concat"/></remarks>
+		/// <summary>Returns a new Tuple by that contains the element of this tuple, with an extra item at the end</summary>
+		/// <typeparam name="TItem">Type of the new item</typeparam>
+		/// <param name="value">Value of the item that will be appended at the end</param>
+		/// <returns>New tuple with the extra item</returns>
+		/// <remarks>
+		/// <para>If <typeparamref name="TItem"/> is an <see cref="IVarTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IVarTuple.Concat"/></para>
+		/// <para>Example: <code><c>STuple.Create("Hello").Append("World")</c> => <c>("Hello", "World")</c></code></para>
+		/// </remarks>
 		[Pure]
 		IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(TItem value);
 
-		/// <summary>Creates a new Tuple by appending the items of another tuple at the end of this tuple</summary>
+		/// <summary>Returns a new Tuple by appending the items of another tuple at the end of this tuple</summary>
 		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
-		/// <returns>New tuple with the new values, or the same instance if <paramref name="tuple"/> is empty.</returns>
+		/// <returns>New tuple, or the same instance if <paramref name="tuple"/> is empty.</returns>
 		[Pure]
 		IVarTuple Concat(IVarTuple tuple);
 

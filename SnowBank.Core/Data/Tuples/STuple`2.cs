@@ -59,7 +59,8 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Second element of the pair</summary>
 		public readonly T2 Item2;
 
-		[DebuggerStepThrough]
+		/// <summary>Constructs a <see cref="STuple{T1,T2}"/></summary>
+		[SkipLocalsInit, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public STuple(T1 item1, T2 item2)
 		{
 			this.Item1 = item1;
@@ -68,28 +69,23 @@ namespace SnowBank.Data.Tuples
 
 		public int Count => 2;
 
-		object? IReadOnlyList<object?>.this[int index] => ((IVarTuple) this)[index];
+		object? IReadOnlyList<object?>.this[int index] => this[index];
 
-		object? IVarTuple.this[int index]
+		[Pure, EditorBrowsable(EditorBrowsableState.Never)]
+		public object? this[int index] => index switch
 		{
-			get
-			{
-				switch (index)
-				{
-					case 0: case -2: return this.Item1;
-					case 1: case -1: return this.Item2;
-					default: return TupleHelpers.FailIndexOutOfRange<object>(index, 2);
-				}
-			}
-		}
-
+			0 or -2 => this.Item1,
+			1 or -1 => this.Item2,
+			_ => TupleHelpers.FailIndexOutOfRange<object>(index, 2)
+		};
 
 		/// <inheritdoc />
 		int ITuple.Length => 2;
 
 		/// <inheritdoc />
-		object? ITuple.this[int index] => ((IVarTuple) this)[index];
+		object? ITuple.this[int index] => this[index];
 
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]

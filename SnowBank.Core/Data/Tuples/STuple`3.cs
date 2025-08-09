@@ -63,7 +63,8 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Third and last element of the triplet</summary>
 		public readonly T3 Item3;
 
-		[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>Constructs a <see cref="STuple{T1,T2,T3}"/></summary>
+		[SkipLocalsInit, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public STuple(T1 item1, T2 item2, T3 item3)
 		{
 			this.Item1 = item1;
@@ -73,9 +74,12 @@ namespace SnowBank.Data.Tuples
 
 		public int Count => 3;
 
-		object? IReadOnlyList<object?>.this[int index] => ((IVarTuple) this)[index];
+		/// <inheritdoc />
+		object? IReadOnlyList<object?>.this[int index] => this[index];
 
-		object? IVarTuple.this[int index] => index switch
+		/// <summary>Returns the element at the specified index</summary>
+		[Pure, EditorBrowsable(EditorBrowsableState.Never)]
+		public object? this[int index] => index switch
 		{
 			0  => this.Item1,
 			1  => this.Item2,
@@ -90,8 +94,9 @@ namespace SnowBank.Data.Tuples
 		int ITuple.Length => 3;
 
 		/// <inheritdoc />
-		object? ITuple.this[int index] => ((IVarTuple) this)[index];
+		object? ITuple.this[int index] => this[index];
 
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -27,6 +27,8 @@
 namespace SnowBank.Data.Tuples.Binary
 {
 	using System.Collections;
+	using System.ComponentModel;
+
 	using SnowBank.Buffers;
 	using SnowBank.Buffers.Text;
 	using SnowBank.Runtime.Converters;
@@ -39,9 +41,11 @@ namespace SnowBank.Data.Tuples.Binary
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
-		private readonly Slice m_prefix;
+		private readonly Slice m_prefix
+			;
 		private readonly IVarTuple m_items;
 
+		[SkipLocalsInit, MethodImpl(MethodImplOptions.AggressiveInlining), DebuggerNonUserCode]
 		public PrefixedTuple(Slice prefix, IVarTuple items)
 		{
 			Contract.Debug.Requires(!prefix.IsNull && items != null);
@@ -110,32 +114,46 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <inheritdoc />
 		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
 
+		/// <inheritdoc cref="IVarTuple.this[int]" />
 		public object? this[int index] => m_items[index];
 
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => m_items[fromIncluded, toExcluded];
 		//REVIEW: should we allow this? this silently drops the prefix from the result...
 
+		/// <inheritdoc />
 		public object? this[Index index] => m_items[index];
 
+		/// <inheritdoc />
 		public IVarTuple this[Range range] => m_items[range];
 		//REVIEW: should we allow this? this silently drops the prefix from the result...
 
-		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int index)
-			=> m_items.Get<T>(index);
+		/// <inheritdoc />
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
+			=> m_items.Get<TItem>(index);
 
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
+			=> m_items.Get<TItem>(index);
+
+		/// <inheritdoc />
 		public T? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 			=> m_items.GetFirst<T>();
 
+		/// <inheritdoc />
 		public T? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 			=> m_items.GetLast<T>();
 
+		/// <inheritdoc />
 		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T value)
-			where T : default => Append<T>(value);
+			where T : default
+			=> Append<T>(value);
 
+		/// <inheritdoc />
 		IVarTuple IVarTuple.Concat(IVarTuple tuple)
-		{
-			return Concat(tuple);
-		}
+			=> Concat(tuple);
 
 		public PrefixedTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T value)
 		{
@@ -151,16 +169,19 @@ namespace SnowBank.Data.Tuples.Binary
 			return new PrefixedTuple(m_prefix, m_items.Concat(tuple));
 		}
 
+		/// <inheritdoc />
 		public void CopyTo(object?[] array, int offset)
 		{
 			m_items.CopyTo(array, offset);
 		}
 
+		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
 			return m_items.GetEnumerator();
 		}
 
+		/// <inheritdoc />
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
 			return this.GetEnumerator();
@@ -179,27 +200,33 @@ namespace SnowBank.Data.Tuples.Binary
 			return STuple.Formatter.ToString(this);
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(IVarTuple? other)
-		{
-			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
-		}
+			=> !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 
+		/// <inheritdoc />
 		public override int GetHashCode()
-		{
-			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
-		}
+			=> ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 
-		public int CompareTo(IVarTuple? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+		/// <inheritdoc />
+		public int CompareTo(IVarTuple? other)
+			=> TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
 
-		public int CompareTo(object? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
+		/// <inheritdoc />
+		public int CompareTo(object? other)
+			=> TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
 
-		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => TupleHelpers.Compare(this, other, comparer);
+		/// <inheritdoc />
+		int IStructuralComparable.CompareTo(object? other, IComparer comparer)
+			=> TupleHelpers.Compare(this, other, comparer);
 
+		/// <inheritdoc />
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			if (object.ReferenceEquals(this, other)) return true;
@@ -229,18 +256,16 @@ namespace SnowBank.Data.Tuples.Binary
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
+		/// <inheritdoc />
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
-		{
-			return HashCode.Combine(
+			=> HashCode.Combine(
 				m_prefix.GetHashCode(),
 				comparer.GetHashCode(m_items)
 			);
-		}
 
+		/// <inheritdoc />
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
-		{
-			return m_items.GetItemHashCode(index, comparer);
-		}
+			=> m_items.GetItemHashCode(index, comparer);
 
 	}
 }

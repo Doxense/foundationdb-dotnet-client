@@ -59,22 +59,22 @@ namespace SnowBank.Data.Tuples
 		public int Count => 0;
 
 		/// <inheritdoc />
-		object IReadOnlyList<object?>.this[int index] => throw new InvalidOperationException("Tuple is empty");
-
-		/// <inheritdoc />
-		object IVarTuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
+		object IReadOnlyList<object?>.this[int index] => throw TupleHelpers.FailTupleIsEmpty();
 
 		/// <inheritdoc />
 		int System.Runtime.CompilerServices.ITuple.Length => 0;
 
 		/// <inheritdoc />
-		object System.Runtime.CompilerServices.ITuple.this[int index] => throw new InvalidOperationException("Tuple is empty");
+		object System.Runtime.CompilerServices.ITuple.this[int index] => throw TupleHelpers.FailTupleIsEmpty();
 
 		//REVIEW: should we throw if from/to are not null, 0 or -1 ?
 		IVarTuple IVarTuple.this[int? from, int? to] => this;
 
 		/// <inheritdoc />
-		object IVarTuple.this[Index index] => TupleHelpers.FailIndexOutOfRange<object>(index, 0);
+		object IVarTuple.this[int index] => throw TupleHelpers.FailTupleIsEmpty();
+
+		/// <inheritdoc />
+		object IVarTuple.this[Index index] => throw TupleHelpers.FailTupleIsEmpty();
 
 		/// <inheritdoc />
 		IVarTuple IVarTuple.this[Range range]
@@ -87,16 +87,16 @@ namespace SnowBank.Data.Tuples
 		}
 
 		/// <inheritdoc />
-		TItem IVarTuple.Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
-			=> throw TupleHelpers.FailTupleIsEmpty();
+		TItem IVarTuple.Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index) => throw TupleHelpers.FailTupleIsEmpty();
 
 		/// <inheritdoc />
-		TItem IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
-			=> throw TupleHelpers.FailTupleIsEmpty();
+		TItem IVarTuple.Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index) => throw TupleHelpers.FailTupleIsEmpty();
 
 		/// <inheritdoc />
-		TItem IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
-			=> throw TupleHelpers.FailTupleIsEmpty();
+		TItem IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>() => throw TupleHelpers.FailTupleIsEmpty();
+
+		/// <inheritdoc />
+		TItem IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>() => throw TupleHelpers.FailTupleIsEmpty();
 
 		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

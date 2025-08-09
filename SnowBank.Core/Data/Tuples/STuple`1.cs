@@ -55,32 +55,31 @@ namespace SnowBank.Data.Tuples
 		/// <summary>First and only item in the tuple</summary>
 		public readonly T1 Item1;
 
-		[DebuggerStepThrough]
+		/// <summary>Constructs a <see cref="STuple{T1}"/></summary>
+		[SkipLocalsInit, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public STuple(T1 item1)
 		{
 			this.Item1 = item1;
 		}
 
+		/// <inheritdoc />
 		public int Count => 1;
 
-		object? IReadOnlyList<object?>.this[int index] => ((IVarTuple) this)[index];
+		/// <summary>Returns the element at the specified index</summary>
+		[Pure, EditorBrowsable(EditorBrowsableState.Never)]
+		public object? this[int index]
+			=> index is 0 or -1 ? this.Item1 : TupleHelpers.FailIndexOutOfRange<object>(index, 1);
 
-		object? IVarTuple.this[int index]
-		{
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-			get
-			{
-				if (index > 0 || index < -1) return TupleHelpers.FailIndexOutOfRange<object>(index, 1);
-				return this.Item1;
-			}
-		}
+		/// <inheritdoc />
+		object? IReadOnlyList<object?>.this[int index] => this[index];
 
 		/// <inheritdoc />
 		int ITuple.Length => 1;
 
 		/// <inheritdoc />
-		object? ITuple.this[int index] => ((IVarTuple) this)[index];
+		object? ITuple.this[int index] => this[index];
 
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
 		object? IVarTuple.this[Index index] => index.GetOffset(1) switch
@@ -98,15 +97,15 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
-		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
-		/// <typeparam name="TItem">Expected type of the item</typeparam>
-		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
-		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
-		{
-			if (index is > 0 or < -1) return TupleHelpers.FailIndexOutOfRange<TItem>(index, 1);
-			return TypeConverters.Convert<T1, TItem?>(this.Item1);
-		}
+			=> index is 0 or -1 ? TypeConverters.Convert<T1, TItem?>(this.Item1) : TupleHelpers.FailIndexOutOfRange<TItem>(index, 1);
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
+			=> Get<TItem>(index.GetOffset(1));
 
 		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);

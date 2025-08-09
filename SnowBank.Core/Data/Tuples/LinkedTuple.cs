@@ -114,6 +114,11 @@ namespace SnowBank.Data.Tuples
 			if (index < -1) index++;
 			return this.Head.Get<TItem>(index);
 		}
+		
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
+			=> Get<TItem>(index.GetOffset(this.Count));
 
 		public TItem? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			=> this.HeadCount > 0 ? this.Head.GetFirst<TItem>() : TypeConverters.Convert<T, TItem?>(this.Tail);

@@ -67,8 +67,8 @@ namespace SnowBank.Data.Tuples
 		/// <summary>Fourth and last element of the quartet</summary>
 		public readonly T4 Item4;
 
-		/// <summary>Create a tuple containing for items</summary>
-		[DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		/// <summary>Constructs a <see cref="STuple{T1,T2,T3,T4}"/></summary>
+		[SkipLocalsInit, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public STuple(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			this.Item1 = item1;
@@ -81,10 +81,11 @@ namespace SnowBank.Data.Tuples
 		public int Count => 4;
 
 		/// <summary>Return the Nth item in this tuple</summary>
-		object? IReadOnlyList<object?>.this[int index] => ((IVarTuple) this)[index];
+		object? IReadOnlyList<object?>.this[int index] => this[index];
 
-		/// <summary>Return the Nth item in this tuple</summary>
-		object? IVarTuple.this[int index] => index switch
+		/// <summary>Returns the element at the specified index</summary>
+		[Pure, EditorBrowsable(EditorBrowsableState.Never)]
+		public object? this[int index] => index switch
 		{
 			0  => this.Item1,
 			1  => this.Item2,
@@ -101,8 +102,9 @@ namespace SnowBank.Data.Tuples
 		int ITuple.Length => 4;
 
 		/// <inheritdoc />
-		object? ITuple.this[int index] => ((IVarTuple) this)[index];
+		object? ITuple.this[int index] => this[index];
 
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -165,6 +167,11 @@ namespace SnowBank.Data.Tuples
 			-4 => TypeConverters.Convert<T1, TItem?>(this.Item1),
 			_  => TupleHelpers.FailIndexOutOfRange<TItem>(index, 4)
 		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
+			=> Get<TItem>(index.GetOffset(4));
 
 		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);

@@ -1394,14 +1394,15 @@ namespace SnowBank.Data.Tuples.Tests
 		{
 			//note: we would like to phase out negative indexing in the future, but for now we have to still support and test it!
 
+			Assert.Multiple(() =>
 			{
 				var t1 = STuple.Create("hello world");
 				Log(t1);
 				Assert.That(t1.Get<string>(-1), Is.EqualTo("hello world"));
-				Assert.That(((IVarTuple) t1)[-1], Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t1)[^1], Is.EqualTo("hello world"));
-			}
+			});
 
+			Assert.Multiple(() =>
 			{
 				var t2 = STuple.Create("hello world", 123);
 				Log(t2);
@@ -1409,12 +1410,11 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(t2.Get<string>(-2), Is.EqualTo("hello world"));
 				Assert.That(t2.Get<int>(^1), Is.EqualTo(123));
 				Assert.That(t2.Get<string>(^2), Is.EqualTo("hello world"));
-				Assert.That(((IVarTuple) t2)[-1], Is.EqualTo(123));
-				Assert.That(((IVarTuple) t2)[-2], Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t2)[^1], Is.EqualTo(123));
 				Assert.That(((IVarTuple) t2)[^2], Is.EqualTo("hello world"));
-			}
+			});
 
+			Assert.Multiple(() =>
 			{
 				var t3 = STuple.Create("hello world", 123, false);
 				Log(t3);
@@ -1424,14 +1424,12 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(t3.Get<bool>(^1), Is.False);
 				Assert.That(t3.Get<int>(^2), Is.EqualTo(123));
 				Assert.That(t3.Get<string>(^3), Is.EqualTo("hello world"));
-				Assert.That(((IVarTuple) t3)[-1], Is.False);
-				Assert.That(((IVarTuple) t3)[-2], Is.EqualTo(123));
-				Assert.That(((IVarTuple) t3)[-3], Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t3)[^1], Is.False);
 				Assert.That(((IVarTuple) t3)[^2], Is.EqualTo(123));
 				Assert.That(((IVarTuple) t3)[^3], Is.EqualTo("hello world"));
-			}
+			});
 
+			Assert.Multiple(() =>
 			{
 				var t4 = STuple.Create("hello world", 123, false, 1234L);
 				Log(t4);
@@ -1443,16 +1441,13 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(t4.Get<bool>(^2), Is.False);
 				Assert.That(t4.Get<int>(^3), Is.EqualTo(123));
 				Assert.That(t4.Get<string>(^4), Is.EqualTo("hello world"));
-				Assert.That(((IVarTuple) t4)[-1], Is.EqualTo(1234L));
-				Assert.That(((IVarTuple) t4)[-2], Is.False);
-				Assert.That(((IVarTuple) t4)[-3], Is.EqualTo(123));
-				Assert.That(((IVarTuple) t4)[-4], Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t4)[^1], Is.EqualTo(1234L));
 				Assert.That(((IVarTuple) t4)[^2], Is.False);
 				Assert.That(((IVarTuple) t4)[^3], Is.EqualTo(123));
 				Assert.That(((IVarTuple) t4)[^4], Is.EqualTo("hello world"));
-			}
+			});
 
+			Assert.Multiple(() =>
 			{
 				var t5 = STuple.Create("hello world", 123, false, 1234L, -1234);
 				Log(t5);
@@ -1466,18 +1461,14 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(t5.Get<bool>(^3), Is.False);
 				Assert.That(t5.Get<int>(^4), Is.EqualTo(123));
 				Assert.That(t5.Get<string>(^5), Is.EqualTo("hello world"));
-				Assert.That(((IVarTuple) t5)[-1], Is.EqualTo(-1234));
-				Assert.That(((IVarTuple) t5)[-2], Is.EqualTo(1234L));
-				Assert.That(((IVarTuple) t5)[-3], Is.False);
-				Assert.That(((IVarTuple) t5)[-4], Is.EqualTo(123));
-				Assert.That(((IVarTuple) t5)[-5], Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t5)[^1], Is.EqualTo(-1234));
 				Assert.That(((IVarTuple) t5)[^2], Is.EqualTo(1234L));
 				Assert.That(((IVarTuple) t5)[^3], Is.False);
 				Assert.That(((IVarTuple) t5)[^4], Is.EqualTo(123));
 				Assert.That(((IVarTuple) t5)[^5], Is.EqualTo("hello world"));
-			}
+			});
 
+			Assert.Multiple(() =>
 			{
 				var t6 = STuple.Create("hello world", 123, false, 1234L, -1234, "six");
 				Log(t6);
@@ -1493,85 +1484,56 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(t6.Get<bool>(^4), Is.False);
 				Assert.That(t6.Get<int>(^5), Is.EqualTo(123));
 				Assert.That(t6.Get<string>(^6), Is.EqualTo("hello world"));
-				Assert.That(((IVarTuple) t6)[-1], Is.EqualTo("six"));
-				Assert.That(((IVarTuple) t6)[-2], Is.EqualTo(-1234));
-				Assert.That(((IVarTuple) t6)[-3], Is.EqualTo(1234L));
-				Assert.That(((IVarTuple) t6)[-4], Is.False);
-				Assert.That(((IVarTuple) t6)[-5], Is.EqualTo(123));
-				Assert.That(((IVarTuple) t6)[-6], Is.EqualTo("hello world"));
 				Assert.That(((IVarTuple) t6)[^1], Is.EqualTo("six"));
 				Assert.That(((IVarTuple) t6)[^2], Is.EqualTo(-1234));
 				Assert.That(((IVarTuple) t6)[^3], Is.EqualTo(1234L));
 				Assert.That(((IVarTuple) t6)[^4], Is.False);
 				Assert.That(((IVarTuple) t6)[^5], Is.EqualTo(123));
 				Assert.That(((IVarTuple) t6)[^6], Is.EqualTo("hello world"));
-			}
+			});
 
+			Assert.Multiple(() =>
 			{
 				var tn = STuple.Create((object[]) [ "hello world", 123, false, 1234, -1234, "six" ]);
 				Log(tn);
-				Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
-				Assert.That(tn.Get<int>(-2), Is.EqualTo(-1234));
-				Assert.That(tn.Get<long>(-3), Is.EqualTo(1234));
-				Assert.That(tn.Get<bool>(-4), Is.False);
-				Assert.That(tn.Get<int>(-5), Is.EqualTo(123));
-				Assert.That(tn.Get<string>(-6), Is.EqualTo("hello world"));
 				Assert.That(tn.Get<string>(^1), Is.EqualTo("six"));
 				Assert.That(tn.Get<int>(^2), Is.EqualTo(-1234));
 				Assert.That(tn.Get<long>(^3), Is.EqualTo(1234));
 				Assert.That(tn.Get<bool>(^4), Is.False);
 				Assert.That(tn.Get<int>(^5), Is.EqualTo(123));
 				Assert.That(tn.Get<string>(^6), Is.EqualTo("hello world"));
-				Assert.That(tn[-1], Is.EqualTo("six"));
-				Assert.That(tn[-2], Is.EqualTo(-1234));
-				Assert.That(tn[-3], Is.EqualTo(1234));
-				Assert.That(tn[-4], Is.False);
-				Assert.That(tn[-5], Is.EqualTo(123));
-				Assert.That(tn[-6], Is.EqualTo("hello world"));
 				Assert.That(tn[^1], Is.EqualTo("six"));
 				Assert.That(tn[^2], Is.EqualTo(-1234));
 				Assert.That(tn[^3], Is.EqualTo(1234));
 				Assert.That(tn[^4], Is.False);
 				Assert.That(tn[^5], Is.EqualTo(123));
 				Assert.That(tn[^6], Is.EqualTo("hello world"));
-			}
+			});
 
+			Assert.Multiple(() =>
 			{
 				var tn = STuple.Create([ "hello world", 123, false, 1234, -1234, "six" ]);
 				Log(tn);
-				Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
-				Assert.That(tn.Get<int>(-2), Is.EqualTo(-1234));
-				Assert.That(tn.Get<long>(-3), Is.EqualTo(1234));
-				Assert.That(tn.Get<bool>(-4), Is.False);
-				Assert.That(tn.Get<int>(-5), Is.EqualTo(123));
-				Assert.That(tn.Get<string>(-6), Is.EqualTo("hello world"));
 				Assert.That(tn.Get<string>(^1), Is.EqualTo("six"));
 				Assert.That(tn.Get<int>(^2), Is.EqualTo(-1234));
 				Assert.That(tn.Get<long>(^3), Is.EqualTo(1234));
 				Assert.That(tn.Get<bool>(^4), Is.False);
 				Assert.That(tn.Get<int>(^5), Is.EqualTo(123));
 				Assert.That(tn.Get<string>(^6), Is.EqualTo("hello world"));
-				Assert.That(tn[-1], Is.EqualTo("six"));
-				Assert.That(tn[-2], Is.EqualTo(-1234));
-				Assert.That(tn[-3], Is.EqualTo(1234));
-				Assert.That(tn[-4], Is.False);
-				Assert.That(tn[-5], Is.EqualTo(123));
-				Assert.That(tn[-6], Is.EqualTo("hello world"));
 				Assert.That(tn[^1], Is.EqualTo("six"));
 				Assert.That(tn[^2], Is.EqualTo(-1234));
 				Assert.That(tn[^3], Is.EqualTo(1234));
 				Assert.That(tn[^4], Is.False);
 				Assert.That(tn[^5], Is.EqualTo(123));
 				Assert.That(tn[^6], Is.EqualTo("hello world"));
-			}
-
+			});
 		}
 
 		[Test]
 		public void Test_Tuple_First_And_Last()
 		{
 			// tuple.First<T>() should be equivalent to tuple.Get<T>(0)
-			// tuple.Last<T>() should be equivalent to tuple.Get<T>(-1)
+			// tuple.Last<T>() should be equivalent to tuple.Get<T>(^1)
 
 			var t1 = STuple.Create(1);
 			Log(t1);
@@ -2658,7 +2620,7 @@ namespace SnowBank.Data.Tuples.Tests
 			//if (!(t is SlicedTuple))
 			{
 				var u = t.Append("last");
-				Assert.That(u.Get<string>(-1), Is.EqualTo("last"));
+				Assert.That(u.Get<string>(^1), Is.EqualTo("last"));
 				tmp = u.ToArray();
 				for (int i = 0; i < tmp.Length - 1; i++)
 				{
@@ -2679,59 +2641,53 @@ namespace SnowBank.Data.Tuples.Tests
 			Assert.That(tuple.Count, Is.EqualTo(6));
 
 			// get all
-			VerifyTuple("[:]", tuple[null, null], items);
-			VerifyTuple("[:]", tuple[null, 6], items);
-			VerifyTuple("[:]", tuple[0, null], items);
-			VerifyTuple("[:]", tuple[0, 6], items);
-			VerifyTuple("[:]", tuple[0, null], items);
-			VerifyTuple("[:]", tuple[-6, null], items);
-			VerifyTuple("[:]", tuple[-6, 6], items);
+			VerifyTuple("[:]", tuple[..], items);
+			VerifyTuple("[:]", tuple[..6], items);
+			VerifyTuple("[:]", tuple[^6..], items);
+			VerifyTuple("[:]", tuple[^6..6], items);
 
 			// tail
-			VerifyTuple("[n:]", tuple[4, null], [ 456, "bar" ]);
-			VerifyTuple("[n:+]", tuple[4, 6], [ 456, "bar" ]);
-			VerifyTuple("[-n:+]", tuple[-2, 6], [ 456, "bar" ]);
-			VerifyTuple("[-n:-]", tuple[-2, null], [ 456, "bar" ]);
+			VerifyTuple("[n:]", tuple[4..], [ 456, "bar" ]);
+			VerifyTuple("[n:+]", tuple[4..6], [ 456, "bar" ]);
+			VerifyTuple("[-n:+]", tuple[^2..6], [ 456, "bar" ]);
+			VerifyTuple("[-n:-]", tuple[^2..], [ 456, "bar" ]);
 
 			// head
-			VerifyTuple("[:n]", tuple[null, 3], [ "hello", "world", 123 ]);
-			VerifyTuple("[0:n]", tuple[0, 3], [ "hello", "world", 123 ]);
-			VerifyTuple("[0:-n]", tuple[0, -3], [ "hello", "world", 123 ]);
-			VerifyTuple("[-:n]", tuple[-6, 3], [ "hello", "world", 123 ]);
-			VerifyTuple("[-:-n]", tuple[-6, -3], [ "hello", "world", 123 ]);
+			VerifyTuple("[:n]", tuple[..3], [ "hello", "world", 123 ]);
+			VerifyTuple("[0:-n]", tuple[..^3], [ "hello", "world", 123 ]);
+			VerifyTuple("[-:n]", tuple[^6..3], [ "hello", "world", 123 ]);
+			VerifyTuple("[-:-n]", tuple[^6..^3], [ "hello", "world", 123 ]);
 
 			// single
-			VerifyTuple("[0:1]", tuple[0, 1], [ "hello" ]);
-			VerifyTuple("[-6:-5]", tuple[-6, -5], [ "hello" ]);
-			VerifyTuple("[1:2]", tuple[1, 2], [ "world" ]);
-			VerifyTuple("[-5:-4]", tuple[-5, -4], [ "world" ]);
+			VerifyTuple("[0:1]", tuple[0..1], [ "hello" ]);
+			VerifyTuple("[-6:-5]", tuple[^6..^5], [ "hello" ]);
+			VerifyTuple("[1:2]", tuple[1..2], [ "world" ]);
+			VerifyTuple("[-5:-4]", tuple[^5..^4], [ "world" ]);
 			VerifyTuple("[5:6]", tuple[5, 6], [ "bar" ]);
-			VerifyTuple("[-1:]", tuple[-1, null], [ "bar" ]);
+			VerifyTuple("[-1:]", tuple[^1..], [ "bar" ]);
 
 			// chunk
-			VerifyTuple("[2:4]", tuple[2, 4], [ 123, "foo" ]);
-			VerifyTuple("[2:-2]", tuple[2, -2], [ 123, "foo" ]);
-			VerifyTuple("[-4:4]", tuple[-4, 4], [ 123, "foo" ]);
-			VerifyTuple("[-4:-2]", tuple[-4, -2], [ 123, "foo" ]);
+			VerifyTuple("[2:4]", tuple[2..4], [ 123, "foo" ]);
+			VerifyTuple("[2:-2]", tuple[2..^2], [ 123, "foo" ]);
+			VerifyTuple("[-4:4]", tuple[^4..4], [ 123, "foo" ]);
+			VerifyTuple("[-4:-2]", tuple[^4..^2], [ 123, "foo" ]);
 
 			// remove first
-			VerifyTuple("[1:]", tuple[1, null], [ "world", 123, "foo", 456, "bar" ]);
-			VerifyTuple("[1:+]", tuple[1, 6], [ "world", 123, "foo", 456, "bar" ]);
-			VerifyTuple("[-5:]", tuple[-5, null], [ "world", 123, "foo", 456, "bar" ]);
-			VerifyTuple("[-5:+]", tuple[-5, 6], [ "world", 123, "foo", 456, "bar" ]);
+			VerifyTuple("[1:]", tuple[1..], [ "world", 123, "foo", 456, "bar" ]);
+			VerifyTuple("[1:+]", tuple[1..6], [ "world", 123, "foo", 456, "bar" ]);
+			VerifyTuple("[-5:]", tuple[^5..], [ "world", 123, "foo", 456, "bar" ]);
+			VerifyTuple("[-5:+]", tuple[^5..6], [ "world", 123, "foo", 456, "bar" ]);
 
 			// remove last
-			VerifyTuple("[:5]", tuple[null, 5], [ "hello", "world", 123, "foo", 456 ]);
-			VerifyTuple("[:-1]", tuple[null, -1], [ "hello", "world", 123, "foo", 456 ]);
-			VerifyTuple("[0:5]", tuple[0, 5], [ "hello", "world", 123, "foo", 456 ]);
-			VerifyTuple("[0:-1]", tuple[0, -1], [ "hello", "world", 123, "foo", 456 ]);
+			VerifyTuple("[:5]", tuple[..5], [ "hello", "world", 123, "foo", 456 ]);
+			VerifyTuple("[:-1]", tuple[..^1], [ "hello", "world", 123, "foo", 456 ]);
 
 			// out of range
-			VerifyTuple("[2:7]", tuple[2, 7], [ 123, "foo", 456, "bar" ]);
-			VerifyTuple("[2:42]", tuple[2, 42], [ 123, "foo", 456, "bar" ]);
-			VerifyTuple("[2:123456]", tuple[2, 123456], [ 123, "foo", 456, "bar" ]);
-			VerifyTuple("[-7:2]", tuple[-7, 2], [ "hello", "world" ]);
-			VerifyTuple("[-42:2]", tuple[-42, 2], [ "hello", "world" ]);
+			Assert.That(() => tuple[2..7], Throws.Exception);
+			Assert.That(() => tuple[2..42], Throws.Exception);
+			Assert.That(() => tuple[2..123456], Throws.Exception);
+			Assert.That(() => tuple[^7..2], Throws.Exception);
+			Assert.That(() => tuple[^42..2], Throws.Exception);
 		}
 
 		private static object[] GetRange(int fromIncluded, int toExcluded, int count)
@@ -2786,7 +2742,7 @@ namespace SnowBank.Data.Tuples.Tests
 			for (int i = 0; i < N; i++)
 			{
 				if (i % 1000 == 0) Log($"- {100.0 * i / N:N1} %");
-				var len = rnd.Next(tuples.Length);
+				var len = rnd.Next(1, tuples.Length);
 				var tuple = tuples[len];
 				if (tuple.Count != len)
 				{
@@ -2795,41 +2751,32 @@ namespace SnowBank.Data.Tuples.Tests
 
 				var prefix = tuple.ToString();
 
-				//if (rnd.Next(5) == 0)
-				//{ // randomly pack/unpack
-				//	tuple = STuple.Unpack(tuple.ToSlice());
-				//	prefix = "unpacked:" + prefix;
-				//}
-				//else if (rnd.Next(5) == 0)
-				//{ // randomly memoize
-				//	tuple = tuple.Memoize();
-				//	prefix = "memoized:" + prefix;
-				//}
-
 				switch (rnd.Next(6))
 				{
 					case 0:
 					{ // [:+rnd]
 						int x = rnd.Next(len);
-						VerifyTuple($"{prefix}[:{x}]", tuple[null, x], GetRange(0, x, len));
+						VerifyTuple($"{prefix}[:{x}]", tuple[..x], GetRange(0, x, len));
 						break;
 					}
 					case 1:
 					{ // [+rnd:]
 						int x = rnd.Next(len);
-						VerifyTuple($"{prefix}[{x}:]", tuple[x, null], GetRange(x, int.MaxValue, len));
+						VerifyTuple($"{prefix}[{x}:]", tuple[x..], GetRange(x, int.MaxValue, len));
 						break;
 					}
 					case 2:
-					{ // [:-rnd]
-						int x = -1 - rnd.Next(len);
-						VerifyTuple($"{prefix}[:{x}]", tuple[null, x], GetRange(0, len + x, len));
+					{ // [:^rnd]
+						int x = 1 + rnd.Next(len);
+						var p = new Index(x, fromEnd: true);
+						VerifyTuple($"{prefix}[:{x}]", tuple[..p], GetRange(0, len - x, len));
 						break;
 					}
 					case 3:
-					{ // [-rnd:]
-						int x = -1 - rnd.Next(len);
-						VerifyTuple($"{prefix}[{x}:]", tuple[x, null], GetRange(len + x, int.MaxValue, len));
+					{ // [^rnd:]
+						int x = 1 + rnd.Next(len);
+						var p = new Index(x, fromEnd: true);
+						VerifyTuple($"{prefix}[{x}:]", tuple[p..], GetRange(len - x, int.MaxValue, len));
 						break;
 					}
 					case 4:
@@ -2837,15 +2784,18 @@ namespace SnowBank.Data.Tuples.Tests
 						int x = rnd.Next(len);
 						int y;
 						do { y = rnd.Next(len); } while (y < x);
-						VerifyTuple($"{prefix} [{x}:{y}]", tuple[x, y], GetRange(x, y, len));
+						VerifyTuple($"{prefix} [{x}:{y}]", tuple[x..y], GetRange(x, y, len));
 						break;
 					}
 					case 5:
-					{ // [-rnd:-rnd]
-						int x = -1 - rnd.Next(len);
+					{ // [^rnd:^rnd]
+						int x = 1 + rnd.Next(len);
+						var px = new Index(x, fromEnd: true);
+
 						int y;
-						do { y = -1 - rnd.Next(len); } while (y < x);
-						VerifyTuple($"{prefix} [{x}:{y}]", tuple[x, y], GetRange(len + x, len + y, len));
+						do { y = 1 + rnd.Next(len); } while (y > x);
+						var py = new Index(y, fromEnd: true);
+						VerifyTuple($"{prefix} [{x}:{y}]", tuple[px..py], GetRange(len - x, len - y, len));
 						break;
 					}
 				}

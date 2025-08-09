@@ -146,6 +146,8 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
+		/// <inheritdoc />
+		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
@@ -201,11 +203,17 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
-		public T? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int index)
+		/// <inheritdoc />
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
 		{
 			index = TupleHelpers.MapIndex(index, this.Count);
-			return index < this.HeadCount ? this.Head.Get<T>(index) : this.Tail.Get<T>(index - this.HeadCount);
+			return index < this.HeadCount ? this.Head.Get<TItem>(index) : this.Tail.Get<TItem>(index - this.HeadCount);
 		}
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
+			=> Get<TItem>(index.GetOffset(this.Count));
 
 		public T? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
 			=> this.HeadCount > 0 ? this.Head.GetFirst<T>() : this.Tail.GetFirst<T>();
