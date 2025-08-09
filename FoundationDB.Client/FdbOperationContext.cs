@@ -835,13 +835,13 @@ namespace FoundationDB.Client
 
 		private static string? PrettifyMethodName(string? name)
 		{
-			// we want to cleanup things like "<SomeType.SomeMethod>b__0"
-			if (name != null && name.Length >= 6 && name[0] == '<')
+			// we want to clean up things like "<SomeType.SomeMethod>b__0"
+			if (name is not null && name.Length >= 6 && name[0] == '<')
 			{
 				int p = name.LastIndexOf('>');
 				if (p > 1)
 				{
-					return name.Substring(1, p - 1);
+					return name[1..p];
 				}
 			}
 			return name;
@@ -851,7 +851,7 @@ namespace FoundationDB.Client
 		{
 			if (name != null && name.IndexOf(".<>c__DisplayClass", StringComparison.Ordinal) > 0)
 			{
-
+				//TODO: !!
 			}
 			return name;
 		}

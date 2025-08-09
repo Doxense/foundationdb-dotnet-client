@@ -87,6 +87,19 @@ namespace FoundationDB.Client
 			return subspace;
 		}
 
+		/// <summary>Returns the same location, but with an explicit <see cref="Layer"/> identifier</summary>
+		/// <param name="layerId">Layer Identifier to use for this location</param>
+		/// <remarks>This can be used to force a specific LayerId, or to add one if it is missing</remarks>
+		public FdbDirectorySubspaceLocation WithLayer(string layerId)
+		{
+			if (this.Path.LayerId == layerId)
+			{ // already the correct value
+				return this;
+			}
+
+			return new(this.Path.WithLayer(layerId));
+		}
+
 		/// <inheritdoc />
 		string IFdbLayer.Name => nameof(FdbDirectorySubspaceLocation);
 
