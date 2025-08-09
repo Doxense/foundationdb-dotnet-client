@@ -2117,7 +2117,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		[DoesNotReturn][StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		internal static void ThrowOnInvalidState(FdbTransaction trans)
 		{
 			switch (trans.State)

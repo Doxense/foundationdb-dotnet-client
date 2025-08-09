@@ -295,13 +295,13 @@ namespace SnowBank.Buffers
 
 		#endregion
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)][StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		private static void ThrowInvalidOperationException_AdvancedTooFar()
 		{
 			throw new InvalidOperationException("Buffer writer advanced too far");
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)][StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		private static byte[] ThrowObjectDisposedException()
 		{
 			throw new ObjectDisposedException("Buffer writer has already been disposed, or the buffer has already been acquired by someone else.");

@@ -217,7 +217,10 @@ namespace SnowBank.Data.Tuples
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static InvalidOperationException FailTupleIsEmpty() => new("Tuple is empty.");
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowTupleIsEmpty() => throw FailTupleIsEmpty();
+
+		[DoesNotReturn, StackTraceHidden]
 		public static T FailIndexOutOfRange<T>(int index, int count)
 		{
 			if (count == 0)
@@ -227,7 +230,7 @@ namespace SnowBank.Data.Tuples
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		public static T FailIndexOutOfRange<T>(Index index, int count)
 		{
 			throw new IndexOutOfRangeException($"Index {index} is outside of the tuple range (0..{count - 1})");

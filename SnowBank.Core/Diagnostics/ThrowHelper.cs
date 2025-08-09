@@ -43,25 +43,22 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentNullException ArgumentNullException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => new(paramName, message.ToStringAndClear());
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentNullException([InvokerParameterName] string paramName) => throw ArgumentNullException(paramName);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentNullException([InvokerParameterName] string paramName, string message) => throw ArgumentNullException(paramName, message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentNullException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentNullException(paramName, message.ToStringAndClear());
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName) => throw ArgumentNullException(paramName);
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName, string message) => throw ArgumentNullException(paramName, message);
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowArgumentNullException<T>([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentNullException(paramName, ref message);
 
 		#endregion
@@ -74,16 +71,16 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentException ArgumentException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear(), paramName);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentException([InvokerParameterName] string paramName, string? message = null) => throw ArgumentException(paramName, message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentException(paramName, ref message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowArgumentException<T>([InvokerParameterName] string paramName, string? message = null) => throw ArgumentException(paramName, message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowArgumentException<T>([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentException(paramName, ref message);
 
 		#endregion
@@ -105,23 +102,23 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentOutOfRangeException ArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, ref DefaultInterpolatedStringHandler message) => new(paramName, actualValue, message.ToStringAndClear());
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		// ReSharper disable once NotResolvedInText
 		public static void ThrowArgumentOutOfRangeException() => throw ArgumentOutOfRangeException("index", "Index was out of range. Must be non-negative and less than the size of the collection.");
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName) => throw ArgumentOutOfRangeException(paramName);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, string message) => throw ArgumentOutOfRangeException(paramName, null, message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, ref DefaultInterpolatedStringHandler message) => throw ArgumentOutOfRangeException(paramName, null, ref message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, string message) => throw ArgumentOutOfRangeException(paramName, actualValue, message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentOutOfRangeException([InvokerParameterName] string paramName, object? actualValue, ref DefaultInterpolatedStringHandler message) => throw ArgumentOutOfRangeException(paramName, actualValue, ref message);
 
 		#endregion
@@ -158,28 +155,28 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ObjectDisposedException ObjectDisposedException(ref DefaultInterpolatedStringHandler message, Exception? innerException) => new(message.ToStringAndClear(), innerException);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowObjectDisposedException(Type type) => throw ObjectDisposedException(type);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowObjectDisposedException(Type type, string message) => throw ObjectDisposedException(type, message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowObjectDisposedException(Type type, ref DefaultInterpolatedStringHandler message) => throw ObjectDisposedException(type, ref message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowObjectDisposedException(string message, Exception innerException) => throw ObjectDisposedException(message, innerException);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowObjectDisposedException(ref DefaultInterpolatedStringHandler message, Exception innerException) => throw ObjectDisposedException(ref message, innerException);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed) where TDisposed : IDisposable => throw ObjectDisposedException(disposed.GetType());
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, string message) where TDisposed : IDisposable => throw ObjectDisposedException(disposed.GetType(), message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowObjectDisposedException<TDisposed>(TDisposed disposed, ref DefaultInterpolatedStringHandler message) where TDisposed : IDisposable => throw ObjectDisposedException(disposed.GetType(), ref message);
 
 		#endregion
@@ -192,16 +189,16 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static InvalidOperationException InvalidOperationException(ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear());
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowInvalidOperationException(string message) => throw InvalidOperationException(message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowInvalidOperationException(ref DefaultInterpolatedStringHandler message) => throw InvalidOperationException(message.ToStringAndClear());
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowInvalidOperationException<T>(string message) => throw InvalidOperationException(message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowInvalidOperationException<T>(ref DefaultInterpolatedStringHandler message) => throw InvalidOperationException(message.ToStringAndClear());
 
 		#endregion
@@ -214,16 +211,16 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static FormatException FormatException(ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear());
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowFormatException(string message) => throw FormatException(message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowFormatException(ref DefaultInterpolatedStringHandler message) => throw FormatException(ref message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowFormatException<T>(string message) => throw FormatException(message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowFormatException<T>(ref DefaultInterpolatedStringHandler message) => throw FormatException(ref message);
 
 		#endregion
@@ -236,16 +233,16 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static OperationCanceledException OperationCanceledException(ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear());
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowOperationCanceledException(string message) => throw OperationCanceledException(message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowOperationCanceledException(ref DefaultInterpolatedStringHandler message) => throw OperationCanceledException(ref message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowOperationCanceledException<T>(string message) => throw OperationCanceledException(message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowOperationCanceledException<T>(ref DefaultInterpolatedStringHandler message) => throw OperationCanceledException(ref message);
 
 		#endregion
@@ -258,16 +255,16 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static NotSupportedException NotSupportedException(ref DefaultInterpolatedStringHandler message) => new(message.ToStringAndClear());
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowNotSupportedException(string message) => throw NotSupportedException(message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowNotSupportedException(ref DefaultInterpolatedStringHandler message) => throw NotSupportedException(ref message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowNotSupportedException<T>(string message) => throw NotSupportedException(message);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowNotSupportedException<T>(ref DefaultInterpolatedStringHandler message) => throw NotSupportedException(ref message);
 
 		#endregion
@@ -303,7 +300,7 @@ namespace SnowBank.Diagnostics.Contracts
 			return null;
 		}
 
-		[MethodImpl(MethodImplOptions.NoInlining)]
+		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception? TryMapToComplexException([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type exceptionType, string message, string? paramName)
 		{
 			ConstructorInfo? constructor;
@@ -352,25 +349,25 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static IndexOutOfRangeException IndexOutOfRangeException() => new("Index was out of range. Must be non-negative and less than the size of the collection.");
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowIndexOutOfRangeException() => throw IndexOutOfRangeException();
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowIndexOutOfRangeException<T>() => throw IndexOutOfRangeException();
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentOutOfRangeException ArgumentOutOfRangeIndex(int index) => new(nameof(index), index, "Index was out of range. Must be non-negative and less than the size of the collection.");
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentOutOfRangeIndex(int index) => throw ArgumentOutOfRangeIndex(index);
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static T ThrowArgumentOutOfRangeIndex<T>(int index) => throw ArgumentOutOfRangeIndex(index);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static ArgumentOutOfRangeException ArgumentOutOfRangeNeedNonNegNum([InvokerParameterName] string paramName) => new(paramName, "Non-negative number required");
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowArgumentOutOfRangeNeedNonNegNum([InvokerParameterName] string paramName) => throw ArgumentOutOfRangeNeedNonNegNum(paramName);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -379,7 +376,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static NotSupportedException NotSupportedReadOnlyCollection() => new("Collection is read-only.");
 
-		[DoesNotReturn]
+		[DoesNotReturn, StackTraceHidden]
 		public static void ThrowNotSupportedReadOnlyCollection() => throw NotSupportedReadOnlyCollection();
 
 		#endregion

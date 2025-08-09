@@ -499,7 +499,7 @@ namespace SnowBank.Collections.Generic
 				}
 			}
 
-			[DoesNotReturn, ContractAnnotation("=> halt"), StackTraceHidden]
+			[DoesNotReturn, StackTraceHidden]
 			private static void ThrowEnumOpCantHappen()
 			{
 				throw new InvalidOperationException("Enumeration has either not started or has already finished.");

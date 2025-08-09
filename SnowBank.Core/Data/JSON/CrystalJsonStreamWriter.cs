@@ -299,7 +299,7 @@ namespace SnowBank.Data.Json
 				ThrowNotInObjectMode();
 			}
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			static void ThrowNotInObjectMode()
 			{
 				throw new InvalidOperationException("Invalid writer state: can only write fields in object mode. Did you forget to call BeginObject() first?");
@@ -706,7 +706,7 @@ namespace SnowBank.Data.Json
 				ThrowNotInArrayMode();
 			}
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			static void ThrowNotInArrayMode()
 			{
 				throw new InvalidOperationException("Invalid writer state: can only write batched entries in Array mode. Did you forget to call BeginArray() first?");
@@ -845,7 +845,7 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, StackTraceHidden]
 		private void ThrowDisposed()
 		{
 			throw new ObjectDisposedException(this.GetType().Name);

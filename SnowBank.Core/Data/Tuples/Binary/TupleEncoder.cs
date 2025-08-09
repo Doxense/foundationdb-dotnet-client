@@ -1458,11 +1458,13 @@ namespace SnowBank.Data.Tuples.Binary
 
 		#region Unpacking...
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, StackTraceHidden]
 		private static void ThrowFailedToUnpackTuple(Exception? error)
-		{
-			throw error ?? new InvalidOperationException("Failed to unpack tuple");
-		}
+			=> throw (error ?? new InvalidOperationException("Failed to unpack tuple"));
+
+		[DoesNotReturn, StackTraceHidden]
+		private static void ThrowCannotUnpackEmptyTuple()
+			=> throw new InvalidOperationException("Cannot unpack an empty tuple");
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T1">Type of the first value in the decoded tuple</typeparam>
@@ -1475,7 +1477,7 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			if (packedKey.Length == 0) ThrowCannotUnpackEmptyTuple();
 
 			Span<Range> slices = stackalloc Range[1];
 			if (!TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out var error))
@@ -1499,7 +1501,7 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			if (packedKey.Length == 0) ThrowCannotUnpackEmptyTuple();
 
 			Span<Range> slices = stackalloc Range[2];
 			if (!TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out var error))
@@ -1528,7 +1530,7 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			if (packedKey.Length == 0) ThrowCannotUnpackEmptyTuple();
 
 			Span<Range> slices = stackalloc Range[3];
 			if (!TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out var error))
@@ -1560,7 +1562,7 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			if (packedKey.Length == 0) ThrowCannotUnpackEmptyTuple();
 
 			Span<Range> slices = stackalloc Range[4];
 			if (!TuplePackers.TryUnpackFirst(packedKey, slices, expectedSize, out var error))
@@ -1588,7 +1590,7 @@ namespace SnowBank.Data.Tuples.Binary
 		public static T1? DecodeLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1>
 			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			if (packedKey.Length == 0) ThrowCannotUnpackEmptyTuple();
 
 			Span<Range> slices = stackalloc Range[1];
 			if (!TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out var error))
@@ -1613,7 +1615,7 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			if (packedKey.Length == 0) ThrowCannotUnpackEmptyTuple();
 
 			Span<Range> slices = stackalloc Range[2];
 			if (!TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out var error))
@@ -1643,7 +1645,7 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			if (packedKey.Length == 0) ThrowCannotUnpackEmptyTuple();
 
 			Span<Range> slices = stackalloc Range[3];
 			if (!TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out var error))
@@ -1675,7 +1677,7 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
 		>(ReadOnlySpan<byte> packedKey, int? expectedSize)
 		{
-			if (packedKey.Length == 0) throw new InvalidOperationException("Cannot unpack an empty tuple");
+			if (packedKey.Length == 0) ThrowCannotUnpackEmptyTuple();
 
 			Span<Range> slices = stackalloc Range[4];
 			if (!TuplePackers.TryUnpackLast(packedKey, slices, expectedSize, out var error))
@@ -1984,6 +1986,36 @@ namespace SnowBank.Data.Tuples.Binary
 
 		#region DecodeKey<T1>...
 
+		[DoesNotReturn, StackTraceHidden]
+		static void ThrowFailedToDecode(int pos, Exception? error) => throw new FormatException(pos switch
+		{
+			1 => "Failed to decode 1st item",
+			2 => "Failed to decode 2nd item",
+			3 => "Failed to decode 3rd item",
+			4 => "Failed to decode 4th item",
+			5 => "Failed to decode 5th item",
+			6 => "Failed to decode 6th item",
+			7 => "Failed to decode 7th item",
+			8 => "Failed to decode 8th item",
+			9 => "Failed to decode 9th item",
+			_ => $"Failed to decode {pos}th item",
+		}, error);
+
+		[DoesNotReturn, StackTraceHidden]
+		static void ThrowTooManyItems(int count) => throw new FormatException(count switch
+		{
+			1 => "The key contains more than one item",
+			2 => "The key contains more than two items",
+			3 => "The key contains more than three items",
+			4 => "The key contains more than four items",
+			5 => "The key contains more than five items",
+			6 => "The key contains more than six items",
+			7 => "The key contains more than seven items",
+			8 => "The key contains more than eight items",
+			9 => "The key contains more than nine items",
+			_ => $"The key contains more than {count:N0} items"
+		});
+
 		/// <summary>Unpacks the value of a singleton tuple</summary>
 		/// <typeparam name="T1">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="reader">Slice that should contain the packed representation of a tuple with a single element</param>
@@ -1993,8 +2025,8 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1
 		>(ref TupleReader reader, out ValueTuple<T1?> tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw error ?? new FormatException("Failed to decode first item");
-			if (reader.HasMore) throw new FormatException("The key contains more than one item");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (reader.HasMore) ThrowTooManyItems(1);
 		}
 
 		/// <summary>Unpacks the value of a singleton tuple</summary>
@@ -2002,8 +2034,8 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T1
 		>(ref TupleReader reader, out T1? item1)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than one item");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (reader.HasMore) ThrowTooManyItems(1);
 		}
 
 		/// <summary>Unpacks the value of a singleton tuple</summary>
@@ -2012,19 +2044,13 @@ namespace SnowBank.Data.Tuples.Binary
 		/// <param name="key">Receives the decoded value</param>
 		/// <param name="error"></param>
 		/// <return>False if the tuple is empty, or has more than one element; otherwise, false.</return>
+		[Pure]
 		public static bool TryDecodeKey<
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TKey
 		>(ref TupleReader reader, out TKey? key, out Exception? error)
 		{
-			if (!TryDecodeNext(ref reader, out key, out error))
-			{
-				return false;
-			}
-			if (reader.HasMore)
-			{
-				return false;
-			}
-			return true;
+			return TryDecodeNext(ref reader, out key, out error)
+			    && !reader.HasMore;
 		}
 
 		#endregion
@@ -2040,9 +2066,9 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
 		>(ref TupleReader reader, out (T1?, T2?) tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than two items");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) ThrowFailedToDecode(2, error);
+			if (reader.HasMore) ThrowTooManyItems(2);
 		}
 
 		public static void DecodeKey<
@@ -2050,9 +2076,9 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2
 		>(ref TupleReader reader, out T1? item1, out T2? item2)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than two items");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) ThrowFailedToDecode(2, error);
+			if (reader.HasMore) ThrowTooManyItems(2);
 		}
 
 		#endregion
@@ -2069,10 +2095,10 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T3
 		>(ref TupleReader reader, out (T1?, T2?, T3?) tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than three items");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) ThrowFailedToDecode(3, error);
+			if (reader.HasMore) ThrowTooManyItems(3);
 		}
 
 		public static void DecodeKey<
@@ -2082,10 +2108,10 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than three items");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out item3, out error)) ThrowFailedToDecode(3, error);
+			if (reader.HasMore) ThrowTooManyItems(3);
 		}
 
 		#endregion
@@ -2104,11 +2130,11 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ref TupleReader reader, out (T1?, T2?, T3?, T4?) tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than four items");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) ThrowFailedToDecode(4, error);
+			if (reader.HasMore) ThrowTooManyItems(4);
 		}
 
 		public static void DecodeKey<
@@ -2118,11 +2144,11 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4
 		>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than four items");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out item4, out error)) ThrowFailedToDecode(4, error);
+			if (reader.HasMore) ThrowTooManyItems(4);
 		}
 
 		#endregion
@@ -2141,12 +2167,12 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T5
 		>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?) tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than five items");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) ThrowFailedToDecode(5, error);
+			if (reader.HasMore) ThrowTooManyItems(5);
 		}
 
 		public static void DecodeKey<
@@ -2158,12 +2184,12 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than five items");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out item5, out error)) ThrowFailedToDecode(5, error);
+			if (reader.HasMore) ThrowTooManyItems(5);
 		}
 
 		#endregion
@@ -2184,13 +2210,13 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?) tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) throw new FormatException("Failed to decode sixth item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than six items");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) ThrowFailedToDecode(5, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) ThrowFailedToDecode(6, error);
+			if (reader.HasMore) ThrowTooManyItems(6);
 		}
 
 		public static void DecodeKey<
@@ -2203,13 +2229,13 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (!TryDecodeNext(ref reader, out item6, out error)) throw new FormatException("Failed to decode sixth item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than six items");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out item5, out error)) ThrowFailedToDecode(5, error);
+			if (!TryDecodeNext(ref reader, out item6, out error)) ThrowFailedToDecode(6, error);
+			if (reader.HasMore) ThrowTooManyItems(6);
 		}
 
 		#endregion
@@ -2230,14 +2256,14 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7
 		>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?) tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) throw new FormatException("Failed to decode sixth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item7, out error)) throw new FormatException("Failed to decode seventh item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than seven items");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) ThrowFailedToDecode(5, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) ThrowFailedToDecode(6, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item7, out error)) ThrowFailedToDecode(7, error);
+			if (reader.HasMore) ThrowTooManyItems(7);
 		}
 
 		public static void DecodeKey<
@@ -2250,14 +2276,14 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T7
 		>(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (!TryDecodeNext(ref reader, out item6, out error)) throw new FormatException("Failed to decode sixth item", error);
-			if (!TryDecodeNext(ref reader, out item7, out error)) throw new FormatException("Failed to decode seventh item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than seven items");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out item5, out error)) ThrowFailedToDecode(5, error);
+			if (!TryDecodeNext(ref reader, out item6, out error)) ThrowFailedToDecode(6, error);
+			if (!TryDecodeNext(ref reader, out item7, out error)) ThrowFailedToDecode(7, error);
+			if (reader.HasMore) ThrowTooManyItems(7);
 		}
 
 		#endregion
@@ -2279,15 +2305,15 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T8
 		>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?) tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) throw new FormatException("Failed to decode sixth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item7, out error)) throw new FormatException("Failed to decode seventh item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item8, out error)) throw new FormatException("Failed to decode eight item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than eight items");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) ThrowFailedToDecode(5, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) ThrowFailedToDecode(6, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item7, out error)) ThrowFailedToDecode(7, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item8, out error)) ThrowFailedToDecode(8, error);
+			if (reader.HasMore) ThrowTooManyItems(8);
 		}
 
 		public static void DecodeKey<
@@ -2302,15 +2328,15 @@ namespace SnowBank.Data.Tuples.Binary
 		>
 			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (!TryDecodeNext(ref reader, out item6, out error)) throw new FormatException("Failed to decode sixth item", error);
-			if (!TryDecodeNext(ref reader, out item7, out error)) throw new FormatException("Failed to decode seventh item", error);
-			if (!TryDecodeNext(ref reader, out item8, out error)) throw new FormatException("Failed to decode eight item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than eight items");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out item5, out error)) ThrowFailedToDecode(5, error);
+			if (!TryDecodeNext(ref reader, out item6, out error)) ThrowFailedToDecode(6, error);
+			if (!TryDecodeNext(ref reader, out item7, out error)) ThrowFailedToDecode(7, error);
+			if (!TryDecodeNext(ref reader, out item8, out error)) ThrowFailedToDecode(8, error);
+			if (reader.HasMore) ThrowTooManyItems(8);
 		}
 
 		/// <summary>Unpacks a key containing eight elements</summary>
@@ -2329,16 +2355,16 @@ namespace SnowBank.Data.Tuples.Binary
 			[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T9
 		>(ref TupleReader reader, out (T1?, T2?, T3?, T4?, T5?, T6?, T7?, T8?, T9?) tuple)
 		{
-			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) throw new FormatException("Failed to decode sixth item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item7, out error)) throw new FormatException("Failed to decode seventh item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item8, out error)) throw new FormatException("Failed to decode eight item", error);
-			if (!TryDecodeNext(ref reader, out tuple.Item9, out error)) throw new FormatException("Failed to decode ninth item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than nine items");
+			if (!TryDecodeNext(ref reader, out tuple.Item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item5, out error)) ThrowFailedToDecode(5, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item6, out error)) ThrowFailedToDecode(6, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item7, out error)) ThrowFailedToDecode(7, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item8, out error)) ThrowFailedToDecode(8, error);
+			if (!TryDecodeNext(ref reader, out tuple.Item9, out error)) ThrowFailedToDecode(9, error);
+			if (reader.HasMore) ThrowTooManyItems(9);
 		}
 
 		public static void DecodeKey<
@@ -2354,16 +2380,16 @@ namespace SnowBank.Data.Tuples.Binary
 			>
 			(ref TupleReader reader, out T1? item1, out T2? item2, out T3? item3, out T4? item4, out T5? item5, out T6? item6, out T7? item7, out T8? item8, out T9? item9)
 		{
-			if (!TryDecodeNext(ref reader, out item1, out var error)) throw new FormatException("Failed to decode first item", error);
-			if (!TryDecodeNext(ref reader, out item2, out error)) throw new FormatException("Failed to decode second item", error);
-			if (!TryDecodeNext(ref reader, out item3, out error)) throw new FormatException("Failed to decode third item", error);
-			if (!TryDecodeNext(ref reader, out item4, out error)) throw new FormatException("Failed to decode fourth item", error);
-			if (!TryDecodeNext(ref reader, out item5, out error)) throw new FormatException("Failed to decode fifth item", error);
-			if (!TryDecodeNext(ref reader, out item6, out error)) throw new FormatException("Failed to decode sixth item", error);
-			if (!TryDecodeNext(ref reader, out item7, out error)) throw new FormatException("Failed to decode seventh item", error);
-			if (!TryDecodeNext(ref reader, out item8, out error)) throw new FormatException("Failed to decode eight item", error);
-			if (!TryDecodeNext(ref reader, out item9, out error)) throw new FormatException("Failed to decode ninth item", error);
-			if (reader.HasMore) throw new FormatException("The key contains more than nine items");
+			if (!TryDecodeNext(ref reader, out item1, out var error)) ThrowFailedToDecode(1, error);
+			if (!TryDecodeNext(ref reader, out item2, out error)) ThrowFailedToDecode(2, error);
+			if (!TryDecodeNext(ref reader, out item3, out error)) ThrowFailedToDecode(3, error);
+			if (!TryDecodeNext(ref reader, out item4, out error)) ThrowFailedToDecode(4, error);
+			if (!TryDecodeNext(ref reader, out item5, out error)) ThrowFailedToDecode(5, error);
+			if (!TryDecodeNext(ref reader, out item6, out error)) ThrowFailedToDecode(6, error);
+			if (!TryDecodeNext(ref reader, out item7, out error)) ThrowFailedToDecode(7, error);
+			if (!TryDecodeNext(ref reader, out item8, out error)) ThrowFailedToDecode(8, error);
+			if (!TryDecodeNext(ref reader, out item9, out error)) ThrowFailedToDecode(9, error);
+			if (reader.HasMore) ThrowTooManyItems(9);
 		}
 
 		#endregion

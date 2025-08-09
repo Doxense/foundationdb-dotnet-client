@@ -199,7 +199,7 @@ namespace SnowBank.Data.Json
 		[Pure]
 		internal static JsonBindingException ErrorPathIsNullOrMissing(JsonValue? parent, JsonPath path) => new($"Required JSON path '{path}' was null or missing.", path, parent, null);
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonValue FailPathIsNullOrMissing(JsonValue? parent, JsonPath path) => throw ErrorPathIsNullOrMissing(parent, path);
 
 		#region ToStuff(...)
@@ -298,7 +298,7 @@ namespace SnowBank.Data.Json
 
 		#region As<T>...
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		internal static T FailRequiredValueIsNullOrMissing<T>() => throw new JsonBindingException($"Required JSON value of type {typeof(T).GetFriendlyName()} was null or missing");
 
 		/// <summary>Converts this required <see cref="JsonValue"/> into an instance of the specified type.</summary>
@@ -633,11 +633,11 @@ namespace SnowBank.Data.Json
 		};
 
 		/// <exception cref="JsonBindingException"/>
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonObject FailObjectIsNullOrMissing(JsonValue? value) => throw new JsonBindingException("Required JSON object was null or missing.", value);
 
 		/// <exception cref="JsonBindingException"/>
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		internal static JsonObject FailValueIsNotAnObject(JsonValue? value) => throw CrystalJson.Errors.Parsing_CannotCastToJsonObject(value);
 
 		[Pure]

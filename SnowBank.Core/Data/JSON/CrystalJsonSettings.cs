@@ -216,7 +216,7 @@ namespace SnowBank.Data.Json
 		{
 			return value is >= Target.Json and <= Target.JavaScript ? (flags & ~OptionFlags.Target_Mask) | (OptionFlags) (((int) value & 0x3) << 16) : FailInvalidTargetLanguage();
 
-			[DoesNotReturn][StackTraceHidden]
+			[DoesNotReturn, StackTraceHidden]
 			static OptionFlags FailInvalidTargetLanguage() => throw new ArgumentException("Invalid target language mode", nameof(value));
 		}
 
@@ -231,7 +231,7 @@ namespace SnowBank.Data.Json
 		{
 			return value is >= Layout.Formatted and <= Layout.Compact ? (flags & ~OptionFlags.Layout_Mask) | (OptionFlags) (((int) value & 0x3) << 8) : FailInvalidTextLayout();
 
-			[DoesNotReturn][StackTraceHidden]
+			[DoesNotReturn, StackTraceHidden]
 			static OptionFlags FailInvalidTextLayout() => throw new ArgumentException("Invalid text layout mode", nameof(value));
 		}
 
@@ -247,7 +247,7 @@ namespace SnowBank.Data.Json
 		{
 			return value is >= DateFormat.Default and <= DateFormat.JavaScript ? (flags & ~OptionFlags.DateFormat_Mask) | (OptionFlags) (((int) value & 0x3) << 10) : FailInvalidDateFormatting();
 
-			[DoesNotReturn][StackTraceHidden]
+			[DoesNotReturn, StackTraceHidden]
 			static OptionFlags FailInvalidDateFormatting() => throw new ArgumentException("Invalid date format mode", nameof(value));
 		}
 
@@ -418,7 +418,7 @@ namespace SnowBank.Data.Json
 		{
 			return value is >= FloatFormat.Default and <= FloatFormat.Null ? (flags & ~OptionFlags.FloatFormat_Mask) | (OptionFlags) (((int) value & 0x7) << 24) : FailInvalidFloatFormatting();
 
-			[DoesNotReturn][StackTraceHidden]
+			[DoesNotReturn, StackTraceHidden]
 			static OptionFlags FailInvalidFloatFormatting() => throw new ArgumentException("Invalid float formatting mode", nameof(value));
 		}
 

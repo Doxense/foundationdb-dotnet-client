@@ -246,7 +246,7 @@ namespace SnowBank.Data.Tuples
 		{
 			return tuple != null && tuple.Count == size ? tuple : TupleInvalidSize(tuple, size);
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			static TTuple TupleInvalidSize(TTuple? tuple, int expected)
 			{
 				if (tuple == null) throw new ArgumentNullException(nameof(tuple));
@@ -265,7 +265,7 @@ namespace SnowBank.Data.Tuples
 		{
 			return tuple.Count == size ? tuple : TupleInvalidSize(tuple.Count, size);
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			static SpanTuple TupleInvalidSize(int size, int expected)
 			{
 				throw new InvalidOperationException($"This operation requires a tuple of size {expected}, but this tuple has {size} elements");
@@ -284,7 +284,7 @@ namespace SnowBank.Data.Tuples
 		{
 			return tuple != null && tuple.Count >= size ? tuple : TupleTooSmall(tuple, size);
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			static TTuple TupleTooSmall(TTuple? tuple, int expected)
 			{
 				if (tuple == null) throw new ArgumentNullException(nameof(tuple));
@@ -303,7 +303,7 @@ namespace SnowBank.Data.Tuples
 		{
 			return tuple.Count >= size ? tuple : TupleTooSmall(tuple.Count, size);
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			static SpanTuple TupleTooSmall(int size, int expected)
 			{
 				throw new InvalidOperationException($"This operation requires a tuple of size {expected} or more, but this tuple has {size} elements");
@@ -322,7 +322,7 @@ namespace SnowBank.Data.Tuples
 		{
 			return tuple != null && tuple.Count <= size ? tuple : TupleTooLarge(tuple, size);
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			static TTuple TupleTooLarge(TTuple? tuple, int expected)
 			{
 				if (tuple == null) throw new ArgumentNullException(nameof(tuple));
@@ -341,7 +341,7 @@ namespace SnowBank.Data.Tuples
 		{
 			return tuple.Count <= size ? tuple : TupleTooLarge(tuple.Count, size);
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			static SpanTuple TupleTooLarge(int size, int expected)
 			{
 				throw new InvalidOperationException($"This operation requires a tuple of size {expected} or less, but this tuple has {size} elements");

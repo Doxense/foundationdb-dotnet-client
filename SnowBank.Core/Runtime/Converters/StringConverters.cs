@@ -39,7 +39,7 @@ namespace SnowBank.Runtime.Converters
 
 		#region Formatting...
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, StackTraceHidden]
 		internal static void ReportInternalFormattingError()
 		{
 #if DEBUG

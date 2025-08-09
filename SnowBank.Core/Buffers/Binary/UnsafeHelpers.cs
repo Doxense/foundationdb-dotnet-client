@@ -2449,7 +2449,7 @@ namespace SnowBank.Buffers.Binary
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static InvalidOperationException BufferOutOfBound() => new("Attempt to write outside of the buffer, or at a position that would overflow past the end.");
 
-			[DoesNotReturn]
+			[DoesNotReturn, StackTraceHidden]
 			public static void ThrowOffsetOutsideSlice() => throw OffsetOutsideSlice();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -2462,7 +2462,7 @@ namespace SnowBank.Buffers.Binary
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException SliceOffsetNotNeg() => new("The specified slice has a negative offset, which is not legal. This may be a side effect of memory corruption.");
 
-			[DoesNotReturn, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			[DoesNotReturn, StackTraceHidden]
 			public static void ThrowSliceCountNotNeg() => throw SliceCountNotNeg();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -2480,15 +2480,12 @@ namespace SnowBank.Buffers.Binary
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			public static FormatException SliceTooLargeForConversion<T>(int size) => new($"Cannot convert slice to value of type {typeof(T).Name} because it is larger than {size} bytes.");
 
-			[DoesNotReturn]
+			[DoesNotReturn, StackTraceHidden]
 			public static T ThrowSliceTooLargeForConversion<T>(int size) => throw SliceTooLargeForConversion<T>(size);
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			// ReSharper disable once NotResolvedInText
 			public static ArgumentException BufferArrayNotNull() => new("The specified segment is missing its underlying buffer.", "array");
-
-			[DoesNotReturn, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			public static void ThrowBufferArrayToSmall() => throw BufferArrayToSmall();
 
 			[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 			// ReSharper disable once NotResolvedInText

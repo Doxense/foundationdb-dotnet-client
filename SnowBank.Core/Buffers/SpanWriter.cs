@@ -160,7 +160,7 @@ namespace SnowBank.Buffers
 			return this.Buffer.Slice(pos, count);
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		private static Span<byte> ThrowBufferTooSmall(string paramName)
 		{
 			throw new ArgumentException("Buffer is too small", paramName);

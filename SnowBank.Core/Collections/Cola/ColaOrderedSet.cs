@@ -103,7 +103,7 @@ namespace SnowBank.Collections.CacheOblivious
 			}
 		}
 
-		[DoesNotReturn, MethodImpl(MethodImplOptions.NoInlining)]
+		[DoesNotReturn, StackTraceHidden]
 		private static void ThrowIndexOutOfRangeException() => throw new IndexOutOfRangeException("Index is out of range");
 
 		#endregion

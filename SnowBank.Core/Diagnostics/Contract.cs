@@ -177,8 +177,7 @@ namespace SnowBank.Diagnostics.Contracts
 		/// <param name="exception">Optional exception linked to the issue</param>
 		/// <remarks>Throws a <see cref="ContractException"/>, after attempting to breakpoint (if a debugger is attached)</remarks>
 		[AssertionMethod, MethodImpl(MethodImplOptions.NoInlining)]
-		[System.Diagnostics.CodeAnalysis.DoesNotReturn]
-		[StackTraceHidden]
+		[System.Diagnostics.CodeAnalysis.DoesNotReturn, StackTraceHidden]
 		public static void Fail(string? userMessage, Exception? exception = null)
 		{
 			throw RaiseContractFailure(SDC.ContractFailureKind.Invariant, userMessage, null, exception);
@@ -199,7 +198,10 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value is null) throw FailArgumentNull(paramName!, message);
+			if (value is null)
+			{
+				ThrowArgumentNull(paramName, message);
+			}
 		}
 
 		/// <summary>The specified instance must not be null (assert: value != null)</summary>
@@ -215,7 +217,10 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value is null) throw FailArgumentNull(paramName!, message);
+			if (value is null)
+			{
+				ThrowArgumentNull(paramName, message);
+			}
 		}
 
 		/// <summary>The specified pointer must not be null (assert: pointer != null)</summary>
@@ -226,7 +231,10 @@ namespace SnowBank.Diagnostics.Contracts
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(pointer))] string? paramName = null)
 		{
-			if (pointer is null) throw FailArgumentNull(paramName!, message);
+			if (pointer is null)
+			{
+				ThrowArgumentNull(paramName, message);
+			}
 		}
 
 		/// <summary>The specified value cannot be null (assert: value != null)</summary>
@@ -248,8 +256,8 @@ namespace SnowBank.Diagnostics.Contracts
 		)
 		{
 			//note: if T is a value type, this should be optimized away but the JIT
-
-			return value ?? throw FailArgumentNull(nameof(value), message);
+			if (value is null) ThrowArgumentNull(nameof(value), message);
+			return value;
 		}
 
 		#endregion
@@ -258,11 +266,13 @@ namespace SnowBank.Diagnostics.Contracts
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailStringNullOrEmpty(string? value, string? paramName, string? message = null)
-		{
-			return value is null
+			=> value is null
 				? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.StringCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyLength);
-		}
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowStringNullOrEmpty(string? value, string? paramName, string? message = null)
+			=> throw FailStringNullOrEmpty(value, paramName, message);
 
 		/// <summary>The specified string must not be null or empty (assert: value != null &amp;&amp; value.Length != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -272,16 +282,18 @@ namespace SnowBank.Diagnostics.Contracts
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (string.IsNullOrEmpty(value)) throw FailStringNullOrEmpty(value, paramName, message);
+			if (string.IsNullOrEmpty(value)) ThrowStringNullOrEmpty(value, paramName, message);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailStringNullOrWhiteSpace(string? value, string? paramName, string? message = null)
-		{
-			return value is null ? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
-				: value.Length == 0 ? ReportFailure(typeof(ArgumentException), ContractMessages.StringCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyLength)
-				: ReportFailure(typeof(ArgumentException), ContractMessages.StringCannotBeWhiteSpaces, message, paramName, ContractMessages.ConditionNotWhiteSpace);
-		}
+			=> value is null ? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
+			 : value.Length == 0 ? ReportFailure(typeof(ArgumentException), ContractMessages.StringCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyLength)
+			 : ReportFailure(typeof(ArgumentException), ContractMessages.StringCannotBeWhiteSpaces, message, paramName, ContractMessages.ConditionNotWhiteSpace);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowStringNullOrWhiteSpace(string? value, string? paramName, string? message = null)
+			=> throw FailStringNullOrWhiteSpace(value, paramName, message);
 
 		/// <summary>The specified string must not be null, empty or contain only whitespaces (assert: value != null &amp;&amp; value.Length != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -291,16 +303,18 @@ namespace SnowBank.Diagnostics.Contracts
 			string? message = null,
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (string.IsNullOrWhiteSpace(value)) throw FailStringNullOrWhiteSpace(value, paramName, message);
+			if (string.IsNullOrWhiteSpace(value)) ThrowStringNullOrWhiteSpace(value, paramName, message);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArrayNullOrEmpty(object? collection, string? paramName, string? message = null)
-		{
-			return collection is null
+			=> collection is null
 				? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.CollectionCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
-		}
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArrayNullOrEmpty(object? collection, string? paramName, string? message = null)
+			=> throw FailArrayNullOrEmpty(collection, paramName, message);
 
 		/// <summary>The specified span must not be empty (assert: value.Length != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -311,7 +325,7 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value.Length == 0) throw FailBufferEmpty(paramName, message);
+			if (value.Length == 0) ThrowBufferEmpty(paramName, message);
 		}
 
 		/// <summary>The specified span must not be empty (assert: value.Length != 0)</summary>
@@ -323,7 +337,7 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value.Length == 0) throw FailBufferEmpty(paramName, message);
+			if (value.Length == 0) ThrowBufferEmpty(paramName, message);
 		}
 
 		/// <summary>The specified memory must not be empty (assert: value.Length != 0)</summary>
@@ -335,7 +349,7 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value.Length == 0) throw FailBufferEmpty(paramName, message);
+			if (value.Length == 0) ThrowBufferEmpty(paramName, message);
 		}
 
 		/// <summary>The specified memory must not be empty (assert: value.Length != 0)</summary>
@@ -347,7 +361,7 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value.Length == 0) throw FailBufferEmpty(paramName, message);
+			if (value.Length == 0) ThrowBufferEmpty(paramName, message);
 		}
 
 		/// <summary>The specified array must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
@@ -359,16 +373,18 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value is null || value.Length == 0) throw FailArrayNullOrEmpty(value, paramName, message);
+			if (value is null || value.Length == 0) ThrowArrayNullOrEmpty(value, paramName, message);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailCollectionNullOrEmpty(object? collection, string paramName, string? message = null)
-		{
-			return collection is null
+		public static Exception FailCollectionNullOrEmpty(object? collection, string? paramName, string? message = null)
+			=> collection is null
 				? ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.CollectionCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
-		}
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowCollectionNullOrEmpty(object? collection, string? paramName, string? message = null)
+			=> throw FailCollectionNullOrEmpty(collection, paramName, message);
 
 		/// <summary>The specified collection must not be null or empty (assert: value != null &amp;&amp; value.Count != 0)</summary>
 		[AssertionMethod, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -379,35 +395,48 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null
 		)
 		{
-			if (value is null || value.Count == 0) throw FailCollectionNullOrEmpty(value, paramName!, message!);
+			if (value is null || value.Count == 0)
+			{
+				ThrowCollectionNullOrEmpty(value, paramName, message);
+			}
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailBufferNull(string paramName, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentNullException), ContractMessages.BufferCannotBeNull, message, paramName, ContractMessages.ConditionNotNull);
-		}
+		public static Exception FailBufferNull(string? paramName, string? message = null)
+			=> ReportFailure(typeof(ArgumentNullException), ContractMessages.BufferCannotBeNull, message, paramName, ContractMessages.ConditionNotNull);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowBufferNull(string? paramName, string? message = null)
+			=> throw FailBufferNull(paramName, message);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailBufferEmpty(string? paramName, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.BufferCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
-		}
+			=> ReportFailure(typeof(ArgumentException), ContractMessages.BufferCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowBufferEmpty(string? paramName, string? message = null)
+			=> throw FailBufferEmpty(paramName, message);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailBufferNullOrEmpty(object? array, string paramName, string? message = null)
-		{
-			return array is null
+		public static Exception FailBufferNullOrEmpty(object? array, string? paramName, string? message = null)
+			=> array is null
 				? ReportFailure(typeof(ArgumentNullException), ContractMessages.BufferCannotBeNull, message, paramName, ContractMessages.ConditionNotNull)
 				: ReportFailure(typeof(ArgumentException), ContractMessages.BufferCannotBeEmpty, message, paramName, ContractMessages.ConditionNotEmptyCount);
-		}
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowBufferNullOrEmpty(object? array, string? paramName, string? message = null)
+			=> throw FailBufferNullOrEmpty(array, paramName, message);
 
 		/// <summary>The specified buffer must not be null or empty (assert: buffer.Array != null &amp;&amp; buffer.Count != 0)</summary>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[StackTraceHidden]
 		public static void NotNullOrEmpty(Slice buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null)
 		{
-			if (buffer.Array is null | buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
+			// ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+			if (buffer.Array is null || buffer.Count == 0)
+			{
+				ThrowBufferNullOrEmpty(buffer.Array, paramName, message);
+			}
 		}
 
 		/// <summary>The specified buffer must not be null or empty (assert: buffer.Array != null &amp;&amp; buffer.Count != 0)</summary>
@@ -415,7 +444,10 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void NotNullOrEmpty<T>(ArraySegment<T> buffer, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null)
 		{
-			if (buffer.Array is null || buffer.Count == 0) throw FailBufferNullOrEmpty(buffer.Array, paramName!, message);
+			if (buffer.Array is null || buffer.Count == 0)
+			{
+				ThrowBufferNullOrEmpty(buffer.Array, paramName, message);
+			}
 		}
 
 		#endregion
@@ -423,76 +455,84 @@ namespace SnowBank.Diagnostics.Contracts
 		#region Contract.Positive, LessThan[OrEqual], GreaterThen[OrEqual], EqualTo, Between, ...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNotPositive(string paramName, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.PositiveNumberRequired, message, paramName, ContractMessages.ConditionArgPositive);
-		}
+		public static Exception FailArgumentNotPositive(string? paramName, string? message = null)
+			=> ReportFailure(typeof(ArgumentException), ContractMessages.PositiveNumberRequired, message, paramName, ContractMessages.ConditionArgPositive);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentNotPositive(string? paramName, string? message = null)
+			=> throw ReportFailure(typeof(ArgumentException), ContractMessages.PositiveNumberRequired, message, paramName, ContractMessages.ConditionArgPositive);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNotNonNegative(string paramName, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.NonNegativeNumberRequired, message, paramName, ContractMessages.ConditionArgPositive);
-		}
+		public static Exception FailArgumentNotNonNegative(string? paramName, string? message = null)
+			=> ReportFailure(typeof(ArgumentException), ContractMessages.NonNegativeNumberRequired, message, paramName, ContractMessages.ConditionArgPositive);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentNotNonNegative(string? paramName, string? message = null)
+			=> throw ReportFailure(typeof(ArgumentException), ContractMessages.NonNegativeNumberRequired, message, paramName, ContractMessages.ConditionArgPositive);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNotPowerOfTwo(string paramName, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.PowerOfTwoRequired, message, paramName, ContractMessages.ConditionArgPositive);
-		}
+		public static Exception FailArgumentNotPowerOfTwo(string? paramName, string? message = null)
+			=> ReportFailure(typeof(ArgumentException), ContractMessages.PowerOfTwoRequired, message, paramName, ContractMessages.ConditionArgPositive);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentForbidden<T>(string paramName, T forbidden, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsForbidden, message, paramName, ContractMessages.ConditionArgNotEqualTo);
-		}
+		public static Exception FailArgumentForbidden<T>(string? paramName, T forbidden, string? message = null)
+			=> ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsForbidden, message, paramName, ContractMessages.ConditionArgNotEqualTo);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentForbidden<T>(string? paramName, T forbidden, string? message = null)
+			=> throw ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsForbidden, message, paramName, ContractMessages.ConditionArgNotEqualTo);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentExpected<T>(string paramName, T expected, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsExpected, message, paramName, ContractMessages.ConditionArgEqualTo);
-		}
+		public static Exception FailArgumentExpected<T>(string? paramName, T expected, string? message = null)
+			=> ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsExpected, message, paramName, ContractMessages.ConditionArgEqualTo);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentExpected<T>(string? paramName, T expected, string? message = null)
+			=> throw ReportFailure(typeof(ArgumentException), ContractMessages.ValueIsExpected, message, paramName, ContractMessages.ConditionArgEqualTo);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotGreaterThan<T>(T value, string valueExpression, string thresholdExpression, bool zero, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentOutOfRangeException), zero ? ContractMessages.AboveZeroNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} > " + thresholdExpression, details: value);
-		}
+			=> ReportFailure(typeof(ArgumentOutOfRangeException), zero ? ContractMessages.AboveZeroNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} > " + thresholdExpression, details: value);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentNotGreaterThan<T>(T value, string valueExpression, string thresholdExpression, bool zero, string? message = null)
+			=> throw FailArgumentNotGreaterThan(value, valueExpression, thresholdExpression, zero, message);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotGreaterOrEqual<T>(T value, string valueExpression, string thresholdExpression, bool zero, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentOutOfRangeException), zero ? ContractMessages.PositiveNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} >= " + thresholdExpression, details: value);
-		}
+			=> ReportFailure(typeof(ArgumentOutOfRangeException), zero ? ContractMessages.PositiveNumberRequired : ContractMessages.ValueIsTooSmall, message, valueExpression, "{0} >= " + thresholdExpression, details: value);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentNotGreaterOrEqual<T>(T value, string valueExpression, string thresholdExpression, bool zero, string? message = null)
+			=> throw FailArgumentNotGreaterOrEqual(value, valueExpression, thresholdExpression, zero, message);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotLessThan<T>(T value, string valueExpression, string thresholdExpression, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} < " + thresholdExpression, details: value);
-		}
+			=> ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} < " + thresholdExpression, details: value);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentNotLessThan<T>(T value, string valueExpression, string thresholdExpression,string? message = null)
+			=> throw FailArgumentNotLessThan(value, valueExpression, thresholdExpression, message);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotLessOrEqual<T>(T value, string valueExpression, string thresholdExpression, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} <= " + thresholdExpression, details: value);
-		}
+			=> ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueIsTooBig, message, valueExpression, "{0} <= " + thresholdExpression, details: value);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentNotLessOrEqual<T>(T value, string valueExpression, string thresholdExpression,string? message = null)
+			=> throw FailArgumentNotLessOrEqual(value, valueExpression, thresholdExpression, message);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentOutOfBounds(string paramName, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueMustBeBetween, message, paramName, ContractMessages.ConditionArgBetween);
-		}
+			=> ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueMustBeBetween, message, paramName, ContractMessages.ConditionArgBetween);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentOutOfBounds(string valueExpression, string minExpression, string maxExpression, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueMustBeBetween, message, valueExpression, minExpression + " <= {0} <= " + maxExpression);
-		}
+			=> ReportFailure(typeof(ArgumentOutOfRangeException), ContractMessages.ValueMustBeBetween, message, valueExpression, minExpression + " <= {0} <= " + maxExpression);
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailArgumentNotMultiple(string paramName, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.ValueMustBeMultiple, message, paramName, ContractMessages.ConditionArgMultiple);
-		}
+			=> ReportFailure(typeof(ArgumentException), ContractMessages.ValueMustBeMultiple, message, paramName, ContractMessages.ConditionArgMultiple);
 
 		#region Positive...
 
@@ -502,7 +542,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void Positive(int value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value < 0) throw FailArgumentNotPositive(paramName!, message);
+			if (value < 0) ThrowArgumentNotPositive(paramName, message);
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
@@ -511,7 +551,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void Positive(long value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value < 0) throw FailArgumentNotPositive(paramName!, message);
+			if (value < 0) ThrowArgumentNotPositive(paramName, message);
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
@@ -520,7 +560,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void Positive(double value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (Math.Sign(value) != 1) throw FailArgumentNotPositive(paramName!, message);
+			if (Math.Sign(value) != 1) ThrowArgumentNotPositive(paramName, message);
 		}
 
 		/// <summary>The specified value must not be a negative number (assert: value >= 0)</summary>
@@ -529,7 +569,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void Positive(float value, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (MathF.Sign(value) != 1) throw FailArgumentNotPositive(paramName!, message);
+			if (MathF.Sign(value) != 1) ThrowArgumentNotPositive(paramName, message);
 		}
 
 		#endregion
@@ -577,7 +617,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void EqualTo(int value, int expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
+			if (value != expected) ThrowArgumentExpected(paramName, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -585,7 +625,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void EqualTo(long value, long expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
+			if (value != expected) ThrowArgumentExpected(paramName, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -593,7 +633,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void EqualTo(uint value, uint expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
+			if (value != expected) ThrowArgumentExpected(paramName, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -601,7 +641,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void EqualTo(ulong value, ulong expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
+			if (value != expected) ThrowArgumentExpected(paramName, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -609,7 +649,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void EqualTo(string? value, string? expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value != expected) throw FailArgumentExpected(paramName!, expected, message);
+			if (value != expected) ThrowArgumentExpected(paramName, expected, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -618,7 +658,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void EqualTo<T>(T value, T expected, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 			where T : struct, IEquatable<T>
 		{
-			if (!value.Equals(expected)) throw FailArgumentExpected(paramName!, expected, message);
+			if (!value.Equals(expected)) ThrowArgumentExpected(paramName, expected, message);
 		}
 
 		#endregion
@@ -630,7 +670,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void NotEqualTo(int value, int forbidden, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
+			if (value == forbidden) ThrowArgumentForbidden(paramName, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -638,7 +678,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void NotEqualTo(long value, long forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
+			if (value == forbidden) ThrowArgumentForbidden(paramName, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -646,7 +686,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void NotEqualTo(uint value, uint forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
+			if (value == forbidden) ThrowArgumentForbidden(paramName, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -654,7 +694,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void NotEqualTo(ulong value, ulong forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
+			if (value == forbidden) ThrowArgumentForbidden(paramName, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -662,7 +702,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void NotEqualTo(string value, string forbidden, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? paramName = null)
 		{
-			if (value == forbidden) throw FailArgumentForbidden(paramName!, forbidden, message);
+			if (value == forbidden) ThrowArgumentForbidden(paramName, forbidden, message);
 		}
 
 		/// <summary>The specified value must not equal to the specified constant (assert: value != forbidden)</summary>
@@ -671,7 +711,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void NotEqualTo<T>(T value, T forbidden, string? message = null, [InvokerParameterName] [CallerArgumentExpression(nameof(value))] string? paramName = null)
 			where T : struct, IEquatable<T>
 		{
-			if (value.Equals(forbidden)) throw FailArgumentForbidden(paramName!, forbidden, message);
+			if (value.Equals(forbidden)) ThrowArgumentForbidden(paramName, forbidden, message);
 		}
 
 		#endregion
@@ -685,7 +725,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, T.IsZero(threshold), message);
+			if (value <= threshold) ThrowArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, T.IsZero(threshold), message);
 		}
 #else
 		/// <summary>The specified value must not be less than or equal to the specified lower bound (assert: value > threshold)</summary>
@@ -694,7 +734,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void GreaterThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
-			if (value.CompareTo(threshold) <= 0) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold.CompareTo(default) == 0, message);
+			if (value.CompareTo(threshold) <= 0) ThrowArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold.CompareTo(default) == 0, message);
 		}
 #endif
 
@@ -704,7 +744,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void GreaterThan<T>(TimeSpan value, TimeSpan threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
-			if (value <= threshold) throw FailArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == TimeSpan.Zero, message);
+			if (value <= threshold) ThrowArgumentNotGreaterThan(value, valueExpression!, thresholdExpression!, threshold == TimeSpan.Zero, message);
 		}
 
 		#endregion
@@ -718,7 +758,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, T.IsZero(threshold), message);
+			if (value < threshold) ThrowArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, T.IsZero(threshold), message);
 		}
 #else
 		/// <summary>The specified value must not less than the specified lower bound (assert: value >= threshold)</summary>
@@ -727,7 +767,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void GreaterOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
-			if (value.CompareTo(threshold) < 0) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold.CompareTo(default) == 0, message);
+			if (value.CompareTo(threshold) < 0) ThrowArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold.CompareTo(default) == 0, message);
 		}
 #endif
 
@@ -736,7 +776,7 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void GreaterOrEqual(TimeSpan value, TimeSpan threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 		{
-			if (value < threshold) throw FailArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold == TimeSpan.Zero, message);
+			if (value < threshold) ThrowArgumentNotGreaterOrEqual(value, valueExpression!, thresholdExpression!, threshold == TimeSpan.Zero, message);
 		}
 
 		#endregion
@@ -750,7 +790,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
-			if (value >= threshold) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
+			if (value >= threshold) ThrowArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
 		}
 #else
 		/// <summary>The specified value must not be greater than or equal to the specified upper bound (assert: value &lt; threshold)</summary>
@@ -759,7 +799,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void LessThan<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
-			if (value.CompareTo(threshold) >= 0) throw FailArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
+			if (value.CompareTo(threshold) >= 0) ThrowArgumentNotLessThan(value, valueExpression!, thresholdExpression!, message);
 		}
 #endif
 
@@ -774,7 +814,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : System.Numerics.INumber<T>
 		{
-			if (value > threshold) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
+			if (value > threshold) ThrowArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
 		}
 #else
 		/// <summary>The specified value must not be greater than the specified upper bound (assert: value &lt;= threshold)</summary>
@@ -783,7 +823,7 @@ namespace SnowBank.Diagnostics.Contracts
 		public static void LessOrEqual<T>(T value, T threshold, string? message = null, [InvokerParameterName, CallerArgumentExpression(nameof(value))] string? valueExpression = null, [InvokerParameterName, CallerArgumentExpression(nameof(threshold))] string? thresholdExpression = null)
 			where T : struct, IComparable<T>
 		{
-			if (value.CompareTo(threshold) > 0) throw FailArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
+			if (value.CompareTo(threshold) > 0) ThrowArgumentNotLessOrEqual(value, valueExpression!, thresholdExpression!, message);
 		}
 #endif
 
@@ -873,9 +913,9 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer is null) throw FailArgumentNull(paramBuffer!, message);
-			if (index < 0 || count < 0) throw FailArgumentNotNonNegative(index < 0 ? paramIndex! : paramCount!, message);
-			if ((buffer.Length - index) < count) throw FailBufferTooSmall(paramCount!, message);
+			if (buffer is null) { ThrowArgumentNull(paramBuffer!, message); }
+			if (index < 0 || count < 0) ThrowArgumentNotNonNegative(index < 0 ? paramIndex! : paramCount!, message);
+			if ((buffer.Length - index) < count) ThrowBufferTooSmall(paramCount!, message);
 		}
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
@@ -883,8 +923,8 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void DoesNotOverflow(int bufferLength, int offset, int count, string? message = null)
 		{
-			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
-			if ((bufferLength - offset) < count) throw FailBufferTooSmall(nameof(count), message);
+			if (offset < 0 || count < 0) ThrowArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
+			if ((bufferLength - offset) < count) ThrowBufferTooSmall(nameof(count), message);
 		}
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
@@ -892,8 +932,8 @@ namespace SnowBank.Diagnostics.Contracts
 		[StackTraceHidden]
 		public static void DoesNotOverflow(long bufferLength, long offset, long count, string? message = null)
 		{
-			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
-			if ((bufferLength - offset) < count) throw FailBufferTooSmall(nameof(count), message);
+			if (offset < 0 || count < 0) ThrowArgumentNotNonNegative(offset < 0 ? nameof(offset) : nameof(count), message);
+			if ((bufferLength - offset) < count) ThrowBufferTooSmall(nameof(count), message);
 		}
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
@@ -910,9 +950,9 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer is null) throw FailArgumentNull(paramBuffer!, message);
-			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? paramOffset! : paramCount!, message);
-			if ((buffer.Length - offset) < count) throw FailBufferTooSmall(paramCount!, message);
+			if (buffer is null) ThrowArgumentNull(paramBuffer!, message);
+			if (offset < 0 || count < 0) ThrowArgumentNotNonNegative(offset < 0 ? paramOffset! : paramCount!, message);
+			if ((buffer.Length - offset) < count) ThrowBufferTooSmall(paramCount!, message);
 		}
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
@@ -924,16 +964,32 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(buffer))] string? paramName = null
 		)
 		{
-			if (buffer.Offset < 0 || buffer.Count < 0) throw FailArgumentNotNonNegative(paramName + (buffer.Offset < 0 ? ".Offset" : ".Count"), message);
+			if (buffer.Offset < 0 || buffer.Count < 0)
+			{
+				ThrowIfNegative(buffer, message, paramName);
+			}
 			if (buffer.Count > 0)
 			{
-				if (buffer.Array is null) throw FailBufferNull(paramName!, message);
-				if ((buffer.Array.Length - buffer.Offset) < buffer.Count) throw FailBufferTooSmall(paramName + ".Count", message);
+				if (buffer.Array is null) ThrowBufferNull(paramName, message);
+				if ((buffer.Array.Length - buffer.Offset) < buffer.Count) ThrowTooSmall(paramName, message);
 			}
 			else
 			{
-				if (buffer.Array != null && buffer.Array.Length < buffer.Offset) throw FailBufferTooSmall(paramName + ".Count", message);
+				if (buffer.Array is not null && buffer.Array.Length < buffer.Offset) ThrowTooSmall(paramName, message);
 			}
+
+			[DoesNotReturn, StackTraceHidden]
+			static void ThrowIfNegative(ArraySegment<TElement> buffer, string? message, string? paramName)
+			{
+				throw FailArgumentNotNonNegative(paramName + (buffer.Offset < 0 ? ".Offset" : ".Count"), message);
+			}
+
+			[DoesNotReturn, StackTraceHidden]
+			static void ThrowTooSmall(string? paramName, string? message)
+			{
+				throw FailBufferTooSmall(paramName + ".Count", message);
+			}
+
 		}
 
 		/// <summary>The specified region must not be outside the specified buffer</summary>
@@ -950,16 +1006,18 @@ namespace SnowBank.Diagnostics.Contracts
 			[InvokerParameterName, CallerArgumentExpression(nameof(count))] string? paramCount = null
 		)
 		{
-			if (buffer is null) throw FailArgumentNull(paramBuffer!, message);
-			if (offset < 0 || count < 0) throw FailArgumentNotNonNegative(offset < 0 ? paramOffset! : paramCount!, message);
-			if ((buffer.Count - offset) < count) throw FailBufferTooSmall(paramCount!, message);
+			if (buffer is null) ThrowArgumentNull(paramBuffer!, message);
+			if (offset < 0 || count < 0) ThrowArgumentNotNonNegative(offset < 0 ? paramOffset! : paramCount!, message);
+			if ((buffer.Count - offset) < count) ThrowBufferTooSmall(paramCount!, message);
 		}
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static Exception FailBufferTooSmall(string paramName, string? message = null)
-		{
-			return ReportFailure(typeof(ArgumentException), ContractMessages.OffsetMustBeWithinBuffer, message, paramName, ContractMessages.ConditionArgBufferOverflow);
-		}
+			=> ReportFailure(typeof(ArgumentException), ContractMessages.OffsetMustBeWithinBuffer, message, paramName, ContractMessages.ConditionArgBufferOverflow);
+
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowBufferTooSmall(string paramName, string? message = null)
+			=> throw FailBufferTooSmall(paramName, message);
 
 		#endregion
 
@@ -968,16 +1026,12 @@ namespace SnowBank.Diagnostics.Contracts
 		#region Internal Helpers...
 
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNull(string paramName)
-		{
-			return ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, null, paramName, ContractMessages.ConditionNotNull);
-		}
+		public static Exception FailArgumentNull(string? paramName, string? message = null)
+			=> ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull);
 
-		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
-		public static Exception FailArgumentNull(string paramName, string? message)
-		{
-			return ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull);
-		}
+		[DoesNotReturn, StackTraceHidden]
+		public static void ThrowArgumentNull(string? paramName, string? message = null)
+			=> throw ReportFailure(typeof(ArgumentNullException), ContractMessages.ValueCannotBeNull, message, paramName, ContractMessages.ConditionNotNull);
 
 		/// <summary>Throws an exception, following a failed assertion</summary>
 		[Pure, MethodImpl(MethodImplOptions.NoInlining)]
@@ -1045,7 +1099,7 @@ namespace SnowBank.Diagnostics.Contracts
 			string? str = conditionText is null
 				? ContractHelper.RaiseContractFailedEvent(kind, msg, null, exception)
 				: ContractHelper.RaiseContractFailedEvent(kind, msg, conditionText, exception);
-			if (str != null)
+			if (str is not null)
 			{
 				if (IsUnitTesting)
 				{
@@ -1057,22 +1111,23 @@ namespace SnowBank.Diagnostics.Contracts
 					// note: starting from VS 2015 Up2, [DebuggerNonUserCode] has no effect anymore, if the registry key AlwaysEnableExceptionCallbacksOutsideMyCode is not set to 1, for performance reasons.
 					// cf "How to Suppress Ignorable Exceptions with DebuggerNonUserCode" dans https://blogs.msdn.microsoft.com/visualstudioalm/2016/02/12/using-the-debuggernonusercode-attribute-in-visual-studio-2015/
 #endif
-					if (ex != null) return ex;
+					if (ex is not null) return ex;
 					// if not null, continue
 				}
 #if DEBUG
-				else if (kind == SDC.ContractFailureKind.Assert && Debugger.IsAttached)
+				else if (kind == SDC.ContractFailureKind.Assert && System.Diagnostics.Debugger.IsAttached)
 				{
 					// only when debugging from VS, or else it will cause issues with Resharper's TestRunner (that will display a popup for each failed assertion!)
 					System.Diagnostics.Debug.Fail(str);
 				}
 #endif
-
-				return new ContractException(kind, str, msg, conditionText, null);
+			}
+			else
+			{ // use default message
+				msg = "Contract Failed";
 			}
 
-			//note: we still need to return something!
-			return new ContractException(kind, "Contract Failed", msg, conditionText, null);
+			return new ContractException(kind, str, msg, conditionText, null);
 		}
 
 		#endregion

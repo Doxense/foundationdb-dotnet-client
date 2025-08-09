@@ -226,7 +226,7 @@ namespace System
 			get => !m_hasValue && m_errorContainer == null;
 		}
 
-		[DoesNotReturn, ContractAnnotation("=> halt"), MethodImpl(MethodImplOptions.NoInlining), StackTraceHidden]
+		[DoesNotReturn, StackTraceHidden]
 		private T ThrowInvalidState()
 		{
 			if (m_errorContainer != null) throw new AggregateException("A computation has triggered an exception.", this.Error!);
