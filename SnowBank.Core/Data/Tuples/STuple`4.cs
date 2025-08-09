@@ -104,6 +104,7 @@ namespace SnowBank.Data.Tuples
 		/// <inheritdoc />
 		object? ITuple.this[int index] => this[index];
 
+		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
@@ -111,6 +112,7 @@ namespace SnowBank.Data.Tuples
 			get => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 		}
 
+		/// <inheritdoc />
 		object? IVarTuple.this[Index index] => index.GetOffset(4) switch
 		{
 			0 => this.Item1,
@@ -120,6 +122,7 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.FailIndexOutOfRange<object>(index.Value, 4)
 		};
 
+		/// <inheritdoc />
 		public IVarTuple this[Range range]
 		{
 			get
@@ -173,9 +176,11 @@ namespace SnowBank.Data.Tuples
 		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
 			=> Get<TItem>(index.GetOffset(4));
 
+		/// <inheritdoc />
 		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
 
+		/// <inheritdoc />
 		TItem? IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			where TItem : default => TypeConverters.Convert<T4, TItem?>(this.Item4);
 
@@ -306,6 +311,7 @@ namespace SnowBank.Data.Tuples
 			return true;
 		}
 
+		/// <inheritdoc />
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			sb.Append(STuple.Formatter.Stringify(this.Item1));
@@ -318,6 +324,7 @@ namespace SnowBank.Data.Tuples
 			return 4;
 		}
 
+		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -326,10 +333,8 @@ namespace SnowBank.Data.Tuples
 			yield return this.Item4;
 		}
 
-		IEnumerator IEnumerable.GetEnumerator()
-		{
-			return GetEnumerator();
-		}
+		/// <inheritdoc />
+		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
 		/// <inheritdoc />
 		public override string ToString() => ToString(null);
@@ -374,22 +379,27 @@ namespace SnowBank.Data.Tuples
 			return false;
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			return obj != null && ((IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(IVarTuple? other)
 		{
 			return other != null && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(STuple<T1, T2, T3, T4> other) => EqualityComparer.Equals(in this, in other);
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals((T1, T2, T3, T4) other) => EqualityComparer.Equals(in this, in other);
 
+		/// <inheritdoc />
 		public override int GetHashCode() => EqualityComparer.GetHashCode(in this);
 
 		/// <inheritdoc />
@@ -406,6 +416,7 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.Compare(this, other, SimilarValueComparer.Default),
 		};
 
+		/// <inheritdoc />
 		int IComparable.CompareTo(object? other) => other switch
 		{
 			null => +1,
@@ -414,6 +425,7 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.Compare(in this, other, SimilarValueComparer.Default),
 		};
 
+		/// <inheritdoc />
 		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => other switch
 		{
 			STuple<T1, T2, T3, T4> t => Comparer.Compare(in this, in t),
@@ -439,6 +451,7 @@ namespace SnowBank.Data.Tuples
 		public static bool operator !=((T1, T2, T3, T4) left, STuple<T1, T2, T3, T4> right)
 			=> !EqualityComparer.Equals(in right, in left);
 
+		/// <inheritdoc />
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			return other switch
@@ -450,6 +463,7 @@ namespace SnowBank.Data.Tuples
 			};
 		}
 
+		/// <inheritdoc />
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			return TupleHelpers.CombineHashCodes(
@@ -460,6 +474,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
+		/// <inheritdoc />
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
 		{
 			switch (index)
@@ -595,6 +610,7 @@ namespace SnowBank.Data.Tuples
 
 			private Comparer() { }
 
+			/// <inheritdoc />
 			public int Compare(STuple<T1, T2, T3, T4> x, STuple<T1, T2, T3, T4> y)
 			{
 				int cmp = Comparer1.Compare(x.Item1, y.Item1);

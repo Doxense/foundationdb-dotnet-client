@@ -54,6 +54,7 @@ namespace SnowBank.Data.Tuples
 		private readonly int HeadCount;
 
 		/// <summary>Append a new value at the end of an existing tuple</summary>
+		[SkipLocalsInit, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public LinkedTuple(IVarTuple head, T tail)
 		{
 			Contract.NotNull(head);
@@ -69,6 +70,7 @@ namespace SnowBank.Data.Tuples
 		/// <inheritdoc />
 		int System.Runtime.CompilerServices.ITuple.Length => this.Count;
 
+		/// <inheritdoc cref="IVarTuple.this[int]"/>
 		public object? this[int index]
 		{
 			get
@@ -79,8 +81,10 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
+		/// <inheritdoc />
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
+		/// <inheritdoc />
 		public object? this[Index index]
 		{
 			get
@@ -91,6 +95,7 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
+		/// <inheritdoc />
 		public IVarTuple this[Range range]
 		{
 			get
@@ -108,6 +113,7 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
+		/// <inheritdoc />
 		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index)
 		{
 			if (index == this.HeadCount || index == -1) return TypeConverters.Convert<T, TItem?>(this.Tail);
@@ -120,9 +126,11 @@ namespace SnowBank.Data.Tuples
 		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
 			=> Get<TItem>(index.GetOffset(this.Count));
 
+		/// <inheritdoc />
 		public TItem? GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			=> this.HeadCount > 0 ? this.Head.GetFirst<TItem>() : TypeConverters.Convert<T, TItem?>(this.Tail);
 
+		/// <inheritdoc />
 		public TItem? GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			=> TypeConverters.Convert<T, TItem?>(this.Tail);
 
@@ -133,22 +141,26 @@ namespace SnowBank.Data.Tuples
 			get => this.Tail;
 		}
 
+		/// <inheritdoc />
 		public IVarTuple Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(TItem value)
 		{
 			return STuple.Concat(this.Head, new STuple<T, TItem>(this.Tail, value));
 		}
 
+		/// <inheritdoc />
 		public IVarTuple Concat(IVarTuple tuple)
 		{
 			return STuple.Concat(this, tuple);
 		}
 
+		/// <inheritdoc />
 		public void CopyTo(object?[] array, int offset)
 		{
 			this.Head.CopyTo(array, offset);
 			array[offset + this.HeadCount] = this.Tail;
 		}
 
+		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
 			foreach (var item in this.Head)
@@ -158,11 +170,13 @@ namespace SnowBank.Data.Tuples
 			yield return this.Tail;
 		}
 
+		/// <inheritdoc />
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return this.GetEnumerator();
 		}
 
+		/// <inheritdoc />
 		int ITupleFormattable.AppendItemsTo(ref FastStringBuilder sb)
 		{
 			// cannot be empty
@@ -208,27 +222,34 @@ namespace SnowBank.Data.Tuples
 			return sb.ToString();
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			return obj != null && ((IStructuralEquatable) this).Equals(obj, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(IVarTuple? other)
 		{
 			return !ReferenceEquals(other, null) && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		public override int GetHashCode()
 		{
 			return ((IStructuralEquatable) this).GetHashCode(SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		public int CompareTo(IVarTuple? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
 
+		/// <inheritdoc />
 		public int CompareTo(object? other) => TupleHelpers.Compare(this, other, SimilarValueComparer.Default);
 
+		/// <inheritdoc />
 		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => TupleHelpers.Compare(this, other, comparer);
 
+		/// <inheritdoc />
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			if (ReferenceEquals(this, other)) return true;
@@ -247,6 +268,7 @@ namespace SnowBank.Data.Tuples
 			return TupleHelpers.Equals(this, other, comparer);
 		}
 
+		/// <inheritdoc />
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			int hc = this.Head.Count;
@@ -258,6 +280,7 @@ namespace SnowBank.Data.Tuples
 			};
 		}
 
+		/// <inheritdoc />
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
 		{
 			int hc = this.Head.Count;

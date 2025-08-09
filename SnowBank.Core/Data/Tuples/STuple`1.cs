@@ -79,15 +79,18 @@ namespace SnowBank.Data.Tuples
 		/// <inheritdoc />
 		object? ITuple.this[int index] => this[index];
 
+		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded] => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 
+		/// <inheritdoc />
 		object? IVarTuple.this[Index index] => index.GetOffset(1) switch
 		{
 			0 => this.Item1,
 			_ => TupleHelpers.FailIndexOutOfRange<object>(index.Value, 1)
 		};
 
+		/// <inheritdoc />
 		public IVarTuple this[Range range]
 		{
 			get
@@ -107,16 +110,20 @@ namespace SnowBank.Data.Tuples
 		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
 			=> Get<TItem>(index.GetOffset(1));
 
+		/// <inheritdoc />
 		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
-			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
+			where TItem : default
+			=> TypeConverters.Convert<T1, TItem?>(this.Item1);
 
+		/// <inheritdoc />
 		TItem? IVarTuple.GetLast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
-			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
+			where TItem : default
+			=> TypeConverters.Convert<T1, TItem?>(this.Item1);
 
-		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>(T2 value) where T2 : default
-		{
-			return new STuple<T1, T2>(this.Item1, value);
-		}
+		/// <inheritdoc />
+		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T2>(T2 value)
+			where T2 : default
+			=> new STuple<T1, T2>(this.Item1, value);
 
 		/// <summary>Appends a single new item at the end of the current tuple.</summary>
 		/// <param name="value">Value that will be added as an embedded item</param>
@@ -229,11 +236,13 @@ namespace SnowBank.Data.Tuples
 			return 1;
 		}
 
+		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
 			yield return this.Item1;
 		}
 
+		/// <inheritdoc />
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
@@ -268,6 +277,7 @@ namespace SnowBank.Data.Tuples
 			return false;
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj) => obj switch
 		{
 			STuple<T1> t => EqualityComparer.Equals(in this, in t),
@@ -352,6 +362,7 @@ namespace SnowBank.Data.Tuples
 		public static bool operator !=(ValueTuple<T1> left, STuple<T1> right)
 			=> !EqualityComparer.Equals(in right, in left);
 
+		/// <inheritdoc />
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer) => other switch
 		{
 			null => false,
@@ -360,11 +371,13 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.Equals(this, other, comparer)
 		};
 
+		/// <inheritdoc />
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			return TupleHelpers.ComputeHashCode(this.Item1, comparer);
 		}
 
+		/// <inheritdoc />
 		int IStructuralComparable.CompareTo(object? other, IComparer comparer)
 		{
 			return TupleHelpers.Compare(this, other, SimilarValueComparer.Default);

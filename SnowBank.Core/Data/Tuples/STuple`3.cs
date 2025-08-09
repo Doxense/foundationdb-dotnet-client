@@ -72,6 +72,7 @@ namespace SnowBank.Data.Tuples
 			this.Item3 = item3;
 		}
 
+		/// <inheritdoc />
 		public int Count => 3;
 
 		/// <inheritdoc />
@@ -96,6 +97,7 @@ namespace SnowBank.Data.Tuples
 		/// <inheritdoc />
 		object? ITuple.this[int index] => this[index];
 
+		/// <inheritdoc />
 		[EditorBrowsable(EditorBrowsableState.Never)]
 		public IVarTuple this[int? fromIncluded, int? toExcluded]
 		{
@@ -103,6 +105,7 @@ namespace SnowBank.Data.Tuples
 			get => TupleHelpers.Splice(this, fromIncluded, toExcluded);
 		}
 
+		/// <inheritdoc />
 		object? IVarTuple.this[Index index] => index.GetOffset(3) switch
 		{
 			0 => this.Item1,
@@ -111,6 +114,7 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.FailIndexOutOfRange<object>(index.Value, 3)
 		};
 
+		/// <inheritdoc />
 		public IVarTuple this[Range range]
 		{
 			get
@@ -135,10 +139,7 @@ namespace SnowBank.Data.Tuples
 			}
 		}
 
-		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
-		/// <typeparam name="TItem">Expected type of the item</typeparam>
-		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
-		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="TItem"/>.</returns>
+		/// <inheritdoc />
 		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(int index) => index switch
 		{
 			0  => TypeConverters.Convert<T1, TItem?>(this.Item1),
@@ -149,6 +150,11 @@ namespace SnowBank.Data.Tuples
 			-3 => TypeConverters.Convert<T1, TItem?>(this.Item1),
 			_  => TupleHelpers.FailIndexOutOfRange<TItem>(index, 3)
 		};
+
+		/// <inheritdoc />
+		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public TItem? Get<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>(Index index)
+			=> Get<TItem>(index.GetOffset(3));
 
 		TItem? IVarTuple.GetFirst<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TItem>()
 			where TItem : default => TypeConverters.Convert<T1, TItem?>(this.Item1);
@@ -171,6 +177,7 @@ namespace SnowBank.Data.Tuples
 			get => new(this.Item2, this.Item3);
 		}
 
+		/// <inheritdoc />
 		IVarTuple IVarTuple.Append<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T4>(T4 value) where T4 : default
 		{
 			// here, the caller doesn't care about the exact tuple type, so we simply return a boxed List Tuple.
@@ -220,6 +227,7 @@ namespace SnowBank.Data.Tuples
 			return STuple.Concat(this, tuple);
 		}
 
+		/// <inheritdoc />
 		public void CopyTo(object?[] array, int offset)
 		{
 			array[offset] = this.Item1;
@@ -295,6 +303,7 @@ namespace SnowBank.Data.Tuples
 			return 3;
 		}
 
+		/// <inheritdoc />
 		public IEnumerator<object?> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -302,6 +311,7 @@ namespace SnowBank.Data.Tuples
 			yield return this.Item3;
 		}
 
+		/// <inheritdoc />
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return GetEnumerator();
@@ -345,22 +355,27 @@ namespace SnowBank.Data.Tuples
 			return false;
 		}
 
+		/// <inheritdoc />
 		public override bool Equals(object? obj)
 		{
 			return obj is not null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		public bool Equals(IVarTuple? other)
 		{
 			return other is not null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(STuple<T1, T2, T3> other) => EqualityComparer.Equals(in this, in other);
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals((T1, T2, T3) other) => EqualityComparer.Equals(in this, in other);
 
+		/// <inheritdoc />
 		public override int GetHashCode() => EqualityComparer.GetHashCode(in this);
 
 		/// <inheritdoc />
@@ -377,6 +392,7 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.Compare(this, other, SimilarValueComparer.Default),
 		};
 
+		/// <inheritdoc />
 		int IComparable.CompareTo(object? other) => other switch
 		{
 			null => +1,
@@ -385,6 +401,7 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.Compare(in this, other, SimilarValueComparer.Default),
 		};
 
+		/// <inheritdoc />
 		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => other switch
 		{
 			STuple<T1, T2, T3> t => Comparer.Compare(in this, in t),
@@ -410,6 +427,7 @@ namespace SnowBank.Data.Tuples
 		public static bool operator !=((T1, T2, T3) left, STuple<T1, T2, T3> right)
 			=> !EqualityComparer.Equals(in right, in left);
 
+		/// <inheritdoc />
 		bool IStructuralEquatable.Equals(object? other, IEqualityComparer comparer)
 		{
 			return other switch
@@ -421,6 +439,7 @@ namespace SnowBank.Data.Tuples
 			};
 		}
 
+		/// <inheritdoc />
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			return TupleHelpers.CombineHashCodes(
@@ -431,7 +450,7 @@ namespace SnowBank.Data.Tuples
 			);
 		}
 
-
+		/// <inheritdoc />
 		int IVarTuple.GetItemHashCode(int index, IEqualityComparer comparer)
 		{
 			switch (index)

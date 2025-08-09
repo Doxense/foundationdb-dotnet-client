@@ -476,12 +476,15 @@ namespace SnowBank.Data.Tuples
 			return other != null && ((IStructuralEquatable) this).Equals(other, SimilarValueComparer.Default);
 		}
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals(STuple<T1, T2, T3, T4, T5, T6, T7> other) => EqualityComparer.Equals(in this, in other);
 
+		/// <inheritdoc />
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool Equals((T1, T2, T3, T4, T5, T6, T7) other) => EqualityComparer.Equals(in this, in other);
 
+		/// <inheritdoc />
 		public override int GetHashCode() => EqualityComparer.GetHashCode(in this);
 
 		/// <inheritdoc />
@@ -498,6 +501,7 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.Compare(this, other, SimilarValueComparer.Default),
 		};
 
+		/// <inheritdoc />
 		int IComparable.CompareTo(object? other) => other switch
 		{
 			null => +1,
@@ -506,6 +510,7 @@ namespace SnowBank.Data.Tuples
 			_ => TupleHelpers.Compare(in this, other, SimilarValueComparer.Default),
 		};
 
+		/// <inheritdoc />
 		int IStructuralComparable.CompareTo(object? other, IComparer comparer) => other switch
 		{
 			STuple<T1, T2, T3, T4, T5, T6, T7> t => Comparer.Compare(in this, in t),
