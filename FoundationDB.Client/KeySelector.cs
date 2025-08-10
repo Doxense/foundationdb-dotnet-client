@@ -217,13 +217,13 @@ namespace FoundationDB.Client
 			{
 				if (!buffer.TryAppendAndAdvance(" + ")) goto too_small;
 				if (!offset.TryFormat(buffer, out int offsetLen)) goto too_small;
-				destination = destination[offsetLen..];
+				buffer = buffer[offsetLen..];
 			}
 			else if (offset < 0)
 			{
 				if (!buffer.TryAppendAndAdvance(" - ")) goto too_small;
 				if (!(-offset).TryFormat(buffer, out int offsetLen)) goto too_small;
-				destination = destination[offsetLen..];
+				buffer = buffer[offsetLen..];
 			}
 
 			charsWritten = destination.Length - buffer.Length;
