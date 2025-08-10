@@ -741,7 +741,24 @@ namespace FoundationDB.Client
 
 					if (!string.IsNullOrEmpty(layer) && layer != existingNode.Layer)
 					{
-						throw new InvalidOperationException($"The directory {path} was created with incompatible layer '{existingNode.Layer}' instead of expected '{layer}'.");
+						bool fail = true;
+						if (string.IsNullOrEmpty(existingNode.Layer))
+						{ // path was created without any layer... should we create it?
+							if (allowCreate && trans is not null)
+							{
+								// note: this is a very common case where some helper or test framework clears or re-create the path, without knowing the expected Layer,
+								//  and the actual layer will fail otherwise when attempting to create the same path, this time with the correct Layer id.
+								// => we will simply fill it now (since we are called via CreateOrOpenAsync, we would have set the layer anyway if the folder was not found
+
+								if (AnnotateTransactions) trans.Annotate($"Patching missing layer '{layer}' for existing directory {path}.");
+								SetLayer(trans, existingNode.Partition, existingNode.Prefix, layer);
+								fail = false;
+							}
+						}
+						if (fail)
+						{
+							throw new InvalidOperationException($"The directory {path} was created with incompatible layer '{existingNode.Layer}' instead of expected '{layer}'.");
+						}
 					}
 					return ContentsOfNode(existingNode.Path, existingNode.Prefix, existingNode.Layer!, existingNode.ValidationChain, existingNode.Partition, existingNode.ParentPartition, null);
 				}
