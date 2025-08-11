@@ -149,6 +149,22 @@ namespace SnowBank.Buffers
 			++this.Count;
 		}
 
+		/// <summary>Notifies the buffer that the caller intends to write a batch of items, and that it should pre-allocate the space now.</summary>
+		/// <param name="size">Number of items that are expected to be written soon</param>
+		/// <remarks>
+		/// <para>If the remaining free capacity is not large enough, the buffer will resize its internal buffer.</para>
+		/// <para>The caller may decide to write fewer items, in which case some memory could be wasted. It could also decide to write more, in which case additional buffer resize may happen.</para>
+		/// </remarks>
+		public void EnsureRemainingCapacity(int size)
+		{
+			var buffer = Buffer;
+			int minimumCapacity = checked(this.Count + size);
+			if (minimumCapacity > buffer.Length)
+			{ // we may need to resize
+				ResizeBuffer(minimumCapacity);
+			}
+		}
+
 		/// <summary>Gets a span for writing items to this buffer</summary>
 		/// <param name="size">Required capacity, or <c>0</c> to return all the remaining space</param>
 		/// <returns>Span with the specified length</returns>
