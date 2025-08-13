@@ -1995,16 +1995,17 @@ namespace SnowBank.Data.Json
 			public static TJsonDeserializable?[]? JsonDeserializeArray(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			{
 				var values = CrystalJson.Parse(jsonBytes, settings).AsArrayOrDefault();
-				if (values is null) return null;
-
-				return JsonUnpackArray<TJsonDeserializable>(values, resolver);
+				return values is not null
+					? JsonUnpackArray<TJsonDeserializable>(values, resolver)
+					: null;
 			}
 
 			[Pure]
-			public static TJsonDeserializable? JsonUnpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
+			public static TJsonDeserializable? JsonUnpack(JsonValue? value, ICrystalJsonTypeResolver? resolver = null)
 			{
-				if (value is JsonNull) return default;
-				return TJsonDeserializable.JsonDeserialize(value, resolver ?? CrystalJson.DefaultResolver);
+				return value is not (null or JsonNull)
+					? TJsonDeserializable.JsonDeserialize(value, resolver ?? CrystalJson.DefaultResolver)
+					: default;
 			}
 
 			[Pure]

@@ -5339,7 +5339,7 @@ namespace SnowBank.Data.Json
 		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object</summary>
 		/// <param name="name">Name of the field</param>
 		/// <param name="map">Dictionary to write</param>
-		public void WriteFieldDictionary(string name, IDictionary<string, string>? map)
+		public void WriteFieldDictionary<TValue>(string name, ICollection<KeyValuePair<string, TValue>>? map)
 		{
 			if (map is not null)
 			{
@@ -5356,7 +5356,7 @@ namespace SnowBank.Data.Json
 		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object</summary>
 		/// <param name="name">Name of the field</param>
 		/// <param name="map">Dictionary to write</param>
-		public void WriteFieldDictionary(JsonEncodedPropertyName name, IDictionary<string, string>? map)
+		public void WriteFieldDictionary<TValue>(JsonEncodedPropertyName name, ICollection<KeyValuePair<string, TValue>>? map)
 		{
 			if (map is not null)
 			{
@@ -5373,7 +5373,7 @@ namespace SnowBank.Data.Json
 		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object</summary>
 		/// <param name="name">Name of the field</param>
 		/// <param name="map">Dictionary to write</param>
-		public void WriteFieldDictionary(string name, Dictionary<string, string>? map)
+		public void WriteFieldDictionary<TValue>(string name, Dictionary<string, TValue>? map)
 		{
 			if (map is not null)
 			{
@@ -5390,7 +5390,7 @@ namespace SnowBank.Data.Json
 		/// <summary>Writes a field that contains a dictionary expressed as a JSON Object</summary>
 		/// <param name="name">Name of the field</param>
 		/// <param name="map">Dictionary to write</param>
-		public void WriteFieldDictionary(JsonEncodedPropertyName name, Dictionary<string, string>? map)
+		public void WriteFieldDictionary<TValue>(JsonEncodedPropertyName name, Dictionary<string, TValue>? map)
 		{
 			if (map is not null)
 			{
@@ -5408,7 +5408,7 @@ namespace SnowBank.Data.Json
 		/// <param name="name">Name of the field</param>
 		/// <param name="map">Dictionary to write</param>
 		/// <param name="serializer">Custom value serializer</param>
-		public void WriteFieldDictionary<T>(string name, IDictionary<string, T>? map, IJsonSerializer<T> serializer)
+		public void WriteFieldDictionary<TValue>(string name, ICollection<KeyValuePair<string, TValue>>? map, IJsonSerializer<TValue> serializer)
 		{
 			if (map is not null)
 			{
@@ -5426,7 +5426,7 @@ namespace SnowBank.Data.Json
 		/// <param name="name">Name of the field</param>
 		/// <param name="map">Dictionary to write</param>
 		/// <param name="serializer">Custom value serializer</param>
-		public void WriteFieldDictionary<T>(JsonEncodedPropertyName name, IDictionary<string, T>? map, IJsonSerializer<T> serializer)
+		public void WriteFieldDictionary<TValue>(JsonEncodedPropertyName name, ICollection<KeyValuePair<string, TValue>>? map, IJsonSerializer<TValue> serializer)
 		{
 			if (map is not null)
 			{
@@ -5444,7 +5444,7 @@ namespace SnowBank.Data.Json
 		/// <param name="name">Name of the field</param>
 		/// <param name="map">Dictionary to write</param>
 		/// <param name="serializer">Custom value serializer</param>
-		public void WriteFieldDictionary<T>(string name, Dictionary<string, T>? map, IJsonSerializer<T> serializer)
+		public void WriteFieldDictionary<TValue>(string name, Dictionary<string, TValue>? map, IJsonSerializer<TValue> serializer)
 		{
 			if (map is not null)
 			{
@@ -5462,7 +5462,7 @@ namespace SnowBank.Data.Json
 		/// <param name="name">Name of the field</param>
 		/// <param name="map">Dictionary to write</param>
 		/// <param name="serializer">Custom value serializer</param>
-		public void WriteFieldDictionary<T>(JsonEncodedPropertyName name, Dictionary<string, T>? map, IJsonSerializer<T> serializer)
+		public void WriteFieldDictionary<TValue>(JsonEncodedPropertyName name, Dictionary<string, TValue>? map, IJsonSerializer<TValue> serializer)
 		{
 			if (map is not null)
 			{
@@ -5992,24 +5992,23 @@ namespace SnowBank.Data.Json
 			}
 		}
 
-		public void VisitDictionary<TValue>(IDictionary<string, TValue>? map, IJsonSerializer<TValue> serializer)
+		public void VisitDictionary<TValue>(ICollection<KeyValuePair<string, TValue>>? items, IJsonSerializer<TValue> serializer)
 		{
-			if (map is null)
+			if (items is null)
 			{
 				WriteNull();
 				return;
 			}
 
-			if (map.Count == 0)
+			if (items.Count == 0)
 			{ // empty => "{}"
 				WriteEmptyObject(); // "{}"
 				return;
 			}
 
 			var state = BeginObject();
-			if (map is Dictionary<string, TValue> dict)
+			if (items is Dictionary<string, TValue> dict)
 			{
-				// we can use the struct enumerator
 				foreach (var kvp in dict)
 				{
 					WriteNameEscaped(kvp.Key);
@@ -6018,8 +6017,7 @@ namespace SnowBank.Data.Json
 			}
 			else
 			{
-				// this will allocate an enumerator
-				foreach (var kvp in map)
+				foreach (var kvp in items)
 				{
 					WriteNameEscaped(kvp.Key);
 					serializer.Serialize(this, kvp.Value);
@@ -6028,47 +6026,42 @@ namespace SnowBank.Data.Json
 			EndObject(state); // "}"
 		}
 
-		public void VisitDictionary<TValue>(Dictionary<string, TValue>? map, IJsonSerializer<TValue> serializer)
+		public void VisitDictionary<TValue>(Dictionary<string, TValue>? items, IJsonSerializer<TValue> serializer)
 		{
-			if (map is null)
+			if (items is null)
 			{
 				WriteNull();
 				return;
 			}
 
-			if (map.Count == 0)
+			if (items.Count == 0)
 			{ // empty => "{}"
 				WriteEmptyObject(); // "{}"
 				return;
 			}
 
 			var state = BeginObject();
-			foreach (var kvp in map)
+			foreach (var kvp in items)
 			{
 				WriteNameEscaped(kvp.Key);
 				serializer.Serialize(this, kvp.Value);
 			}
-			EndObject(state);
+			EndObject(state); // "}"
 		}
 
-		public void WriteDictionary(IDictionary<string, object>? map)
+		public void WriteDictionary(ICollection<KeyValuePair<string, object?>>? items)
 		{
-			CrystalJsonVisitor.VisitGenericObjectDictionary(map, this);
+			CrystalJsonVisitor.VisitGenericObjectDictionary(items, this);
 		}
 
-		public void WriteDictionary(IDictionary<string, string>? map)
+		public void WriteDictionary<TValue>(ICollection<KeyValuePair<string, TValue>>? items)
 		{
-			CrystalJsonVisitor.VisitStringDictionary(map, this);
+			CrystalJsonVisitor.VisitGenericDictionary(items, this);
 		}
 
-		public void WriteDictionary(Dictionary<string, string>? map)
+		public void WriteDictionary<TValue>(Dictionary<string, TValue>? items)
 		{
-			CrystalJsonVisitor.VisitStringDictionary(map, this);
-		}
-
-		public void WriteDictionary<TValue>(Dictionary<string, TValue>? map)
-		{
-			CrystalJsonVisitor.VisitGenericDictionary<TValue>(map, this);
+			CrystalJsonVisitor.VisitGenericDictionary(items, this);
 		}
 
 		public void VisitXmlNode(System.Xml.XmlNode? node)

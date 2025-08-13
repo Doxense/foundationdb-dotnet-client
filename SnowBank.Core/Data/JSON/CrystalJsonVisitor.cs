@@ -655,22 +655,20 @@ namespace SnowBank.Data.Json
 		/// <param name="type">Type that implements IEnumerable</param>
 		private static CrystalJsonTypeVisitor CreateVisitorForEnumerableType([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type)
 		{
-			if (type.IsAssignableTo<ICollection<KeyValuePair<string, string>>>())
+			if (type.IsAssignableTo<ICollection<KeyValuePair<string, string?>>>())
 			{ // Key/Value store
-				return (v, _, _, writer) => VisitStringDictionary(v as ICollection<KeyValuePair<string, string>>, writer);
+				return (v, _, _, writer) => VisitStringDictionary(v as ICollection<KeyValuePair<string, string?>>, writer);
 			}
 
-			if (type.IsAssignableTo<ICollection<KeyValuePair<string, object>>>())
+			if (type.IsAssignableTo<ICollection<KeyValuePair<string, object?>>>())
 			{ // Key/Value store / ExpandoObject
-				return (v, _, _, writer) => VisitGenericObjectDictionary(v as ICollection<KeyValuePair<string, object>>, writer);
+				return (v, _, _, writer) => VisitGenericObjectDictionary(v as ICollection<KeyValuePair<string, object?>>, writer);
 			}
 
 			if (type.IsAssignableTo<IVarTuple>())
 			{ // Tuple (non struct)
 				return CreateVisitorForSTupleType(type);
 			}
-
-			//TODO: détecter s'il s'agit d'un Dictionary<string, V> et appeler VisitGenericDictionary<V>(...) qui est optimisé pour ce cas
 
 			if (type.IsAssignableTo<IDictionary>())
 			{ // Key/Value store
@@ -781,7 +779,7 @@ namespace SnowBank.Data.Json
 
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor_StringKeyAndValue()
 		{
-			return (v, _, _, writer) => VisitDictionary_StringKeyAndValue((IDictionary<string, string>?) v , writer);
+			return (v, _, _, writer) => VisitDictionary_StringKeyAndValue((IDictionary<string, string?>?) v , writer);
 		}
 
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor_StringKey(Type valueType)
@@ -792,7 +790,7 @@ namespace SnowBank.Data.Json
 		
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor_Int32Key_StringValue()
 		{
-			return (v, _, _, writer) => VisitDictionary_Int32Key_StringValue((IDictionary<int, string>?) v, writer);
+			return (v, _, _, writer) => VisitDictionary_Int32Key_StringValue((IDictionary<int, string?>?) v, writer);
 		}
 		
 		private static CrystalJsonTypeVisitor CreateIDictionaryVisitor_Int32Key(Type valueType)
@@ -1465,101 +1463,130 @@ namespace SnowBank.Data.Json
 
 		#region Dictionaries...
 
+		private const int DICTIONARY_AUTO_FLUSH_INTERVAL = 10;
+
 		/// <summary>Visit a <c>Dictionary&lt;string, string&gt;</c></summary>
-		public static void VisitStringDictionary(ICollection<KeyValuePair<string, string>>? dictionary, CrystalJsonWriter writer)
+		public static void VisitStringDictionary(ICollection<KeyValuePair<string, string?>>? items, CrystalJsonWriter writer)
 		{
-			if (dictionary == null)
+			if (items == null)
 			{ // "null" or "{}"
 				writer.WriteNull(); // "null"
 				return;
 			}
 
-			if (dictionary.Count == 0)
+			if (items.Count == 0)
 			{ // empty => "{}"
 				writer.WriteEmptyObject(); // "{}"
 				return;
 			}
 
-			writer.MarkVisited(dictionary);
+			writer.MarkVisited(items);
 			var state = writer.BeginObject();
 
-			int n = 0;
-			foreach (var kvp in dictionary)
+			if (items is Dictionary<string, string?> dict)
 			{
-				if (n == 10)
-				{
-					writer.MaybeFlush();
-					n = 0;
-				}
-
-				writer.WriteField(kvp.Key, kvp.Value);
-				++n;
+				WriteItemsFast(writer, dict);
+			}
+			else
+			{
+				WriteItemsSlow(writer, items);
 			}
 
 			writer.EndObject(state); // "}"
-			writer.Leave(dictionary);
-		}
-
-		/// <summary>Visit a <c>Dictionary&lt;string, string&gt;</c></summary>
-		public static void VisitStringDictionary(Dictionary<string, string>? dictionary, CrystalJsonWriter writer)
-		{
-			if (dictionary == null)
-			{ // "null" or "{}"
-				writer.WriteNull(); // "null"
-				return;
-			}
-
-			if (dictionary.Count == 0)
-			{ // empty => "{}"
-				writer.WriteEmptyObject(); // "{}"
-				return;
-			}
-
-			writer.MarkVisited(dictionary);
-			var state = writer.BeginObject();
-
-			int n = 0;
-			foreach (var kvp in dictionary)
-			{
-				if (n == 10)
-				{
-					writer.MaybeFlush();
-					n = 0;
-				}
-
-				writer.WriteField(kvp.Key, kvp.Value);
-				++n;
-			}
-
-			writer.EndObject(state); // "}"
-			writer.Leave(dictionary);
+			writer.Leave(items);
 		}
 
 		/// <summary>Visit a <c>Dictionary&lt;string, object&gt;</c></summary>
-		public static void VisitGenericDictionary<TValue>(Dictionary<string, TValue>? dictionary, CrystalJsonWriter writer)
+		public static void VisitGenericDictionary<TValue>(ICollection<KeyValuePair<string, TValue>>? items, CrystalJsonWriter writer)
 		{
-			if (dictionary == null)
+			if (items == null)
 			{ // "null" or "{}"
 				writer.WriteNull(); // "null"
 				return;
 			}
 
-			if (dictionary.Count == 0)
+			if (items.Count == 0)
 			{ // empty => "{}"
 				writer.WriteEmptyObject(); // "{}"
 				return;
 			}
 
-			writer.MarkVisited(dictionary);
+			writer.MarkVisited(items);
 			var state = writer.BeginObject();
 
-			int n = 10;
-			foreach (var kvp in dictionary)
+			switch (items)
+			{
+				case Dictionary<string, string?> dict:
+				{
+					WriteItemsFast(writer, dict);
+					break;
+				}
+				case Dictionary<string, TValue> dict:
+				{
+					WriteItemsFast(writer, dict);
+					break;
+				}
+				case ICollection<KeyValuePair<string, string?>> dict:
+				{
+					WriteItemsSlow(writer, dict);
+					break;
+				}
+				default:
+				{
+					WriteItemsSlow(writer, items);
+					break;
+				}
+			}
+
+			writer.EndObject(state); // "}"
+			writer.Leave(items);
+		}
+
+		private static void WriteItemsFast(CrystalJsonWriter writer, Dictionary<string, string?> items)
+		{
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+			foreach (var kvp in items)
 			{
 				if (n == 0)
 				{
 					writer.MaybeFlush();
-					n = 10;
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
+
+				writer.WriteUnsafeName(kvp.Key);
+				writer.WriteValue(kvp.Value);
+
+				--n;
+			}
+		}
+
+		private static void WriteItemsSlow(CrystalJsonWriter writer, ICollection<KeyValuePair<string, string?>> items)
+		{
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+			foreach (var kvp in items)
+			{
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
+
+				writer.WriteUnsafeName(kvp.Key);
+				writer.WriteValue(kvp.Value);
+
+				--n;
+			}
+		}
+
+		private static void WriteItemsFast<TValue>(CrystalJsonWriter writer, Dictionary<string, TValue> items)
+		{
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+			foreach (var kvp in items)
+			{
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
 				}
 
 				writer.WriteUnsafeName(kvp.Key);
@@ -1567,46 +1594,91 @@ namespace SnowBank.Data.Json
 
 				--n;
 			}
+		}
 
-			writer.EndObject(state); // "}"
-			writer.Leave(dictionary);
+		private static void WriteItemsSlow<TValue>(CrystalJsonWriter writer, ICollection<KeyValuePair<string, TValue>> items)
+		{
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+			foreach (var kvp in items)
+			{
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
+
+				writer.WriteUnsafeName(kvp.Key);
+				VisitValue<TValue>(kvp.Value, writer);
+
+				--n;
+			}
 		}
 
 		/// <summary>Visit a collection of <c>KeyValuePair&lt;string, object&gt;</c></summary>
-		public static void VisitGenericObjectDictionary(ICollection<KeyValuePair<string, object>>? dictionary, CrystalJsonWriter writer)
+		public static void VisitGenericObjectDictionary(ICollection<KeyValuePair<string, object?>>? items, CrystalJsonWriter writer)
 		{
-			if (dictionary == null)
+			if (items == null)
 			{ // "null" or "{}"
 				writer.WriteNull(); // "null"
 				return;
 			}
 
-			if (dictionary.Count == 0)
+			if (items.Count == 0)
 			{ // empty => "{}"
 				writer.WriteEmptyObject(); // "{}"
 				return;
 			}
 
-			writer.MarkVisited(dictionary);
+			writer.MarkVisited(items);
 			var state = writer.BeginObject();
 
-			int n = 10;
-			foreach (var kvp in dictionary)
+			if (items is Dictionary<string, object?> dict)
+			{
+				WriteItemsFast(writer, dict);
+			}
+			else
+			{
+				WriteItemsSlow(writer, items);
+			}
+
+			writer.EndObject(state); // "}"
+			writer.Leave(items);
+		}
+
+		private static void WriteItemsFast(CrystalJsonWriter writer, Dictionary<string, object?> items)
+		{
+			var objType = typeof(object);
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+			foreach (var kvp in items)
 			{
 				if (n == 0)
 				{
 					writer.MaybeFlush();
-					n = 10;
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
 				}
-
 				writer.WriteUnsafeName(kvp.Key);
-				VisitValue(kvp.Value, typeof(object), writer);
+				VisitValue(kvp.Value, objType, writer);
 
 				--n;
 			}
+		}
 
-			writer.EndObject(state); // "}"
-			writer.Leave(dictionary);
+		private static void WriteItemsSlow(CrystalJsonWriter writer, ICollection<KeyValuePair<string, object?>> items)
+		{
+			var objType = typeof(object);
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+			foreach (var kvp in items)
+			{
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
+				writer.WriteUnsafeName(kvp.Key);
+				VisitValue(kvp.Value, objType, writer);
+
+				--n;
+			}
 		}
 
 		/// <summary>Visit a non-generic <c>IDictionary</c></summary>
@@ -1631,13 +1703,17 @@ namespace SnowBank.Data.Json
 			bool valueIsString = valueType == typeof(string);
 
 			// we will need to convert key and/or values :(
-			int n = 10;
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
 			foreach (DictionaryEntry entry in dictionary)
 			{
 				var name = keyIsString ? (entry.Key as string) : TypeHelper.ConvertKeyToString(entry.Key);
 				if (name == null) continue; // not supported!
 
-				if (n == 0) { writer.MaybeFlush(); n = 10; }
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
 
 				// key
 				writer.WriteUnsafeName(name);
@@ -1677,10 +1753,14 @@ namespace SnowBank.Data.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
-			int n = 10;
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
 			foreach (DictionaryEntry entry in dictionary)
 			{
-				if (n == 0) { writer.MaybeFlush(); n = 10; }
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
 
 				// key
 				writer.WriteUnsafeName((string) entry.Key);
@@ -1695,7 +1775,7 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <summary>Visit a <c>Dictionary&lt;string, string&gt;</c></summary>
-		public static void VisitDictionary_StringKeyAndValue(IDictionary<string, string>? dictionary, CrystalJsonWriter writer)
+		public static void VisitDictionary_StringKeyAndValue(IDictionary<string, string?>? dictionary, CrystalJsonWriter writer)
 		{
 			if (dictionary == null)
 			{ // "null" or "{}"
@@ -1712,10 +1792,14 @@ namespace SnowBank.Data.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
-			int n = 10;
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
 			foreach (var kv in dictionary)
 			{
-				if (n == 0) { writer.MaybeFlush(); n = 10; }
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
 
 				// key
 				writer.WriteUnsafeName(kv.Key);
@@ -1747,10 +1831,14 @@ namespace SnowBank.Data.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
-			int n = 10;
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
 			foreach (DictionaryEntry entry in dictionary)
 			{
-				if (n == 0) { writer.MaybeFlush(); n = 10; }
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
 
 				// key
 				writer.WriteName((int) entry.Key);
@@ -1765,7 +1853,7 @@ namespace SnowBank.Data.Json
 		}
 
 		/// <summary>Visit a <c>Dictionary&lt;int, string&gt;</c></summary>
-		public static void VisitDictionary_Int32Key_StringValue(IDictionary<int, string>? dictionary, CrystalJsonWriter writer)
+		public static void VisitDictionary_Int32Key_StringValue(IDictionary<int, string?>? dictionary, CrystalJsonWriter writer)
 		{
 			if (dictionary == null)
 			{ // "null" or "{}"
@@ -1782,10 +1870,14 @@ namespace SnowBank.Data.Json
 			writer.MarkVisited(dictionary);
 			var state = writer.BeginObject();
 
-			int n = 10;
+			int n = DICTIONARY_AUTO_FLUSH_INTERVAL;
 			foreach (var entry in dictionary)
 			{
-				if (n == 0) { writer.MaybeFlush(); n = 10; }
+				if (n == 0)
+				{
+					writer.MaybeFlush();
+					n = DICTIONARY_AUTO_FLUSH_INTERVAL;
+				}
 
 				// key
 				writer.WriteName(entry.Key);
