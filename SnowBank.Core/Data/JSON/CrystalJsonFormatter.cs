@@ -39,6 +39,29 @@ namespace SnowBank.Data.Json
 
 		#region Formatting
 
+		public static void WriteJavaScriptPropertyName(ref ValueStringWriter writer, string name)
+		{
+			Contract.NotNull(name);
+			WriteJavaScriptPropertyName(ref writer, name.AsSpan());
+		}
+
+		public static void WriteJavaScriptPropertyName(ref ValueStringWriter writer, ReadOnlySpan<char> name)
+		{
+			if (name.Length == 0)
+			{ // "''"
+				writer.Write("''");
+			}
+			else if (JavaScriptEncoding.IsCleanJavaScriptPropertyName(name))
+			{ // "foo"
+				writer.Write(name);
+			}
+			else
+			{ // "'foo\'bar'"
+				//TODO: optimize!
+				writer.Write(JavaScriptEncoding.EncodeSlow(new StringBuilder(), name, includeQuotes: true).ToString());
+			}
+		}
+
 		public static void WriteJavaScriptString(ref ValueStringWriter writer, string? text)
 		{
 			if (text == null)

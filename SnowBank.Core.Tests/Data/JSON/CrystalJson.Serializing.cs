@@ -2497,7 +2497,7 @@ namespace SnowBank.Data.Json.Tests
 				["bar"] = 456
 			};
 			CheckSerialize(dicOfInts, default, """{ "foo": 123, "bar": 456 }""");
-			CheckSerialize(dicOfInts, CrystalJsonSettings.JavaScript, "{ 'foo': 123, 'bar': 456 }");
+			CheckSerialize(dicOfInts, CrystalJsonSettings.JavaScript, "{ foo: 123, bar: 456 }");
 
 			var dicOfObjects = new Dictionary<string, Tuple<int, string>>
 			{
@@ -2512,7 +2512,7 @@ namespace SnowBank.Data.Json.Tests
 			CheckSerialize(
 				dicOfObjects,
 				CrystalJsonSettings.JavaScript,
-				"{ 'foo': { Item1: 123, Item2: 'bar' }, 'narf': { Item1: 456, Item2: 'zort' } }"
+				"{ foo: { Item1: 123, Item2: 'bar' }, narf: { Item1: 456, Item2: 'zort' } }"
 			);
 
 			var dicOfTuples = new Dictionary<string, (int, string)>
@@ -2528,7 +2528,7 @@ namespace SnowBank.Data.Json.Tests
 			CheckSerialize(
 				dicOfTuples,
 				CrystalJsonSettings.JavaScript,
-				"{ 'foo': [ 123, 'bar' ], 'narf': [ 456, 'zort' ] }"
+				"{ foo: [ 123, 'bar' ], narf: [ 456, 'zort' ] }"
 			);
 
 		}

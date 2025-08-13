@@ -55,20 +55,35 @@ namespace SnowBank.Text
 		/// <summary>Test if a javascript string would require escaping or not</summary>
 		/// <param name="s">String to inspect</param>
 		/// <returns><c>true</c> if all characters are valid</returns>
-		public static unsafe bool IsCleanJavaScript(ReadOnlySpan<char> s)
+		public static bool IsCleanJavaScript(ReadOnlySpan<char> s)
+		{
+			foreach(var c in s)
+			{
+				//PERF: TODO: use SearchValues to speed this up!
+				if (!((c >= 'a' && c <= 'z') || c == ' ' || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == ',' || c == '-' || c == '_' || c == ':' || c == '/' || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591)))
+				{ // not allowed!
+					return false;
+				}
+			}
+			return true;
+		}
+
+		/// <summary>Test if a javascript string would require escaping or not</summary>
+		/// <param name="s">String to inspect</param>
+		/// <returns><c>true</c> if all characters are valid</returns>
+		public static bool IsCleanJavaScriptPropertyName(ReadOnlySpan<char> s)
 		{
 			int n = s.Length;
-			fixed (char* p = s)
+			if (n == 0) return true;
+
+			if (char.IsDigit(s[0])) return false;
+
+			foreach(var c in s)
 			{
-				char* ptr = p;
-				while (n > 0)
-				{
-					char c = *ptr++;
-					if (!((c >= 'a' && c <= 'z') || c == ' ' || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == ',' || c == '-' || c == '_' || c == ':' || c == '/' || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591)))
-					{ // not allowed!
-						return false;
-					}
-					--n;
+				//PERF: TODO: use SearchValues to speed this up!
+				if (!(c is >= 'a' and <= 'z' || c is >= 'A' and <= 'Z' || c is >= '0' and <= '9' || c == '_'))
+				{ // not allowed!
+					return false;
 				}
 			}
 			return true;

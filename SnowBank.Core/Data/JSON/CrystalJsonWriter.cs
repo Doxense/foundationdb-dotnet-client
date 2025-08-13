@@ -1547,7 +1547,7 @@ namespace SnowBank.Data.Json
 			}
 			else
 			{
-				CrystalJsonFormatter.WriteJavaScriptString(ref m_buffer, name);
+				CrystalJsonFormatter.WriteJavaScriptPropertyName(ref m_buffer, name);
 			}
 			m_buffer.Write(m_formatted ? ": " : ":");
 		}
