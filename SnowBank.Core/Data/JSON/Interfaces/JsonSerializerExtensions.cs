@@ -1688,14 +1688,10 @@ namespace SnowBank.Data.Json
 		/// <param name="resolver">Custom resolver used to bind the value into a managed type.</param>
 		/// <returns>Deserialized instance, or <c>null</c> if <paramref name="value"/> is null or missing</returns>
 		/// <exception cref="JsonBindingException"> if <paramref name="value"/> could not be bound to the type <typeparamref name="T"/>.</exception>
-		public static T? UnpackJsonDeserializable<T>(JsonValue? value, ICrystalJsonTypeResolver? resolver)
+		public static T UnpackJsonDeserializable<T>(JsonValue value, ICrystalJsonTypeResolver? resolver)
 			where T : IJsonDeserializable<T>
 		{
-			if (value is null or JsonNull)
-			{
-				return default(T);
-			}
-			return T.JsonDeserialize(value, resolver);
+			return T.JsonDeserialize(value.Required(), resolver);
 		}
 
 		/// <summary>Deserializes a JSON value into an instance of <typeparamref name="T"/>, that is known to implement <see cref="IJsonDeserializable{T}"/></summary>
@@ -1996,7 +1992,7 @@ namespace SnowBank.Data.Json
 			{
 				var values = CrystalJson.Parse(jsonBytes, settings).AsArrayOrDefault();
 				return values is not null
-					? JsonUnpackArray<TJsonDeserializable>(values, resolver)
+					? JsonUnpackArrayItemOptional<TJsonDeserializable>(values, resolver)
 					: null;
 			}
 
@@ -2009,7 +2005,65 @@ namespace SnowBank.Data.Json
 			}
 
 			[Pure]
-			public static TJsonDeserializable?[] JsonUnpackArray(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			public static TJsonDeserializable JsonUnpack(JsonObject value, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return TJsonDeserializable.JsonDeserialize(value, resolver ?? CrystalJson.DefaultResolver);
+			}
+
+			/// <summary>Deserializes a required array of non-null elements of type <typeparamref name="TJsonDeserializable"/></summary>
+			/// <param name="values">JSON Array to deserialize</param>
+			/// <param name="resolver">Resolver used to deserialize the items of the array (optional)</param>
+			/// <returns>Array of <typeparamref name="TJsonDeserializable"/> elements</returns>
+			/// <remarks>This method will throw if array is <c>null</c>, or if it contains <c>null</c> elements.</remarks>
+			/// <seealso cref="JsonUnpackArrayOrDefaultItemNotNull"/>
+			/// <seealso cref="JsonUnpackArrayItemOptional"/>
+			/// <seealso cref="JsonUnpackArrayOrDefaultItemOptional"/>
+			[Pure]
+			public static TJsonDeserializable[] JsonUnpackArrayItemNotNull(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				Contract.NotNull(values);
+
+				var items = values.GetSpan();
+				if (items.Length == 0) return [ ];
+
+				var tmp = new TJsonDeserializable[items.Length];
+				resolver ??= CrystalJson.DefaultResolver;
+				for (int i = 0; i < items.Length; i++)
+				{
+					var value = items[i];
+					if (value is JsonNull)
+					{
+						throw JsonBindingException.CannotBindArrayWithNullItemToCollectionOfType(values, i, typeof(TJsonDeserializable[]));
+					}
+					tmp[i] = TJsonDeserializable.JsonDeserialize(value, resolver);
+				}
+				return tmp;
+			}
+
+			/// <summary>Deserializes an optional array of non-null elements of type <typeparamref name="TJsonDeserializable"/></summary>
+			/// <param name="values">JSON Array to deserialize</param>
+			/// <param name="resolver">Resolver used to deserialize the items of the array (optional)</param>
+			/// <returns>Array of <typeparamref name="TJsonDeserializable"/> elements, or null if it was null or missing.</returns>
+			/// <remarks>This method will throw if the array contains null elements.</remarks>
+			/// <seealso cref="JsonUnpackArrayItemNotNull"/>
+			/// <seealso cref="JsonUnpackArrayItemOptional"/>
+			/// <seealso cref="JsonUnpackArrayOrDefaultItemOptional"/>
+			[Pure]
+			public static TJsonDeserializable[]? JsonUnpackArrayOrDefaultItemNotNull(JsonArray? values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return values is not null ? JsonUnpackArrayItemNotNull<TJsonDeserializable>(values, resolver) : null;
+			}
+
+			/// <summary>Deserializes a required array of nullable elements of type <typeparamref name="TJsonDeserializable"/></summary>
+			/// <param name="values">JSON Array to deserialize</param>
+			/// <param name="resolver">Resolver used to deserialize the items of the array (optional)</param>
+			/// <returns>Array of <typeparamref name="TJsonDeserializable"/> elements</returns>
+			/// <remarks>This method will throw if the parent does not have this field, if the field is null or not an array.</remarks>
+			/// <seealso cref="JsonUnpackArrayItemNotNull"/>
+			/// <seealso cref="JsonUnpackArrayOrDefaultItemNotNull"/>
+			/// <seealso cref="JsonUnpackArrayOrDefaultItemOptional"/>
+			[Pure]
+			public static TJsonDeserializable?[] JsonUnpackArrayItemOptional(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
 			{
 				Contract.NotNull(values);
 
@@ -2020,14 +2074,27 @@ namespace SnowBank.Data.Json
 				resolver ??= CrystalJson.DefaultResolver;
 				for (int i = 0; i < items.Length; i++)
 				{
-					var value = values[i];
+					var value = items[i];
 					tmp[i] = value is not JsonNull ? TJsonDeserializable.JsonDeserialize(value, resolver) : default;
 				}
 				return tmp;
 			}
 
+			/// <summary>Deserializes an optional array of nullable elements of type <typeparamref name="TJsonDeserializable"/></summary>
+			/// <param name="values">JSON Array to deserialize</param>
+			/// <param name="resolver">Resolver used to deserialize the items of the array (optional)</param>
+			/// <returns>Array of <typeparamref name="TJsonDeserializable"/> elements, or <c>null</c> if it was null or missing.</returns>
+			/// <seealso cref="JsonUnpackArrayItemNotNull"/>
+			/// <seealso cref="JsonUnpackArrayOrDefaultItemNotNull"/>
+			/// <seealso cref="JsonUnpackArrayItemOptional"/>
 			[Pure]
-			public static List<TJsonDeserializable?> JsonUnpackList(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			public static TJsonDeserializable?[]? JsonUnpackArrayOrDefaultItemOptional(JsonArray? values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return values is not null ? JsonUnpackArrayItemOptional<TJsonDeserializable>(values, resolver) : null;
+			}
+
+			[Pure]
+			public static List<TJsonDeserializable?> JsonUnpackListItemOptional(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
 			{
 				Contract.NotNull(values);
 
@@ -2040,16 +2107,65 @@ namespace SnowBank.Data.Json
 				resolver ??= CrystalJson.DefaultResolver;
 				for (int i = 0; i < items.Length; i++)
 				{
-					var value = values[i];
+					var value = items[i];
 					tmp[i] = value is not JsonNull ? TJsonDeserializable.JsonDeserialize(value, resolver) : default;
 				}
 				return res;
 			}
 
 			[Pure]
-			public static ImmutableArray<TJsonDeserializable?> JsonUnpackImmutableArray(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			public static List<TJsonDeserializable> JsonUnpackListItemNotNull(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
 			{
-				return ImmutableCollectionsMarshal.AsImmutableArray(JsonUnpackArray<TJsonDeserializable>(values, resolver));
+				Contract.NotNull(values);
+
+				var items = values.GetSpan();
+				if (items.Length == 0) return [ ];
+
+				var res = new List<TJsonDeserializable>();
+				CollectionsMarshal.SetCount(res, items.Length);
+				var tmp = CollectionsMarshal.AsSpan(res);
+				resolver ??= CrystalJson.DefaultResolver;
+				for (int i = 0; i < items.Length; i++)
+				{
+					var value = items[i];
+					if (value is JsonNull)
+					{
+						throw JsonBindingException.CannotBindArrayWithNullItemToCollectionOfType(values, i, typeof(List<TJsonDeserializable>));
+					}
+					tmp[i] = TJsonDeserializable.JsonDeserialize(value, resolver);
+				}
+				return res;
+			}
+
+			[Pure]
+			public static List<TJsonDeserializable>? JsonUnpackListOrDefaultItemNotNull(JsonArray? values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return values is not null ? JsonUnpackListItemNotNull<TJsonDeserializable>(values, resolver) : null;
+			}
+
+			[Pure]
+			public static ImmutableArray<TJsonDeserializable?> JsonUnpackImmutableArrayItemOptional(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return ImmutableCollectionsMarshal.AsImmutableArray(JsonUnpackArrayItemOptional<TJsonDeserializable>(values, resolver));
+			}
+
+			[Pure]
+			public static ImmutableArray<TJsonDeserializable?> JsonUnpackImmutableArrayOrEmptyItemOptional(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return ImmutableCollectionsMarshal.AsImmutableArray(JsonUnpackArrayOrDefaultItemOptional<TJsonDeserializable>(values, resolver) ?? [ ]);
+			}
+
+			[Pure]
+			[EditorBrowsable(EditorBrowsableState.Advanced)]
+			public static ImmutableArray<TJsonDeserializable> JsonUnpackImmutableArrayItemNotNull(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return ImmutableCollectionsMarshal.AsImmutableArray(JsonUnpackArrayItemNotNull<TJsonDeserializable>(values, resolver));
+			}
+
+			[Pure]
+			public static ImmutableArray<TJsonDeserializable> JsonUnpackImmutableArrayOrEmptyItemNotNull(JsonArray values, ICrystalJsonTypeResolver? resolver = null)
+			{
+				return ImmutableCollectionsMarshal.AsImmutableArray(JsonUnpackArrayOrDefaultItemNotNull<TJsonDeserializable>(values, resolver) ?? [ ]);
 			}
 
 			#endregion

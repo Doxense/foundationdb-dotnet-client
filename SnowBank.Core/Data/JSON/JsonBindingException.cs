@@ -155,6 +155,12 @@ namespace SnowBank.Data.Json
 		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
 		public static JsonBindingException CannotBindMalformedOrInvalidJsonValue(JsonValue value, Type type, string message, Exception? innerException = null) => new($"Cannot bind malformed JSON {value.Type} to type '{type.GetFriendlyName()}': {message}", value, innerException);
 
+		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonBindingException CannotBindArrayWithNullItemToCollectionOfType(JsonArray array, Type collectionType, Exception? innerException = null) => new($"Cannot bind a JSON Array to an instance of '{collectionType.GetFriendlyName()}' because it contains at least one null element.", innerException);
+
+		[MustUseReturnValue, Pure, MethodImpl(MethodImplOptions.NoInlining)]
+		public static JsonBindingException CannotBindArrayWithNullItemToCollectionOfType(JsonArray array, int index, Type collectionType, Exception? innerException = null) => new($"Cannot bind a JSON Array to an instance of '{collectionType.GetFriendlyName()}' because element at index {index} is null.", innerException);
+
 	}
 
 }
