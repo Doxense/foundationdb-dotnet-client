@@ -389,7 +389,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				{
 					Type = TypeMetadata.Create(type),
 					Members = members.ToImmutableEquatableArray(),
-					IsPolymorphic = isPolymorphic,
+					IsPolymorphicRoot = isPolymorphic,
 					TypeDiscriminatorPropertyName = typeDiscriminatorPropertyName,
 					DerivedTypes = derivedTypes.ToImmutableEquatableArray(),
 				};
@@ -565,7 +565,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				}
 
 				var memberAttributes = member.GetAttributes();
+#if FULL_DEBUG
 				var attributes = memberAttributes.Select(attr => attr.ToString()).ToImmutableEquatableArray();
+#endif
 
 				bool isNotNull;
 				if (type.IsValueType())
@@ -647,7 +649,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 						Type = type,
 						Name = name!,
 						MemberName = memberName,
+#if FULL_DEBUG
 						Attributes = attributes,
+#endif
 						IsField = isField,
 						IsReadOnly = isReadOnly,
 						IsInitOnly = isInitOnly,

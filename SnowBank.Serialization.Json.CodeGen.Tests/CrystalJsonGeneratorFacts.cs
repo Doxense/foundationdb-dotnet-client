@@ -314,7 +314,7 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 			// check the property names (should be camelCased)
 			Assert.That(GeneratedConverters.Person.PropertyNames.FamilyName, Is.EqualTo("familyName"));
 			Assert.That(GeneratedConverters.Person.PropertyNames.FirstName, Is.EqualTo("firstName"));
-			//Assert.That(GeneratedConverters.PersonJsonConverter.PropertyNames.GetAllNames(), Is.EquivalentTo(new [] { "familyName", "firstName" }));
+			Assert.That(GeneratedConverters.Person.PropertyNames.GetAllNames(), Is.EquivalentTo([ "familyName", "firstName" ]));
 			
 			var person = new Person()
 			{
@@ -630,6 +630,13 @@ namespace SnowBank.Serialization.Json.CodeGen.Tests
 				LegCount = 4,
 				IsGoodDog = true, 
 			};
+
+			Assert.That(GeneratedConverters.Dog.PropertyNames._TypeDiscriminatorProperty_, Is.EqualTo("$type"));
+			Assert.That(GeneratedConverters.Dog.PropertyNames._TypeDiscriminatorValue_, Is.EqualTo("dog"));
+			Assert.That(GeneratedConverters.Dog.PropertyNames.Id, Is.EqualTo("id"));
+			Assert.That(GeneratedConverters.Dog.PropertyNames.Name, Is.EqualTo("name"));
+			Assert.That(GeneratedConverters.Dog.PropertyNames.LegCount, Is.EqualTo("legCount"));
+			Assert.That(GeneratedConverters.Dog.PropertyNames.IsGoodDog, Is.EqualTo("isGoodDog"));
 
 			Log("Serialized JSON:");
 			var json = CrystalJson.Serialize(dog, GeneratedConverters.Dog.Default);

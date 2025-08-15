@@ -499,7 +499,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 			return this.SpecialType == SpecialType.System_Nullable_T;
 		}
 
-		public bool IsNullableOfT(out TypeMetadata underlyingType)
+		public bool IsNullableOfT([MaybeNullWhen(false)] out TypeMetadata underlyingType)
 		{
 			if (this.SpecialType is SpecialType.System_Nullable_T)
 			{
@@ -507,7 +507,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				return true;
 			}
 
-			underlyingType = null!;
+			underlyingType = null;
 			return false;
 		}
 

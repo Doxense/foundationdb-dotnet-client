@@ -42,11 +42,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <summary>List of all application types that will be part of the generated source code</summary>
 		public required ImmutableEquatableArray<CrystalJsonTypeMetadata> IncludedTypes { get; init; }
 
+		/// <summary>Specifies whether property names are case-insensitive (true) or not (false).</summary>
 		public bool PropertyNameCaseInsensitive { get; init; }
 
+		/// <summary>Default naming policy for all the properties of types in this container</summary>
 		public string? PropertyNamingPolicy { get; init; }
-
-		//TODO: settings!
 
 	}
 	
@@ -63,11 +63,14 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <summary>For objects, list of included members in this type</summary>
 		public required ImmutableEquatableArray<CrystalJsonMemberMetadata> Members { get; init; }
 
-		/// <summary>Indicates if this is the base type for a set of derived types</summary>
-		public required bool IsPolymorphic { get; init; }
+		/// <summary>Indicates if this is the top-most base type for a tree of derived types</summary>
+		public required bool IsPolymorphicRoot { get; init; }
 
+		/// <summary>Name of the field added to the JSON output, that holds the type discriminator value</summary>
+		/// <remarks>If <c>null</c>, the default name is <c>$type</c>.</remarks>
 		public required string? TypeDiscriminatorPropertyName { get; init; }
 
+		/// <summary>If this type is polymorphic, list of all the known derived types</summary>
 		public required ImmutableEquatableArray<(INamedTypeSymbol Symbol, TypeMetadata Type, object? Discriminator)> DerivedTypes { get; init; }
 
 		public void Explain(StringBuilder sb, string? indent = null)
@@ -78,9 +81,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 			sb.Append(indent).Append("Name = ").AppendLine(this.Name);
 			sb.Append(indent).Append("Type = ").AppendLine(this.Type.Ref.ToString());
 			this.Type.Explain(sb, indent is null ? "- " : ("  " + indent));
-			if (this.IsPolymorphic)
+			if (this.IsPolymorphicRoot)
 			{
-				sb.Append(indent).AppendLine("IsPolymorphic = true");
+				sb.Append(indent).AppendLine("IsPolymorphicRoot = true");
 			}
 
 			if (!string.IsNullOrEmpty(this.TypeDiscriminatorPropertyName))
@@ -92,7 +95,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.Append(indent).Append("DerivedTypes = [").Append(this.DerivedTypes.Count).AppendLine("]");
 				foreach (var derivedType in this.DerivedTypes)
 				{
-					sb.Append(subIndent).AppendLine($"`{derivedType.Discriminator}` => {derivedType.Type.Name}");
+					switch (derivedType.Discriminator)
+					{
+						case null: sb.Append(subIndent).AppendLine($"{derivedType.Type.Name}: null"); break;
+						case string s: sb.Append(subIndent).AppendLine($"{derivedType.Type.Name}: \"{s}\""); break;
+						case int n: sb.Append(subIndent).AppendLine($"{derivedType.Type.Name}: {n}"); break;
+						default: sb.Append(subIndent).AppendLine($"{derivedType.Type.Name}: ({derivedType.Discriminator.GetType().Name}) `{derivedType.Discriminator}`"); break;
+					}
 				}
 			}
 			sb.Append(indent).Append("Members = [").Append(this.Members.Count).AppendLine("]");
@@ -120,7 +129,10 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <example><c>public string HelloWorld { get; init;}</c> has member name <c>"HelloWorld"</c></example>
 		public required string MemberName { get; init; }
 
-		public required ImmutableEquatableArray<string> Attributes { get; init; } //HACKHACK: TEMP: to be able to diagnose attribute stuff!
+#if FULL_DEBUG
+		/// <summary>Captured attributes on the member</summary>
+		public required ImmutableEquatableArray<string> Attributes { get; init; }
+#endif
 
 		/// <summary><c>true</c> if the member is a field, <c>false</c> if it is a property</summary>
 		public required bool IsField { get; init; } // true = field, false = prop
@@ -145,7 +157,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// <remarks>This should be a valid C# constant expression, like <c>123</c>, <c>"hello"</c>, <c>true</c>, <c>global::System.Guid.Empty</c>, ...</remarks>
 		public required string DefaultLiteral { get; init; }
 
-		/// <summary>The member has the <see cref="T:System.ComponentModel.DataAnnotations.KeyAttribute"/> attribute</summary>
+		/// <summary>The member is annotated with the <c>[System.ComponentModel.DataAnnotations.Key]</c> attribute</summary>
 		/// <remarks>Examples: <code>
 		/// int Id { get; ... } // IsKey == false
 		/// 
@@ -154,7 +166,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 		/// </code></remarks>
 		public required bool IsKey { get; init; }
 
-		/// <summary>The member cannot be null, or is annotated with <see cref="T:System.Diagnostics.CodeAnalysis.NotNullAttribute"/></summary>
+		/// <summary>The member cannot be <c>null</c>, or is annotated with the <c>[System.Diagnostics.CodeAnalysis.NotNull]</c> attribute</summary>
 		/// <remarks>Examples: <code>
 		/// int Foo { get; ... }     // IsNotNull == true
 		/// int? Foo { get; ... }    // IsNotNull == false
@@ -184,11 +196,13 @@ namespace SnowBank.Serialization.Json.CodeGen
 			if (this.IsKey) sb.Append(indent).AppendLine("IsKey = true");
 			if (this.DefaultLiteral is not ("null" or "default")) sb.Append(indent).Append("DefaultValue = ").AppendLine(this.DefaultLiteral);
 			var subIndent = indent is null ? "- " : ("  " + indent);
+#if FULL_DEBUG
 			sb.Append(indent).AppendLine("Attributes:");
 			foreach (var attr in this.Attributes)
 			{
 				sb.Append(subIndent).AppendLine(attr);
 			}
+#endif
 			sb.Append(indent).AppendLine("Type:");
 			this.Type.Explain(sb, subIndent);
 		}

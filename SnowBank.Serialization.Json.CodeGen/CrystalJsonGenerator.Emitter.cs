@@ -64,6 +64,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			private const string FrozenDictionaryFullName = "global::System.Collections.Frozen.FrozenDictionary";
 
+			private const string EditorBrowsableAttributeFullName = "global::System.ComponentModel.EditorBrowsableAttribute";
+
+			private const string EditorBrowsableStateFullName = "global::System.ComponentModel.EditorBrowsableState";
+			
+
 			#endregion
 
 			private SourceProductionContext Context { get; }
@@ -411,6 +416,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				var readOnlyProxyInterfaceName = $"{KnownTypeSymbols.IJsonReadOnlyProxyFullName}<{typeFullName}, {readOnlyProxyTypeName}, {writableProxyTypeName}>";
 				var writableProxyInterfaceName = $"{KnownTypeSymbols.IJsonWritableProxyFullName}<{typeFullName}, {writableProxyTypeName}>";
 
+				bool hasPolymorphicDefinition = this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata);
 #if FULL_DEBUG
 				sb.Comment($"Generating for type {typeDef.Type.FullyQualifiedName}");
 				foreach (var member in typeDef.Members)
@@ -434,7 +440,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.BeginRegion("Proxy Helpers...");
 				sb.NewLine();
 
-				WriteProxyStaticHelpers(sb, typeDef, typeFullName, typeCref);
+				WriteProxyStaticHelpers(sb, typeDef, typeCref);
 
 				sb.EndRegion();
 				sb.NewLine();
@@ -448,6 +454,32 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine("public static class PropertyNames");
 				sb.EnterBlock("properties");
 				sb.NewLine();
+				if (typeDef.IsPolymorphicRoot)
+				{
+					sb.XmlComment($"<summary>Serialized name of the type discriminator property of types that derive from <see cref=\"{typeCref}\"/></summary>");
+					sb.AppendLine($"[{EditorBrowsableAttributeFullName}({EditorBrowsableStateFullName}.Never)]");
+					sb.AppendLine($"public const string _TypeDiscriminatorProperty_ = {CSharpCodeBuilder.Constant(typeDef.TypeDiscriminatorPropertyName ?? "$type")};");
+					sb.NewLine();
+				}
+				else if (hasPolymorphicDefinition)
+				{
+					sb.XmlComment($"<summary>Serialized name of the type discriminator property for type <see cref=\"{typeCref}\"/></summary>");
+					sb.AppendLine($"[{EditorBrowsableAttributeFullName}({EditorBrowsableStateFullName}.Never)]");
+					sb.AppendLine($"public const string _TypeDiscriminatorProperty_ = {CSharpCodeBuilder.Constant(polymorphicMetadata.Parent.TypeDiscriminatorPropertyName ?? "$type")};");
+					sb.NewLine();
+					if (polymorphicMetadata.Discriminator is not null)
+					{
+						sb.XmlComment($"<summary>Cached JSON literal of the type discriminator value for type <see cref=\"{typeCref}\"/></summary>");
+						sb.AppendLine($"[{EditorBrowsableAttributeFullName}({EditorBrowsableStateFullName}.Never)]");
+						switch (polymorphicMetadata.Discriminator)
+						{
+							case string s: sb.AppendLine($"public const string _TypeDiscriminatorValue_ = {CSharpCodeBuilder.Constant(s)};"); break;
+							case int n: sb.AppendLine($"public const int _TypeDiscriminatorValue_ = {CSharpCodeBuilder.Constant(n)};"); break;
+							default: sb.AppendLine($"#error Invalid discriminator value type for derived type {typeDef.Name} of parent type {polymorphicMetadata.Parent.Name}"); break;
+						}
+						sb.NewLine();
+					}
+				}
 				foreach (var member in typeDef.Members)
 				{
 					sb.XmlComment($"<summary>Serialized name of the <see cref=\"{typeCref}.{member.MemberName}\"/> {(member.IsField ? "field" : "property")} of the <see cref=\"{typeCref}\"/> {(member.Type.IsValueType() ? "struct" : member.Type.IsRecord ? "record" : "class")}</summary>");
@@ -465,6 +497,27 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine("public static class PropertyEncodedNames");
 				sb.EnterBlock("properties");
 				sb.NewLine();
+				if (typeDef.IsPolymorphicRoot)
+				{
+					sb.XmlComment($"<summary>Encoded name of the type discriminator property of types that derive from <see cref=\"{typeCref}\"/></summary>");
+					sb.AppendLine($"[{EditorBrowsableAttributeFullName}({EditorBrowsableStateFullName}.Never)]");
+					sb.AppendLine($"public static readonly {KnownTypeSymbols.JsonEncodedPropertyNameFullName} _TypeDiscriminatorProperty_ = new(PropertyNames._TypeDiscriminatorProperty_);");
+					sb.NewLine();
+				}
+				else if (hasPolymorphicDefinition)
+				{
+					sb.XmlComment($"<summary>Encoded name of the type discriminator property for type <see cref=\"{typeCref}\"/></summary>");
+					sb.AppendLine($"[{EditorBrowsableAttributeFullName}({EditorBrowsableStateFullName}.Never)]");
+					sb.AppendLine($"public static readonly {KnownTypeSymbols.JsonEncodedPropertyNameFullName} _TypeDiscriminatorProperty_ = new(PropertyNames._TypeDiscriminatorProperty_);");
+					sb.NewLine();
+				}
+				if (polymorphicMetadata.Discriminator is not null)
+				{
+					sb.XmlComment($"<summary>Cached JSON literal of the type discriminator value for type <see cref=\"{typeCref}\"/></summary>");
+					sb.AppendLine($"[{EditorBrowsableAttributeFullName}({EditorBrowsableStateFullName}.Never)]");
+					sb.AppendLine($"public static readonly {KnownTypeSymbols.JsonValueFullName} _TypeDiscriminatorValue_ = {ConvertDiscriminatorValueToJsonLiteral(polymorphicMetadata.Discriminator)};");
+					sb.NewLine();
+				}
 				foreach (var member in typeDef.Members)
 				{
 					sb.XmlComment($"<summary>Encoded name of the <see cref=\"{typeCref}.{member.MemberName}\"/> {(member.IsField ? "field" : "property")} of the <see cref=\"{typeCref}\"/> {(member.Type.IsValueType() ? "struct" : member.Type.IsRecord ? "record" : "class")}</summary>");
@@ -517,7 +570,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.BeginRegion($"IJsonSerializer<{typeName}>...");
 				sb.NewLine();
 
-				WriteSerializeMethod(sb, typeDef, typeCref);
+				WriteSerializeMethod(sb, typeDef);
 
 				sb.EndRegion();
 				sb.NewLine();
@@ -797,8 +850,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 						foreach (var member in typeDef.Members)
 						{
-							//HACKHACK: TODO: BUGBUG: generate the proper literal for the default of the type ("default", "null", "0", "false", ...)
-
 							string? getterExpr = null;
 							string proxyType = member.Type.FullyQualifiedNameAnnotated;
 
@@ -1242,7 +1293,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 
 			}
 
-			private void WriteProxyStaticHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeFullName, string typeCref)
+			private void WriteProxyStaticHelpers(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeCref)
 			{
 				// Serialize(...)
 				if (typeDef.Type.IsValueType())
@@ -1746,7 +1797,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"{KnownTypeSymbols.CrystalJsonTypeVisitorFullName} visitor = (({KnownTypeSymbols.IJsonConverterInterfaceFullName}) {GetLocalSerializerRef(typeDef)}).Serialize;");
 
 				sb.AppendLine($"{KnownTypeSymbols.CrystalJsonTypeBinderFullName} binder = (instance, type, resolver) => instance is not null ? Default.Unpack(instance, resolver) : {KnownTypeSymbols.JsonNullFullName}.Null;");
-				if (typeDef.IsPolymorphic)
+				if (typeDef.IsPolymorphicRoot)
 				{
 					sb.AppendLine($"var map = new Dictionary<JsonValue, Type>({KnownTypeSymbols.JsonValueComparerFullName}.Default);");
 					foreach (var x in typeDef.DerivedTypes)
@@ -1756,14 +1807,18 @@ namespace SnowBank.Serialization.Json.CodeGen
 							sb.AppendLine($"map[{ConvertDiscriminatorValueToJsonLiteral(x.Discriminator)}] = typeof({x.Type.FullyQualifiedName});");
 						}
 					}
-					var discriminatorPropertyName = $"new({CSharpCodeBuilder.Constant(typeDef.TypeDiscriminatorPropertyName ?? "$type")})";
-					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, visitor, null, {discriminatorPropertyName}, null, map);");
+					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, visitor, null, PropertyEncodedNames._TypeDiscriminatorProperty_, null, map);");
 				}
 				else if (this.PolymorphicMap.TryGetValue(typeDef.Type.Ref, out var polymorphicMetadata))
 				{
-					var discriminatorPropertyName = $"new({CSharpCodeBuilder.Constant(polymorphicMetadata.Parent.TypeDiscriminatorPropertyName ?? "$type")})";
-					var discriminatorValue = ConvertDiscriminatorValueToJsonLiteral(polymorphicMetadata.Discriminator);
-					sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, visitor, null, {discriminatorPropertyName}, {discriminatorValue}, null);");
+					if (polymorphicMetadata.Discriminator is null)
+					{ // derive type is also abstract
+						sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, visitor, null, PropertyEncodedNames._TypeDiscriminatorProperty_, null, null);");
+					}
+					else
+					{
+						sb.AppendLine($"return new(typeof({typeDef.Type.FullyQualifiedName}), {KnownTypeSymbols.CrystalJsonTypeFlagsFullName}.SourceGenerated, binder, null, members, visitor, null, PropertyEncodedNames._TypeDiscriminatorProperty_, PropertyEncodedNames._TypeDiscriminatorValue_, null);");
+					}
 				}
 				else
 				{
@@ -1784,11 +1839,11 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.AppendLine($"public {typeDef.Type.FullyQualifiedName} Unpack({KnownTypeSymbols.JsonValueFullName} value, {KnownTypeSymbols.ICrystalJsonTypeResolverFullName}? resolver = default)");
 				sb.EnterBlock();
 
-				if (typeDef.IsPolymorphic)
+				if (typeDef.IsPolymorphicRoot)
 				{ // this is a polymorphic type, we have to dispatch to the corresponding derived type converter!
 
 					// get the type discriminator
-					sb.AppendLine($"var discriminator = value[{CSharpCodeBuilder.Constant(typeDef.TypeDiscriminatorPropertyName ?? "$type")}];");
+					sb.AppendLine("var discriminator = value[PropertyNames._TypeDiscriminatorProperty_];");
 					foreach (var (_, derivedType, discriminator) in typeDef.DerivedTypes)
 					{
 						if (derivedType.IsAbstract)
@@ -1847,8 +1902,6 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.EnterBlock();
 				foreach (var member in typeDef.Members)
 				{
-					bool isNullableOfType = member.Type.IsNullableOfT(out var underlyingType);
-
 					if (IsLocallyGeneratedType(member.Type, out var target, out var isNullableOfT))
 					{
 						if (member.IsRequired)
@@ -2027,7 +2080,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				}
 
 				// if the type is polymorphic, we have to dispatch to the corresponding serializer
-				if (typeDef.IsPolymorphic)
+				if (typeDef.IsPolymorphicRoot)
 				{
 					sb.AppendLine("switch(instance)");
 					sb.EnterBlock();
@@ -2077,14 +2130,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				if (hasPolymorphicDefinition)
 				{
 					sb.Comment("Add the discriminator property for this derived type");
-					var typeDiscriminatorPropertyName = polymorphicMetadata.Parent.TypeDiscriminatorPropertyName ?? "$type";
-					if (polymorphicMetadata.Discriminator is string s)
+					if (polymorphicMetadata.Discriminator is (string or int))
 					{
-						sb.AppendLine($"obj[{CSharpCodeBuilder.Constant(typeDiscriminatorPropertyName)}] = {CSharpCodeBuilder.Constant(s)};"); //TODO: create a static readonly for the JsonString!
-					}
-					else if (polymorphicMetadata.Discriminator is int n)
-					{
-						sb.AppendLine($"obj[{typeDiscriminatorPropertyName}] = {CSharpCodeBuilder.Constant(n)};"); //TODO: create a static readonly for the JsonNumber!
+						sb.AppendLine("obj[PropertyNames._TypeDiscriminatorProperty_] = PropertyEncodedNames._TypeDiscriminatorValue_;");
 					}
 					else if (polymorphicMetadata.Discriminator is null)
 					{
@@ -2123,7 +2171,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				sb.NewLine();
 			}
 
-			private void WriteSerializeMethod(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef, string typeCref)
+			private void WriteSerializeMethod(CSharpCodeBuilder sb, CrystalJsonTypeMetadata typeDef)
 			{
 				sb.InheritDoc();
 				sb.AppendLine($"void IJsonConverter.Serialize(object? instance, Type declaringType, Type? runtimeType, {KnownTypeSymbols.CrystalJsonWriterFullName} writer)");
@@ -2176,7 +2224,7 @@ namespace SnowBank.Serialization.Json.CodeGen
 				//TODO: handle IJsonSerializer<T> and IJsonSerializable
 
 				// if the type is polymorphic, we have to dispatch to the corresponding serializer
-				if (typeDef.IsPolymorphic)
+				if (typeDef.IsPolymorphicRoot)
 				{
 					sb.AppendLine("switch(instance)");
 					sb.EnterBlock();
@@ -2225,14 +2273,9 @@ namespace SnowBank.Serialization.Json.CodeGen
 				if (hasPolymorphicDefinition)
 				{
 					sb.Comment("Add the discriminator property for this derived type");
-					var typeDiscriminatorPropertyName = polymorphicMetadata.Parent.TypeDiscriminatorPropertyName ?? "$type";
-					if (polymorphicMetadata.Discriminator is string s)
+					if (polymorphicMetadata.Discriminator is (string or int))
 					{
-						sb.AppendLine($"writer.WriteField({CSharpCodeBuilder.Constant(typeDiscriminatorPropertyName)}, {CSharpCodeBuilder.Constant(s)});");
-					}
-					else if (polymorphicMetadata.Discriminator is int n)
-					{
-						sb.AppendLine($"writer.WriteField({typeDiscriminatorPropertyName}, {CSharpCodeBuilder.Constant(n)});");
+						sb.AppendLine("writer.WriteField(PropertyEncodedNames._TypeDiscriminatorProperty_, PropertyNames._TypeDiscriminatorValue_);");
 					}
 					else
 					{
@@ -2526,14 +2569,14 @@ namespace System.Diagnostics.CodeAnalysis
 #if !NETSTANDARD2_1
 
 	/// <summary>Specifies that when a method returns <see cref="ReturnValue"/>, the parameter may be null even if the corresponding type disallows it.</summary>
-	[AttributeUsage(AttributeTargets.Parameter, Inherited = false)]
+	[AttributeUsage(AttributeTargets.Parameter)]
 	internal sealed class MaybeNullWhenAttribute : Attribute
 	{
 		/// <summary>Initializes the attribute with the specified return value condition.</summary>
 		/// <param name="returnValue">
 		/// The return value condition. If the method returns this value, the associated parameter may be null.
 		/// </param>
-		public MaybeNullWhenAttribute(bool returnValue) => ReturnValue = returnValue;
+		public MaybeNullWhenAttribute(bool returnValue) => this.ReturnValue = returnValue;
 
 		/// <summary>Gets the return value condition.</summary>
 		public bool ReturnValue { get; }
