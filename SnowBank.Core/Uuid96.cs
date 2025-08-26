@@ -532,7 +532,7 @@ namespace System
 
 		/// <summary>Try parsing a string representation of an Uuid96</summary>
 		[Pure]
-		public static bool TryParse(string? input, out Uuid96 result)
+		public static bool TryParse([NotNullWhen(true)] string? input, out Uuid96 result)
 		{
 			if (input == null)
 			{
@@ -545,7 +545,7 @@ namespace System
 		/// <summary>Try parsing a string representation of an Uuid96</summary>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid96 result)
+		public static bool TryParse([NotNullWhen(true)] string? input, IFormatProvider? provider, out Uuid96 result)
 			=> TryParse(input, out result);
 
 		/// <summary>Try parsing a string representation of an Uuid96</summary>

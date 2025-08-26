@@ -560,7 +560,7 @@ namespace System
 		/// <param name="input">The string to parse.</param>
 		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
 		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
-		public static bool TryParse(string? input, out Uuid128 result)
+		public static bool TryParse([NotNullWhen(true)] string? input, out Uuid128 result)
 		{
 			if (!Guid.TryParse(input, out Guid guid))
 			{
@@ -578,7 +578,7 @@ namespace System
 		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid128 result)
+		public static bool TryParse([NotNullWhen(true)] string? input, IFormatProvider? provider, out Uuid128 result)
 			=> TryParse(input, out result);
 
 		/// <summary>Tries to parse a span of characters into a <see cref="Uuid128"/></summary>

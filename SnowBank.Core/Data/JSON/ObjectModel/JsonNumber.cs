@@ -3397,7 +3397,7 @@ namespace SnowBank.Data.Json
 		public new static JsonNumber Parse(string s, IFormatProvider? provider) => CrystalJsonParser.ParseJsonNumber(s) ?? Zero;
 
 		/// <inheritdoc />
-		public static bool TryParse(string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
+		public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out JsonNumber result)
 		{
 			try
 			{
@@ -3406,7 +3406,7 @@ namespace SnowBank.Data.Json
 			}
 			catch (Exception)
 			{ // not a valid number
-				result = default;
+				result = null;
 				return false;
 			}
 		}

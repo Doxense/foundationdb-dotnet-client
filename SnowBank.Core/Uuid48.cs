@@ -452,7 +452,7 @@ namespace System
 		/// <param name="result">When this method returns, contains the result of successfully parsing <paramref name="input" />, or an undefined value on failure.</param>
 		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
 		[Pure]
-		public static bool TryParse(string? input, out Uuid48 result)
+		public static bool TryParse([NotNullWhen(true)] string? input, out Uuid48 result)
 		{
 			if (input == null)
 			{
@@ -469,7 +469,7 @@ namespace System
 		/// <returns> <see langword="true" /> if <paramref name="input" /> was successfully parsed; otherwise, <see langword="false" />.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
 		[EditorBrowsable(EditorBrowsableState.Never)]
-		public static bool TryParse(string? input, IFormatProvider? provider, out Uuid48 result)
+		public static bool TryParse([NotNullWhen(true)] string? input, IFormatProvider? provider, out Uuid48 result)
 			=> TryParse(input, out result);
 
 		/// <summary>Tries to parse a span of characters into a <see cref="Uuid48"/></summary>
