@@ -1375,19 +1375,42 @@ namespace SnowBank.Data.Json
 #endif
 			#endregion </JIT_HACK>
 
-			if (typeof(TValue) == typeof(JsonValue))
+			if (typeof(TValue).IsAssignableTo(typeof(JsonValue)))
 			{
 				var json = MemoryMarshal.CreateReadOnlySpan<JsonValue?>(ref Unsafe.As<TValue, JsonValue?>(ref MemoryMarshal.GetReference(items)), items.Length);
 				return AddRange(json);
 			}
 
-			var dom = CrystalJsonDomWriter.Create(settings, resolver);
-			var context = new CrystalJsonDomWriter.VisitingContext();
-			var type = typeof(TValue);
-			for(int i = 0; i < items.Length; i++)
+			if (typeof(TValue).IsAssignableTo(typeof(IJsonPackable)))
 			{
-				tail[i] = dom.ParseObjectInternal(ref context, items[i], type, null);
+				settings ??= CrystalJsonSettings.Json;
+				resolver ??= CrystalJson.DefaultResolver;
+				if (default(TValue) is null)
+				{
+					for (int i = 0; i < items.Length; i++)
+					{
+						tail[i] = ((IJsonPackable?) items[i])?.JsonPack(settings, resolver) ?? JsonNull.Null;
+					}
+				}
+				else
+				{
+					for (int i = 0; i < items.Length; i++)
+					{
+						tail[i] = ((IJsonPackable) items[i]!).JsonPack(settings, resolver);
+					}
+				}
 			}
+			else
+			{
+				var dom = CrystalJsonDomWriter.Create(settings, resolver);
+				var context = new CrystalJsonDomWriter.VisitingContext();
+				var type = typeof(TValue);
+				for(int i = 0; i < items.Length; i++)
+				{
+					tail[i] = dom.ParseObjectInternal(ref context, items[i], type, null);
+				}
+			}
+
 			m_size = newSize;
 			return this;
 		}

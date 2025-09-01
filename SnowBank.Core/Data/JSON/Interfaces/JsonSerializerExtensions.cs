@@ -1815,30 +1815,6 @@ namespace SnowBank.Data.Json
 
 		#endregion
 
-		extension<TJsonPackable>(ReadOnlySpan<TJsonPackable?> self)
-			where TJsonPackable : IJsonPackable
-		{
-
-			/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding mutable <see cref="JsonValue"/></summary>
-			/// <param name="settings">Custom serialization settings</param>
-			/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
-			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
-			public JsonArray ToJsonArray(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-			{
-				return JsonPackArray<TJsonPackable>(self, settings, resolver);
-			}
-
-			/// <summary>Packs a <see cref="IJsonPackable"/> value into the corresponding read-only <see cref="JsonValue"/></summary>
-			/// <param name="settings">Custom serialization settings</param>
-			/// <param name="resolver">Optional type resolver used to bind the value into a managed CLR type (<see cref="CrystalJson.DefaultResolver"/> is omitted)</param>
-			/// <remarks>Note: if the JSON has to be sent over HTTP, or stored on disk, prefer <see cref="JsonValueExtensions.ToJsonSlice(JsonValue?,CrystalJsonSettings?)"/> or <see cref="JsonValueExtensions.ToJsonBytes(JsonValue)"/> that will return the same result but already utf-8 encoded</remarks>
-			public JsonArray ToJsonArrayReadOnly(CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-			{
-				return JsonPackArray<TJsonPackable>(self, settings.AsReadOnly(), resolver);
-			}
-
-		}
-
 		extension<TJsonPackable>(TJsonPackable? self)
 			where TJsonPackable : IJsonPackable
 		{

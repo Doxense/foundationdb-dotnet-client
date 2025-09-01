@@ -2379,12 +2379,15 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(array[2], Is.SameAs(JsonString.Empty));
 
 			// Span<JsonValue>
-			array = (new[] { JsonNumber.One, JsonBoolean.True, JsonString.Empty }.AsSpan()).ToJsonArray();
-			Assert.That(array, Is.Not.Null);
-			Assert.That(array, Has.Count.EqualTo(3));
-			Assert.That(array[0], Is.SameAs(JsonNumber.One));
-			Assert.That(array[1], Is.SameAs(JsonBoolean.True));
-			Assert.That(array[2], Is.SameAs(JsonString.Empty));
+			{
+				JsonValue[] items = [ JsonNumber.One, JsonBoolean.True, JsonString.Empty ];
+				array = (items.AsSpan()).ToJsonArray();
+				Assert.That(array, Is.Not.Null);
+				Assert.That(array, Has.Count.EqualTo(3));
+				Assert.That(array[0], Is.SameAs(items[0]));
+				Assert.That(array[1], Is.SameAs(items[1]));
+				Assert.That(array[2], Is.SameAs(items[2]));
+			}
 
 			// ICollection<JsonValue>
 			array = Enumerable.Range(0, 10).Select(x => JsonNumber.Return(x)).ToList().ToJsonArray();
@@ -2404,11 +2407,23 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(array, Has.Count.EqualTo(10));
 			Assert.That(array.ToArray<int>(), Is.EqualTo(Enumerable.Range(0, 10).ToArray()));
 
+			// JsonNumber[]
+			{
+				JsonNumber[] items = [ JsonNumber.Create(1), JsonNumber.Create(2), JsonNumber.Create(3) ];
+
+				array = items.ToJsonArray();
+				Assert.That(array, Is.Not.Null);
+				Assert.That(array, Has.Count.EqualTo(3));
+				Assert.That(array[0], Is.SameAs(items[0]));
+				Assert.That(array[1], Is.SameAs(items[1]));
+				Assert.That(array[2], Is.SameAs(items[2]));
+			}
+
 			// int[]
 			array = new int[] { 1, 2, 3 }.ToJsonArray();
 			Assert.That(array, Is.Not.Null);
 			Assert.That(array, Has.Count.EqualTo(3));
-			Assert.That(array.ToArray<int>(), Is.EqualTo(new[] {1, 2, 3}));
+			Assert.That(array.ToArray<int>(), Is.EqualTo(new[] { 1, 2, 3 }));
 
 			// ICollection<int>
 			array = new List<int>([ 1, 2, 3 ]).ToJsonArray();
@@ -2421,6 +2436,74 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(array, Is.Not.Null);
 			Assert.That(array, Has.Count.EqualTo(3));
 			Assert.That(array.ToArray<int>(), Is.EqualTo(new[] { 1, 2, 3 }));
+		}
+
+
+		[Test]
+		public void Test_JsonArray_Packable_ToJsonArray()
+		{
+			// IJsonPackable type
+			var items = new DummyJsonCustomClass[]
+			{
+				new("foo"),
+				new("bar"),
+				new("baz")
+			};
+
+			{ // Packable[]
+				var array = items.ToJsonArray();
+				Dump(array);
+				Assert.That(array, Has.Count.EqualTo(3));
+				Assert.That(array[0]["custom"], Is.Json.EqualTo("foo"));
+				Assert.That(array[1]["custom"], Is.Json.EqualTo("bar"));
+				Assert.That(array[2]["custom"], Is.Json.EqualTo("baz"));
+			}
+
+			{ // ReadOnlySpan<Packable>
+				var array = items.AsSpan().ToJsonArray();
+				Dump(array);
+				Assert.That(array, Has.Count.EqualTo(3));
+				Assert.That(array[0]["custom"], Is.Json.EqualTo("foo"));
+				Assert.That(array[1]["custom"], Is.Json.EqualTo("bar"));
+				Assert.That(array[2]["custom"], Is.Json.EqualTo("baz"));
+			}
+
+			{ // IEnumerable<Packable>
+				var array = items.Select(x => x).ToJsonArray();
+				Dump(array);
+				Assert.That(array, Has.Count.EqualTo(3));
+				Assert.That(array[0]["custom"], Is.Json.EqualTo("foo"));
+				Assert.That(array[1]["custom"], Is.Json.EqualTo("bar"));
+				Assert.That(array[2]["custom"], Is.Json.EqualTo("baz"));
+			}
+
+			{ // TPackable.JsonPackArray([])
+				var array = DummyJsonCustomClass.JsonPackArray(items);
+				Dump(array);
+				Assert.That(array, Has.Count.EqualTo(3));
+				Assert.That(array[0]["custom"], Is.Json.EqualTo("foo"));
+				Assert.That(array[1]["custom"], Is.Json.EqualTo("bar"));
+				Assert.That(array[2]["custom"], Is.Json.EqualTo("baz"));
+			}
+
+			{ // TPackable.JsonPackArray(ReadOnlySpan)
+				var array = DummyJsonCustomClass.JsonPackArray(items.AsSpan());
+				Dump(array);
+				Assert.That(array, Has.Count.EqualTo(3));
+				Assert.That(array[0]["custom"], Is.Json.EqualTo("foo"));
+				Assert.That(array[1]["custom"], Is.Json.EqualTo("bar"));
+				Assert.That(array[2]["custom"], Is.Json.EqualTo("baz"));
+			}
+
+			{ // TPackable.JsonPackArray(IEnumerable<>)
+				var array = DummyJsonCustomClass.JsonPackArray(items.Select(x => x));
+				Dump(array);
+				Assert.That(array, Has.Count.EqualTo(3));
+				Assert.That(array[0]["custom"], Is.Json.EqualTo("foo"));
+				Assert.That(array[1]["custom"], Is.Json.EqualTo("bar"));
+				Assert.That(array[2]["custom"], Is.Json.EqualTo("baz"));
+			}
+
 		}
 
 		[Test]
