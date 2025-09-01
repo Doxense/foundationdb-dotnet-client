@@ -29,6 +29,7 @@
 // ReSharper disable InlineOutVariableDeclaration
 // ReSharper disable StringLiteralTypo
 // ReSharper disable GrammarMistakeInComment
+// ReSharper disable UseUtf8StringLiteral
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
 
 namespace SnowBank.Data.Tuples.Tests
@@ -114,16 +115,24 @@ namespace SnowBank.Data.Tuples.Tests
 			// - Best case:  packed_size = 2 + array_len
 			// - Worst case: packed_size = 2 + array_len * 2
 
+			// byte[]
 			Assert.That(TuPack.EncodeKey(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
 			Assert.That(TuPack.Pack(ValueTuple.Create(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 })).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
 
-			Assert.That(TuPack.EncodeKey(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice()).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
-			Assert.That(TuPack.Pack(ValueTuple.Create(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 }.AsSlice())).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+			// \x00 should be escaped as \x00\xFF
+			Assert.That(TuPack.EncodeKey((byte[]) [ 0x00, 0x42 ]).ToString(), Is.EqualTo("<01><00><FF>B<00>"));
+			Assert.That(TuPack.EncodeKey((byte[]) [ 0x42, 0x00 ]).ToString(), Is.EqualTo("<01>B<00><FF><00>"));
+			Assert.That(TuPack.EncodeKey((byte[]) [ 0x42, 0x00, 0x42 ]).ToString(), Is.EqualTo("<01>B<00><FF>B<00>"));
+			Assert.That(TuPack.EncodeKey((byte[]) [ 0x42, 0x00, 0x00, 0x42 ]).ToString(), Is.EqualTo("<01>B<00><FF><00><FF>B<00>"));
 
-			Assert.That(TuPack.EncodeKey(new byte[] { 0x00, 0x42 }).ToString(), Is.EqualTo("<01><00><FF>B<00>"));
-			Assert.That(TuPack.EncodeKey(new byte[] { 0x42, 0x00 }).ToString(), Is.EqualTo("<01>B<00><FF><00>"));
-			Assert.That(TuPack.EncodeKey(new byte[] { 0x42, 0x00, 0x42 }).ToString(), Is.EqualTo("<01>B<00><FF>B<00>"));
-			Assert.That(TuPack.EncodeKey(new byte[] { 0x42, 0x00, 0x00, 0x42 }).ToString(), Is.EqualTo("<01>B<00><FF><00><FF>B<00>"));
+			// Slice
+			Assert.That(TuPack.EncodeKey(Slice.FromBytes([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 ])).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+			Assert.That(TuPack.Pack(ValueTuple.Create(Slice.FromBytes([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0]))).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+
+			// Span-like
+			Assert.That(TuPack.EncodeKey(Slice.FromBytes([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 ]).Memory).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+			Assert.That(TuPack.Pack(ValueTuple.Create(Slice.FromBytes([ 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0]).Memory)).ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+			Assert.That(TuPack.EncodeKey(((byte[]) [ 0x00, 0x42 ]).AsMemory()).ToString(), Is.EqualTo("<01><00><FF>B<00>"));
 		}
 
 		[Test]
@@ -170,7 +179,7 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(TuPack.Pack(ValueTuple.Create("hello, world!")).ToString(), Is.EqualTo("<02>hello, world!<00>"));
 
 				// empty
-				Assert.That(TuPack.EncodeKey(String.Empty).ToString(), Is.EqualTo("<02><00>"));
+				Assert.That(TuPack.EncodeKey(string.Empty).ToString(), Is.EqualTo("<02><00>"));
 
 				// null
 				Assert.That(TuPack.EncodeKey(default(string)).ToString(), Is.EqualTo("<00>"));
@@ -205,6 +214,15 @@ namespace SnowBank.Data.Tuples.Tests
 				Assert.That(TuPack.EncodeKey("🐶").ToString(), Is.EqualTo("<02><F0><9F><90><B6><00>"));
 				Assert.That(TuPack.EncodeKey("🐉🔥").ToString(), Is.EqualTo("<02><F0><9F><90><89><F0><9F><94><A5><00>"));
 				Assert.That(TuPack.EncodeKey("\U0010ffff").ToString(), Is.EqualTo("<02><F4><8F><BF><BF><00>"));
+
+				// ReadOnlyMemory<char>
+				Assert.That(TuPack.EncodeKey(default(ReadOnlyMemory<char>)).ToString(), Is.EqualTo("<02><00>"));
+				Assert.That(TuPack.EncodeKey("hello, world!".AsMemory()).ToString(), Is.EqualTo("<02>hello, world!<00>"));
+				Assert.That(
+					TuPack.EncodeKey("Voix ambiguë d’un cœur qui, au zéphyr, préfère les jattes de kiwis".AsMemory()).ToString(),
+					Is.EqualTo("<02>Voix ambigu<C3><AB> d<E2><80><99>un c<C5><93>ur qui, au z<C3><A9>phyr, pr<C3><A9>f<C3><A8>re les jattes de kiwis<00>")
+				);
+				Assert.That(TuPack.EncodeKey("🐶".AsMemory()).ToString(), Is.EqualTo("<02><F0><9F><90><B6><00>"));
 			});
 		}
 

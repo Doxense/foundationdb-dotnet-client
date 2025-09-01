@@ -1376,6 +1376,16 @@ namespace SnowBank.Data.Tuples.Binary
 			=> value is null ? writer.TryWriteNil() : TryWriteString(ref writer, value.AsSpan());
 
 		/// <summary>Writes a string encoded in UTF-8</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteString(ref TupleSpanWriter writer, in ReadOnlyMemory<char> value)
+			=> TryWriteString(ref writer, value.Span);
+
+		/// <summary>Writes a string encoded in UTF-8</summary>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public static bool TryWriteString(ref TupleSpanWriter writer, in Memory<char> value)
+			=> TryWriteString(ref writer, value.Span);
+
+		/// <summary>Writes a string encoded in UTF-8</summary>
 		public static bool TryWriteString(ref TupleSpanWriter writer, in ReadOnlySpan<char> value)
 		{
 
@@ -1427,46 +1437,60 @@ namespace SnowBank.Data.Tuples.Binary
 			{ // "00"
 				WriteNil(writer);
 			}
-			else if (value.Length == 0)
+			else
+			{
+				WriteString(writer, value.AsSpan());
+			}
+		}
+
+		/// <summary>Writes a string encoded in UTF-8</summary>
+		public static void WriteString(this TupleWriter writer, ReadOnlyMemory<char> value)
+			=> WriteString(writer, value.Span);
+
+		/// <summary>Writes a string encoded in UTF-8</summary>
+		public static void WriteString(this TupleWriter writer, Memory<char> value)
+			=> WriteString(writer, value.Span);
+
+		/// <summary>Writes a string encoded in UTF-8</summary>
+		public static void WriteString(this TupleWriter writer, ReadOnlySpan<char> value)
+		{
+			if (value.Length == 0)
 			{ // "02 00"
 				writer.Output.WriteBytes(TupleTypes.Utf8, 0x00);
 			}
 			else
 			{
-				fixed(char* chars = value)
-				{
-					if (!TryWriteUnescapedUtf8String(writer, chars, value.Length))
-					{ // the string contains \0 chars, we need to do it the hard way
-						WriteNulEscapedBytes(writer, TupleTypes.Utf8, Encoding.UTF8.GetBytes(value));
-					}
+				if (!TryWriteUnescapedUtf8String(writer, value))
+				{ // the string contains \0 chars, we need to do it the hard way
+					WriteStringSlow(ref writer, value);
 				}
 			}
-		}
 
-		/// <summary>Writes a char array encoded in UTF-8</summary>
-		internal static unsafe void WriteChars(this TupleWriter writer, char[]? value, int offset, int count)
-		{
-			Contract.Debug.Requires(offset >= 0 && count >= 0);
-
-			if (count == 0)
+			[MethodImpl(MethodImplOptions.NoInlining)]
+			static void WriteStringSlow(ref TupleWriter writer, ReadOnlySpan<char> value)
 			{
-				if (value == null)
-				{ // "00"
-					WriteNil(writer);
+				const int MAX_STACK_CAPACITY = 256;
+
+				// we need a tmp buffer to encode the string into UTF-8 bytes,
+				int capacity = Encoding.UTF8.GetByteCount(value);
+
+				if (capacity <= MAX_STACK_CAPACITY)
+				{ // use the stack
+					Span<byte> buffer = stackalloc byte[capacity];
+					int writtenBytes = Encoding.UTF8.GetBytes(value, buffer);
+					WriteNulEscapedBytes(writer, TupleTypes.Utf8, buffer[..writtenBytes]);
 				}
 				else
-				{ // "02 00"
-					writer.Output.WriteBytes(TupleTypes.Utf8, 0x00);
-				}
-			}
-			else
-			{
-				//TODO: convert this to use Span<char> !
-				fixed (char* chars = value)
-				{
-					if (!TryWriteUnescapedUtf8String(writer, chars + offset, count))
-					{ // the string contains \0 chars, we need to do it the hard way
-						WriteNulEscapedBytes(writer, TupleTypes.Utf8, Encoding.UTF8.GetBytes(value!, 0, count));
+				{ // use a pooled buffer
+					byte[] buffer = ArrayPool<byte>.Shared.Rent(capacity);
+					try
+					{
+						int writtenBytes = Encoding.UTF8.GetBytes(value, buffer);
+						WriteNulEscapedBytes(writer, TupleTypes.Utf8, buffer.AsSpan(0, writtenBytes));
+					}
+					finally
+					{
+						ArrayPool<byte>.Shared.Return(buffer, true);
 					}
 				}
 			}
@@ -1474,29 +1498,41 @@ namespace SnowBank.Data.Tuples.Binary
 
 		private static unsafe void WriteUnescapedAsciiChars(this TupleWriter writer, char* chars, int count)
 		{
+			//PERF: TODO: change this to use ReadOnlySpan<char>
+
 			Contract.Debug.Requires(chars != null && count >= 0);
 
 			// copy and convert an ASCII string directly into the destination buffer
 
-			writer.Output.EnsureBytes(2 + count);
+			var buffer = writer.Output.EnsureBytes(2 + count);
 			int pos = writer.Output.Position;
 			char* end = chars + count;
-			fixed (byte* buffer = writer.Output.Buffer)
+			fixed (byte* outPtr = buffer)
 			{
-				buffer[pos++] = TupleTypes.Utf8;
+				outPtr[pos++] = TupleTypes.Utf8;
 				//OPTIMIZE: copy 2 or 4 chars at once, unroll loop?
 				while(chars < end)
 				{
-					buffer[pos++] = (byte)(*chars++);
+					outPtr[pos++] = (byte)(*chars++);
 				}
-				buffer[pos] = 0x00;
-				writer.Output.Position = pos + 1;
+				outPtr[pos++] = 0x00;
+				writer.Output.Position = pos;
 			}
 		}
 
+		private static bool TryWriteUnescapedUtf8String(this TupleWriter writer, ReadOnlySpan<char> chars)
+		{
+			unsafe
+			{
+				fixed (char* ptr = chars)
+				{
+					return TryWriteUnescapedUtf8String(writer, ptr, chars.Length);
+				}
+			}
+		}
 		private static unsafe bool TryWriteUnescapedUtf8String(this TupleWriter writer, char* chars, int count)
 		{
-			Contract.Debug.Requires(chars != null && count >= 0);
+			//PERF: TODO: change this to use ReadOnlySpan<char>
 
 			// Several observations:
 			// * Most strings will be keywords or ASCII-only with no zeroes. These can be copied directly to the buffer
@@ -1629,16 +1665,17 @@ namespace SnowBank.Data.Tuples.Binary
 
 		/// <summary>Writes a binary string</summary>
 		public static bool TryWriteBytes(ref TupleSpanWriter writer, in byte[]? value)
-		{
-			if (value is null)
-			{
-				return writer.TryWriteNil();
-			}
-			else
-			{
-				return TryWriteBytes(ref writer, value.AsSpan());
-			}
-		}
+			=> value is null
+				? writer.TryWriteNil()
+				: TryWriteBytes(ref writer, value.AsSpan());
+
+		/// <summary>Writes a binary string</summary>
+		public static bool TryWriteBytes(ref TupleSpanWriter writer, in ReadOnlyMemory<byte> value)
+			=> TryWriteBytes(ref writer, value.Span);
+
+		/// <summary>Writes a binary string</summary>
+		public static bool TryWriteBytes(ref TupleSpanWriter writer, in Memory<byte> value)
+			=> TryWriteBytes(ref writer, value.Span);
 
 		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(this TupleWriter writer, byte[]? value)
@@ -1652,6 +1689,14 @@ namespace SnowBank.Data.Tuples.Binary
 				WriteNulEscapedBytes(writer, TupleTypes.Bytes, value.AsSpan());
 			}
 		}
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(this TupleWriter writer, ReadOnlyMemory<byte> value)
+			=> WriteNulEscapedBytes(writer, TupleTypes.Bytes, value.Span);
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(this TupleWriter writer, Memory<byte> value)
+			=> WriteNulEscapedBytes(writer, TupleTypes.Bytes, value.Span);
 
 		/// <summary>Writes a binary string</summary>
 		public static bool TryWriteBytes(ref TupleSpanWriter writer, in ArraySegment<byte> value)

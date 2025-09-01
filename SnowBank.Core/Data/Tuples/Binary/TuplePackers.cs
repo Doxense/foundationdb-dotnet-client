@@ -129,6 +129,12 @@ namespace SnowBank.Data.Tuples.Binary
 				[typeof(Int128?)]           = (new Encoder<Int128?>(TupleParser.WriteInt128), null), //TODO
 				[typeof(UInt128?)]          = (new Encoder<UInt128?>(TupleParser.WriteUInt128), null), //TODO
 #endif
+
+				// Span-like
+				[typeof(ReadOnlyMemory<byte>)] = (new Encoder<ReadOnlyMemory<byte>>(TupleParser.WriteBytes), new SpanEncoder<ReadOnlyMemory<byte>>(TupleParser.TryWriteBytes)),
+				[typeof(Memory<byte>)]      = (new Encoder<Memory<byte>>(TupleParser.WriteBytes), new SpanEncoder<Memory<byte>>(TupleParser.TryWriteBytes)),
+				[typeof(ReadOnlyMemory<char>)] = (new Encoder<ReadOnlyMemory<char>>(TupleParser.WriteString), new SpanEncoder<ReadOnlyMemory<char>>(TupleParser.TryWriteString)),
+				[typeof(Memory<char>)] = (new Encoder<Memory<char>>(TupleParser.WriteString), new SpanEncoder<Memory<char>>(TupleParser.TryWriteString)),
 				[typeof(ArraySegment<byte>?)] = (new Encoder<ArraySegment<byte>?>(TupleParser.WriteBytes), new SpanEncoder<ArraySegment<byte>?>(TupleParser.TryWriteBytes)),
 			};
 
