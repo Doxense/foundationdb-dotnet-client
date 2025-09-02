@@ -3080,6 +3080,22 @@ namespace SnowBank.Data.Json
 
 		/// <summary>Returns a wrapper that will convert all the elements of this <see cref="JsonArray"/> as values of type <typeparamref name="TValue"/> when enumerated.</summary>
 		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a <see langword="foreach"/> loop, or used with LINQ.</para></remarks>
+		public JsonArray<TValue> AsArrayOf<TValue>() where TValue : notnull
+		{
+			return new(this);
+		}
+
+		/// <summary>Returns a wrapper that will convert all the elements of this <see cref="JsonArray"/> as values of type <typeparamref name="TValue"/> when enumerated.</summary>
+		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a <see langword="foreach"/> loop, or used with LINQ.</para></remarks>
+		public JsonArrayOrDefault<TValue> AsArrayOrDefaultOf<TValue>(TValue? missingValue = default)
+		{
+			return new(this, missingValue);
+		}
+
+		/// <summary>Returns a wrapper that will convert all the elements of this <see cref="JsonArray"/> as values of type <typeparamref name="TValue"/> when enumerated.</summary>
+		/// <remarks><para>This method can be used to remove the need of allocating a temporary array or list of items that would only be called inside a <see langword="foreach"/> loop, or used with LINQ.</para></remarks>
+		[EditorBrowsable(EditorBrowsableState.Never)]
+		[Obsolete("Use AsArrayOf<TValue> instead.")]
 		public JsonArray<TValue> Cast<TValue>() where TValue : notnull
 		{
 			return new(this);

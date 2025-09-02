@@ -1465,6 +1465,18 @@ namespace SnowBank.Data.Json
 		/// <exception cref="JsonBindingException">If this node is not a JSON Object.</exception>
 		public JsonObject? AsObjectOrDefault() => this.ToJsonValue().AsObjectOrDefault();
 
+		/// <summary>Expose the underlying <see cref="JsonArray"/> of this node</summary>
+		/// <remarks>This will we recorded as a full use of the value</remarks>
+		/// <exception cref="JsonBindingException">If this node is null, missing, or not a JSON Array.</exception>
+		public JsonArray<TValue> AsArrayOf<TValue>() where TValue: notnull
+			=> AsArray().AsArrayOf<TValue>();
+
+		/// <summary>Expose the underlying <see cref="JsonArray"/> of this node</summary>
+		/// <remarks>This will we recorded as a full use of the value</remarks>
+		/// <exception cref="JsonBindingException">If this node is null, missing, or not a JSON Array.</exception>
+		public JsonArrayOrDefault<TValue> AsArrayOrDefaultOf<TValue>(TValue? missingValue = default)
+			=> AsArray().AsArrayOrDefaultOf<TValue>(missingValue);
+
 	}
 
 }

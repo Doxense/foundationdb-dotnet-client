@@ -2736,7 +2736,7 @@ namespace SnowBank.Data.Json.Tests
 					123, 456, 789
 				};
 
-				var cast = arr.Cast<double>();
+				var cast = arr.AsArrayOf<double>();
 				using (var it = cast.GetEnumerator())
 				{
 					Assert.That(it.Current, Is.EqualTo(0.0), "Before first MoveNext");
@@ -2751,7 +2751,7 @@ namespace SnowBank.Data.Json.Tests
 				}
 
 				var res = new List<double>();
-				foreach (var d in arr.Cast<double>())
+				foreach (var d in arr.AsArrayOf<double>())
 				{
 					Assert.That(res, Has.Count.LessThan(3));
 					res.Add(d);
@@ -2767,7 +2767,7 @@ namespace SnowBank.Data.Json.Tests
 					"Hello", "World", "!!!"
 				};
 
-				var cast = arr.Cast<string>();
+				var cast = arr.AsArrayOf<string>();
 				using (var it = cast.GetEnumerator())
 				{
 					Assert.That(it.Current, Is.Null, "Before first MoveNext");
@@ -2782,7 +2782,7 @@ namespace SnowBank.Data.Json.Tests
 				}
 
 				var res = new List<string>();
-				foreach (var s in arr.Cast<string>())
+				foreach (var s in arr.AsArrayOf<string>())
 				{
 					Assert.That(res, Has.Count.LessThan(3));
 					res.Add(s);
@@ -3006,7 +3006,7 @@ namespace SnowBank.Data.Json.Tests
 
 			Assert.Multiple(() =>
 			{
-				var cast = JsonArray.Create().Cast<int>();
+				var cast = JsonArray.Create().AsArrayOf<int>();
 				Assert.That(cast, Has.Count.EqualTo(0));
 				Assert.That(cast.ToArray(), Is.Empty);
 				Assert.That(cast.ToList(), Is.Empty);
@@ -3016,7 +3016,7 @@ namespace SnowBank.Data.Json.Tests
 			{
 				var arr = JsonArray.Create(123, 456, 789);
 
-				var cast = arr.Cast<int>();
+				var cast = arr.AsArrayOf<int>();
 
 				Assert.That(cast, Has.Count.EqualTo(3));
 				Assert.That(cast[0], Is.EqualTo(123));
@@ -3059,7 +3059,7 @@ namespace SnowBank.Data.Json.Tests
 
 			Assert.Multiple(() =>
 			{ // should fail if no default and value if missing
-				var cast = JsonArray.Create(123, null, 789).Cast<int>();
+				var cast = JsonArray.Create(123, null, 789).AsArrayOf<int>();
 				Assert.That(cast, Has.Count.EqualTo(3));
 				Assert.That(cast[0], Is.EqualTo(123));
 				Assert.That(() => cast[1], Throws.InstanceOf<JsonBindingException>());
@@ -3095,7 +3095,7 @@ namespace SnowBank.Data.Json.Tests
 
 			Assert.Multiple(() =>
 			{
-				var cast = JsonArray.Create("hello", "world", "!!!").Cast<string>();
+				var cast = JsonArray.Create("hello", "world", "!!!").AsArrayOf<string>();
 				Assert.That(cast, Has.Count.EqualTo(3));
 				Assert.That(cast[0], Is.EqualTo("hello"));
 				Assert.That(cast[1], Is.EqualTo("world"));
@@ -3125,7 +3125,7 @@ namespace SnowBank.Data.Json.Tests
 					JsonArray.Create("three", 333)
 				]);
 
-				var cast = arr.Cast<(string, int)>();
+				var cast = arr.AsArrayOf<(string, int)>();
 
 				Assert.That(cast, Has.Count.EqualTo(3));
 				Assert.That(cast[0], Is.EqualTo(("one", 111)));

@@ -243,7 +243,7 @@ namespace SnowBank.Data.Json.Tests
 				Assert.That(m.Get<string[]>("Metrics"), Has.Length.EqualTo(3));
 
 				// metrics value
-				foreach (var id in m.GetArray("Metrics").Cast<string>())
+				foreach (var id in m.GetArray("Metrics").AsArrayOf<string>())
 				{
 					Log($"> Reading batch for {id}...");
 					frag = reader.ReadNextFragment()!;
