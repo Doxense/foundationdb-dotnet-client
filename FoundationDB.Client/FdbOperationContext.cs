@@ -382,7 +382,7 @@ namespace FoundationDB.Client
 				var container = GetOrCreateLocalDataContainer();
 				if (!container.TryGetValue(typeof(TState), out var slot))
 				{
-					slot = new Dictionary<string, object>(StringComparer.Ordinal);
+					slot = new Dictionary<string, TState>(StringComparer.Ordinal);
 					container[typeof(TState)] = slot;
 				}
 				var items = (Dictionary<TToken, TState>) slot;
@@ -412,7 +412,7 @@ namespace FoundationDB.Client
 						[key] = newState
 					};
 					container[typeof(TState)] = items;
-					return default!;
+					return null;
 				}
 				else
 				{
