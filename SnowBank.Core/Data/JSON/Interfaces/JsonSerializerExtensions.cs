@@ -1960,15 +1960,68 @@ namespace SnowBank.Data.Json
 			}
 
 			[Pure]
-			public static TJsonDeserializable?[]? JsonDeserializeArray(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
-				=> JsonDeserializeArray<TJsonDeserializable>(jsonBytes.Span, settings, resolver);
+			public static TJsonDeserializable?[] JsonDeserializeArrayItemOptional(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonDeserializeArrayItemOptional<TJsonDeserializable>(jsonBytes.Span, settings, resolver);
 
 			[Pure]
-			public static TJsonDeserializable?[]? JsonDeserializeArray(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			public static TJsonDeserializable?[] JsonDeserializeArrayItemOptional(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var values = CrystalJson.Parse(jsonBytes, settings).AsArray();
+				return JsonUnpackArrayItemOptional<TJsonDeserializable>(values, resolver);
+			}
+
+			/// <summary>Deserializes a required array of non-null elements of type <typeparamref name="TJsonDeserializable"/></summary>
+			/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Resolver used to deserialize the items of the array (optional)</param>
+			/// <returns>Array of <typeparamref name="TJsonDeserializable"/> elements</returns>
+			/// <remarks>This method will throw if array is <c>null</c>, or if it contains <c>null</c> elements.</remarks>
+			/// <seealso cref="JsonDeserializeArrayOrDefaultItemNotNull(ReadOnlySpan{byte},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/>
+			/// <seealso cref="JsonDeserializeArrayItemOptional(ReadOnlySpan{byte},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/>
+			/// <seealso cref="JsonDeserializeArrayOrDefaultItemOptional(ReadOnlySpan{byte},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/>
+			[Pure]
+			public static TJsonDeserializable[] JsonDeserializeArrayItemNotNull(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonDeserializeArrayItemNotNull<TJsonDeserializable>(jsonBytes.Span, settings, resolver);
+
+			/// <summary>Deserializes a required array of non-null elements of type <typeparamref name="TJsonDeserializable"/></summary>
+			/// <param name="jsonBytes">UTF-8 encoded JSON document to parse</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Resolver used to deserialize the items of the array (optional)</param>
+			/// <returns>Array of <typeparamref name="TJsonDeserializable"/> elements</returns>
+			/// <remarks>This method will throw if array is <c>null</c>, or if it contains <c>null</c> elements.</remarks>
+			/// <seealso cref="JsonDeserializeArrayOrDefaultItemNotNull(ReadOnlySpan{byte},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/>
+			/// <seealso cref="JsonDeserializeArrayItemOptional(ReadOnlySpan{byte},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/>
+			/// <seealso cref="JsonDeserializeArrayOrDefaultItemOptional(ReadOnlySpan{byte},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/>
+			[Pure]
+			public static TJsonDeserializable[] JsonDeserializeArrayItemNotNull(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var values = CrystalJson.Parse(jsonBytes, settings).AsArray();
+				return JsonUnpackArrayItemNotNull<TJsonDeserializable>(values, resolver);
+			}
+
+			[Pure]
+			public static TJsonDeserializable?[]? JsonDeserializeArrayOrDefaultItemOptional(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonDeserializeArrayOrDefaultItemOptional<TJsonDeserializable>(jsonBytes.Span, settings, resolver);
+
+			[Pure]
+			public static TJsonDeserializable?[]? JsonDeserializeArrayOrDefaultItemOptional(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
 			{
 				var values = CrystalJson.Parse(jsonBytes, settings).AsArrayOrDefault();
 				return values is not null
 					? JsonUnpackArrayItemOptional<TJsonDeserializable>(values, resolver)
+					: null;
+			}
+
+			[Pure]
+			public static TJsonDeserializable[]? JsonDeserializeArrayOrDefaultItemNotNull(Slice jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonDeserializeArrayOrDefaultItemNotNull<TJsonDeserializable>(jsonBytes.Span, settings, resolver);
+
+			[Pure]
+			public static TJsonDeserializable[]? JsonDeserializeArrayOrDefaultItemNotNull(ReadOnlySpan<byte> jsonBytes, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var values = CrystalJson.Parse(jsonBytes, settings).AsArrayOrDefault();
+				return values is not null
+					? JsonUnpackArrayItemNotNull<TJsonDeserializable>(values, resolver)
 					: null;
 			}
 
@@ -2297,7 +2350,7 @@ namespace SnowBank.Data.Json
 			}
 
 			/// <summary>Serializes a sequence of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array</summary>
-			/// <param name="values">Span of the instances to serialize (can be null)</param>
+			/// <param name="values">Sequence of instances to serialize (can be null)</param>
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 			/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
@@ -2346,7 +2399,16 @@ namespace SnowBank.Data.Json
 			}
 
 			/// <summary>Serializes a span of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array</summary>
-			/// <param name="values">Span of the instances to serialize (can be null)</param>
+			/// <param name="values">Immutable array of instances to serialize</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
+			/// <exception cref="JsonSerializationException">If any value fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+			public static Slice JsonSerializeArray(ImmutableArray<TJsonSerializable?> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonSerializeArray(values.AsSpan(), settings, resolver);
+
+			/// <summary>Serializes a span of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array</summary>
+			/// <param name="values">Span of instances to serialize</param>
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
 			/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
@@ -2446,7 +2508,20 @@ namespace SnowBank.Data.Json
 			}
 
 			/// <summary>Serializes a span of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
-			/// <param name="values">Span of the instances to serialize (can be null)</param>
+			/// <param name="values">Immutable array the instances to serialize</param>
+			/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
+			/// <returns><c>`[ 123, 456, 789, ... ]`</c>, <c>`[ true, true, false, ... ]`</c>, <c>`[ "ABC", "DEF", "GHI", ... ]`</c>, <c>`[ { "foo":..., "bar": ... }, { "foo":..., "bar": ... }, ... ]`</c>, <c>`[ [ ... ], [ ... ], ... ]`</c>, ...</returns>
+			/// <exception cref="JsonSerializationException">If any value fails to serialize properly (non-serializable type, loop in the object graph, ...)</exception>
+			/// <remarks>
+			/// <para>The <see cref="SliceOwner"/> returned <b>MUST</b> be disposed; otherwise, the rented buffer will not be returned to the <paramref name="pool"/>.</para>
+			/// </remarks>
+			public static SliceOwner JsonSerializeArray(ImmutableArray<TJsonSerializable?> values, ArrayPool<byte>? pool, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+				=> JsonSerializeArray(values.AsSpan(), pool, settings, resolver);
+
+			/// <summary>Serializes a span of values of type <typeparamref name="TJsonSerializable"/> as a JSON Array into a <see cref="SliceOwner"/> using the specified <see cref="ArrayPool{T}">pool</see></summary>
+			/// <param name="values">Span of instances to serialize</param>
 			/// <param name="pool">Pool used to allocate the content of the slice (use <see cref="ArrayPool{T}.Shared"/> if <see langword="null"/>)</param>
 			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
 			/// <param name="resolver">Custom type resolver (use default behavior if null)</param>
