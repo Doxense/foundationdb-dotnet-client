@@ -787,6 +787,9 @@ namespace SnowBank.Data.Json
 			return (char) x;
 		}
 
+		/// <summary>List of characters that are allowed to follow after a number</summary>
+		private static readonly SearchValues<char> ValidNumberTrailingCharacters = SearchValues.Create(",}]: \t\r\n");
+
 		private static unsafe JsonNumber ParseJsonNumber(ref CrystalJsonTokenizer<TReader> reader, char first)
 		{
 #if DEBUG_JSON_PARSER
@@ -814,7 +817,7 @@ namespace SnowBank.Data.Json
 					num = (num * 10) + (ulong)(c - '0');
 					//REVIEW: fail if more than 17 digits? (ulong.MaxValue) unless we want to handle BigIntegers?
 				}
-				else if (c == ',' || c == '}' || c == ']' || c == ' ' || c == '\n' || c == '\t' || c == '\r')
+				else if (ValidNumberTrailingCharacters.Contains(c))
 				{ // this is a valid end-of-stream character
 				  // rewind this character
 					reader.Push(c);
@@ -830,7 +833,7 @@ namespace SnowBank.Data.Json
 					hasDot = true;
 					computed = false;
 				}
-				else if (c == 'e' || c == 'E')
+				else if (c is 'e' or 'E')
 				{ // exponent (scientific form)
 					if (hasExponent)
 					{
@@ -840,7 +843,7 @@ namespace SnowBank.Data.Json
 					hasExponent = true;
 					computed = false;
 				}
-				else if (c == '-' || c == '+')
+				else if (c is '-' or '+')
 				{ // sign of the exponent
 					if (!hasExponent)
 					{
@@ -853,7 +856,7 @@ namespace SnowBank.Data.Json
 					incomplete = true; // must be followed by a digit! ("123E-" is not valid)
 					hasExponentSign = true;
 				}
-				else if (c == 'I' && p == 1 && (first == '+' || first == '-'))
+				else if (c == 'I' && p == 1 && (first is '+' or '-'))
 				{ // '+Infinity' / '-Infinity' ?
 					ParseSpecialKeyword(ref reader, c);
 					//HACKHACK: if this succeeds, then the keyword was "Infinity" as expected
