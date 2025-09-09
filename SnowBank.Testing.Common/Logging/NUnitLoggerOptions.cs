@@ -62,7 +62,7 @@ namespace SnowBank.Testing
 
 		/// <summary>Optional handler called for each log entry</summary>
 		/// <remarks>The handler should not block the calling thread!</remarks>
-		public Action<(LogLevel Level, string LogName, int EventId, string? Message, Exception? Exception)>? MessageHandler { get; set; }
+		public Action<(LogLevel Level, string LogName, int EventId, string? EventName, string? Message, Exception? Exception)>? MessageHandler { get; set; }
 
 	}
 

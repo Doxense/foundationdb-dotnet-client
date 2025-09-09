@@ -92,19 +92,19 @@ namespace SnowBank.Testing
 
 			if (!string.IsNullOrEmpty(message) || exception != null)
 			{
-				WriteMessage(now, logLevel, this.LoggedActor, this.LoggedName, eventId.Id, message, exception);
+				WriteMessage(now, logLevel, this.LoggedActor, this.LoggedName, eventId.Id, eventId.Name, message, exception);
 			}
 		}
 
 		[ThreadStatic]
 		private static StringBuilder? CachedBuilderInstance;
 
-		public void WriteMessage(DateTime now, LogLevel logLevel, string? actorId, string logName, int eventId, string? message, Exception? exception)
+		public void WriteMessage(DateTime now, LogLevel logLevel, string? actorId, string logName, int eventId, string? eventName, string? message, Exception? exception)
 		{
 			var logBuilder = CachedBuilderInstance;
 			CachedBuilderInstance = null;
 
-			logBuilder ??= new StringBuilder();
+			logBuilder ??= new();
 
 			CreateDefaultLogMessage(logBuilder, now, logLevel, actorId, logName, eventId, message, exception);
 
@@ -114,7 +114,7 @@ namespace SnowBank.Testing
 
 			System.Diagnostics.Debug.WriteLine(text);
 
-			this.Options.MessageHandler?.Invoke((logLevel, logName, eventId, message, exception));
+			this.Options.MessageHandler?.Invoke((logLevel, logName, eventId, eventName, message, exception));
 
 			logBuilder.Clear();
 			if (logBuilder.Capacity > 1024)
