@@ -305,6 +305,104 @@ namespace SnowBank.Data.Json
 					: new JsonArray().AddValuesReadOnly(values, selector, settings.AsReadOnly(), resolver).FreezeUnsafe();
 			}
 
+			/// <summary>Creates a new mutable JSON Array from a span of string literals.</summary>
+			/// <param name="values">Span of values that must be converted</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+			/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+			/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray FromValues(ReadOnlySpan<string?> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var arr = new JsonArray();
+				arr.AddValues(values, settings, resolver);
+				return arr.FreezeUnsafe();
+			}
+
+			/// <summary>Creates a new mutable JSON Array from a span of numbers.</summary>
+			/// <param name="values">Span of values that must be converted</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+			/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+			/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray FromValues(ReadOnlySpan<int> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var arr = new JsonArray();
+				arr.AddValues(values, settings, resolver);
+				return arr.FreezeUnsafe();
+			}
+
+			/// <summary>Creates a new mutable JSON Array from a span of numbers.</summary>
+			/// <param name="values">Span of values that must be converted</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+			/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+			/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray FromValues(ReadOnlySpan<long> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var arr = new JsonArray();
+				arr.AddValues(values, settings, resolver);
+				return arr.FreezeUnsafe();
+			}
+
+			/// <summary>Creates a new mutable JSON Array from a span of numbers.</summary>
+			/// <param name="values">Span of values that must be converted</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+			/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+			/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray FromValues(ReadOnlySpan<float> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var arr = new JsonArray();
+				arr.AddValues(values, settings, resolver);
+				return arr.FreezeUnsafe();
+			}
+
+			/// <summary>Creates a new mutable JSON Array from a span of numbers.</summary>
+			/// <param name="values">Span of values that must be converted</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+			/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+			/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray FromValues(ReadOnlySpan<double> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var arr = new JsonArray();
+				arr.AddValues(values, settings, resolver);
+				return arr.FreezeUnsafe();
+			}
+
+			/// <summary>Creates a new mutable JSON Array from a span of <see cref="Guid"/>.</summary>
+			/// <param name="values">Span of values that must be converted</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+			/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+			/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray FromValues(ReadOnlySpan<Guid> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var arr = new JsonArray();
+				arr.AddValues(values, settings, resolver);
+				return arr.FreezeUnsafe();
+			}
+
+			/// <summary>Creates a new mutable JSON Array from a span of <see cref="Uuid128"/>.</summary>
+			/// <param name="values">Span of values that must be converted</param>
+			/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+			/// <param name="resolver">Optional custom resolver used to bind the value into a managed type.</param>
+			/// <returns>Mutable array with all values converted into <see cref="JsonValue"/> instances</returns>
+			/// <remarks>For a <b>read-only</b> array, see <see cref="JsonArray.ReadOnly.FromValues{TValue}(ReadOnlySpan{TValue},CrystalJsonSettings?,ICrystalJsonTypeResolver?)"/></remarks>
+			[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public static JsonArray FromValues(ReadOnlySpan<Uuid128> values, CrystalJsonSettings? settings = null, ICrystalJsonTypeResolver? resolver = null)
+			{
+				var arr = new JsonArray();
+				arr.AddValues(values, settings, resolver);
+				return arr.FreezeUnsafe();
+			}
+
 			#endregion
 
 		}
