@@ -2389,12 +2389,12 @@ namespace SnowBank.Data.Json
 			=> TryParse(jsonText, CrystalJsonSettings.Json, out result);
 
 		/// <inheritdoc />
-		public abstract bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider);
+		public abstract bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null);
 
 #if NET8_0_OR_GREATER
 
 		/// <inheritdoc />
-		public abstract bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format, IFormatProvider? provider);
+		public abstract bool TryFormat(Span<byte> destination, out int bytesWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null);
 
 #endif
 
