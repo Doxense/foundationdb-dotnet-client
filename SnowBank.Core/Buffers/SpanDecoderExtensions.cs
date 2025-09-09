@@ -1562,6 +1562,62 @@ namespace System
 			return true;
 		}
 
+		/// <summary>Formats a <see cref="ISpanFormattable"/> value at the start of <paramref name="buffer"/>, and replace the variable with the tail of the buffer</summary>
+		/// <remarks>
+		/// <para>The <paramref name="buffer"/> variable is passed <i>by reference</i> and is modified in-place!</para>
+		/// <para>Example:<code lang="c#">
+		/// public readonly struct Point2D : ISpanFormattable
+		/// {
+		///
+		///     public readonly double X;
+		///     public readonly double Y;
+		///
+		///     // ...
+		/// 
+		///     public bool TryFormat(Span&lt;char> destination, out int charsWritten, ReadOnlySpan&lt;char&gt; format = default, IFormatProvider? provider = null)
+		///     {
+		///         // => "(X, Y)"
+		/// 
+		///         var buffer = destination;
+		/// 
+		///         // open the parenthesis
+		///         if (!buffer.TryAppendAndAdvance('(')) goto too_small;
+		/// 
+		///         // writes X and advance the buffer (if it is large enough)
+		///         if (!buffer.TryAppendFormattableAndAdvance(this.X, "R", provider) goto too_small;
+		/// 
+		///         // write the comma separator
+		///         if (!buffer.TryAppendAndAdvance(", ")) goto too_small;
+		/// 
+		///         // writes X and advance the buffer (if it is large enough)
+		///         if (!buffer.TryAppendFormattableAndAdvance(this.Y, "R", provider) goto too_small;
+		/// 
+		///         // close the parenthesis
+		///         if (!buffer.TryAppendAndAdvance(')')) goto too_small;
+		/// 
+		///         charsWritten = destination.Length - buffer.Length;
+		///         return true;
+		/// 
+		///     too_small:
+		///         charsWritten = 0;
+		///         return false;
+		///     }
+		/// 
+		/// }
+		/// </code></para>
+		/// </remarks>
+		public static bool TryAppendFormattableAndAdvance<T>(ref this Span<char> buffer, in T item, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)
+			where T : ISpanFormattable
+		{
+			if (!item.TryFormat(buffer, out int written, format, provider))
+			{
+				return false;
+			}
+
+			buffer = buffer[written..];
+			return true;
+		}
+
 		/// <summary>Calls <see cref="Span{T}.TryCopyTo"/> and, if successful, sets the number of copied items in <see cref="written"/></summary>
 		/// <typeparam name="T"></typeparam>
 		/// <param name="source">The span to copy items from</param>
