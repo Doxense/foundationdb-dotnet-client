@@ -164,6 +164,8 @@ namespace SnowBank.Data.Json
 			this.Token = c;
 		}
 
+		internal bool HasReadNextToken() => this.Token != EMPTY_TOKEN;
+
 		/// <summary>Reads the next character from the stream</summary>
 		/// <returns>Next character, of <see langword="-1"/> if there are no more characters to read.</returns>
 		[Pure, MethodImpl(MethodImplOptions.AggressiveInlining)]

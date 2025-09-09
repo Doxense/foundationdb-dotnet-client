@@ -647,6 +647,97 @@ namespace SnowBank.Data.Json.Tests
 			Assert.That(obj, Has.Count.EqualTo(2));
 		}
 
+		[Test]
+		public void Test_Parse_Json_Fragments()
+		{
+			// we have a series of JSON values
+
+			static void Verify(string literal, JsonValue expected, int read)
+			{
+				Log($"# {JsonEncoding.Encode(literal)}");
+				var value = CrystalJson.ParseFragment(literal, out int charsRead);
+				Log($"- read {charsRead}, ({value?.GetType().Name}) {value:Q}, consumed: {JsonEncoding.Encode(literal[..charsRead])}, remaining: {JsonEncoding.Encode(literal[charsRead..])}");
+				Assert.That(value, Is.Json.EqualTo(expected));
+				Assert.That(charsRead, Is.EqualTo(read));
+			}
+
+			Verify("123", 123, 3);
+			Verify("123,", 123, 3);
+			Verify("123 ", 123, 3);
+			Verify("123\r\n\t", 123, 3);
+			Verify("\r\n\t123,", 123, 6);
+			Verify("123,", 123, 3);
+			Verify("123, \"Hello\"", 123, 3);
+
+			Verify("[1,2,3]", JsonArray.Create([ 1, 2, 3 ]), 7);
+			Verify("[ 1, 2, 3 ]", JsonArray.Create([ 1, 2, 3 ]), 11);
+			Verify("[ 1, 2, 3 ]\r\n", JsonArray.Create([ 1, 2, 3 ]), 11);
+			Verify("[ 1, 2, 3 ];Hello;There", JsonArray.Create([ 1, 2, 3 ]), 11);
+			Verify("[ 1, 2, 3 ]HelloThere", JsonArray.Create([ 1, 2, 3 ]), 11);
+
+			Verify("{\"hello\":\"world\",\"foo\":123}", JsonObject.Create([ ("hello", "world"), ("foo", 123) ]), 27);
+			Verify("{ \"hello\": \"world\", \"foo\": 123 }", JsonObject.Create([ ("hello", "world"), ("foo", 123) ]), 32);
+			Verify("\t{ \"hello\": \"world\", \"foo\": 123 }\r\n", JsonObject.Create([ ("hello", "world"), ("foo", 123) ]), 33);
+			Verify("{ \"hello\": \"world\", \"foo\": 123 },456", JsonObject.Create([ ("hello", "world"), ("foo", 123) ]), 32);
+			Verify("{\"hello\":\"world\",\"foo\":123};HelloThere", JsonObject.Create([ ("hello", "world"), ("foo", 123) ]), 27);
+			Verify("{\"hello\":\"world\",\"foo\":123}HelloThere", JsonObject.Create([ ("hello", "world"), ("foo", 123) ]), 27);
+
+			Verify("{\"hello\":\"world\"}{\"foo\":123}", JsonObject.Create([ ("hello", "world") ]), 17);
+			Verify("{\"hello\":\"world\"}[3,4]", JsonObject.Create([ ("hello", "world") ]), 17);
+			Verify("[1,2]{\"foo\":123}", JsonArray.Create([ 1, 2 ]), 5);
+
+			Verify("{\"hello\":\"world\"}\n{\"foo\":123}", JsonObject.Create([ ("hello", "world") ]), 17);
+			Verify("{\"hello\":\"world\"}\r\n[3,4]", JsonObject.Create([ ("hello", "world") ]), 17);
+			Verify("[1,2]\n{\"foo\":123}", JsonArray.Create([ 1, 2 ]), 5);
+			Verify("[1,2]\r\n{\"foo\":123}", JsonArray.Create([ 1, 2 ]), 5);
+		}
+
+		[Test]
+		public void Test_Parse_Json_Fragments_In_A_Loop()
+		{
+			static void Verify(string literal, JsonArray expected, char separator)
+			{
+				Log($"# `{JsonEncoding.Encode(literal)}`");
+				var items = new JsonArray();
+				ReadOnlySpan<char> buffer = literal;
+
+				while (buffer.Length > 0)
+				{
+					var value = CrystalJson.ParseFragment(buffer, out var read);
+					Assert.That(value, Is.Not.Null);
+					Assert.That(read, Is.GreaterThanOrEqualTo(0));
+
+					if (read == 0)
+					{
+						Log($"> items: {items:Q}");
+						Assert.That(items, Is.Json.EqualTo(expected));
+						return;
+					}
+
+					Log($"- {items.Count}: read {read}, ({value.GetType().Name}) {value:Q}, remainder: {JsonEncoding.Encode(buffer[read..])}");
+					Assert.That(items.Count, Is.LessThan(expected.Count));
+
+					Assert.That(value, Is.Json.EqualTo(expected[items.Count]));
+					items.Add(value);
+
+					buffer = buffer[read..];
+
+					if (buffer.Length > 0 && separator != '\0')
+					{
+						// verify that this is the expected separator, or some whitespace
+						if (!char.IsWhiteSpace(buffer[0]))
+						{
+							Assert.That(buffer[0], Is.EqualTo(separator));
+							buffer = buffer[1..];
+						}
+					}
+				}
+			}
+
+			Verify("123, \"Hello\", true, null, 3.1415\r\n", [ 123, "Hello", true, null!, 3.1415d ], ',');
+			Verify("123:\"Hello\":true:null:3.1415\r\n", [ 123, "Hello", true, null!, 3.1415d ], ':');
+			Verify("123 \"Hello\" true null 3.1415\r\n", [ 123, "Hello", true, null!, 3.1415d ], '\0');
+		}
 	}
 
 }

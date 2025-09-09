@@ -26,6 +26,7 @@
 
 namespace SnowBank.Data.Json
 {
+
 	/// <summary>JSON Text reader that wraps an in-memory buffer of characters</summary>
 	[DebuggerDisplay("Remaining={Remaining}")]
 	public unsafe struct JsonCharReader : IJsonReader
@@ -33,6 +34,7 @@ namespace SnowBank.Data.Json
 
 		private char* Cursor;
 		private readonly char* End;
+		private readonly char* Start;
 
 		/// <summary>Create a new char reader from an unmanaged memory buffer</summary>
 		/// <param name="buffer">Buffer containing decoded characters</param>
@@ -42,6 +44,7 @@ namespace SnowBank.Data.Json
 		{
 			this.Cursor = buffer + (autoDetectBom && count >= 1 && buffer[0] == 0xFEFF ? 1 : 0);
 			this.End = buffer + count;
+			this.Start = buffer;
 		}
 
 		/// <inheritdoc />
@@ -61,6 +64,9 @@ namespace SnowBank.Data.Json
 
 		/// <inheritdoc />
 		public int? Remaining => this.Cursor < this.End ? (int) (this.End - this.Cursor) : 0;
+
+		/// <summary>Number of characters consumed from the start</summary>
+		public int Consumed => checked((int) (this.Cursor - this.Start));
 
 	}
 

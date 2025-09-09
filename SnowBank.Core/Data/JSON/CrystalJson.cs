@@ -1239,6 +1239,48 @@ namespace SnowBank.Data.Json
 			}
 		}
 
+		/// <summary>Parses the next JSON fragment from a text literal</summary>
+		/// <param name="jsonText">JSON text document to parse</param>
+		/// <param name="charsRead">Receives the number of characters read from <paramref name="jsonText"/>, or <c>0</c> if no fragment was found.</param>
+		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
+		/// <returns>Corresponding JSON value, or <see cref="JsonNull.Missing"/> if <paramref name="jsonText"/> is empty or composed only of white-space characters</returns>
+		/// <remarks>
+		/// <para>When called in a loop to consume a multi-fragment buffer, the caller should stop when <see cref="charsRead"/> is <c>0</c>.</para>
+		/// <para>This methods will skip any initial whitespaces (which will be included in <see cref="charsRead"/>), but will not skip any trailing whitespaces.</para>
+		/// </remarks>
+		public static JsonValue ParseFragment(ReadOnlySpan<char> jsonText, out int charsRead, CrystalJsonSettings? settings = null)
+		{
+			if (jsonText.Trim().Length == 0)
+			{
+				charsRead = 0;
+				return JsonNull.Missing;
+			}
+
+			var tokenizer = default(CrystalJsonTokenizer<JsonCharReader>);
+			try
+			{
+				unsafe
+				{
+					fixed (char* buffer = jsonText)
+					{
+						tokenizer = new(new JsonCharReader(buffer, jsonText.Length), settings ?? CrystalJsonSettings.Json);
+
+						var result = CrystalJsonParser<JsonCharReader>.ParseJsonValue(ref tokenizer) ?? JsonNull.Missing;
+						charsRead = tokenizer.Source.Consumed;
+						if (tokenizer.HasReadNextToken())
+						{
+							--charsRead;
+						}
+						return result;
+					}
+				}
+			}
+			finally
+			{
+				tokenizer.Dispose();
+			}
+		}
+
 		/// <summary>Reads the content of a file, and returns the corresponding JSON value</summary>
 		/// <param name="path">Instance from which to read the JSON document</param>
 		/// <param name="settings">Serialization settings (use default JSON settings if null)</param>
