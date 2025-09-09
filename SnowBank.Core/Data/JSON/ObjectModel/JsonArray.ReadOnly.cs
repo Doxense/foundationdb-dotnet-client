@@ -364,6 +364,44 @@ namespace SnowBank.Data.Json
 			return new(items, newSize, readOnly: true);
 		}
 
+		/// <summary>Returns a new <b>read-only</b> copy of this array concatenated with another array</summary>
+		/// <param name="tail">Array that will be appended to the end of the new copy</param>
+		/// <returns>A new instance with the same content of the original array, plus the content of the tail</returns>
+		/// <remarks>
+		/// <para>If the array was not read-only, existing non-readonly items will also be converted to read-only.</para>
+		/// <para>For best performance, this should only be used on already read-only arrays.</para>
+		/// </remarks>
+		public JsonArray CopyAndConcat(ReadOnlySpan<JsonValue> tail)
+		{
+			if (tail.Length == 0)
+			{ // nothing to append, but we may not to return a copy !
+				return ToReadOnly();
+			}
+
+			if (m_size == 0)
+			{ // return the tail as readonly
+				return JsonArray.ReadOnly.Create(tail);
+			}
+
+			// copy and append the tail
+			int newSize = checked(m_size + tail.Length);
+			var items = new JsonValue[newSize];
+
+			// copy the original array
+			var chunk = items.AsSpan(..m_size);
+			this.AsSpan().CopyTo(chunk);
+			if (!m_readOnly)
+			{
+				MakeReadOnly(chunk);
+			}
+
+			// copy the tail
+			chunk = items.AsSpan(m_size..);
+			tail.CopyTo(chunk);
+			MakeReadOnly(chunk);
+
+			return new(items, newSize, readOnly: true);
+		}
 
 		/// <summary>Replaces a published <see cref="JsonArray">JSON Array</see> with a new version with extra items appended to the end, in a thread-safe manner, using a <see cref="SpinWait"/> if necessary.</summary>
 		/// <param name="original">Reference to the currently published <see cref="JsonArray">JSON Array</see></param>
