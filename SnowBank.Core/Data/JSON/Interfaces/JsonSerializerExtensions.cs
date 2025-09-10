@@ -30,6 +30,9 @@ namespace SnowBank.Data.Json
 	using System.Collections.Immutable;
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
+
+	using NodaTime.TimeZones;
+
 	using SnowBank.Buffers;
 
 	/// <summary>Helper methods for working with JSON converters</summary>
@@ -2025,18 +2028,30 @@ namespace SnowBank.Data.Json
 					: null;
 			}
 
+			/// <summary>Unpacks an optional instance of type <typeparamref name="TJsonDeserializable"/> from a <see cref="JsonValue"/></summary>
+			/// <param name="value">JSON value that will be bound to the new instance</param>
+			/// <param name="resolver">Resolver used to deserialize the items of the array (optional)</param>
+			/// <returns>Deserialized instance, or <c>null</c> if <paramref name="value"/> is null or missing.</returns>
+			/// <exception cref="JsonBindingException">If <paramref name="value"/> is not a valid representation for <typeparamref name="TJsonDeserializable"/></exception>
 			[Pure]
-			public static TJsonDeserializable? JsonUnpack(JsonValue? value, ICrystalJsonTypeResolver? resolver = null)
+			public static TJsonDeserializable? JsonUnpackOrDefault(JsonValue? value, ICrystalJsonTypeResolver? resolver = null)
 			{
 				return value is not (null or JsonNull)
 					? TJsonDeserializable.JsonDeserialize(value, resolver ?? CrystalJson.DefaultResolver)
 					: default;
 			}
 
+			/// <summary>Unpacks a required instance of type <typeparamref name="TJsonDeserializable"/> from a <see cref="JsonValue"/></summary>
+			/// <param name="value">JSON value that will be bound to the new instance</param>
+			/// <param name="resolver">Resolver used to deserialize the items of the array (optional)</param>
+			/// <returns>Deserialized instance.</returns>
+			/// <exception cref="JsonBindingException">If <paramref name="value"/> is null-or-missing, or if it is not a valid representation for <typeparamref name="TJsonDeserializable"/></exception>
 			[Pure]
-			public static TJsonDeserializable JsonUnpack(JsonObject value, ICrystalJsonTypeResolver? resolver = null)
+			public static TJsonDeserializable JsonUnpack(JsonValue value, ICrystalJsonTypeResolver? resolver = null)
 			{
-				return TJsonDeserializable.JsonDeserialize(value, resolver ?? CrystalJson.DefaultResolver);
+				return value is not (null or JsonNull)
+					? TJsonDeserializable.JsonDeserialize(value, resolver ?? CrystalJson.DefaultResolver)
+					: throw CrystalJson.Errors.Parsing_ValueIsNullOrMissing();
 			}
 
 			/// <summary>Deserializes a required array of non-null elements of type <typeparamref name="TJsonDeserializable"/></summary>
